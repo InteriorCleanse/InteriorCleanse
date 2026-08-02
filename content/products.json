@@ -1,8 +1,47 @@
 [
-{"slug":"stone-safe-countertop-mist","name":"Stone-Safe Countertop Mist","category":"Surface Cleaning","heroImage":"/images/product-countertop.svg","gallery":["/images/product-countertop.svg","/images/product-tools.svg"],"imageAlt":"Amber bottle of countertop cleaner on a warm stone kitchen surface","editorialBlurb":"A daily reset for kitchens that need to feel calm again before the evening light changes. Chosen for low-clutter counters, quick wipe-down rituals, and a scent profile that stays in the background.","priceRange":"$12–$24","tiktokShopUrl":"https://www.tiktok.com/@interiorcleanse","featured":true},
-{"slug":"linen-laundry-concentrate","name":"Linen Laundry Concentrate","category":"Laundry","heroImage":"/images/product-laundry.svg","gallery":["/images/product-laundry.svg"],"imageAlt":"Neutral laundry bottle beside folded cream towels","editorialBlurb":"A compact laundry staple for small-space utility rooms and anyone editing down a crowded shelf of products.","priceRange":"$15–$30","tiktokShopUrl":"https://www.tiktok.com/@interiorcleanse","featured":true},
-{"slug":"drawer-edit-bins","name":"Drawer Edit Bins","category":"Organization Tools","heroImage":"/images/product-bins.svg","gallery":["/images/product-bins.svg"],"imageAlt":"Modular drawer bins organizing everyday home items","editorialBlurb":"The quiet backbone of an organized home: simple bins that make the drawer tell you where everything belongs.","priceRange":"$18–$42","tiktokShopUrl":"https://www.tiktok.com/@interiorcleanse","featured":true},
-{"slug":"bathroom-glass-polish","name":"Bathroom Glass Polish","category":"Bathroom","heroImage":"/images/product-bath.svg","gallery":["/images/product-bath.svg"],"imageAlt":"Minimal bathroom cleaner beside fluted glass and folded towel","editorialBlurb":"For mirrors, shower glass, and the small weekly details that make a bathroom feel hotel-level without feeling sterile.","priceRange":"$10–$22","tiktokShopUrl":"https://www.tiktok.com/@interiorcleanse","featured":false},
-{"slug":"sink-reset-brush-set","name":"Sink Reset Brush Set","category":"Kitchen","heroImage":"/images/product-brush.svg","gallery":["/images/product-brush.svg"],"imageAlt":"Wood and natural fiber brush set by a kitchen sink","editorialBlurb":"A small upgrade to the sink zone: tactile, useful, and attractive enough to leave within reach.","priceRange":"$14–$28","tiktokShopUrl":"https://www.tiktok.com/@interiorcleanse","featured":true},
-{"slug":"wool-dryer-spheres","name":"Wool Dryer Spheres","category":"Laundry","heroImage":"/images/product-wool.svg","gallery":["/images/product-wool.svg"],"imageAlt":"Wool dryer balls in a linen pouch on a laundry shelf","editorialBlurb":"A softer, quieter laundry-room ritual for reducing single-use clutter and keeping linens feeling considered.","priceRange":"$9–$18","tiktokShopUrl":"https://www.tiktok.com/@interiorcleanse","featured":false}
+  {
+    "slug": "ic-signature-candle",
+    "name": "InteriorCleanse Signature Candle",
+    "category": "candle",
+    "tagline": "Hand-poured. Considered.",
+    "description": "Placeholder — owner to add description",
+    "price": 34,
+    "heroImage": "/images/candle-hero.svg",
+    "gallery": [],
+    "viewer": { "mode": "static" },
+    "channels": { "website": true, "amazonUrl": "TODO", "etsyUrl": "TODO", "tiktokShopUrl": "TODO" },
+    "featured": true,
+    "comingSoon": false,
+    "badge": "NEW"
+  },
+  {
+    "slug": "ic-linen-tote",
+    "name": "InteriorCleanse Tote Bag",
+    "category": "tote",
+    "tagline": "Carry the edit.",
+    "description": "Placeholder — owner to add",
+    "price": 28,
+    "heroImage": "/images/tote-hero.svg",
+    "gallery": [],
+    "viewer": { "mode": "static" },
+    "channels": { "website": true, "printfulId": "TODO" },
+    "featured": true,
+    "comingSoon": false,
+    "badge": "NEW"
+  },
+  {
+    "slug": "cleaning-picks",
+    "name": "Cleaning Picks",
+    "category": "cleaning",
+    "tagline": "Curated viral TikTok cleaning products.",
+    "description": "Our hand-picked TikTok Shop favorites.",
+    "price": 0,
+    "heroImage": "/images/cleaning-placeholder.svg",
+    "gallery": [],
+    "viewer": { "mode": "static" },
+    "channels": { "website": true },
+    "featured": true,
+    "comingSoon": true,
+    "badge": "COMING SOON"
+  }
 ]
