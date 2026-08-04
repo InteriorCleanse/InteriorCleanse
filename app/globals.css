@@ -16,3 +16,14 @@
 @media(max-width:900px){.site-header nav{display:none}.header-index{display:none}.edit-section,.library-home,.candle-feature,.email-section,.product-detail{grid-template-columns:1fr}.featured-grid{grid-template-columns:1fr 1fr}.magazine-strip{grid-template-columns:1fr;padding:6rem 5vw}.magazine-heading{border:0}.magazine-items{overflow-x:auto}.magazine-items>a{min-width:260px}.book-row{overflow-x:auto;display:flex;padding-bottom:2rem}.book-card{min-width:260px}.library-title{position:static}.candle-image{height:60vh}.email-section{align-items:start}.shop-grid{grid-template-columns:repeat(2,1fr)}.product-viewer{min-height:65vh}.footer-grid{grid-template-columns:1fr 1fr}.footer-grid>div:first-child{grid-column:span 2}.help-page li{grid-template-columns:50px 1fr}.help-page li span{grid-column:2}.magnetic-cursor{display:none}}
 @media(max-width:600px){.site-header{height:64px;padding:0 5vw}.wordmark{font-size:11px}.home-hero{height:calc(100svh - 64px);padding:2rem 5vw}.home-hero h1{font-size:17vw}.hero-edition{top:2rem}.light-section{padding:6rem 5vw}.edit-section{display:block}.featured-grid{margin-top:4rem;display:block}.product-card{margin-bottom:3rem}.magazine-items{display:flex}.magazine-items b{font-size:6rem}.editorial-triptych{grid-template-columns:1fr}.triptych-col,.triptych-col:nth-child(2),.triptych-col:nth-child(3){height:280px;margin-top:0}.library-home{padding:6rem 5vw}.candle-feature{padding:6rem 5vw}.manifesto{padding:8rem 5vw}.email-section{padding:6rem 5vw}.shop-hero{padding:6rem 5vw}.shop-grid{grid-template-columns:1fr}.shop-filter span:last-child{display:none}.product-information{padding:4rem 5vw}.product-viewer{min-height:58vh}.footer-grid{grid-template-columns:1fr}.footer-grid>div:first-child{grid-column:auto}.footer-base{flex-direction:column}.help-page{padding:6rem 5vw}.help-page h1{font-size:17vw}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}[data-reveal]{opacity:1;transform:none}.magnetic-cursor{display:none}}
+/* Spline 3D scenes */
+.spline-wrapper{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
+.spline-wrapper canvas{width:100%!important;height:100%!important;display:block}
+.spline-wrapper.is-loaded{opacity:.9}
+.spline-loading{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.spline-loading:after{content:'';width:24px;height:24px;border:1px solid rgba(169,137,90,.3);border-top-color:var(--brass);border-radius:50%;animation:spin 1s linear infinite}
+/* Hero: full-bleed behind the headline. Must follow .spline-wrapper.is-loaded to win on equal specificity. */
+.spline-hero-bg{z-index:0}
+.spline-hero-bg.is-loaded{opacity:.65}
+@media (max-width:600px){.spline-hero-bg{display:none}}
+@media (prefers-reduced-motion:reduce){.spline-wrapper{display:none}}
