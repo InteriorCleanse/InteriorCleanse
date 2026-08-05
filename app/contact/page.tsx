@@ -1,2 +1,61 @@
-import { SITE } from '@/lib/site-config'; import { EyebrowLabel, Section } from '@/components/ui';
-export default function Contact(){return <Section><EyebrowLabel>Contact</EyebrowLabel><h1 className="font-serif text-6xl">Questions, corrections, or collaboration notes.</h1><p className="mt-6 max-w-2xl leading-8 text-taupe">Email <a className="underline" href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>. The form below is client-only for static hosting; connect a hosted form endpoint before launch.</p><form action={process.env.NEXT_PUBLIC_CONTACT_FORM_ENDPOINT || '#'} method="post" className="mt-10 grid max-w-2xl gap-4"><input required name="name" placeholder="Name" className="min-h-12 border border-hairline bg-white px-4"/><input required type="email" name="email" placeholder="Email" className="min-h-12 border border-hairline bg-white px-4"/><textarea required name="message" placeholder="Message" rows={6} className="border border-hairline bg-white p-4"/><button className="w-fit bg-sage px-7 py-3 text-sm uppercase tracking-[.14em] text-white">Send</button></form></Section>}
+import type { Metadata } from 'next'
+import { PageHero } from '@/components/ui'
+import { SITE } from '@/lib/site-config'
+
+export const metadata: Metadata = {
+  title: 'Contact',
+  description: 'Questions, corrections, or collaboration notes — get in touch.',
+}
+
+export default function Contact() {
+  return (
+    <>
+      <PageHero
+        eyebrow="Contact"
+        title={
+          <>
+            Questions, corrections,
+            <br />
+            <em>or collaboration notes.</em>
+          </>
+        }
+      />
+
+      <section className="section" style={{ background: 'var(--ink)', paddingTop: 0 }}>
+        <div className="section-inner">
+          <div className="prose">
+            <p>
+              Email <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>. The
+              form below posts to a hosted form endpoint; set{' '}
+              <code>NEXT_PUBLIC_CONTACT_FORM_ENDPOINT</code> before launch so submissions
+              reach an inbox.
+            </p>
+          </div>
+
+          <form
+            action={process.env.NEXT_PUBLIC_CONTACT_FORM_ENDPOINT || '#'}
+            method="post"
+            className="contact-form"
+          >
+            <input required name="name" placeholder="Name" aria-label="Name" />
+            <input
+              required
+              type="email"
+              name="email"
+              placeholder="Email"
+              aria-label="Email"
+            />
+            <textarea
+              required
+              name="message"
+              placeholder="Message"
+              rows={6}
+              aria-label="Message"
+            />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      </section>
+    </>
+  )
+}

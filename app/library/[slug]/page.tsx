@@ -1,3 +1,81 @@
-import { allBooks, getBook } from '@/lib/content'; import { notFound } from 'next/navigation'; import { Button, EyebrowLabel, Section } from '@/components/ui';
-export function generateStaticParams(){return allBooks.map(b=>({slug:b.slug}))}
-export default function BookPage({params}:{params:{slug:string}}){const b=getBook(params.slug); if(!b) notFound(); return <Section><div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]"><img src={b.coverImage} alt={b.imageAlt} className="w-full max-w-md shadow-soft"/><div><EyebrowLabel>The Library</EyebrowLabel><h1 className="font-serif text-6xl">{b.title}</h1>{b.subtitle&&<p className="mt-4 font-serif text-2xl italic text-sage">{b.subtitle}</p>}<p className="mt-8 text-lg leading-8 text-taupe">{b.hook}</p><h2 className="mt-12 font-serif text-3xl">What you’ll learn</h2><ol className="mt-6 grid gap-4">{b.bullets.map((x,i)=><li className="flex gap-5" key={x}><span className="font-serif text-2xl text-taupe">{String(i+1).padStart(2,'0')}</span><span>{x}</span></li>)}</ol><div className="mt-10 flex flex-wrap gap-4"><Button href={b.paperbackUrl} external>Buy the Paperback</Button><Button href={b.kindleUrl} variant="secondary" external>Get the Kindle Edition</Button></div><div className="mt-12 border-t border-hairline pt-8"><h2 className="font-serif text-3xl">About the Author</h2><p className="mt-4 leading-8 text-taupe">InteriorCleanse is an editorial home project focused on calmer systems, warmer minimalism, and practical design decisions that make everyday maintenance easier.</p></div></div></div></Section>}
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { Button } from '@/components/ui'
+import { allBooks, getBook } from '@/lib/content'
+
+export function generateStaticParams() {
+  return allBooks.map((b) => ({ slug: b.slug }))
+}
+
+export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+  const b = getBook(params.slug)
+  if (!b) return { title: 'Book' }
+  return { title: b.title, description: b.hook }
+}
+
+export default function BookPage({ params }: { params: { slug: string } }) {
+  const b = getBook(params.slug)
+  if (!b) notFound()
+
+  return (
+    <section
+      className="section"
+      style={{
+        background: b.track === 'health' ? '#0D1B2A' : 'var(--mind-bg)',
+        paddingTop: 'calc(var(--header-h) + 6rem)',
+      }}
+    >
+      <div className="book-detail-grid">
+        <img
+          src={b.coverImage}
+          alt={b.imageAlt}
+          className="book-detail-cover"
+          data-reveal
+        />
+        <div>
+          <p className="eyebrow">The Library</p>
+          <h1 className="book-detail-title gsap-headline">{b.title}</h1>
+          {b.subtitle ? <p className="book-detail-subtitle">{b.subtitle}</p> : null}
+          <div className="prose">
+            <p className="lead">{b.hook}</p>
+          </div>
+
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.8rem',
+              fontWeight: 350,
+              marginTop: '3rem',
+              color: 'var(--bone)',
+            }}
+          >
+            What you&rsquo;ll learn
+          </h2>
+          <ol className="book-learn-list">
+            {b.bullets.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ol>
+
+          <div className="hero-actions">
+            <Button href={b.paperbackUrl} external>
+              Buy the paperback ↗
+            </Button>
+            <Button href={b.kindleUrl} variant="ghost" external>
+              Kindle edition ↗
+            </Button>
+          </div>
+
+          <div className="prose" style={{ marginTop: '4rem' }}>
+            <h2>About the author</h2>
+            <p>
+              InteriorCleanse is an editorial home project focused on calmer systems,
+              warmer minimalism, and practical design decisions that make everyday
+              maintenance easier.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}

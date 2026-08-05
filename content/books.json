@@ -1,5 +1,92 @@
 [
-{"slug":"the-calm-room-method","title":"The Calm Room Method","subtitle":"A field guide to rooms that breathe","coverImage":"https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=90","imageAlt":"Minimal cream book cover for The Calm Room Method","hook":"A practical design guide for editing visual noise, choosing quieter storage, and creating rooms that support daily life.","bullets":["How to identify visual clutter before buying anything new","Room-by-room editing prompts","Neutral palette planning that still feels warm","Storage decisions that become daily rituals"],"paperbackUrl":"https://www.amazon.com/","kindleUrl":"https://www.amazon.com/kindle-dbs/storefront","featured":true},
-{"slug":"small-home-reset","title":"Small Home Reset","subtitle":"Organizing beautifully when every inch counts","coverImage":"https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=90","imageAlt":"Taupe book cover for Small Home Reset","hook":"A compact-space organizing book for apartments, starter homes, and multi-use rooms that need to work harder.","bullets":["Vertical storage without visual chaos","Entry, kitchen, and closet reset plans","How to choose containers that disappear","Weekly maintenance rhythms"],"paperbackUrl":"https://www.amazon.com/","kindleUrl":"https://www.amazon.com/kindle-dbs/storefront","featured":true},
-{"slug":"edited-kitchen","title":"The Edited Kitchen","subtitle":"A quieter approach to the hardest-working room","coverImage":"https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=600&q=90","imageAlt":"Sage book cover for The Edited Kitchen","hook":"A kitchen-focused guide to counters, cabinets, pantry zones, and the tools worth keeping close.","bullets":["Countertop rules for calmer cooking","Pantry zones that reduce duplicate buying","Cabinet edits by frequency of use","Cleaning rituals that fit real evenings"],"paperbackUrl":"https://www.amazon.com/","kindleUrl":"https://www.amazon.com/kindle-dbs/storefront","featured":true}
+  {
+    "slug": "the-calm-room-method",
+    "title": "The Calm Room Method",
+    "subtitle": "A field guide to rooms that breathe",
+    "track": "mind",
+    "coverImage": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=90",
+    "imageAlt": "Minimal cream book cover for The Calm Room Method",
+    "hook": "A practical design guide for editing visual noise, choosing quieter storage, and creating rooms that support daily life.",
+    "bullets": [
+      "How to identify visual clutter before buying anything new",
+      "Room-by-room editing prompts",
+      "Neutral palette planning that still feels warm",
+      "Storage decisions that become daily rituals"
+    ],
+    "paperbackUrl": "https://www.amazon.com/",
+    "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
+    "featured": true
+  },
+  {
+    "slug": "small-home-reset",
+    "title": "Small Home Reset",
+    "subtitle": "Organizing beautifully when every inch counts",
+    "track": "mind",
+    "coverImage": "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=90",
+    "imageAlt": "Taupe book cover for Small Home Reset",
+    "hook": "A compact-space organizing book for apartments, starter homes, and multi-use rooms that need to work harder.",
+    "bullets": [
+      "Vertical storage without visual chaos",
+      "Entry, kitchen, and closet reset plans",
+      "How to choose containers that disappear",
+      "Weekly maintenance rhythms"
+    ],
+    "paperbackUrl": "https://www.amazon.com/",
+    "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
+    "featured": true
+  },
+  {
+    "slug": "edited-kitchen",
+    "title": "The Edited Kitchen",
+    "subtitle": "A quieter approach to the hardest-working room",
+    "track": "mind",
+    "coverImage": "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=600&q=90",
+    "imageAlt": "Sage book cover for The Edited Kitchen",
+    "hook": "A kitchen-focused guide to counters, cabinets, pantry zones, and the tools worth keeping close.",
+    "bullets": [
+      "Countertop rules for calmer cooking",
+      "Pantry zones that reduce duplicate buying",
+      "Cabinet edits by frequency of use",
+      "Cleaning rituals that fit real evenings"
+    ],
+    "paperbackUrl": "https://www.amazon.com/",
+    "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
+    "featured": true
+  },
+  {
+    "slug": "the-rested-body",
+    "title": "The Rested Body",
+    "subtitle": "Sleep, light, and the rooms that hold them",
+    "track": "health",
+    "coverImage": "https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=600&q=90",
+    "imageAlt": "Muted blue book cover for The Rested Body",
+    "hook": "How the design of a bedroom shapes the quality of a night — light, texture, temperature, and the small rituals that close a day.",
+    "bullets": [
+      "Evening light and why the last hour matters most",
+      "Bedding materials that regulate rather than trap",
+      "Clearing the surfaces that keep you awake",
+      "A closing routine you can actually repeat"
+    ],
+    "paperbackUrl": "https://www.amazon.com/",
+    "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
+    "featured": false
+  },
+  {
+    "slug": "clean-air-clean-home",
+    "title": "Clean Air, Clean Home",
+    "subtitle": "A practical guide to what you breathe indoors",
+    "track": "health",
+    "coverImage": "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=90",
+    "imageAlt": "Pale green book cover for Clean Air, Clean Home",
+    "hook": "A plain-English look at indoor air — ventilation, filtration, fragrance, and the cleaning products worth reconsidering.",
+    "bullets": [
+      "What actually improves indoor air, in order of impact",
+      "Choosing and maintaining a filter that works",
+      "Fragrance, candles, and honest trade-offs",
+      "A room-by-room ventilation habit"
+    ],
+    "paperbackUrl": "https://www.amazon.com/",
+    "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
+    "featured": false
+  }
 ]

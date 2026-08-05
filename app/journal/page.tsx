@@ -1,2 +1,35 @@
-import { articles } from '@/lib/content'; import { ArticleCard } from '@/components/cards'; import { EyebrowLabel, Section } from '@/components/ui';
-export default function Journal(){return <><div className="relative h-[58vh] min-h-[420px] overflow-hidden bg-ink"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1400&q=90" alt="Organized home shelf with books and considered objects" className="h-full w-full object-cover opacity-70"/><div className="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent"/></div><Section><EyebrowLabel>Journal</EyebrowLabel><h1 className="font-serif text-6xl">Editorial notes for a quieter home.</h1><div className="mt-14 grid gap-12 md:grid-cols-2">{articles.map(a=><ArticleCard article={a} key={a.slug}/>)}</div></Section></>}
+import type { Metadata } from 'next'
+import { ArticleCard } from '@/components/cards'
+import { PageHero } from '@/components/ui'
+import { articles } from '@/lib/content'
+
+export const metadata: Metadata = {
+  title: 'The Journal',
+  description: 'Editorial notes on home rituals, cleaning edits, and a quieter home.',
+}
+
+export default function Journal() {
+  return (
+    <>
+      <PageHero
+        eyebrow="The journal"
+        title={
+          <>
+            Editorial notes for a
+            <br />
+            <em>quieter home.</em>
+          </>
+        }
+      />
+      <section className="section" style={{ background: 'var(--ink)' }}>
+        <div className="section-inner">
+          <div className="grid-2">
+            {articles.map((a) => (
+              <ArticleCard article={a} key={a.slug} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}

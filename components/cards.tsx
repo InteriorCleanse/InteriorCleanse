@@ -1,4 +1,111 @@
-import Link from 'next/link'; import { Product, Book, Article } from '@/lib/types'; import { Button, EyebrowLabel } from './ui'; import { SpinIndicator } from './SpinIndicator';
-export function ProductCard({product,index=0,className=''}:{product:Product;index?:number;className?:string}){return <article data-reveal className={`product-card group ${className}`}><Link href={`/shop/${product.slug}`} className="product-card__visual"><img src={product.heroImage} alt={product.name} style={{animationDelay:`${index*.5}s`}}/><SpinIndicator/>{product.badge&&<span className="product-badge">{product.badge}</span>}</Link><div className="pt-5"><p className="eyebrow">{product.category} · {product.price?`$${product.price}`:'THE EDIT'}</p><h3 className="mt-2 font-serif text-3xl leading-tight"><Link href={`/shop/${product.slug}`}>{product.name}</Link></h3><p className="mt-3 text-sm text-taupe">{product.tagline}</p></div></article>}
-export function BookCard({book}:{book:Book}){return <article className="book-card" data-reveal><Link href={`/library/${book.slug}`}><img src={book.coverImage} alt={book.imageAlt}/></Link><p className="eyebrow mt-6">The Library</p><h3 className="mt-2 font-serif text-2xl"><Link href={`/library/${book.slug}`}>{book.title}</Link></h3><div className="mt-4 flex flex-wrap gap-3"><Button href={book.paperbackUrl} variant="secondary" external>Paperback</Button><Button href={book.kindleUrl} variant="text" external>Kindle</Button></div></article>}
-export function ArticleCard({article}:{article:Article}){return <article data-reveal><img src={article.image} alt={article.imageAlt} className="aspect-[16/11] w-full object-cover"/><EyebrowLabel>{article.eyebrow}</EyebrowLabel><h3 className="font-serif text-3xl"><Link href={`/journal/${article.slug}`}>{article.title}</Link></h3><p className="mt-3 text-taupe">{article.excerpt}</p></article>}
+import Link from 'next/link'
+import type { Article, Book, Product, SpiritBook } from '@/lib/types'
+
+/** A channel URL is only real once the owner has replaced the TODO marker. */
+export const validUrl = (url?: string) => Boolean(url && url !== 'TODO')
+
+export function ProductCard({
+  product,
+  index = 0,
+}: {
+  product: Product
+  index?: number
+}) {
+  return (
+    <article className="product-card">
+      <Link href={`/shop/${product.slug}/`} className="product-card-image">
+        <img
+          src={product.heroImage}
+          alt={product.name}
+          loading={index < 3 ? 'eager' : 'lazy'}
+        />
+        {product.badge ? <span className="product-card-badge">{product.badge}</span> : null}
+      </Link>
+      <div className="product-card-info">
+        <p className="product-card-category">{product.category}</p>
+        <h3 className="product-card-name">
+          <Link href={`/shop/${product.slug}/`}>{product.name}</Link>
+        </h3>
+        <p className="product-card-tagline">{product.tagline}</p>
+        <p className="product-card-price">
+          {product.price ? `$${product.price}` : 'View →'}
+        </p>
+      </div>
+    </article>
+  )
+}
+
+export function BookCard({ book }: { book: Book }) {
+  return (
+    <article className="book-card">
+      <Link href={`/library/${book.slug}/`} className="book-card-image">
+        <img src={book.coverImage} alt={book.imageAlt} loading="lazy" />
+      </Link>
+      <div className="book-card-info">
+        <p className="eyebrow" style={{ fontSize: '9px' }}>
+          The Library
+        </p>
+        <h3 className="book-card-title">
+          <Link href={`/library/${book.slug}/`}>{book.title}</Link>
+        </h3>
+        <p className="book-card-hook">{book.hook}</p>
+        <div className="book-buy-buttons">
+          <a
+            href={book.paperbackUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="book-buy-btn"
+          >
+            Paperback ↗
+          </a>
+          <a
+            href={book.kindleUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="book-buy-btn"
+          >
+            Kindle ↗
+          </a>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+export function SpiritCard({ book }: { book: SpiritBook }) {
+  return (
+    <article className="spirit-card">
+      <div className="spirit-card-image">
+        <img src={book.coverImage} alt={book.imageAlt} loading="lazy" />
+        {book.badge ? <span className="spirit-badge">{book.badge}</span> : null}
+      </div>
+      <p className="spirit-category">{book.category}</p>
+      <h3 className="spirit-title">{book.title}</h3>
+      <p className="spirit-subtitle">{book.subtitle}</p>
+      <p className="spirit-desc">{book.description}</p>
+      <div className="spirit-foot">
+        <span className="spirit-price">{book.price}</span>
+        <a href={book.amazonUrl} target="_blank" rel="noreferrer" className="spirit-buy">
+          Buy ↗
+        </a>
+      </div>
+    </article>
+  )
+}
+
+export function ArticleCard({ article }: { article: Article }) {
+  return (
+    <article data-reveal>
+      <Link href={`/journal/${article.slug}/`} className="article-card-image">
+        <img src={article.image} alt={article.imageAlt} loading="lazy" />
+      </Link>
+      <p className="eyebrow" style={{ marginBottom: '0.8rem' }}>
+        {article.eyebrow}
+      </p>
+      <h3 className="article-card-title">
+        <Link href={`/journal/${article.slug}/`}>{article.title}</Link>
+      </h3>
+      <p className="article-card-excerpt">{article.excerpt}</p>
+    </article>
+  )
+}
