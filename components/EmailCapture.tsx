@@ -1,26 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { EMAIL_FORM_ENDPOINT } from '@/lib/site-config'
+import { subscribeEmail, useSource } from '@/lib/use-source'
 import { LottieIcon } from './LottieIcon'
 
-/** The inline subscribe line used at the foot of the homepage. */
+/** The inline subscribe line at the foot of the homepage. */
 export function EmailCapture() {
   const [value, setValue] = useState('')
   const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const source = useSource()
 
-  const submit = () => {
+  const submit = async () => {
     if (!value.includes('@')) return
-    if (EMAIL_FORM_ENDPOINT) {
-      fetch(EMAIL_FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: value }),
-      }).catch(() => {
-        /* Optimistic: a provider outage shouldn't read as the visitor's fault. */
-      })
+    setBusy(true)
+    setError('')
+    try {
+      await subscribeEmail(value, source)
+      setDone(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setBusy(false)
     }
-    setDone(true)
   }
 
   return (
@@ -38,9 +41,17 @@ export function EmailCapture() {
           }}
           placeholder="YOUR EMAIL ADDRESS"
           type="email"
+          disabled={done}
         />
-        <button onClick={submit}>{done ? 'Welcome to the edit ✦' : 'Subscribe →'}</button>
+        <button onClick={submit} disabled={busy || done}>
+          {done ? 'Welcome to the edit ✦' : busy ? 'Sending…' : 'Subscribe →'}
+        </button>
       </div>
+      {error ? (
+        <p className="popup-privacy" style={{ color: '#E06B5A' }}>
+          {error}
+        </p>
+      ) : null}
     </>
   )
 }

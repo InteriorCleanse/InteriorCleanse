@@ -1,19 +1,22 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { EMAIL_FORM_ENDPOINT } from '@/lib/site-config'
+import { subscribeEmail, useSource } from '@/lib/use-source'
 
 /**
- * One-per-session email capture. Posts to EMAIL_FORM_ENDPOINT when one is
- * configured; without an endpoint it still confirms to the visitor but the
- * address is not stored anywhere — wire up a form provider before launch.
+ * One-per-session email capture. Posts to /api/subscribe, which stores the
+ * contact in Brevo (tagged with the acquisition source) and triggers the
+ * Claude-authored welcome email.
  */
 export function EmailPopup() {
   const [open, setOpen] = useState(false)
   const [closing, setClosing] = useState(false)
   const [email, setEmail] = useState('')
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
   const timers = useRef<number[]>([])
+  const source = useSource()
 
   useEffect(() => {
     if (sessionStorage.getItem('ic_popup')) return
@@ -44,19 +47,19 @@ export function EmailPopup() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, close])
 
-  const submit = () => {
+  const submit = async () => {
     if (!email.includes('@')) return
-    if (EMAIL_FORM_ENDPOINT) {
-      fetch(EMAIL_FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      }).catch(() => {
-        /* Confirmation is optimistic; a provider outage shouldn't scold. */
-      })
+    setBusy(true)
+    setError('')
+    try {
+      await subscribeEmail(email, source)
+      setSuccess(true)
+      timers.current.push(window.setTimeout(close, 2500))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setBusy(false)
     }
-    setSuccess(true)
-    timers.current.push(window.setTimeout(close, 2500))
   }
 
   if (!open) return null
@@ -95,9 +98,14 @@ export function EmailPopup() {
             if (e.key === 'Enter') submit()
           }}
         />
-        <button className={`popup-submit ${success ? 'success' : ''}`} onClick={submit}>
-          {success ? 'WELCOME TO THE EDIT ✦' : 'JOIN THE EDIT →'}
+        <button
+          className={`popup-submit ${success ? 'success' : ''}`}
+          onClick={submit}
+          disabled={busy || success}
+        >
+          {success ? 'WELCOME TO THE EDIT ✦' : busy ? 'SENDING…' : 'JOIN THE EDIT →'}
         </button>
+        {error ? <p className="admin-error" style={{ marginTop: '0.8rem' }}>{error}</p> : null}
         <p className="popup-privacy">
           No spam. Unsubscribe anytime. Your details stay private.
         </p>

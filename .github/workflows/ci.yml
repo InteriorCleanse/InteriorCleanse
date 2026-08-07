@@ -1,0 +1,30 @@
+name: CI
+
+# The GitHub Pages deploy workflow was removed: the site now has API routes,
+# middleware, and a Stripe webhook, none of which can exist in a static export.
+# Hosting moved to Vercel, which deploys on push by itself. This workflow just
+# catches a broken build before Vercel ships it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          # Build-time placeholders. Real values live in Vercel; every
+          # integration is read lazily at request time, so the build does not
+          # need working credentials.
+          NEXT_PUBLIC_SITE_URL: https://interiorcleanse.com

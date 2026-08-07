@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CartButton } from './cart'
 import { BRAND_NAME, SITE } from '@/lib/site-config'
 
 const NAV: [string, string][] = [
@@ -33,9 +34,7 @@ export function Header() {
             {label}
           </Link>
         ))}
-        <Link href="/shop/" className="nav-cta">
-          Shop now
-        </Link>
+        <CartButton />
       </nav>
     </header>
   )

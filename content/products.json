@@ -9,11 +9,23 @@
     "heroImage": "https://images.unsplash.com/photo-1602928298849-325cec8771c0?w=900&q=90",
     "gallery": [],
     "materialColor": "#F5EDD6",
-    "viewer": { "mode": "static" },
-    "channels": { "website": true, "amazonUrl": "TODO", "etsyUrl": "TODO", "tiktokShopUrl": "TODO" },
+    "viewer": {
+      "mode": "static"
+    },
+    "channels": {
+      "website": true,
+      "amazonUrl": "TODO",
+      "etsyUrl": "TODO",
+      "tiktokShopUrl": "TODO"
+    },
     "featured": true,
     "comingSoon": false,
-    "badge": "NEW"
+    "badge": "NEW",
+    "careNotes": [
+      "Approximately 50-hour burn time",
+      "Trim the wick to ¼ inch before each burn",
+      "Hand-poured soy-blend wax in a reusable vessel"
+    ]
   },
   {
     "slug": "ic-linen-tote",
@@ -25,11 +37,21 @@
     "heroImage": "https://images.unsplash.com/photo-1611516491426-03025e6043c8?w=900&q=85",
     "gallery": [],
     "materialColor": "#C7BDA9",
-    "viewer": { "mode": "static" },
-    "channels": { "website": true, "printfulId": "TODO" },
+    "viewer": {
+      "mode": "static"
+    },
+    "channels": {
+      "website": true,
+      "printfulId": "TODO"
+    },
     "featured": true,
     "comingSoon": false,
-    "badge": "NEW"
+    "badge": "NEW",
+    "careNotes": [
+      "Heavyweight natural cotton canvas",
+      "Reinforced seams and long shoulder straps",
+      "Machine wash cold, hang to dry"
+    ]
   },
   {
     "slug": "considered-home-art-print",
@@ -41,10 +63,20 @@
     "heroImage": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=900&q=85",
     "gallery": [],
     "materialColor": "#E8DFD0",
-    "viewer": { "mode": "static" },
-    "channels": { "website": true, "printfulId": "TODO" },
+    "viewer": {
+      "mode": "static"
+    },
+    "channels": {
+      "website": true,
+      "printfulId": "TODO"
+    },
     "featured": true,
-    "comingSoon": false
+    "comingSoon": false,
+    "careNotes": [
+      "Giclée print on heavyweight matte stock",
+      "Ships flat and unframed",
+      "Handle by the edges; frame behind glass to prevent fading"
+    ]
   },
   {
     "slug": "ic-ceramic-mug",
@@ -56,10 +88,20 @@
     "heroImage": "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=900&q=85",
     "gallery": [],
     "materialColor": "#F0EBE3",
-    "viewer": { "mode": "static" },
-    "channels": { "website": true, "printfulId": "TODO" },
+    "viewer": {
+      "mode": "static"
+    },
+    "channels": {
+      "website": true,
+      "printfulId": "TODO"
+    },
     "featured": true,
-    "comingSoon": false
+    "comingSoon": false,
+    "careNotes": [
+      "Glazed stoneware, 11 oz",
+      "Dishwasher and microwave safe",
+      "Full handle, weighted base"
+    ]
   },
   {
     "slug": "ic-premium-hoodie",
@@ -71,10 +113,20 @@
     "heroImage": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=900&q=85",
     "gallery": [],
     "materialColor": "#2C2822",
-    "viewer": { "mode": "static" },
-    "channels": { "website": true, "printfulId": "TODO" },
+    "viewer": {
+      "mode": "static"
+    },
+    "channels": {
+      "website": true,
+      "printfulId": "TODO"
+    },
     "featured": false,
-    "comingSoon": false
+    "comingSoon": false,
+    "careNotes": [
+      "Midweight brushed fleece, relaxed cut",
+      "Ribbed cuff and hem",
+      "Wash cold inside out, tumble dry low"
+    ]
   },
   {
     "slug": "cleaning-picks",
@@ -86,8 +138,12 @@
     "heroImage": "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=900&q=85",
     "gallery": [],
     "materialColor": "#5B8B8A",
-    "viewer": { "mode": "static" },
-    "channels": { "website": true },
+    "viewer": {
+      "mode": "static"
+    },
+    "channels": {
+      "website": true
+    },
     "featured": true,
     "comingSoon": true,
     "badge": "COMING SOON",

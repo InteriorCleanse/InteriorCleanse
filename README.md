@@ -1,23 +1,30 @@
 # InteriorCleanse
 
-A static-export Next.js storefront and author site — *For Mind, Home, Body & Spirit*.
-Dark editorial design with real-time 3D product viewers.
+A Next.js storefront and author site — *For Mind, Home, Body & Spirit*.
+Dark editorial design, real-time 3D product viewers, Stripe checkout with
+Printful auto-fulfilment, a Brevo CRM, and Claude-authored lifecycle email.
 
 ## Run locally
 
 ```bash
 npm install
+cp .env.example .env.local   # fill in what you need; see VERCEL_ENV_SETUP.md
 npm run dev
 ```
 
-## Build static site
+## Build
 
 ```bash
 npm run build
 ```
 
-The site uses `output: 'export'`, so GitHub Pages serves the generated `out/`
-directory without a Node server.
+The site needs a Node runtime — it has API routes, middleware, and a Stripe
+webhook. `output: 'export'` was removed because a static export cannot contain
+any of those. Hosting is Vercel; see `VERCEL_ENV_SETUP.md`.
+
+Integrations are read lazily at request time, so the build succeeds without any
+credentials. A feature whose key is missing reports that in the UI instead of
+failing the build.
 
 ## The stack
 
@@ -31,8 +38,11 @@ directory without a Node server.
 | `framer-motion` | Cross-route page transitions |
 | `@lottiefiles/dotlottie-react` | Track icons, trust strip, email capture |
 | `@rive-app/react-canvas` | Optional interactive vector animations (see below) |
+| `stripe` | Checkout sessions and webhook verification |
+| `@anthropic-ai/sdk` | Lifecycle email generation (`claude-sonnet-5`) |
+| `swr` + `recharts` | Admin dashboard data and charts |
 
-Every WebGL scene is loaded through a client wrapper with `ssr: false`
+Every WebGL scene loads through a client wrapper with `ssr: false`
 (`components/3d/*Loader.tsx`) — Server Components cannot pass that flag to
 `next/dynamic` themselves.
 
@@ -60,22 +70,56 @@ request fails, `<LottieIcon>` falls back to the ◇ mark rather than a blank gap
 ### Rive (optional, not yet wired to assets)
 
 `components/RiveAnimation.tsx` is ready but **no `.riv` files ship with the
-repo** — Rive files are binary and must be exported by hand. To use it:
+repo** — Rive files are binary and must be exported by hand. Save one to
+`public/rive/` and render `<RiveAnimation src="/rive/candle.riv" />`. Until a
+file exists at that path the component renders its `fallback` prop.
 
-1. Download a file from [rive.app/community](https://rive.app/community)
-   (check each file's licence).
-2. Save it to `public/rive/`, e.g. `public/rive/candle.riv`.
-3. Render `<RiveAnimation src="/rive/candle.riv" />`.
+## Commerce and automation
 
-Until a file exists at that path the component renders its `fallback` prop, so
-a missing asset degrades gracefully instead of showing a dead canvas.
+| Route | Does |
+| --- | --- |
+| `POST /api/checkout/` | Creates a Stripe Checkout Session from the cart |
+| `POST /api/webhook/` | On payment: places the Printful order, syncs the customer to Brevo, sends the Claude post-purchase email |
+| `POST /api/subscribe/` | Adds a contact to Brevo (tagged with UTM source) and sends the AI welcome email |
+| `POST /api/send-ai-email/` | Admin-only. `preview: true` generates without sending |
+| `GET /api/printful/sync/` | Printful catalogue, mapped to the site's Product shape |
+| `GET /api/printify/sync/` | Printify catalogue, same shape |
+| `GET /api/admin/contacts/`, `/orders/`, `/analytics/` | Dashboard data — all behind the admin cookie |
+
+**The trailing slashes are required.** `trailingSlash: true` means the
+slash-less URL answers `308`, and Stripe does not follow redirects on webhook
+delivery — it records the 308 as a failed attempt.
+
+The webhook reads the raw request body: signature verification hashes the exact
+bytes Stripe sent, so any parse-and-reserialize breaks every check. It answers
+`200` once the signature verifies even if a downstream step failed, because a
+non-2xx makes Stripe redeliver and re-place the Printful order; per-step
+failures come back as `{"failures": [...]}`.
+
+### Admin dashboard
+
+`/admin` — contacts, orders, analytics, and a Claude email composer. Gated by
+`ADMIN_PASSWORD`, with an HMAC-signed session cookie keyed on
+`ADMIN_SESSION_SECRET`. `middleware.ts` verifies the signature and each admin
+route re-checks it, so the dashboard is never the only guard.
+
+### Syncing the catalogue
+
+```bash
+npm run sync
+```
+
+Writes `content/products.json` from Printful and Printify, deduplicated by slug
+and preserving hand-written `tagline`, `description`, and `careNotes`. Runs
+locally by design — a serverless filesystem is read-only, so a route that wrote
+the file would lose the change on the next deploy.
 
 ## Add a product
 
 Edit `content/products.json`. Required: `slug`, `name`, `category`, `tagline`,
 `description`, `price`, `heroImage`, `gallery`, `viewer`, `channels`,
-`featured`, `comingSoon`. Optional: `materialColor` (drives the 3D viewer's
-base colour), `badge`, `careNotes`.
+`featured`, `comingSoon`. Optional: `materialColor` (the 3D viewer's base
+colour), `badge`, `careNotes`.
 
 `category` must be one of `candle`, `print`, `tote`, `mug`, `cleaning`, `book`,
 `custom` — each maps to real geometry in `components/3d/ProductGeometry.tsx`.
@@ -84,34 +128,32 @@ base colour), `badge`, `careNotes`.
 
 Edit `content/books.json`. Required: `slug`, `title`, `coverImage`, `imageAlt`,
 `hook`, `bullets`, `paperbackUrl`, `kindleUrl`, `featured`. Optional: `track`
-(`mind` | `health` | `home`) — `mind` and untracked books appear in the main
-library, `health` books in the second band.
+(`mind` | `health` | `home`).
 
-Faith-library titles live in `spiritBooks` in `lib/content.ts`.
+Faith-library titles live in `spiritBooks` in `lib/content.ts`. Digital
+downloads live in `content/digital-products.json`.
 
 ## Environment variables
 
-Copy `.env.example` to `.env.local`. Because the site is static, forms post
-directly to hosted endpoints (Formspree, ConvertKit, Mailchimp). Analytics stays
-off unless a public domain/ID is configured.
+See `VERCEL_ENV_SETUP.md` for where to find every key and how to configure the
+Stripe webhook. Copy `.env.example` to `.env.local` for local work.
 
 ## Deployment
 
-`.github/workflows/deploy.yml` builds and deploys `out/` to GitHub Pages on
-pushes to `main`. In repository settings, set Pages source to **GitHub Actions**.
+Vercel. Import the repo, add the environment variables, deploy — Vercel builds
+on every push.
+
+`.github/workflows/ci.yml` runs `npm run lint` and `npm run build` so a broken
+build is caught before it ships. The GitHub Pages workflow was removed along
+with `output: 'export'`.
 
 ### Custom domain
 
-`public/CNAME` contains `interiorcleanse.com` and is copied into `out/` on every
-build. For the domain to serve, the owner must also:
-
-1. Point DNS at GitHub Pages — four `A` records for the apex
-   (`185.199.108–111.153`), plus a `CNAME` for `www` →
-   `interiorcleanse.github.io`.
-2. In **Settings → Pages**, set the custom domain to `interiorcleanse.com` and
-   enable *Enforce HTTPS* once the certificate is issued.
+In Vercel → **Settings → Domains**, add `interiorcleanse.com` and set the
+A/CNAME records Vercel shows you. These replace the GitHub Pages DNS records;
+`public/CNAME` has been removed.
 
 ## Launch notes
 
-See `CONTENT_CHECKLIST.md` for placeholder content, legal review, and the real
-affiliate links required before launch.
+See `CONTENT_CHECKLIST.md` and the checklist at the end of
+`VERCEL_ENV_SETUP.md` for what still needs doing outside the code.

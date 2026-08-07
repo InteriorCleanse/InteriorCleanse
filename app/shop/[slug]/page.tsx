@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ProductStageLoader } from '@/components/3d/ProductStageLoader'
 import type { StageCategory } from '@/components/3d/ProductGeometry'
 import { validUrl } from '@/components/cards'
+import { AddToCartButton } from '@/components/cart'
 import { allProducts, getProduct } from '@/lib/content'
 import type { Product } from '@/lib/types'
 
@@ -97,15 +98,17 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           <span className="product-currency">USD · Tax at checkout</span>
         </div>
 
-        {p.comingSoon ? (
-          <button className="add-to-cart-btn" disabled>
-            COMING SOON <span>◇</span>
-          </button>
-        ) : (
-          <button className="add-to-cart-btn">
-            ADD TO CART <span>→</span>
-          </button>
-        )}
+        <AddToCartButton
+          disabled={p.comingSoon}
+          item={{
+            slug: p.slug,
+            name: p.name,
+            price: p.price,
+            heroImage: p.heroImage,
+            printfulVariantId: p.channels.printfulId,
+            printifyVariantId: p.channels.printifyId,
+          }}
+        />
 
         <div className="channel-buttons">
           {validUrl(p.channels.amazonUrl) ? (

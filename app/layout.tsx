@@ -6,6 +6,7 @@ import { EmailPopup } from '@/components/EmailPopup'
 import { GSAPAnimations } from '@/components/GSAPAnimations'
 import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
+import { CartDrawer, CartProvider } from '@/components/cart'
 import { BRAND_NAME, PLAUSIBLE_DOMAIN, SITE } from '@/lib/site-config'
 
 export const metadata: Metadata = {
@@ -33,16 +34,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        <Experience />
-        <GSAPAnimations />
-        <EmailPopup />
-        <Header />
-        <PageTransition>
-          <SmoothScroll>
-            <main id="main">{children}</main>
-          </SmoothScroll>
-        </PageTransition>
-        <Footer />
+        <CartProvider>
+          <Experience />
+          <GSAPAnimations />
+          <EmailPopup />
+          <Header />
+          <CartDrawer />
+          <PageTransition>
+            <SmoothScroll>
+              <main id="main">{children}</main>
+            </SmoothScroll>
+          </PageTransition>
+          <Footer />
+        </CartProvider>
         {PLAUSIBLE_DOMAIN ? (
           <script defer data-domain={PLAUSIBLE_DOMAIN} src="https://plausible.io/js/script.js" />
         ) : null}
