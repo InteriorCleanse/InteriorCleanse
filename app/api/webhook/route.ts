@@ -101,14 +101,32 @@ export async function POST(req: Request) {
   const productNames =
     lineItems?.data.map((li) => (li.price?.product as Stripe.Product)?.name ?? '') ?? []
 
-  // 1. Printful fulfilment
-  if (lineItems && configured.printful()) {
-    const printfulItems = lineItems.data
-      .map((li) => ({
-        id: ((li.price?.product as Stripe.Product)?.metadata?.printfulVariantId ?? '').trim(),
-        quantity: li.quantity ?? 1,
-      }))
-      .filter((i) => i.id)
+  // 1. Printful fulfilment.
+  // Checkout writes the variant list into session metadata; that is the
+  // authoritative source. Expanded line items are the fallback for sessions
+  // whose metadata was dropped for exceeding Stripe's 500-char value limit.
+  if (configured.printful()) {
+    let printfulItems: { id: string; quantity: number }[] = []
+
+    const raw = session.metadata?.printfulItems
+    if (raw) {
+      try {
+        printfulItems = (JSON.parse(raw) as { variantId: string; qty: number }[])
+          .filter((i) => i?.variantId)
+          .map((i) => ({ id: String(i.variantId), quantity: Number(i.qty) || 1 }))
+      } catch (e) {
+        console.error('[webhook] could not parse printfulItems metadata', e)
+      }
+    }
+
+    if (printfulItems.length === 0 && lineItems) {
+      printfulItems = lineItems.data
+        .map((li) => ({
+          id: ((li.price?.product as Stripe.Product)?.metadata?.printfulVariantId ?? '').trim(),
+          quantity: li.quantity ?? 1,
+        }))
+        .filter((i) => i.id)
+    }
 
     if (printfulItems.length > 0) {
       try {

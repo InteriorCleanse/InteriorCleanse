@@ -95,9 +95,42 @@ It must be set, or `/admin` returns a 500 rather than letting anyone in.
 
 ---
 
-## Configuring the Stripe webhook
+## Creating the Stripe products, prices, and webhook
 
-This is the step that makes orders reach Printful automatically.
+`npm run stripe:setup` does all of this for you. It needs `STRIPE_SECRET_KEY`
+locally — that key is yours, so this step runs on your machine, not on the
+server and not by anyone else.
+
+```bash
+echo "STRIPE_SECRET_KEY=sk_test_..." >> .env.local
+
+npm run stripe:setup                      # dry run — lists what it would do
+npm run stripe:setup -- --apply           # create Products + Prices
+npm run stripe:setup -- --apply --webhook # also create the webhook endpoint
+```
+
+What it does:
+
+1. Lists the products already in your Stripe account.
+2. Creates a Product + Price for every priced item in `content/products.json`
+   that doesn't exist yet, tagging each with `metadata.ic_slug`.
+3. Writes the resulting `price_…` IDs back into `content/products.json` under
+   `channels.stripePriceId`. **Commit that diff** — checkout reads those IDs.
+4. With `--webhook`, creates the endpoint and prints the signing secret.
+
+It is idempotent: it matches on `ic_slug` first, so re-running adopts what
+already exists instead of creating duplicates. Prices are immutable in Stripe,
+so changing an amount creates a new Price and leaves the old one in place.
+
+**Start in test mode.** Use an `sk_test_` key, run a test purchase end to end,
+then repeat with `sk_live_`. Products and prices do not carry across modes.
+
+Until a product has a `stripePriceId`, checkout returns `409` and refuses to
+sell it rather than inventing an amount.
+
+### Configuring the webhook by hand
+
+Skip this if you used `--webhook` above.
 
 1. `dashboard.stripe.com` → **Developers → Webhooks → Add endpoint**.
 2. **Endpoint URL** — note the trailing slash, it is required:
@@ -168,10 +201,8 @@ read-only, for inspecting what the providers currently expose.
       does not stop a distributed one — and each call that gets through spends
       Claude tokens and a Brevo send. Vercel WAF rate limiting or an Upstash
       counter both work.
-- [ ] **Look up prices server-side in `/api/checkout/`.** Prices currently
-      arrive from the browser and are only sanity-checked; a determined caller
-      could still order a $34 candle at $1. Read each price from
-      `content/products.json` by slug before creating the session.
+- [ ] **Run `npm run stripe:setup -- --apply`** so every product has a
+      `stripePriceId`. Checkout returns 409 for anything that doesn't.
 - [ ] **Have the legal pages reviewed** — privacy policy and terms are drafts.
 
 ---

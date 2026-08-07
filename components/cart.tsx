@@ -77,10 +77,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const checkout = useCallback(async () => {
     if (items.length === 0) return
+    // Send slugs and quantities only. Prices shown here are for display; the
+    // server resolves the real Stripe Price for each slug, so nothing the
+    // browser sends can change what the customer is charged.
     const res = await fetch('/api/checkout/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({
+        items: items.map((i) => ({ slug: i.slug, quantity: i.quantity })),
+      }),
     })
     const data = await res.json()
     if (!res.ok || !data.url) {

@@ -16,7 +16,8 @@
       "website": true,
       "amazonUrl": "TODO",
       "etsyUrl": "TODO",
-      "tiktokShopUrl": "TODO"
+      "tiktokShopUrl": "TODO",
+      "stripePriceId": null
     },
     "featured": true,
     "comingSoon": false,
@@ -42,7 +43,8 @@
     },
     "channels": {
       "website": true,
-      "printfulId": "TODO"
+      "printfulId": "TODO",
+      "stripePriceId": null
     },
     "featured": true,
     "comingSoon": false,
@@ -59,7 +61,7 @@
     "category": "print",
     "tagline": "A quiet wall, well kept.",
     "description": "A giclée art print on heavyweight matte stock — a study in warm neutrals, drawn for rooms that already have enough going on. Ships unframed and flat so it arrives without a crease, ready for the frame you already own.",
-    "price": 32,
+    "price": 42,
     "heroImage": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=900&q=85",
     "gallery": [],
     "materialColor": "#E8DFD0",
@@ -68,7 +70,8 @@
     },
     "channels": {
       "website": true,
-      "printfulId": "TODO"
+      "printfulId": "TODO",
+      "stripePriceId": null
     },
     "featured": true,
     "comingSoon": false,
@@ -84,7 +87,7 @@
     "category": "mug",
     "tagline": "The first ritual of the day.",
     "description": "A glazed stoneware mug with a full, comfortable handle and a base weighted enough to feel deliberate. Holds eleven ounces. Dishwasher and microwave safe, because a considered object should still be an easy one.",
-    "price": 22,
+    "price": 26,
     "heroImage": "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=900&q=85",
     "gallery": [],
     "materialColor": "#F0EBE3",
@@ -93,7 +96,8 @@
     },
     "channels": {
       "website": true,
-      "printfulId": "TODO"
+      "printfulId": "TODO",
+      "stripePriceId": null
     },
     "featured": true,
     "comingSoon": false,
@@ -118,7 +122,8 @@
     },
     "channels": {
       "website": true,
-      "printfulId": "TODO"
+      "printfulId": "TODO",
+      "stripePriceId": null
     },
     "featured": false,
     "comingSoon": false,

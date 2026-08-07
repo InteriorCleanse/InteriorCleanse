@@ -31,6 +31,12 @@ export type Product = {
     tiktokShopUrl?: string
     printfulId?: string
     printifyId?: string
+    /**
+     * Stripe Price ID (`price_…`), written by `npm run stripe:setup`.
+     * `null` means the product has not been created in Stripe yet, and
+     * checkout will refuse to sell it rather than guess a price.
+     */
+    stripePriceId?: string | null
   }
   featured: boolean
   comingSoon: boolean

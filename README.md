@@ -103,6 +103,23 @@ failures come back as `{"failures": [...]}`.
 `ADMIN_SESSION_SECRET`. `middleware.ts` verifies the signature and each admin
 route re-checks it, so the dashboard is never the only guard.
 
+### Stripe products and prices
+
+Checkout uses Stripe **Price IDs**, resolved server-side from
+`content/products.json` by slug. The browser sends only slugs and quantities,
+so nothing it sends can change what a customer is charged; a product without a
+`stripePriceId` returns `409` rather than falling back to a guessed amount.
+
+```bash
+npm run stripe:setup                      # dry run
+npm run stripe:setup -- --apply           # create Products + Prices, write IDs back
+npm run stripe:setup -- --apply --webhook # also create the webhook, print its secret
+```
+
+Idempotent — Products are tagged `metadata.ic_slug` and re-runs adopt what
+already exists. Needs your own `STRIPE_SECRET_KEY`; start with an `sk_test_`
+key. See `VERCEL_ENV_SETUP.md`.
+
 ### Syncing the catalogue
 
 ```bash

@@ -5,7 +5,8 @@
     "start": "next start",
     "lint": "next lint",
     "build:lottie": "node scripts/build-lottie.js",
-    "sync": "node scripts/sync-products.js"
+    "sync": "node scripts/sync-products.js",
+    "stripe:setup": "node scripts/stripe-setup.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
