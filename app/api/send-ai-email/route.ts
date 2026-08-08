@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server'
 import { errorBody } from '@/lib/env'
 import { ADMIN_COOKIE, verifySessionToken } from '@/lib/admin-auth'
-import { generateEmail, renderEmailHTML, sendAiEmail, type EmailTrigger } from '@/lib/ai-email'
+import {
+  generateEmail,
+  renderEmailHTML,
+  sendAiEmail,
+  type EmailTrigger,
+  type GeneratedEmail,
+} from '@/lib/ai-email'
+import { sendTransactionalEmail } from '@/lib/brevo'
 import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
@@ -37,6 +44,12 @@ export async function POST(req: Request) {
       products?: string[]
       orderTotal?: number
       preview?: boolean
+      /**
+       * An edited email to send verbatim. When present, Claude is not called
+       * again — otherwise the composer's edits would be silently discarded and
+       * the recipient would get freshly generated copy nobody reviewed.
+       */
+      email?: Partial<GeneratedEmail>
     }
 
     const trigger = body.trigger ?? 'welcome'
@@ -58,6 +71,26 @@ export async function POST(req: Request) {
 
     if (!body.to) {
       return NextResponse.json({ error: 'A recipient is required.' }, { status: 400 })
+    }
+
+    // Send the reviewed copy exactly as approved.
+    if (body.email?.subject && body.email?.body) {
+      const edited: GeneratedEmail = {
+        subject: body.email.subject,
+        previewText: body.email.previewText ?? '',
+        body: body.email.body,
+        ctaText: body.email.ctaText || 'Visit InteriorCleanse',
+        ctaUrl: body.email.ctaUrl || `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/shop/`,
+      }
+
+      await sendTransactionalEmail({
+        to: body.to,
+        name: firstName,
+        subject: edited.subject,
+        htmlContent: renderEmailHTML(edited),
+      })
+
+      return NextResponse.json({ sent: true, email: edited, edited: true })
     }
 
     const email = await sendAiEmail({

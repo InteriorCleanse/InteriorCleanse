@@ -62,6 +62,21 @@ export type Book = {
   featured: boolean
 }
 
+export type DigitalProduct = {
+  slug: string
+  title: string
+  subtitle: string
+  format: string
+  /** Display price, e.g. "$12" or "Free" — Gumroad is the source of truth. */
+  price: string
+  /** Product path on Gumroad; combined with the store in `gumroadUrl()`. */
+  gumroadPath: string
+  coverImage: string
+  imageAlt: string
+  description: string
+  bullets: string[]
+}
+
 export type SpiritBook = {
   slug: string
   title: string

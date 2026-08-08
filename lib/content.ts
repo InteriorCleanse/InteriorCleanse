@@ -1,9 +1,15 @@
 import products from '@/content/products.json'
 import books from '@/content/books.json'
-import type { Article, Book, Product, SpiritBook } from './types'
+import digital from '@/content/digital-products.json'
+import type { Article, Book, DigitalProduct, Product, SpiritBook } from './types'
 
 export const allProducts = products as Product[]
 export const allBooks = books as Book[]
+export const digitalProducts = digital as DigitalProduct[]
+
+/** Gumroad product URL for a download. */
+export const gumroadUrl = (item: DigitalProduct) =>
+  `https://${process.env.NEXT_PUBLIC_GUMROAD_STORE || 'interiorcleanse'}.gumroad.com/l/${item.gumroadPath}`
 
 export const getProduct = (slug: string) => allProducts.find((p) => p.slug === slug)
 export const getBook = (slug: string) => allBooks.find((b) => b.slug === slug)

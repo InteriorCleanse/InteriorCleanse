@@ -459,11 +459,12 @@ function EmailTab() {
       const res = await fetch('/api/send-ai-email/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload()),
+        // Send the edited copy, so what was reviewed is what arrives.
+        body: JSON.stringify({ ...payload(), email }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      setStatus(`Sent to ${to}.`)
+      setStatus(`Sent to ${to}${json.edited ? ' (your edited copy)' : ''}.`)
     } catch (e) {
       setStatus(e instanceof Error ? e.message : 'Send failed.')
     } finally {
@@ -561,12 +562,24 @@ function EmailTab() {
                 onChange={(e) => setEmail({ ...email, body: e.target.value })}
               />
             </label>
+            <label>
+              CTA text
+              <input
+                className="admin-search"
+                value={email.ctaText}
+                onChange={(e) => setEmail({ ...email, ctaText: e.target.value })}
+              />
+            </label>
+            <label>
+              CTA link
+              <input
+                className="admin-search"
+                value={email.ctaUrl}
+                onChange={(e) => setEmail({ ...email, ctaUrl: e.target.value })}
+              />
+            </label>
             <p className="admin-muted">
-              CTA: {email.ctaText} → {email.ctaUrl}
-            </p>
-            <p className="admin-muted">
-              Note: edits here are for review. Send re-generates from the trigger — wire
-              an override into /api/send-ai-email to send edited copy verbatim.
+              Send delivers exactly what is shown here — edits included.
             </p>
           </div>
         ) : null}
