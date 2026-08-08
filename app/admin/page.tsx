@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import useSWR from 'swr'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Bar,
@@ -67,9 +68,14 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
-        <button className="admin-signout" onClick={signOut}>
-          Sign out
-        </button>
+        <div className="admin-header-actions">
+          <Link className="admin-tab" href="/admin/jarvis/">
+            JARVIS
+          </Link>
+          <button className="admin-signout" onClick={signOut}>
+            Sign out
+          </button>
+        </div>
       </header>
 
       <main className="admin-main">

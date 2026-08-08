@@ -2252,3 +2252,5 @@ textarea {
   border-top: 1px solid var(--line);
   margin-bottom: 1rem;
 }
+.admin-header-actions{display:flex;align-items:center;gap:.75rem}
+.admin-header-actions .admin-tab{text-decoration:none;display:inline-flex;align-items:center}
