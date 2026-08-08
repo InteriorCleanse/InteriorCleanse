@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "room-reset-checklist",
+    "title": "The Room Reset Checklist",
+    "subtitle": "A printable, room-by-room reset in under an hour",
+    "format": "PDF · 12 pages",
+    "price": "Free",
+    "gumroadPath": "room-reset-checklist",
+    "coverImage": "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=600&q=90",
+    "imageAlt": "A neutral living room reset for the evening",
+    "description": "The checklist we actually use. One page per room, ordered so the work compounds — surfaces before floors, baskets before bins — with a fifteen-minute version for the nights you have nothing left. Print it, or keep it on your phone.",
+    "bullets": [
+      "Room-by-room order of operations",
+      "A 15-minute version and a full-reset version",
+      "A short list of what to keep within arm's reach"
+    ]
+  },
+  {
+    "slug": "the-considered-pantry",
+    "title": "The Considered Pantry",
+    "subtitle": "Labels, zone maps, and a restock system that holds",
+    "format": "PDF + editable label set",
+    "price": "$12",
+    "gumroadPath": "considered-pantry",
+    "coverImage": "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=600&q=90",
+    "imageAlt": "An organized pantry shelf in warm neutral tones",
+    "description": "A pantry system built around how you actually cook, not how a photograph looks. Includes a printable label set in the InteriorCleanse type, three zone maps for different kitchen shapes, and a restock sheet that stops the duplicate-buying problem for good.",
+    "bullets": [
+      "Editable label sheet, sized for standard jars and bins",
+      "Three zone maps: galley, L-shaped, and single-wall",
+      "A one-page restock sheet you refill instead of rewriting"
+    ]
+  },
+  {
+    "slug": "the-calm-room-workbook",
+    "title": "The Calm Room Workbook",
+    "subtitle": "The companion exercises to the book",
+    "format": "PDF · 40 pages",
+    "price": "$18",
+    "gumroadPath": "calm-room-workbook",
+    "coverImage": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=90",
+    "imageAlt": "A workbook and pencil on a pale linen surface",
+    "description": "Every prompt from The Calm Room Method, laid out with room to answer. Work one room at a time: photograph it, mark what stays, plan what moves. Designed to be written in, not preserved — the messy copy is the useful one.",
+    "bullets": [
+      "One worked example, then blank spreads for each room",
+      "Palette and material planning pages",
+      "A maintenance rhythm you set once and revisit quarterly"
+    ]
+  }
+]

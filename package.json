@@ -3,23 +3,44 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:lottie": "node scripts/build-lottie.js",
+    "sync": "node scripts/sync-products.js",
+    "stripe:setup": "node scripts/stripe-setup.js"
   },
   "dependencies": {
-    "@splinetool/runtime": "^1.9.0",
+    "@anthropic-ai/sdk": "^0.115.0",
+    "@babylonjs/core": "^7.34.4",
+    "@babylonjs/loaders": "^7.34.4",
+    "@lottiefiles/dotlottie-react": "^0.9.3",
+    "@react-three/drei": "^9.114.3",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
+    "@rive-app/react-canvas": "^4.16.7",
+    "@stripe/stripe-js": "^5.5.0",
+    "framer-motion": "^11.11.17",
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.18",
     "next": "^14.2.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "recharts": "^2.15.0",
+    "stripe": "^17.5.0",
+    "swr": "^2.3.0",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/three": "^0.169.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^8",
     "eslint-config-next": "^14.2.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5"
-  }
+  },
+  "name": "interiorcleanse",
+  "private": true
 }

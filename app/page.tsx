@@ -1,11 +1,281 @@
-import Link from 'next/link'; import {allBooks,allProducts} from '@/lib/content'; import {ProductCard,BookCard} from '@/components/cards'; import {HomeHero,EmailCapture} from '@/components/HomeHero';
-export default function Home(){const featured=allProducts.filter(p=>p.featured).slice(0,3);return <>
-  <HomeHero/>
-  <section className="light-section edit-section"><div className="section-intro" data-reveal><p className="eyebrow">The edit — shop now</p><h2>Objects of<br/><em>quiet utility.</em></h2><Link href="/shop">VIEW THE COMPLETE EDIT →</Link></div><div className="featured-grid">{featured.map((p,i)=><ProductCard product={p} index={i} key={p.slug} className={i===0?'featured-main':''}/>)}</div></section>
-  <section className="magazine-strip"><div className="magazine-heading"><p className="eyebrow">Current issue / 2026</p><h2>THREE<br/>RITUALS</h2></div><div className="magazine-items">{[['01','THE SIGNATURE','An atmosphere, hand-poured.','/shop/ic-signature-candle'],['02','THE CARRY','Everyday utility, recast.','/shop/ic-linen-tote'],['03','THE RESET','Tools that earn their space.','/shop/cleaning-picks']].map(x=><Link href={x[3]} key={x[0]}><b>{x[0]}</b><p className="eyebrow">{x[1]}</p><h3>{x[2]}</h3><span>EXPLORE ↗</span></Link>)}</div></section>
-  <section className="editorial-triptych" aria-label="InteriorCleanse editorial interiors"><div className="triptych-col"><img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=700&q=90" alt="Architectural interior with natural light and minimal furniture"/></div><div className="triptych-col"><img src="https://images.unsplash.com/photo-1567767292278-a4f21aa2d36e?w=700&q=90" alt="Warm minimal living room with botanical details"/></div><div className="triptych-col"><img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=700&q=90" alt="Moody modern bedroom interior"/></div></section>
-  <section className="library-home"><div className="library-title" data-reveal><p className="eyebrow">Interior intelligence</p><h2>THE<br/><em>LIBRARY</em></h2><p>Field guides for spaces that support the life within them.</p></div><div className="book-row">{allBooks.map(b=><BookCard book={b} key={b.slug}/>)}</div></section>
-  <section className="candle-feature"><div className="candle-copy" data-reveal><p className="eyebrow">Hand-poured. Considered.</p><h2>A light for<br/>the <em>in-between.</em></h2><p>The signature candle: designed as an object, experienced as an atmosphere.</p><Link href="/shop/ic-signature-candle">SHOP CANDLES →</Link></div><div className="candle-gallery"><div className="candle-image"><span>◇</span><img src="https://images.unsplash.com/photo-1602928298849-325cec8771c0?w=900&q=90" alt="InteriorCleanse signature candle" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top'}}/><i>01 / SIGNATURE OBJECT</i></div><img src="https://images.unsplash.com/photo-1599491143561-c4c8db6eb91d?w=900&q=85" alt="Candle in a considered home" style={{width:'100%',height:'260px',objectFit:'cover',marginTop:'6px',filter:'saturate(0.8)'}}/></div></section>
-  <section className="manifesto" data-reveal><p>&ldquo;We believe a well-kept home is the foundation of a <em>well-kept life.</em>&rdquo;</p><span>— THE INTERIORCLEANSE PHILOSOPHY</span></section>
-  <section className="email-section"><p className="eyebrow">Private correspondence</p><h2>The next edit,<br/>quietly delivered.</h2><EmailCapture/></section>
-  </>}
+import Link from 'next/link'
+import { HeroSceneLoader, ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
+import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
+import { EmailCapture } from '@/components/EmailCapture'
+import { TrackIcon } from '@/components/TrackIcon'
+import { allProducts, articles, mindBooks } from '@/lib/content'
+
+const TRUST: { icon: 'diamond'; text: string }[] = [
+  { icon: 'diamond', text: 'Secure checkout via Amazon & TikTok Shop' },
+  { icon: 'diamond', text: 'Hand-poured candles, made with care' },
+  { icon: 'diamond', text: 'Books written and published by the founder' },
+  { icon: 'diamond', text: 'Free shipping on Printful orders over $75' },
+]
+
+export default function Home() {
+  const featured = allProducts.filter((p) => p.featured)
+  const homeProducts = allProducts.filter((p) => p.category === 'cleaning' || p.category === 'print')
+  const bodyProducts = allProducts.filter(
+    (p) => p.category === 'candle' || p.category === 'tote' || p.category === 'mug'
+  )
+
+  return (
+    <>
+      {/* HERO */}
+      <section className="hero-section">
+        <HeroSceneLoader />
+        <div className="hero-scrim" aria-hidden="true" />
+        <div className="hero-content">
+          <div className="hero-eyebrow">
+            <span className="eyebrow">For mind, home, body &amp; spirit</span>
+          </div>
+          <h1 className="hero-headline">
+            The art
+            <br />
+            of the
+            <br />
+            <em>considered</em>
+            <br />
+            home.
+          </h1>
+          <p className="hero-sub">
+            Curated cleaning finds, interior design books, hand-poured candles, and
+            Christian literature — for every dimension of a well-kept life.
+          </p>
+          <div className="hero-actions">
+            <Link href="/shop/" className="btn-primary">
+              Shop the edit →
+            </Link>
+            <Link href="/library/" className="btn-ghost">
+              Explore the library
+            </Link>
+          </div>
+        </div>
+        <div className="hero-scroll-hint" aria-hidden="true">
+          <span className="scroll-line" />
+          Scroll to explore
+        </div>
+      </section>
+
+      {/* TRUST STRIP */}
+      <section className="trust-strip" aria-label="Why InteriorCleanse">
+        {TRUST.map(({ icon, text }) => (
+          <div key={text} className="trust-item">
+            <span className="trust-icon">
+              <TrackIcon name={icon} size={30} />
+            </span>
+            <span className="trust-text">{text}</span>
+          </div>
+        ))}
+      </section>
+
+      {/* 3D SCROLL GALLERY */}
+      <ScrollGalleryLoader products={featured} />
+
+      {/* EDITORIAL TRIPTYCH */}
+      <section className="triptych" aria-label="InteriorCleanse editorial">
+        {[
+          [
+            'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=700&q=90',
+            'Architectural interior with natural light and minimal furniture',
+          ],
+          [
+            'https://images.unsplash.com/photo-1567767292278-a4f21aa2d36e?w=700&q=90',
+            'Warm minimal living room with botanical details',
+          ],
+          [
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=700&q=90',
+            'Moody modern bedroom interior',
+          ],
+        ].map(([src, alt]) => (
+          <div key={alt} className="triptych-col">
+            <img src={src} alt={alt} loading="lazy" />
+          </div>
+        ))}
+      </section>
+
+      {/* MIND */}
+      <section className="track-section track-mind">
+        <div className="track-inner">
+          <div className="track-text">
+            <div className="track-eyebrow-row">
+              <TrackIcon name="book" />
+              <span className="eyebrow" style={{ color: 'var(--mind-accent)' }}>
+                For the mind — the library
+              </span>
+            </div>
+            <h2 className="track-headline">
+              Books that change
+              <br />
+              how you see
+              <br />
+              <em>your space.</em>
+            </h2>
+            <p className="track-body-text">
+              Interior design and home organizing guides — written for real homes and
+              real lives.
+            </p>
+            <Link href="/library/" className="track-cta">
+              Enter the library →
+            </Link>
+          </div>
+          <div
+            className="book-grid gsap-stagger"
+            style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginTop: 0 }}
+          >
+            {mindBooks.slice(0, 2).map((book) => (
+              <BookCard book={book} key={book.slug} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOME */}
+      <section className="track-section track-home">
+        <div className="track-inner reverse">
+          <div className="track-text">
+            <div className="track-eyebrow-row">
+              <TrackIcon name="sparkle" />
+              <span className="eyebrow" style={{ color: 'var(--home-accent)' }}>
+                For the home — the edit
+              </span>
+            </div>
+            <h2 className="track-headline">
+              Cleaning and
+              <br />
+              organizing,
+              <br />
+              <em>considered.</em>
+            </h2>
+            <p className="track-body-text">
+              Viral TikTok cleaning picks and curated home products — hand-selected for
+              how they actually work.
+            </p>
+            <Link href="/shop/#home" className="track-cta">
+              Shop the home edit →
+            </Link>
+          </div>
+          <div
+            className="product-grid gsap-stagger"
+            style={{ gridTemplateColumns: '1fr 1fr', marginTop: 0 }}
+          >
+            {homeProducts.slice(0, 2).map((p, i) => (
+              <ProductCard product={p} index={i} key={p.slug} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BODY */}
+      <section className="track-section track-body">
+        <div className="track-inner">
+          <div className="track-text">
+            <div className="track-eyebrow-row">
+              <TrackIcon name="flame" />
+              <span className="eyebrow" style={{ color: 'var(--body-accent)' }}>
+                For the body — the ritual
+              </span>
+            </div>
+            <h2 className="track-headline">
+              Objects made
+              <br />
+              to be
+              <br />
+              <em>lived with.</em>
+            </h2>
+            <p className="track-body-text">
+              Hand-poured candles, considered apparel, and objects that earn their place
+              in your home.
+            </p>
+            <Link href="/shop/#body" className="track-cta">
+              Shop body &amp; ritual →
+            </Link>
+          </div>
+          <div
+            className="product-grid gsap-stagger"
+            style={{ gridTemplateColumns: '1fr 1fr', marginTop: 0 }}
+          >
+            {bodyProducts.slice(0, 2).map((p, i) => (
+              <ProductCard product={p} index={i} key={p.slug} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SPIRIT */}
+      <section className="track-section track-spirit">
+        <div className="track-inner reverse">
+          <div className="track-text">
+            <div className="track-eyebrow-row">
+              <TrackIcon name="star" />
+              <span className="eyebrow" style={{ color: 'var(--spirit-accent)' }}>
+                For the spirit — the faith library
+              </span>
+            </div>
+            <h2 className="track-headline">
+              Books for a
+              <br />
+              life rooted
+              <br />
+              <em>in faith.</em>
+            </h2>
+            <p className="track-body-text">
+              Christian books, Bibles, kids coloring books, and devotionals — for every
+              member of the family.
+            </p>
+            <Link href="/spirit/" className="track-cta">
+              Enter the faith library →
+            </Link>
+          </div>
+          <div className="spirit-orb-wrap" data-reveal>
+            <div className="spirit-orb" />
+          </div>
+        </div>
+      </section>
+
+      {/* MANIFESTO */}
+      <section className="manifesto-section" data-reveal>
+        <p className="manifesto-text">
+          &ldquo;We believe a well-kept home is the foundation of a well-kept life. We
+          believe in all four — <em>mind, home, body, and spirit</em> — considered
+          together.&rdquo;
+        </p>
+        <span className="manifesto-attribution">— THE INTERIORCLEANSE PHILOSOPHY</span>
+      </section>
+
+      {/* JOURNAL */}
+      {articles.length > 0 ? (
+        <section className="section" style={{ background: 'var(--ink)' }}>
+          <div className="section-inner">
+            <div className="section-header">
+              <p className="eyebrow">The journal</p>
+              <h2 className="gsap-headline">
+                Notes on a
+                <br />
+                <em>considered life.</em>
+              </h2>
+            </div>
+            <div className="grid-2">
+              {articles.slice(0, 2).map((a) => (
+                <ArticleCard article={a} key={a.slug} />
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* EMAIL CAPTURE */}
+      <section className="email-capture-section">
+        <div className="email-capture-inner">
+          <p className="eyebrow">Private correspondence</p>
+          <h2>
+            The next edit,
+            <br />
+            <em>quietly delivered.</em>
+          </h2>
+          <EmailCapture />
+        </div>
+      </section>
+    </>
+  )
+}
