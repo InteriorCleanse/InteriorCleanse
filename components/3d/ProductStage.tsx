@@ -3,7 +3,7 @@
 import { ContactShadows, Float, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import * as THREE from 'three'
 import { ProductBody, type StageCategory } from './ProductGeometry'
 import { StudioEnvironment } from './StudioEnvironment'
@@ -27,7 +27,29 @@ export function ProductStage({
   category,
 }: ProductStageProps) {
   const [interacted, setInteracted] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const [reduced, setReduced] = useState(false)
+  /** Bumping this remounts OrbitControls, which is how the view resets. */
+  const [viewKey, setViewKey] = useState(0)
   const lit = category === 'candle'
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setReduced(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  // Auto-rotation stops for three separate reasons, and any one of them wins:
+  // the visitor grabbed the object, they pressed pause, or they have asked the
+  // system for reduced motion.
+  const spinning = !interacted && !paused && !reduced
+
+  const resetView = () => {
+    setViewKey((k) => k + 1)
+    setInteracted(false)
+  }
 
   return (
     <div className="stage-container" onPointerDown={() => setInteracted(true)}>
@@ -71,10 +93,11 @@ export function ProductStage({
           <StudioEnvironment />
 
           <OrbitControls
+            key={viewKey}
             makeDefault
             enableZoom
             enablePan={false}
-            autoRotate={!interacted}
+            autoRotate={spinning}
             autoRotateSpeed={1.4}
             minDistance={2.4}
             maxDistance={8}
@@ -97,6 +120,21 @@ export function ProductStage({
 
       <div className="stage-hint">
         {interacted ? '360° · DRAG TO ROTATE · SCROLL TO ZOOM' : '◇ DRAG TO EXPLORE'}
+      </div>
+
+      <div className="stage-controls">
+        <button
+          type="button"
+          onClick={() => setPaused((p) => !p)}
+          aria-pressed={paused}
+          disabled={reduced}
+          title={reduced ? 'Motion is already off — reduced motion is enabled' : undefined}
+        >
+          {paused || reduced ? 'Play motion' : 'Pause motion'}
+        </button>
+        <button type="button" onClick={resetView}>
+          Reset view
+        </button>
       </div>
     </div>
   )

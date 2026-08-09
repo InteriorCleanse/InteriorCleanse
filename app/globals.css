@@ -2727,3 +2727,137 @@ textarea {
   display: block;
   background: rgba(247, 244, 239, 0.04);
 }
+
+/* Connector health */
+.connector-alert {
+  border: 1px solid var(--brass);
+  padding: 1.6rem;
+  margin-bottom: 2.5rem;
+}
+
+.connector-alert-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--bone);
+  margin-bottom: 0.8rem;
+}
+
+.connector-alert p,
+.connector-alert li {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(247, 244, 239, 0.75);
+}
+
+.connector-alert ul {
+  margin-top: 0.8rem;
+  padding-left: 1.2rem;
+}
+
+.connector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.connector-card {
+  border: 1px solid var(--line);
+  border-left-width: 2px;
+  padding: 1.4rem;
+}
+
+.connector-card[data-state='connected'] { border-left-color: var(--mind-accent); }
+.connector-card[data-state='partial'] { border-left-color: var(--brass); }
+.connector-card[data-state='not_connected'] { border-left-color: var(--taupe); }
+
+.connector-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.connector-head h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--bone);
+}
+
+.connector-state {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--taupe);
+}
+
+.connector-card[data-state='connected'] .connector-state { color: var(--mind-accent); }
+.connector-card[data-state='partial'] .connector-state { color: var(--brass); }
+
+.connector-purpose {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(247, 244, 239, 0.62);
+}
+
+.connector-blocker {
+  margin-top: 0.9rem;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--brass-light);
+}
+
+.connector-keys {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.connector-keys code,
+.connector-alert code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--taupe);
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.45rem;
+}
+
+/* 3D viewer controls — pause and reset, required alongside every heavy stage */
+.stage-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.stage-controls button {
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  color: rgba(247, 244, 239, 0.8);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.6rem 0.85rem;
+  min-height: 34px;
+  cursor: pointer;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.stage-controls button:hover:not(:disabled),
+.stage-controls button:focus-visible {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.stage-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

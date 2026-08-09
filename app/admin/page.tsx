@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { useRouter } from 'next/navigation'
+import { IntegrationsTab } from '@/components/admin/IntegrationsTab'
 import { ReadinessTab } from '@/components/admin/ReadinessTab'
 import {
   Bar,
@@ -30,7 +31,7 @@ const fetcher = async (url: string) => {
   return data
 }
 
-const TABS = ['Contacts', 'Orders', 'Analytics', '3D Readiness', 'Email'] as const
+const TABS = ['Contacts', 'Orders', 'Analytics', 'Integrations', '3D Readiness', 'Email'] as const
 type Tab = (typeof TABS)[number]
 
 const CHART_COLORS = ['#A9895A', '#7FA872', '#4A9EFF', '#C4A8E8', '#C4A96E']
@@ -77,6 +78,7 @@ export default function AdminDashboard() {
         {tab === 'Contacts' ? <ContactsTab /> : null}
         {tab === 'Orders' ? <OrdersTab /> : null}
         {tab === 'Analytics' ? <AnalyticsTab /> : null}
+        {tab === 'Integrations' ? <IntegrationsTab /> : null}
         {tab === '3D Readiness' ? <ReadinessTab /> : null}
         {tab === 'Email' ? <EmailTab /> : null}
       </main>

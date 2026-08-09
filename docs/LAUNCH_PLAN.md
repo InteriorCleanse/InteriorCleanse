@@ -156,6 +156,8 @@ build specification is in `docs/KIE_ASSET_PIPELINE.md`.
 | Criterion | Status | Evidence |
 | --- | --- | --- |
 | 3D readiness report | Done | New **3D Readiness** tab in `/admin`, rendered from `lib/render-readiness.ts` — derived from product data at render time, so it cannot drift out of sync with the storefront |
+| Integration status | **Verified** | New **Integrations** tab + `/api/admin/integrations`. Every "not connected" row states the exact fix, not just the fault |
+| Reset view / pause motion | **Verified** | Controls on `ProductStage`; see below |
 | Organization + WebSite structured data | **Verified** | Both emitted on every page |
 | Product structured data | **Verified** | Emitted with `brand`, `category`, `image`, `description` |
 | Book structured data | **Verified** | Emitted with paperback and Kindle `workExample` entries |
@@ -178,6 +180,32 @@ JSON-LD as a factual claim, so the emitted values were checked against reality:
 
 No rating, review count, or bestseller rank is emitted anywhere, because no
 truthful source for them exists.
+
+**Connector health, verified by authenticating against a running build.** The
+admin API is correctly gated — `/api/admin/integrations`, `/contacts`, and
+`/orders` all return `401 {"error":"Unauthorized"}` with no data leak when
+unauthenticated, and `/admin` 307s to `/admin/login`. A wrong password returns
+401; the correct one returns 200 and a session.
+
+With no credentials set, all seven connectors report **Not connected**, each
+with its specific fix, and the report lists the **5 products that cannot be
+sold** for lack of a Stripe Price.
+
+The report also detects the dangerous middle state, confirmed by running with
+`STRIPE_SECRET_KEY` set but no webhook secret: Stripe reports **`partial`**, not
+connected, with the blocker *"orders will be paid for but never fulfilled"*.
+That combination is worse than being switched off — checkout appears to work and
+nothing is ever shipped — so it gets its own state rather than a green tick.
+
+**Viewer controls, verified in Chromium.** Pause toggles between *Pause motion*
+and *Play motion* with `aria-pressed` tracking correctly, *Reset view* returns
+the camera without tearing down the canvas, and both are keyboard-reachable.
+Under `prefers-reduced-motion: reduce` the pause button is disabled and reads
+*Play motion*, with a title explaining that motion is already off — auto-rotation
+stops for any of three independent reasons and any one of them wins.
+
+The tuned lighting values in `ProductStage` (bloom threshold 0.85, exposure 0.98)
+were not touched; the controls are purely additive.
 
 **Still blocked:** the product studio (create/edit/archive, GLB upload, 360-frame
 upload, depth-layer builder, variant mapping, bulk operations). The brief
