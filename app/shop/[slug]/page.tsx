@@ -3,8 +3,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ProductExperience } from '@/components/product/ProductExperience'
 import { validUrl } from '@/components/cards'
+import { BreadcrumbLd, ProductLd } from '@/components/StructuredData'
 import { CollectionView } from '@/components/product/CollectionView'
 import { PurchaseAction } from '@/components/product/PurchaseAction'
+import { StaticGallery } from '@/components/product/StaticGallery'
 import { resolveShopSlug, shopParams } from '@/lib/collections'
 import { allProducts } from '@/lib/content'
 import type { Product } from '@/lib/types'
@@ -21,10 +23,21 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
     return {
       title: collection.title,
       description: `${collection.title} — ${collection.eyebrow}. InteriorCleanse.`,
+      alternates: { canonical: `/shop/${collection.slug}/` },
     }
   }
   if (resolved.kind === 'product') {
-    return { title: resolved.product.name, description: resolved.product.tagline }
+    return {
+      title: resolved.product.name,
+      description: resolved.product.tagline,
+      alternates: { canonical: `/shop/${resolved.product.slug}/` },
+      openGraph: {
+        title: resolved.product.name,
+        description: resolved.product.tagline,
+        images: [resolved.product.heroImage],
+        url: `/shop/${resolved.product.slug}/`,
+      },
+    }
   }
   return { title: 'Shop' }
 }
@@ -84,6 +97,13 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
   return (
     <section className="product-detail-grid">
+      <ProductLd product={p} />
+      <BreadcrumbLd
+        trail={[
+          { name: 'Shop', path: '/shop/' },
+          { name: p.name, path: `/shop/${p.slug}/` },
+        ]}
+      />
       <div className="product-viewer-col">
         <ProductExperience product={p} variant="stage" eager />
       </div>
@@ -157,6 +177,8 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             <dd>Selected for material, utility, and a quieter visual life.</dd>
           </div>
         </dl>
+
+        <StaticGallery product={p} />
       </div>
     </section>
   )

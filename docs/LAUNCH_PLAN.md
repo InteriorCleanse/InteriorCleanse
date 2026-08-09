@@ -151,13 +151,38 @@ build specification is in `docs/KIE_ASSET_PIPELINE.md`.
 
 ---
 
-## Checkpoint 7 — admin, content, and launch · **Partially blocked**
+## Checkpoint 7 — admin, content, and launch · **SEO, readiness, and legal done; product studio blocked**
 
-`lib/render-readiness.ts` ships now and derives the 3D readiness report from
-product data alone — it needs no new storage and can be rendered in the admin
-immediately. The product studio (create/edit/archive, asset upload, variant
-mapping) cannot be built against flat JSON files; the brief requires adding a
-normal product without a deploy, and that requires a database.
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| 3D readiness report | Done | New **3D Readiness** tab in `/admin`, rendered from `lib/render-readiness.ts` — derived from product data at render time, so it cannot drift out of sync with the storefront |
+| Organization + WebSite structured data | **Verified** | Both emitted on every page |
+| Product structured data | **Verified** | Emitted with `brand`, `category`, `image`, `description` |
+| Book structured data | **Verified** | Emitted with paperback and Kindle `workExample` entries |
+| Breadcrumb structured data | **Verified** | `BreadcrumbList` on product and book pages |
+| Canonical URLs | **Verified** | `https://interiorcleanse.com/shop/ic-signature-candle/` — correct, with the trailing slash |
+| Sitemap | **Verified** | 33 URLs, now including all 8 collections |
+| OG images | Done | Product and book pages set `openGraph.images` from their own artwork |
+| Crawlable text outside WebGL | **Verified** | With JavaScript disabled the product name, `$34`, the full description, and the gallery image all render. No critical content is canvas-only |
+| Accessible static gallery | Done | `StaticGallery` renders on every product page — plain server HTML, correct alt text, no dependency on the viewer loading |
+| Legal pages | Done | `/legal/returns/` and `/legal/digital-license/` added and linked from the footer and sitemap |
+
+**Structured-data honesty, verified rather than assumed.** Search engines treat
+JSON-LD as a factual claim, so the emitted values were checked against reality:
+
+- A product with no Stripe Price emits `PreOrder`, **not** `InStock` — it
+  genuinely cannot be bought yet.
+- A coming-soon product emits **no offer at all**.
+- A book emits **no offer** — Amazon owns its price and we have no authorized
+  live feed, so quoting one would be fabrication.
+
+No rating, review count, or bestseller rank is emitted anywhere, because no
+truthful source for them exists.
+
+**Still blocked:** the product studio (create/edit/archive, GLB upload, 360-frame
+upload, depth-layer builder, variant mapping, bulk operations). The brief
+requires adding a normal product without a code deploy, and that is not possible
+against flat JSON files — it needs a database and object storage.
 
 ---
 

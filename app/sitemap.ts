@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { COLLECTIONS } from '@/lib/collections'
 import { allBooks, allProducts, articles } from '@/lib/content'
 import { SITE } from '@/lib/site-config'
 
@@ -16,6 +17,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ['/contact/', 0.5],
     ['/legal/privacy-policy/', 0.2],
     ['/legal/terms/', 0.2],
+    ['/legal/returns/', 0.3],
+    ['/legal/digital-license/', 0.2],
     ['/legal/affiliate-disclosure/', 0.2],
   ] as const
 
@@ -24,6 +27,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: url(path),
       lastModified: new Date(),
       priority,
+    })),
+    ...COLLECTIONS.map((c) => ({
+      url: url(`/shop/${c.slug}/`),
+      lastModified: new Date(),
+      priority: 0.7,
     })),
     ...allProducts.map((p) => ({
       url: url(`/shop/${p.slug}/`),

@@ -7,6 +7,7 @@ import { GSAPAnimations } from '@/components/GSAPAnimations'
 import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
 import { CartDrawer, CartProvider } from '@/components/cart'
+import { OrganizationLd, WebSiteLd } from '@/components/StructuredData'
 import { BRAND_NAME, PLAUSIBLE_DOMAIN, SITE } from '@/lib/site-config'
 
 export const metadata: Metadata = {
@@ -25,6 +26,8 @@ export const metadata: Metadata = {
       'Curated cleaning finds, interior design books, hand-poured candles, and Christian literature.',
     url: SITE.url,
   },
+  // `trailingSlash: true` means the canonical form of every URL carries one.
+  alternates: { canonical: '/' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="skip-link" href="#main">
           Skip to content
         </a>
+        <OrganizationLd />
+        <WebSiteLd />
         <CartProvider>
           <Experience />
           <GSAPAnimations />

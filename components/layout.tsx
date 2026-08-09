@@ -14,6 +14,8 @@ const NAV: [string, string][] = [
 const FOOTER_LEGAL: [string, string][] = [
   ['Affiliate disclosure', '/legal/affiliate-disclosure/'],
   ['Privacy policy', '/legal/privacy-policy/'],
+  ['Returns', '/legal/returns/'],
+  ['Digital licence', '/legal/digital-license/'],
   ['Terms', '/legal/terms/'],
 ]
 
