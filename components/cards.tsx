@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ProductExperience } from '@/components/product/ProductExperience'
 import type { Article, Book, Product, SpiritBook } from '@/lib/types'
 
 /** A channel URL is only real once the owner has replaced the TODO marker. */
@@ -14,11 +15,7 @@ export function ProductCard({
   return (
     <article className="product-card">
       <Link href={`/shop/${product.slug}/`} className="product-card-image">
-        <img
-          src={product.heroImage}
-          alt={product.name}
-          loading={index < 3 ? 'eager' : 'lazy'}
-        />
+        <ProductExperience product={product} variant="card" eager={index < 3} />
         {product.badge ? <span className="product-card-badge">{product.badge}</span> : null}
       </Link>
       <div className="product-card-info">

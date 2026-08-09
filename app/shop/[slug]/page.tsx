@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ProductStageLoader } from '@/components/3d/ProductStageLoader'
-import type { StageCategory } from '@/components/3d/ProductGeometry'
+import { ProductExperience } from '@/components/product/ProductExperience'
 import { validUrl } from '@/components/cards'
 import { AddToCartButton } from '@/components/cart'
 import { allProducts, getProduct } from '@/lib/content'
@@ -69,11 +68,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   return (
     <section className="product-detail-grid">
       <div className="product-viewer-col">
-        <ProductStageLoader
-          productColor={p.materialColor || '#A9895A'}
-          productName={p.name}
-          category={p.category as StageCategory}
-        />
+        <ProductExperience product={p} variant="stage" eager />
       </div>
 
       <div className="product-info-col">
