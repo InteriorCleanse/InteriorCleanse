@@ -8,6 +8,9 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { track } from '@/lib/analytics'
+import { isInternalCheckout } from '@/lib/category-experience'
+import { getProduct } from '@/lib/content'
 
 export type CartItem = {
   slug: string
@@ -57,6 +60,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, hydrated])
 
   const add: CartContextValue['add'] = useCallback((item, quantity = 1) => {
+    // An Amazon or TikTok item is bought on someone else's checkout, so it can
+    // never sit in this cart. Enforced here at the single choke point rather
+    // than trusted to every caller, and resolved from the catalogue rather
+    // than from the argument — a caller cannot talk its way past it.
+    const product = getProduct(item.slug)
+    if (product && !isInternalCheckout(product)) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          `[cart] Refused "${item.slug}": checkoutMode "${product.checkoutMode}" is external. Use PurchaseAction, which renders the outbound CTA instead.`
+        )
+      }
+      return
+    }
+
+    track('add_to_cart', { slug: item.slug, quantity })
+
     setItems((prev) => {
       const existing = prev.find((i) => i.slug === item.slug)
       if (existing) {
@@ -77,6 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const checkout = useCallback(async () => {
     if (items.length === 0) return
+    track('checkout_started', { lines: items.length })
     // Send slugs and quantities only. Prices shown here are for display; the
     // server resolves the real Stripe Price for each slug, so nothing the
     // browser sends can change what the customer is charged.

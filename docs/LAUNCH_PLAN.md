@@ -68,30 +68,71 @@ separate accessible static gallery alongside the 3D viewer.
 
 ---
 
-## Checkpoint 3 — homepage cinematic room · **Not started**
+## Checkpoint 3 — homepage cinematic room · **Copy applied, scroll story not started**
 
-The existing homepage has a working `HeroScene` and `ScrollGallery`. The brief's
-five-act scroll story (room awakens → design with intention → shop the world →
-categories → final transformation) is a rebuild of that page, not an edit.
+The hero now carries the brief's headline, "Clear the noise. Reveal the room.",
+and its "Enter the Shop" CTA.
 
-**Note a conflict for the owner to settle:** the brief specifies the headline
-"Clear the noise. Reveal the room." and the slogan "Your space, reimagined with
-intention." The site currently ships "For Mind, Home, Body & Spirit" across the
-header, footer, and metadata — a slogan chosen in an earlier round of work.
-These are incompatible positionings and one of them has to be retired. No code
-has been changed either way.
+**Two lines from the brief were deliberately not applied**, because both promise
+capabilities that do not exist:
+
+- The supporting copy *"AI-guided interiors, thoughtful objects, and visual
+  tools…"* — there is no AI studio, so this would be a claim about a product
+  feature the site does not have.
+- The primary CTA *"Design Your Space"* — it has no destination. Pointing it at
+  `/shop/` would mislabel it.
+
+Both are one-line swaps the moment the AI design studio ships.
+
+**The slogan question, resolved narrowly:** the brief specifies homepage hero
+copy, so that is what changed. "For Mind, Home, Body & Spirit" still appears in
+the footer, `lib/site-config.ts`, and page metadata. Retiring it everywhere is a
+site-wide rebrand and was not assumed.
+
+The five-act scroll story (room awakens → design with intention → shop the world
+→ categories → final transformation) is still a rebuild of `app/page.tsx`, not
+an edit, and has not been started. `HeroScene` and `ScrollGallery` are untouched.
 
 ---
 
-## Checkpoint 4 — storefront · **Not started**
+## Checkpoint 4 — storefront · **Core complete**
 
-Needs `/shop/books`, `/shop/apparel`, `/shop/home`, `/shop/wall-art`,
-`/shop/wallpapers`, `/shop/tiktok-finds`, `/shop/new`, `/shop/bestsellers`,
-plus filters, sorting, search, and recently-viewed. The unified commerce fields
-(`sourceType`, `checkoutMode`, `externalPurchaseUrl`) are now in `lib/types.ts`
-and `lib/category-experience.ts` exposes `isInternalCheckout()` and
-`purchaseLabel()` — but **nothing enforces them at the cart yet**. That
-enforcement is the first task of this checkpoint.
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Collections | Done | All 8 routes return 200: `/shop/books`, `/apparel`, `/home`, `/wall-art`, `/wallpapers`, `/tiktok-finds`, `/new`, `/bestsellers`. An unknown slug still 404s |
+| No duplicate routes | Done | Collections resolve inside the existing `/shop/[slug]`, collection-first. A product slug colliding with a collection slug throws at build |
+| Filters / sort / search | **Verified** | Search "candle" → `1 OBJECT`, 1 card. Sort price-asc → `$26, $28, $34, $42, $58` in order. Clear returns to `6 OBJECTS` |
+| Empty states | **Verified** | `/shop/wallpapers` renders 0 cards and explains delivery is still being built; `/shop/books` points to the Library |
+| Multi-source checkout behaviour | **Verified with a fixture** | See below |
+| Analytics | Done | `lib/analytics.ts` — `add_to_cart`, `checkout_started`, and outbound events fire; every call is wrapped so a tracking failure cannot break shopping |
+| Mobile | **Verified** | Controls are 44px tall at 390px wide; no horizontal overflow |
+
+**Checkout-mode enforcement.** `PurchaseAction` renders the CTA from
+`checkoutMode`, and `CartProvider.add()` refuses external items outright —
+resolved from the catalogue via `getProduct`, not from the caller's argument, so
+no caller can talk its way past it.
+
+Verified by temporarily adding an `external_tiktok` fixture product, building,
+and testing in Chromium:
+
+- CTA rendered as `<a>`, not `<button>` — text `SHOP ON TIKTOK ↗`,
+  `target="_blank"`, href set to the external URL
+- zero internal add-to-cart buttons on the page
+- the note *"You will complete this purchase on TikTok Shop. Price and
+  availability are set there."* rendered beneath it
+- `/shop/tiktok-finds` picked the item up
+
+The fixture was then removed; `content/products.json` is back to its 6 real
+products and `git status` on it is clean. **No fabricated product was
+committed.**
+
+**Caveat, stated precisely:** the `CartProvider.add()` guard is defence in depth
+and currently has no UI path that can reach it, because `PurchaseAction` never
+renders an add-to-cart for an external item. It is verified by construction and
+by the fixture test above, not by a click that triggered it.
+
+**Not done in this checkpoint:** recently-viewed, wishlist, pagination or
+virtualization (6 products do not need it yet), and per-category hero scenes.
 
 ---
 
@@ -152,7 +193,8 @@ only and no real key belongs in this repository.
 ## Next actions, in order
 
 1. Owner runs the Stripe setup and registers the trailing-slash webhook.
-2. Enforce `checkoutMode` at the cart so external items cannot be added.
-3. Category routes and filters (Checkpoint 4).
-4. Settle the headline conflict, then rebuild the homepage (Checkpoint 3).
-5. Choose and provision a database — everything in Checkpoints 5–7 waits on it.
+2. Rebuild the homepage around the five-act scroll story (Checkpoint 3).
+3. Per-category hero scenes and recently-viewed on the storefront.
+4. Choose and provision a database — everything in Checkpoints 5–7 waits on it.
+5. Build the AI design studio, then swap in the brief's held-back hero copy and
+   its "Design Your Space" CTA.

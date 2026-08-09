@@ -3,18 +3,30 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ProductExperience } from '@/components/product/ProductExperience'
 import { validUrl } from '@/components/cards'
-import { AddToCartButton } from '@/components/cart'
-import { allProducts, getProduct } from '@/lib/content'
+import { CollectionView } from '@/components/product/CollectionView'
+import { PurchaseAction } from '@/components/product/PurchaseAction'
+import { resolveShopSlug, shopParams } from '@/lib/collections'
+import { allProducts } from '@/lib/content'
 import type { Product } from '@/lib/types'
 
 export function generateStaticParams() {
-  return allProducts.map((p) => ({ slug: p.slug }))
+  return shopParams()
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const p = getProduct(params.slug)
-  if (!p) return { title: 'Product' }
-  return { title: p.name, description: p.tagline }
+  const resolved = resolveShopSlug(params.slug)
+
+  if (resolved.kind === 'collection') {
+    const { collection } = resolved
+    return {
+      title: collection.title,
+      description: `${collection.title} — ${collection.eyebrow}. InteriorCleanse.`,
+    }
+  }
+  if (resolved.kind === 'product') {
+    return { title: resolved.product.name, description: resolved.product.tagline }
+  }
+  return { title: 'Shop' }
 }
 
 const CARE_BY_CATEGORY: Record<string, string[]> = {
@@ -62,8 +74,13 @@ function CareNotes({ product }: { product: Product }) {
 }
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
-  const p = getProduct(params.slug)
-  if (!p) notFound()
+  const resolved = resolveShopSlug(params.slug)
+  if (resolved.kind === 'none') notFound()
+  if (resolved.kind === 'collection') {
+    return <CollectionView collection={resolved.collection} />
+  }
+
+  const p = resolved.product
 
   return (
     <section className="product-detail-grid">
@@ -93,17 +110,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           <span className="product-currency">USD · Tax at checkout</span>
         </div>
 
-        <AddToCartButton
-          disabled={p.comingSoon}
-          item={{
-            slug: p.slug,
-            name: p.name,
-            price: p.price,
-            heroImage: p.heroImage,
-            printfulVariantId: p.channels.printfulId,
-            printifyVariantId: p.channels.printifyId,
-          }}
-        />
+        <PurchaseAction product={p} />
 
         <div className="channel-buttons">
           {validUrl(p.channels.amazonUrl) ? (

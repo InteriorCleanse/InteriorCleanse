@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
-import { ProductCard } from '@/components/cards'
+import Link from 'next/link'
+import { ShopBrowser } from '@/components/product/ShopBrowser'
 import { DisclosureBox, PageHero } from '@/components/ui'
+import { COLLECTIONS } from '@/lib/collections'
 import { allProducts } from '@/lib/content'
 
 export const metadata: Metadata = {
@@ -10,11 +12,6 @@ export const metadata: Metadata = {
 }
 
 export default function Shop() {
-  const homeProducts = allProducts.filter((p) => p.category === 'cleaning')
-  const bodyProducts = allProducts.filter((p) =>
-    ['candle', 'tote', 'print', 'mug', 'custom'].includes(p.category)
-  )
-
   return (
     <>
       <PageHero
@@ -29,41 +26,22 @@ export default function Shop() {
         sub="Objects selected not for novelty, but for how beautifully they serve."
       />
 
-      <section id="home" className="section" style={{ background: 'var(--home-bg)' }}>
+      {/* One grid, driven by the filters. The old split into fixed "for the
+          home" and "for the body" sections is now the collection nav — showing
+          both would mean a search for "candle" still rendered the whole
+          catalogue underneath the filtered result. */}
+      <section className="section" style={{ paddingTop: 0 }}>
         <div className="section-inner">
-          <div className="section-header">
-            <p className="eyebrow" style={{ color: 'var(--home-accent)' }}>
-              For the home
-            </p>
-            <h2 className="gsap-headline">
-              Cleaning and organizing,{' '}
-              <em style={{ color: 'var(--home-accent)' }}>considered.</em>
-            </h2>
-          </div>
-          <div className="product-grid gsap-stagger" style={{ marginTop: 0 }}>
-            {homeProducts.map((p, i) => (
-              <ProductCard product={p} index={i} key={p.slug} />
+          <nav className="collection-nav" aria-label="Collections">
+            {COLLECTIONS.map((c) => (
+              <Link key={c.slug} href={`/shop/${c.slug}/`}>
+                {c.title}
+              </Link>
             ))}
-          </div>
-        </div>
-      </section>
+          </nav>
 
-      <section id="body" className="section" style={{ background: 'var(--body-bg)' }}>
-        <div className="section-inner">
-          <div className="section-header">
-            <p className="eyebrow" style={{ color: 'var(--body-accent)' }}>
-              For the body
-            </p>
-            <h2 className="gsap-headline">
-              Objects made to be{' '}
-              <em style={{ color: 'var(--body-accent)' }}>lived with.</em>
-            </h2>
-          </div>
-          <div className="product-grid gsap-stagger" style={{ marginTop: 0 }}>
-            {bodyProducts.map((p, i) => (
-              <ProductCard product={p} index={i} key={p.slug} />
-            ))}
-          </div>
+          <ShopBrowser products={allProducts} />
+
           <div style={{ marginTop: '5rem' }}>
             <DisclosureBox />
           </div>

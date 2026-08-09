@@ -30,21 +30,24 @@ export default function Home() {
             <span className="eyebrow">For mind, home, body &amp; spirit</span>
           </div>
           <h1 className="hero-headline">
-            The art
+            Clear
             <br />
-            of the
+            the noise.
             <br />
-            <em>considered</em>
+            <em>Reveal</em>
             <br />
-            home.
+            the room.
           </h1>
+          {/* The brief's supporting line promises "AI-guided interiors" and
+              "visual tools". Neither exists yet, so this copy describes what the
+              site actually sells; it swaps over when the design studio ships. */}
           <p className="hero-sub">
             Curated cleaning finds, interior design books, hand-poured candles, and
             Christian literature — for every dimension of a well-kept life.
           </p>
           <div className="hero-actions">
             <Link href="/shop/" className="btn-primary">
-              Shop the edit →
+              Enter the Shop →
             </Link>
             <Link href="/library/" className="btn-ghost">
               Explore the library

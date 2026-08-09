@@ -2551,3 +2551,113 @@ textarea {
 
 @media (max-width: 900px) { .download-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .download-grid { grid-template-columns: 1fr; } }
+
+/* ── STOREFRONT: COLLECTIONS, FILTERS, PURCHASE CLARITY ──────────── */
+
+.collection-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 3rem;
+}
+
+.collection-nav a {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 239, 0.7);
+  border: 1px solid var(--line);
+  padding: 0.6rem 1.1rem;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.collection-nav a:hover,
+.collection-nav a:focus-visible {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.shop-controls {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1.5rem;
+  align-items: end;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.shop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shop-field-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+/* Commerce controls stay at a readable size — never decorative type. */
+.shop-field input,
+.shop-field select {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--bone);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  padding: 0.6rem 0;
+  min-height: 44px;
+  width: 100%;
+}
+
+.shop-field select option {
+  background: var(--ink);
+  color: var(--bone);
+}
+
+.shop-field input:focus-visible,
+.shop-field select:focus-visible {
+  outline: none;
+  border-bottom-color: var(--brass);
+}
+
+.shop-count {
+  margin-top: 1.5rem;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+.collection-empty {
+  padding: 4rem 0;
+  max-width: 46ch;
+}
+
+.collection-empty-copy {
+  color: rgba(247, 244, 239, 0.7);
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+/* Says where the money changes hands, directly under the CTA. */
+.purchase-note {
+  margin-top: 0.9rem;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--taupe);
+}
+
+@media (max-width: 900px) {
+  .shop-controls { grid-template-columns: 1fr 1fr; }
+  .shop-field:first-child { grid-column: span 2; }
+}
+
+@media (max-width: 600px) {
+  .shop-controls { grid-template-columns: 1fr; }
+  .shop-field:first-child { grid-column: span 1; }
+}
