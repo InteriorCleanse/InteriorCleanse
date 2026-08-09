@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { CartButton } from './cart'
+import { LogoMark } from './logo-mark'
 import { BRAND_NAME, SITE } from '@/lib/site-config'
 
 const NAV: [string, string][] = [
@@ -27,7 +28,10 @@ function Wordmark() {
 export function Header() {
   return (
     <header className="site-header">
-      <Wordmark />
+      <div className="header-left">
+        <LogoMark />
+        <Wordmark />
+      </div>
       <nav className="site-nav">
         {NAV.map(([label, href]) => (
           <Link key={href} href={href}>
