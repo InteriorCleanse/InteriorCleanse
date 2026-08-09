@@ -10,6 +10,11 @@ npm run verify   # lint → typecheck → test → build
 | --- | --- | --- |
 | `tests/authz.test.ts` | Role escalation, platform/tenant separation, impersonation limits, `assertCan` | 12 passing |
 | `tests/env.test.ts` | Owner allowlist parsing, branding overrides, configured detection | 7 passing |
+| `tests/money.test.ts` | Decimal parsing without float error, currency safety, conserving allocation, explicit division by zero | 26 passing |
+| `tests/metrics.test.ts` | Every dictionary definition, null-not-zero contract, provenance, allocation conservation | 20 passing |
+| `tests/import.test.ts` | RFC 4180 parsing, header mapping, validation, duplicate detection, preview | 22 passing |
+| `tests/demo-seed.test.ts` | Determinism, referential consistency, plausibility | 9 passing |
+| `tests/demo-golden.test.ts` | Pinned demo figures so engine changes cannot silently restate them | 3 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.

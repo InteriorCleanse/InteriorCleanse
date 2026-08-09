@@ -26,12 +26,27 @@ passing, and each produces something usable rather than scaffolding.
       here; see `docs/TEST_PLAN.md`. This is the one Checkpoint 1 item that is
       not verified, because it needs a real Supabase project.
 
-## ☐ Checkpoint 2 — Data and calculations
+## ◑ Checkpoint 2 — Data and calculations
 
-Schema for stores/products/orders/costs; CSV import wizard with mapping,
-preview, validation, duplicate detection and rollback; metrics engine
-implementing `docs/METRICS_DICTIONARY.md`; ad-spend allocation with a visible
-rule; deterministic demo seed; data lineage from a tile back to source records.
+- [x] Commerce schema: stores, products, variants, effective-dated costs,
+      customers, orders, order items, refunds, expenses, overhead rules,
+      exchange rates, daily rollup — each with RLS in the same migration
+- [x] `import_batches` + `rollback_import_batch()` so any import is undoable
+- [x] Decimal-safe money (`lib/money.ts`), integer minor units, currency-typed,
+      conserving `allocate()` — 26 tests
+- [x] Metrics engine implementing the dictionary literally — 20 tests
+- [x] Ad-spend allocation with five models, visible confidence, and an
+      unallocated bucket that always conserves spend exactly
+- [x] CSV pipeline: RFC 4180 parser, header auto-mapping, validation,
+      in-file duplicate detection, preview — 22 tests
+- [x] Deterministic demo dataset + golden snapshot — 12 tests
+- [x] `MetricCard` renders formula, sources, currency, freshness, drill-down
+- [x] Command center on real computed figures; empty state refuses to fake data
+- [ ] **Commit path**: writing validated rows to Postgres with the batch id.
+      Needs a live database to build against meaningfully.
+- [ ] Daily rollup job populating `daily_business_metrics`
+- [ ] Drill-down routes (`/app/revenue`, `/app/products`) — the `drillDown`
+      targets exist on every metric but the pages land in Checkpoint 3
 
 ## ☐ Checkpoint 3 — Command center
 
