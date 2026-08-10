@@ -16,6 +16,13 @@
   --positive: 21 128 61;
   --negative: 190 50 42;
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Categorical series slots — validated for colour-vision separation.
+     Fixed order, never cycled; past four, fold into "Other". */
+  --series-1: 42 120 214;
+  --series-2: 235 104 52;
+  --series-3: 27 175 122;
+  --series-4: 237 161 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +38,10 @@
     --amber: 232 168 74;
     --positive: 74 222 128;
     --negative: 248 113 113;
+    --series-1: 57 135 229;
+    --series-2: 217 89 38;
+    --series-3: 25 158 112;
+    --series-4: 201 133 0;
   }
 }
 

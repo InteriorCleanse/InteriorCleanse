@@ -48,11 +48,34 @@ passing, and each produces something usable rather than scaffolding.
 - [ ] Drill-down routes (`/app/revenue`, `/app/products`) — the `drillDown`
       targets exist on every metric but the pages land in Checkpoint 3
 
-## ☐ Checkpoint 3 — Command center
+## ◑ Checkpoint 3 — Command center
 
-Responsive shell, KPI cards with comparison/freshness/drill-down/formula
-tooltips, global filters, chart shell with type switching, the seven custom
-diagrams, accessible table alternatives.
+- [x] Period presets and comparison windows (`lib/periods.ts`) — 23 tests.
+      Growth from a zero baseline reports "no activity", never "+100%"
+- [x] Metric-aware sentiment: refund rate and CAC rising read as negative
+- [x] Global filters held in the URL, so a filtered view is shareable and
+      survives a reload
+- [x] Chart geometry (`lib/charts/scale.ts`) — value axes always include zero;
+      bounds and ticks share one step so a range crossing zero always has a
+      zero gridline — 37 tests
+- [x] `ChartShell`: plain-English purpose, legend past one series, and a
+      keyboard-accessible table for every chart
+- [x] Time series (line/area), inline SVG, server-rendered, no chart dependency
+- [x] Profit Engine Sankey — refuses to draw an unbalanced engine
+- [x] Cash Flow Waterfall — closing balance derived, never passed in
+- [x] Product Portfolio Matrix — bubble area (not radius) proportional to revenue
+- [x] Validated categorical palette (`scripts/validate_palette.js`, both modes)
+- [x] Drill-downs at `/app/revenue` and `/app/products`, reading through the
+      same analytics module as the tiles that link to them
+- [x] Rendered and visually inspected via `vitest.harness.config.ts` +
+      Playwright, which caught four layout bugs the unit tests could not
+- [ ] Remaining chart modes from the spec: stacked/horizontal bar, combo,
+      donut, treemap, heatmap, scatter, radar, forecast fan, and the runtime
+      chart-type switcher
+- [ ] Remaining custom diagrams: Campaign Funnel, Customer Lifecycle Flow,
+      Goal Dependency Map, Integration Health Map
+- [ ] Filters beyond date/comparison (channel, SKU, campaign, region, currency)
+- [ ] PNG/CSV export and annotations
 
 ## ☐ Checkpoint 4 — Analyst
 

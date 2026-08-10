@@ -1,5 +1,6 @@
 import type { Metric } from '@/lib/metrics/engine'
 import { formatMoney, type Money } from '@/lib/money'
+import { changeSentiment, type Change } from '@/lib/periods'
 
 /**
  * Renders one KPI with its provenance attached.
@@ -36,9 +37,14 @@ function renderValue(metric: Metric<unknown>): string {
 
 export function MetricCard({
   metric,
+  change,
+  comparisonLabel,
   now = new Date(),
 }: {
   metric: Metric<unknown>
+  /** Movement against the comparison period, when one is selected. */
+  change?: Change | null
+  comparisonLabel?: string
   now?: Date
 }) {
   const unavailable = metric.value === null || metric.value === undefined
@@ -66,6 +72,10 @@ export function MetricCard({
 
       {unavailable && metric.unavailableReason ? (
         <p className="mt-1.5 text-xs text-amber">{metric.unavailableReason}</p>
+      ) : null}
+
+      {change && !unavailable ? (
+        <ChangeBadge metricKey={metric.key} change={change} comparisonLabel={comparisonLabel} />
       ) : null}
 
       {/* The formula is the difference between a dashboard and a number someone
@@ -97,5 +107,47 @@ export function MetricCard({
         </div>
       </dl>
     </article>
+  )
+}
+
+
+/**
+ * Movement against the comparison period.
+ *
+ * Direction is stated with an arrow and a word, never colour alone, and the
+ * sentiment is metric-aware: refund rate rising is not a win, so it is not
+ * painted like one.
+ */
+function ChangeBadge({
+  metricKey,
+  change,
+  comparisonLabel,
+}: {
+  metricKey: string
+  change: Change
+  comparisonLabel?: string
+}) {
+  const sentiment = changeSentiment(metricKey, change.direction)
+  const tone =
+    sentiment === 'positive'
+      ? 'text-positive'
+      : sentiment === 'negative'
+        ? 'text-negative'
+        : 'text-muted'
+  const arrow = change.direction === 'up' ? '↑' : change.direction === 'down' ? '↓' : '→'
+
+  return (
+    <p className={`mt-1.5 flex flex-wrap items-baseline gap-1.5 text-xs ${tone}`}>
+      <span aria-hidden="true">{arrow}</span>
+      <span className="tabular font-medium">
+        {change.percent === null
+          ? change.unavailableReason
+          : `${Math.abs(change.percent * 100).toFixed(1)}%`}
+      </span>
+      <span className="text-muted">
+        {change.direction === 'flat' ? 'no change' : change.direction}
+        {comparisonLabel ? ` vs ${comparisonLabel.toLowerCase()}` : ''}
+      </span>
+    </p>
   )
 }

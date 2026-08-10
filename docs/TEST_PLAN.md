@@ -15,6 +15,9 @@ npm run verify   # lint → typecheck → test → build
 | `tests/import.test.ts` | RFC 4180 parsing, header mapping, validation, duplicate detection, preview | 22 passing |
 | `tests/demo-seed.test.ts` | Determinism, referential consistency, plausibility | 9 passing |
 | `tests/demo-golden.test.ts` | Pinned demo figures so engine changes cannot silently restate them | 3 passing |
+| `tests/periods.test.ts` | Preset ranges, non-overlapping comparisons, zero-baseline growth, metric-aware sentiment | 23 passing |
+| `tests/charts.test.ts` | Zero-inclusive axes, tick/bound agreement, Sankey balance, waterfall chaining, bubble area scaling | 37 passing |
+| `tests/palette.test.ts` | Series colours resolve to `rgb(...)`, fixed slot order, fold-to-Other conservation | 8 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
@@ -50,3 +53,20 @@ service role bypasses RLS, so testing with it proves nothing.
 - Connector adapters tested against recorded fixtures so they stay testable while
   unconfigured (Checkpoint 5).
 - Stripe test-mode subscription lifecycle (Checkpoint 6).
+
+
+## Visual verification
+
+Unit tests cover chart *geometry*; they cannot see a clipped label or a
+collision. `npm run harness` renders the real components to static HTML and
+screenshots them with Playwright:
+
+```bash
+npx vitest run --config vitest.harness.config.ts   # writes /tmp/charts.html
+```
+
+Running it on the first Checkpoint 3 build caught four bugs no unit test would
+have: series colours resolving to a bare RGB triplet so every chart rendered
+grey, a y-axis gutter that clipped `$10,000.00` to `L0,000.00`, portfolio
+labels running off the canvas, and direct labels landing on neighbouring
+bubbles. The colour bug is now pinned by `tests/palette.test.ts`.

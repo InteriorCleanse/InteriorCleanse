@@ -12,6 +12,8 @@ export const metadata = { robots: { index: false, follow: false } }
 
 const NAV = [
   { href: '/app/command-center', label: 'Command center' },
+  { href: '/app/revenue', label: 'Revenue' },
+  { href: '/app/products', label: 'Products' },
   { href: '/app/import', label: 'Import' },
   { href: '/app/onboarding', label: 'Onboarding' },
 ]
