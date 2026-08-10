@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { BookLd, BreadcrumbLd } from '@/components/StructuredData'
 import { Button } from '@/components/ui'
 import { allBooks, getBook } from '@/lib/content'
 
@@ -10,7 +11,17 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const b = getBook(params.slug)
   if (!b) return { title: 'Book' }
-  return { title: b.title, description: b.hook }
+  return {
+    title: b.title,
+    description: b.hook,
+    alternates: { canonical: `/library/${b.slug}/` },
+    openGraph: {
+      title: b.title,
+      description: b.hook,
+      images: [b.coverImage],
+      url: `/library/${b.slug}/`,
+    },
+  }
 }
 
 export default function BookPage({ params }: { params: { slug: string } }) {
@@ -25,6 +36,13 @@ export default function BookPage({ params }: { params: { slug: string } }) {
         paddingTop: 'calc(var(--header-h) + 6rem)',
       }}
     >
+      <BookLd book={b} />
+      <BreadcrumbLd
+        trail={[
+          { name: 'The Library', path: '/library/' },
+          { name: b.title, path: `/library/${b.slug}/` },
+        ]}
+      />
       <div className="book-detail-grid">
         <img
           src={b.coverImage}

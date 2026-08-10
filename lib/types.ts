@@ -7,6 +7,42 @@ export type ProductCategory =
   | 'book'
   | 'custom'
 
+/**
+ * How a product is presented dimensionally.
+ *
+ * `depth_interactive` is the floor — every product gets at least this — and it
+ * is deliberately honest about being a fallback rather than real geometry.
+ */
+export type RenderMode = 'true_3d' | 'spin_360' | 'depth_interactive'
+
+/** Where the product comes from. Drives sync behaviour and admin grouping. */
+export type SourceType =
+  | 'owned'
+  | 'printful'
+  | 'printify'
+  | 'amazon'
+  | 'tiktok'
+  | 'digital'
+
+/**
+ * Where the money changes hands. The UI reads this to decide whether an item
+ * may enter the internal cart at all — external items never can.
+ */
+export type CheckoutMode =
+  | 'internal_physical'
+  | 'internal_digital'
+  | 'external_amazon'
+  | 'external_tiktok'
+  | 'inquiry_or_consultation'
+
+/** A parallax plane in a Mode C composition. */
+export type DepthLayer = {
+  src: string
+  /** 0 = background (holds still), 1 = foreground (travels furthest). */
+  depth: number
+  alt?: string
+}
+
 export type Product = {
   slug: string
   name: string
@@ -18,6 +54,28 @@ export type Product = {
   gallery: string[]
   /** Base colour the 3D product stage uses when rendering this object. */
   materialColor?: string
+
+  /**
+   * Dimensional presentation. Omitted means `depth_interactive` — no product
+   * is ever flat, and upgrading one is a content edit, not a deploy.
+   */
+  renderMode?: RenderMode
+  /** Mode A. An optimized .glb/.gltf. */
+  modelUrl?: string
+  /** Painted before any heavy renderer boots; also the no-WebGL fallback. */
+  posterUrl?: string
+  /** Mode B. Ordered turntable frames. */
+  spinFrames?: string[]
+  /** Mode C. Omit and `heroImage` is used as a single layer. */
+  depthLayers?: DepthLayer[]
+
+  /** Commerce provenance. Omitted means `owned` + `internal_physical`. */
+  sourceType?: SourceType
+  checkoutMode?: CheckoutMode
+  /** Required when `checkoutMode` is one of the `external_` variants. */
+  externalPurchaseUrl?: string
+
+  /** @deprecated Superseded by `renderMode`; kept for the existing viewer. */
   viewer: {
     mode: 'spin' | 'model' | 'static'
     spinImages?: string[]
@@ -60,6 +118,21 @@ export type Book = {
   paperbackUrl: string
   kindleUrl: string
   featured: boolean
+}
+
+export type DigitalProduct = {
+  slug: string
+  title: string
+  subtitle: string
+  format: string
+  /** Display price, e.g. "$12" or "Free" — Gumroad is the source of truth. */
+  price: string
+  /** Product path on Gumroad; combined with the store in `gumroadUrl()`. */
+  gumroadPath: string
+  coverImage: string
+  imageAlt: string
+  description: string
+  bullets: string[]
 }
 
 export type SpiritBook = {

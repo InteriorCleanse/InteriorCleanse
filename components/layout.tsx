@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { CartButton } from './cart'
+import { LogoMark } from './logo-mark'
 import { BRAND_NAME, SITE } from '@/lib/site-config'
 
 const NAV: [string, string][] = [
@@ -13,6 +14,8 @@ const NAV: [string, string][] = [
 const FOOTER_LEGAL: [string, string][] = [
   ['Affiliate disclosure', '/legal/affiliate-disclosure/'],
   ['Privacy policy', '/legal/privacy-policy/'],
+  ['Returns', '/legal/returns/'],
+  ['Digital licence', '/legal/digital-license/'],
   ['Terms', '/legal/terms/'],
 ]
 
@@ -27,7 +30,10 @@ function Wordmark() {
 export function Header() {
   return (
     <header className="site-header">
-      <Wordmark />
+      <div className="header-left">
+        <LogoMark />
+        <Wordmark />
+      </div>
       <nav className="site-nav">
         {NAV.map(([label, href]) => (
           <Link key={href} href={href}>

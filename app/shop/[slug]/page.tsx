@@ -1,21 +1,45 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ProductStageLoader } from '@/components/3d/ProductStageLoader'
-import type { StageCategory } from '@/components/3d/ProductGeometry'
+import { ProductExperience } from '@/components/product/ProductExperience'
 import { validUrl } from '@/components/cards'
-import { AddToCartButton } from '@/components/cart'
-import { allProducts, getProduct } from '@/lib/content'
+import { BreadcrumbLd, ProductLd } from '@/components/StructuredData'
+import { CollectionView } from '@/components/product/CollectionView'
+import { PurchaseAction } from '@/components/product/PurchaseAction'
+import { StaticGallery } from '@/components/product/StaticGallery'
+import { resolveShopSlug, shopParams } from '@/lib/collections'
+import { allProducts } from '@/lib/content'
 import type { Product } from '@/lib/types'
 
 export function generateStaticParams() {
-  return allProducts.map((p) => ({ slug: p.slug }))
+  return shopParams()
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const p = getProduct(params.slug)
-  if (!p) return { title: 'Product' }
-  return { title: p.name, description: p.tagline }
+  const resolved = resolveShopSlug(params.slug)
+
+  if (resolved.kind === 'collection') {
+    const { collection } = resolved
+    return {
+      title: collection.title,
+      description: `${collection.title} — ${collection.eyebrow}. InteriorCleanse.`,
+      alternates: { canonical: `/shop/${collection.slug}/` },
+    }
+  }
+  if (resolved.kind === 'product') {
+    return {
+      title: resolved.product.name,
+      description: resolved.product.tagline,
+      alternates: { canonical: `/shop/${resolved.product.slug}/` },
+      openGraph: {
+        title: resolved.product.name,
+        description: resolved.product.tagline,
+        images: [resolved.product.heroImage],
+        url: `/shop/${resolved.product.slug}/`,
+      },
+    }
+  }
+  return { title: 'Shop' }
 }
 
 const CARE_BY_CATEGORY: Record<string, string[]> = {
@@ -63,17 +87,25 @@ function CareNotes({ product }: { product: Product }) {
 }
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
-  const p = getProduct(params.slug)
-  if (!p) notFound()
+  const resolved = resolveShopSlug(params.slug)
+  if (resolved.kind === 'none') notFound()
+  if (resolved.kind === 'collection') {
+    return <CollectionView collection={resolved.collection} />
+  }
+
+  const p = resolved.product
 
   return (
     <section className="product-detail-grid">
+      <ProductLd product={p} />
+      <BreadcrumbLd
+        trail={[
+          { name: 'Shop', path: '/shop/' },
+          { name: p.name, path: `/shop/${p.slug}/` },
+        ]}
+      />
       <div className="product-viewer-col">
-        <ProductStageLoader
-          productColor={p.materialColor || '#A9895A'}
-          productName={p.name}
-          category={p.category as StageCategory}
-        />
+        <ProductExperience product={p} variant="stage" eager />
       </div>
 
       <div className="product-info-col">
@@ -98,17 +130,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           <span className="product-currency">USD · Tax at checkout</span>
         </div>
 
-        <AddToCartButton
-          disabled={p.comingSoon}
-          item={{
-            slug: p.slug,
-            name: p.name,
-            price: p.price,
-            heroImage: p.heroImage,
-            printfulVariantId: p.channels.printfulId,
-            printifyVariantId: p.channels.printifyId,
-          }}
-        />
+        <PurchaseAction product={p} />
 
         <div className="channel-buttons">
           {validUrl(p.channels.amazonUrl) ? (
@@ -155,6 +177,8 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             <dd>Selected for material, utility, and a quieter visual life.</dd>
           </div>
         </dl>
+
+        <StaticGallery product={p} />
       </div>
     </section>
   )

@@ -149,6 +149,34 @@ textarea {
   border-bottom: 1px solid rgba(169, 137, 90, 0.15);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(169, 137, 90, 0.3);
+  transition: border-color 0.25s;
+}
+
+.logo-mark:hover {
+  border-color: var(--brass);
+}
+
+.logo-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .wordmark {
   font-family: var(--font-display);
   font-size: 14px;
@@ -593,8 +621,171 @@ textarea {
   transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.product-card:hover .product-card-image img {
-  transform: scale(1.06);
+/* MODE C — DEPTH-INTERACTIVE
+   Layered perspective, not 3D. Costs no WebGL context, which is why a grid of
+   a hundred cards can use it and a grid of canvases cannot. Every motion here
+   is driven by two custom properties the pointer handler writes. */
+.depth-stage {
+  --px: 0;
+  --py: 0;
+  --tilt: 7deg;
+  --lift: 10px;
+  --travel: 12px;
+  --wash: rgba(169, 137, 90, 0.16);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 900px;
+  transform: translateY(0);
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.depth-stage-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(calc(var(--px) * var(--tilt)))
+    rotateX(calc(var(--py) * var(--tilt) * -1));
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.depth-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translate3d(
+    calc(var(--px) * var(--travel) * var(--depth) * -1),
+    calc(var(--py) * var(--travel) * var(--depth) * -1),
+    0
+  );
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* A restrained brass wash that tracks the pointer — the light in the room,
+   not a glassmorphic sheen. */
+.depth-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background: radial-gradient(
+    circle at calc(50% + var(--px) * 40%) calc(50% + var(--py) * 40%),
+    var(--wash),
+    transparent 62%
+  );
+}
+
+/* Focus gets exactly what hover gets — a keyboard visitor sees the same lift. */
+.product-card:hover .depth-stage,
+.product-card-image:focus-visible .depth-stage,
+.depth-stage:hover {
+  transform: translateY(calc(var(--lift) * -1));
+}
+
+.product-card:hover .depth-sheen,
+.product-card-image:focus-visible .depth-sheen,
+.depth-stage:hover .depth-sheen {
+  opacity: 1;
+}
+
+/* The generic card zoom would fight the parallax transform. */
+.product-card:hover .product-card-image .depth-layer {
+  transform: translate3d(
+    calc(var(--px) * var(--travel) * var(--depth) * -1),
+    calc(var(--py) * var(--travel) * var(--depth) * -1),
+    0
+  );
+}
+
+.depth-stage-large {
+  aspect-ratio: 1 / 1;
+  height: auto;
+  background: rgba(247, 244, 239, 0.03);
+}
+
+/* Hover does not exist on touch, so neither does any of this. */
+@media (hover: none), (pointer: coarse) {
+  .depth-stage,
+  .depth-stage-inner,
+  .depth-layer {
+    transform: none !important;
+  }
+  .depth-sheen {
+    opacity: 0 !important;
+  }
+}
+
+/* MODE B — 360 SPIN */
+.spin-stage {
+  position: relative;
+  width: 100%;
+}
+
+.spin-viewport {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: rgba(247, 244, 239, 0.03);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.spin-viewport:active {
+  cursor: grabbing;
+}
+
+.spin-viewport:focus-visible {
+  outline: 1px solid var(--brass);
+  outline-offset: 3px;
+}
+
+.spin-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.spin-frame[data-active='true'] {
+  opacity: 1;
+}
+
+.spin-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.spin-controls button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--bone);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.spin-controls button:hover {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.spin-hint {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--taupe);
 }
 
 .product-card-badge {
@@ -1972,6 +2163,8 @@ textarea {
 }
 
 @media (max-width: 600px) {
+  .header-left { gap: 0.55rem; }
+  .logo-mark { width: 32px; height: 32px; }
   .hero-section { padding: 0 5vw; }
   .hero-headline { font-size: 13vw; }
   .hero-scroll-hint { left: 5vw; bottom: 2rem; }
@@ -2010,6 +2203,12 @@ textarea {
   }
   [data-reveal] { opacity: 1; transform: none; }
   .mag-cursor { display: none; }
+  /* The JS handler already stops writing --px/--py; this covers the transform
+     itself, which a transition-duration override cannot reach. */
+  .depth-stage,
+  .depth-stage-inner,
+  .depth-layer { transform: none !important; }
+  .depth-sheen { opacity: 0 !important; }
 }
 
 /* ── ADMIN DASHBOARD ──────────────────────────────────────────────── */
@@ -2251,4 +2450,414 @@ textarea {
   padding: 1rem 0 1.5rem;
   border-top: 1px solid var(--line);
   margin-bottom: 1rem;
+}
+
+/* DIGITAL DOWNLOADS */
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.5rem;
+}
+
+.download-card { display: flex; flex-direction: column; }
+
+.download-card-image {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  background: rgba(247, 244, 239, 0.04);
+}
+
+.download-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.download-card:hover .download-card-image img { transform: scale(1.04); }
+
+.download-format {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: rgba(10, 10, 10, 0.85);
+  color: var(--brass);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.8rem;
+}
+
+.download-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 350;
+  color: var(--bone);
+  line-height: 1.15;
+  margin-bottom: 0.4rem;
+}
+
+.download-subtitle {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--brass);
+  margin-bottom: 1rem;
+}
+
+.download-desc {
+  font-size: 13px;
+  color: rgba(247, 244, 239, 0.5);
+  line-height: 1.7;
+  margin-bottom: 1.2rem;
+}
+
+.download-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.download-bullets li {
+  font-size: 12px;
+  color: rgba(247, 244, 239, 0.45);
+  display: flex;
+  gap: 0.6rem;
+  line-height: 1.6;
+}
+
+.download-bullets li::before {
+  content: '◇';
+  color: var(--brass);
+  font-size: 8px;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.download-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px solid rgba(247, 244, 239, 0.1);
+  padding-top: 1.2rem;
+}
+
+.download-price { font-size: 14px; color: var(--brass); }
+
+@media (max-width: 900px) { .download-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .download-grid { grid-template-columns: 1fr; } }
+
+/* ── STOREFRONT: COLLECTIONS, FILTERS, PURCHASE CLARITY ──────────── */
+
+.collection-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 3rem;
+}
+
+.collection-nav a {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 239, 0.7);
+  border: 1px solid var(--line);
+  padding: 0.6rem 1.1rem;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.collection-nav a:hover,
+.collection-nav a:focus-visible {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.shop-controls {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1.5rem;
+  align-items: end;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.shop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shop-field-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+/* Commerce controls stay at a readable size — never decorative type. */
+.shop-field input,
+.shop-field select {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--bone);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  padding: 0.6rem 0;
+  min-height: 44px;
+  width: 100%;
+}
+
+.shop-field select option {
+  background: var(--ink);
+  color: var(--bone);
+}
+
+.shop-field input:focus-visible,
+.shop-field select:focus-visible {
+  outline: none;
+  border-bottom-color: var(--brass);
+}
+
+.shop-count {
+  margin-top: 1.5rem;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+.collection-empty {
+  padding: 4rem 0;
+  max-width: 46ch;
+}
+
+.collection-empty-copy {
+  color: rgba(247, 244, 239, 0.7);
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+/* Says where the money changes hands, directly under the CTA. */
+.purchase-note {
+  margin-top: 0.9rem;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--taupe);
+}
+
+@media (max-width: 900px) {
+  .shop-controls { grid-template-columns: 1fr 1fr; }
+  .shop-field:first-child { grid-column: span 2; }
+}
+
+@media (max-width: 600px) {
+  .shop-controls { grid-template-columns: 1fr; }
+  .shop-field:first-child { grid-column: span 1; }
+}
+
+/* 3D readiness report */
+.readiness-ok {
+  color: var(--mind-accent);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.readiness-issues {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.readiness-issues li {
+  font-size: 12px;
+  color: var(--brass-light);
+  line-height: 1.5;
+}
+
+.readiness-note {
+  margin-top: 2rem;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--taupe);
+  max-width: 70ch;
+}
+
+.readiness-note code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--bone);
+}
+
+/* Accessible static gallery — the non-canvas view of every product */
+.static-gallery {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.static-gallery-title {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+  font-weight: 500;
+  margin-bottom: 1.2rem;
+}
+
+.static-gallery-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.8rem;
+}
+
+.static-gallery-list img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: rgba(247, 244, 239, 0.04);
+}
+
+/* Connector health */
+.connector-alert {
+  border: 1px solid var(--brass);
+  padding: 1.6rem;
+  margin-bottom: 2.5rem;
+}
+
+.connector-alert-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--bone);
+  margin-bottom: 0.8rem;
+}
+
+.connector-alert p,
+.connector-alert li {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(247, 244, 239, 0.75);
+}
+
+.connector-alert ul {
+  margin-top: 0.8rem;
+  padding-left: 1.2rem;
+}
+
+.connector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.connector-card {
+  border: 1px solid var(--line);
+  border-left-width: 2px;
+  padding: 1.4rem;
+}
+
+.connector-card[data-state='connected'] { border-left-color: var(--mind-accent); }
+.connector-card[data-state='partial'] { border-left-color: var(--brass); }
+.connector-card[data-state='not_connected'] { border-left-color: var(--taupe); }
+
+.connector-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.connector-head h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--bone);
+}
+
+.connector-state {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--taupe);
+}
+
+.connector-card[data-state='connected'] .connector-state { color: var(--mind-accent); }
+.connector-card[data-state='partial'] .connector-state { color: var(--brass); }
+
+.connector-purpose {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(247, 244, 239, 0.62);
+}
+
+.connector-blocker {
+  margin-top: 0.9rem;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--brass-light);
+}
+
+.connector-keys {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.connector-keys code,
+.connector-alert code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--taupe);
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.45rem;
+}
+
+/* 3D viewer controls — pause and reset, required alongside every heavy stage */
+.stage-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.stage-controls button {
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  color: rgba(247, 244, 239, 0.8);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.6rem 0.85rem;
+  min-height: 34px;
+  cursor: pointer;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.stage-controls button:hover:not(:disabled),
+.stage-controls button:focus-visible {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.stage-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

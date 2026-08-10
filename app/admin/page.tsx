@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { useRouter } from 'next/navigation'
+import { IntegrationsTab } from '@/components/admin/IntegrationsTab'
+import { ReadinessTab } from '@/components/admin/ReadinessTab'
 import {
   Bar,
   BarChart,
@@ -29,7 +31,7 @@ const fetcher = async (url: string) => {
   return data
 }
 
-const TABS = ['Contacts', 'Orders', 'Analytics', 'Email'] as const
+const TABS = ['Contacts', 'Orders', 'Analytics', 'Integrations', '3D Readiness', 'Email'] as const
 type Tab = (typeof TABS)[number]
 
 const CHART_COLORS = ['#A9895A', '#7FA872', '#4A9EFF', '#C4A8E8', '#C4A96E']
@@ -76,6 +78,8 @@ export default function AdminDashboard() {
         {tab === 'Contacts' ? <ContactsTab /> : null}
         {tab === 'Orders' ? <OrdersTab /> : null}
         {tab === 'Analytics' ? <AnalyticsTab /> : null}
+        {tab === 'Integrations' ? <IntegrationsTab /> : null}
+        {tab === '3D Readiness' ? <ReadinessTab /> : null}
         {tab === 'Email' ? <EmailTab /> : null}
       </main>
     </div>
@@ -459,11 +463,12 @@ function EmailTab() {
       const res = await fetch('/api/send-ai-email/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload()),
+        // Send the edited copy, so what was reviewed is what arrives.
+        body: JSON.stringify({ ...payload(), email }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      setStatus(`Sent to ${to}.`)
+      setStatus(`Sent to ${to}${json.edited ? ' (your edited copy)' : ''}.`)
     } catch (e) {
       setStatus(e instanceof Error ? e.message : 'Send failed.')
     } finally {
@@ -561,12 +566,24 @@ function EmailTab() {
                 onChange={(e) => setEmail({ ...email, body: e.target.value })}
               />
             </label>
+            <label>
+              CTA text
+              <input
+                className="admin-search"
+                value={email.ctaText}
+                onChange={(e) => setEmail({ ...email, ctaText: e.target.value })}
+              />
+            </label>
+            <label>
+              CTA link
+              <input
+                className="admin-search"
+                value={email.ctaUrl}
+                onChange={(e) => setEmail({ ...email, ctaUrl: e.target.value })}
+              />
+            </label>
             <p className="admin-muted">
-              CTA: {email.ctaText} → {email.ctaUrl}
-            </p>
-            <p className="admin-muted">
-              Note: edits here are for review. Send re-generates from the trigger — wire
-              an override into /api/send-ai-email to send edited copy verbatim.
+              Send delivers exactly what is shown here — edits included.
             </p>
           </div>
         ) : null}
