@@ -70,3 +70,19 @@ have: series colours resolving to a bare RGB triplet so every chart rendered
 grey, a y-axis gutter that clipped `$10,000.00` to `L0,000.00`, portfolio
 labels running off the canvas, and direct labels landing on neighbouring
 bubbles. The colour bug is now pinned by `tests/palette.test.ts`.
+
+`scripts/render-assistant.test.tsx` does the same for the assistant surfaces,
+compiling the project's real Tailwind config over the rendered markup
+(`tailwind.harness.config.ts`) so the page verifies the product rather than a
+CSS shim. Previews on that page come from the real tools, not hand-written
+fixtures. It caught two defects on its first run:
+
+- The assistant reported in a hardcoded `GBP` while every dashboard defaulted to
+  the organization's `base_currency`. Fixed by threading `membership.baseCurrency`
+  into the route, the briefings and all three dashboards, and pinned by a test
+  asserting a briefing renders in the workspace's own currency.
+- Approval cards asked people to agree to `Threshold 100000` and
+  `Metric contributionProfit`. Write tools now return display-ready
+  `preview.fields` — formatted money, labelled metrics — while the raw
+  arguments stay untouched for hashing and execution. Pinned by three tests,
+  including one asserting no machine-cased metric key ever reaches a human.

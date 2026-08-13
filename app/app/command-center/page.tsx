@@ -32,6 +32,7 @@ export default async function CommandCenterPage({
 
   const analytics = loadWorkspaceAnalytics({
     isDemo: membership.isDemo,
+    currency: membership.baseCurrency,
     preset,
     comparison,
   })

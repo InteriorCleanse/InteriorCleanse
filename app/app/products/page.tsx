@@ -22,7 +22,12 @@ export default async function ProductsPage({
   const [{ membership }, params] = await Promise.all([requireMembership(), searchParams])
   const { preset, comparison } = readFilters(params)
 
-  const analytics = loadWorkspaceAnalytics({ isDemo: membership.isDemo, preset, comparison })
+  const analytics = loadWorkspaceAnalytics({
+    isDemo: membership.isDemo,
+    currency: membership.baseCurrency,
+    preset,
+    comparison,
+  })
   const fmt = (minor: number) => formatMoney(money(Math.round(minor), analytics.currency))
   const placed = layoutPortfolio(analytics.portfolio).points
   const ranked = [...placed].sort((a, b) => b.revenue - a.revenue)

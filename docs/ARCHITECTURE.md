@@ -92,8 +92,41 @@ bootstrap function. This is why there is no owner signup screen.
 
 Business logic must not be locked to a vendor. Interfaces land with the
 checkpoint that first needs them: `SpeechToTextProvider` and
-`TextToSpeechProvider` at Checkpoint 4, connector adapters at Checkpoint 5,
-notification channels at Checkpoint 5.
+`TextToSpeechProvider` (`lib/voice/types.ts`, browser implementations in
+`lib/voice/browser.ts`) at Checkpoint 4; connector adapters and notification
+channels at Checkpoint 5.
+
+Voice is behind an adapter for a specific commercial reason rather than a
+stylistic one: the browser recogniser is free and needs no key, but in Chrome it
+sends audio to a Google service. A workspace that cannot accept that must be
+able to swap in Deepgram or Whisper without any component changing, so nothing
+in the UI imports a Web Speech type. Each provider also declares whether it
+processes `on-device` or in `provider-cloud`, because that is something a person
+is entitled to know before speaking.
+
+## The assistant
+
+Three layers, and only one of them is a real control.
+
+1. **The tool surface** (`lib/assistant/tools.ts`) is a fixed list of nine
+   business questions. There is no bash, SQL, filesystem, HTTP or secret tool,
+   and tenant scope is never a parameter — it comes from the session. The worst
+   case of a successful prompt injection is a question being asked.
+2. **The approval gate** (`lib/assistant/approval.ts`, `action_approvals`) binds
+   every write to a user, an organization, a tool, a SHA-256 of the
+   canonicalised arguments, and an expiry. Execution re-derives that hash from
+   the arguments about to be used rather than trusting one supplied alongside
+   them, because checking a client-provided hash against a client-provided
+   payload proves nothing.
+3. **Sanitisation** (`lib/assistant/sanitise.ts`) wraps and neutralises external
+   text. It reduces noise and raises the cost of an attempt. It is not what
+   holds, and the file says so.
+
+Briefings are computed, not generated. A briefing that fires on a schedule and
+lands in someone's morning is the last place to want a model paraphrasing
+numbers, so the arithmetic and the sentences are both fixed in
+`lib/assistant/briefings.ts` — which also means briefings work with no model
+configured at all.
 
 ## Directory layout
 

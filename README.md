@@ -4,7 +4,8 @@ A multi-tenant subscription business operating system: connect a business's real
 data, calculate profit that can be traced back to source records, and talk to an
 analyst that answers from that data.
 
-**Status: Checkpoint 1 of 8 — identity and tenancy.** See
+**Status: Checkpoint 4 of 8 — the analyst.** Identity and tenancy, the
+metrics engine, the dashboards, and the in-app analyst are built. See
 `docs/IMPLEMENTATION_PLAN.md` for what is done and what is next.
 
 `AURELIS OS` and `Aurelis` are working names set by environment variables, not

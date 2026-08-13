@@ -77,16 +77,42 @@ passing, and each produces something usable rather than scaffolding.
 - [ ] Filters beyond date/comparison (channel, SKU, campaign, region, currency)
 - [ ] PNG/CSV export and annotations
 
-## ☐ Checkpoint 4 — Analyst
+## ✅ Checkpoint 4 — Analyst
 
-Typed tools, assistant dock, streaming, source citations, `SpeechToTextProvider`
-and `TextToSpeechProvider` adapters (browser speech in development), action
-approval bound to exact arguments, executive briefings, prompt-injection
-resistance.
+- [x] Nine Zod-typed tools (`lib/assistant/tools.ts`): seven reads, two writes.
+      No bash, SQL, filesystem, HTTP or secret tool exists, and tenant scope is
+      never a parameter — both asserted in tests, because the blast radius of a
+      successful injection is exactly this list
+- [x] Streaming NDJSON endpoint at `/api/assistant` with a bounded tool loop
+- [x] Action approvals bound to user + organization + tool + a SHA-256 of the
+      canonicalised arguments + a 10-minute expiry. Changing any argument
+      invalidates the grant — 23 tests
+- [x] Approvals execute exactly once (`mark_approval_executed`), and land in
+      real tables (`goals`, `notification_rules`) rather than a promise
+- [x] Prompt-injection handling: delimiter wrapping, marker neutralisation,
+      secret redaction — with the tool surface and the approval gate as the
+      boundary that actually holds
+- [x] Source citations on every read, surfaced as chips under each answer
+- [x] `SpeechToTextProvider` / `TextToSpeechProvider` adapters with browser
+      implementations; nothing in the UI imports a Web Speech type, so a
+      workspace that will not send audio to Google can swap the provider
+- [x] Assistant dock on every app screen: streaming text, push-to-talk, tool
+      timeline, approval cards with a live expiry countdown, suggested commands
+- [x] Executive briefings (morning, end of day, weekly, monthly) — computed,
+      not generated, so a scheduled briefing cannot hallucinate a number and
+      works with no model configured at all
+- [x] Rendered and visually inspected again, which caught the assistant and the
+      dashboards disagreeing about currency, and approval cards asking someone
+      to agree to `Threshold 100000`
+- [ ] Scheduled delivery of briefings (Checkpoint 5, with notifications)
+- [ ] Thread history browsing; the transcript is persisted but only the current
+      conversation is shown
+- [ ] Streaming the model's own thinking summary to the dock
 
 ## ☐ Checkpoint 5 — Calendar, notifications, integrations
 
-Integration registry and health; Stripe/Shopify/CSV connectors; the tenant
+Evaluating the notification rules the assistant can now create; scheduled
+briefing delivery; integration registry and health; Stripe/Shopify/CSV connectors; the tenant
 credential vault (envelope encryption + KMS); Google and Outlook calendar;
 Apple-compatible iCalendar feed labelled read-only; notification centre,
 preferences, delivery log.

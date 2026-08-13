@@ -20,7 +20,12 @@ export default async function RevenuePage({
   const [{ membership }, params] = await Promise.all([requireMembership(), searchParams])
   const { preset, comparison } = readFilters(params)
 
-  const analytics = loadWorkspaceAnalytics({ isDemo: membership.isDemo, preset, comparison })
+  const analytics = loadWorkspaceAnalytics({
+    isDemo: membership.isDemo,
+    currency: membership.baseCurrency,
+    preset,
+    comparison,
+  })
   const fmt = (minor: number) => formatMoney(money(Math.round(minor), analytics.currency))
   const { metrics } = analytics
   const comparisonLabel =

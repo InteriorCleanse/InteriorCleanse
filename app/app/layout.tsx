@@ -1,7 +1,9 @@
 import Link from 'next/link'
-import { branding } from '@/lib/env'
+import { branding, isAssistantConfigured } from '@/lib/env'
+import { can } from '@/lib/authz'
 import { requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
+import { AssistantDock } from '@/components/assistant/AssistantDock'
 
 // These segments resolve the session from cookies on every request, so there
 // is nothing meaningful to prerender — and prerendering would evaluate the
@@ -14,6 +16,7 @@ const NAV = [
   { href: '/app/command-center', label: 'Command center' },
   { href: '/app/revenue', label: 'Revenue' },
   { href: '/app/products', label: 'Products' },
+  { href: '/app/briefings', label: 'Briefings' },
   { href: '/app/import', label: 'Import' },
   { href: '/app/onboarding', label: 'Onboarding' },
 ]
@@ -62,6 +65,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">{children}</main>
+
+      {/* The dock rides every app screen: the questions it answers are asked
+          while looking at a number, not on a separate page. */}
+      {active ? (
+        <AssistantDock
+          workspaceName={active.name}
+          isDemo={active.isDemo}
+          assistantName={branding.assistantName()}
+          configured={isAssistantConfigured()}
+          canApproveActions={can(
+            {
+              userId: session.userId,
+              tenantRole: active.role,
+              platformRole: session.platformRole,
+            },
+            'assistant:approve_action',
+          )}
+        />
+      ) : null}
     </div>
   )
 }

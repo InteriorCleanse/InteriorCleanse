@@ -61,6 +61,31 @@ Support impersonation is read-only by construction: `IMPERSONATION_FORBIDDEN` in
 `lib/authz.ts` blocks every consequential capability regardless of role,
 including for a platform owner. Covered by `tests/authz.test.ts`.
 
+## The assistant
+
+The assistant is the one component that reads attacker-influenceable text and
+also holds tools, so it is treated as hostile input end to end.
+
+- **The tool surface is the boundary.** Nine fixed tools, no general-purpose
+  capability, and no tenant-scope parameter. The worst case of a successful
+  injection is a business question being asked.
+- **Writes never execute on the model's say-so.** A write tool returns a
+  preview; the route raises an approval bound to the user, the organization,
+  the tool name, and a SHA-256 of the canonicalised arguments, with a
+  ten-minute expiry. Executing re-derives that hash from the arguments about to
+  be used rather than trusting a supplied one, and claims the approval exactly
+  once before acting.
+- **Untrusted text is wrapped and neutralised** (`lib/assistant/sanitise.ts`):
+  NFKC normalisation, control and bidi stripping, zero-width-space splitting of
+  injection markers, truncation, and secret redaction. This reduces noise; it
+  is not what holds.
+- **Errors never echo model or database text** to the caller. A failed tool
+  returns a fixed sentence; Postgres exception text is mapped to plain English.
+- **An approval for another tenant reads as "not approved yet"** — the same
+  wording as a missing one, so a cross-tenant id is never confirmed as real.
+- **Transcripts are append-only**: `assistant_messages` and
+  `assistant_tool_runs` have no UPDATE or DELETE policy.
+
 ## Audit log
 
 `audit_logs` has no UPDATE or DELETE policy for anyone, including platform
@@ -76,7 +101,8 @@ These are known and deliberately not done yet. None should be assumed handled.
       A single never-rotated master key is a single point of total compromise.
 - [ ] Rate limiting and abuse monitoring on auth and assistant endpoints
 - [ ] GDPR/DPA paperwork, data export, and deletion workflows
-- [ ] Prompt-injection defences on connector-sourced text (Checkpoint 4)
+- [ ] Rate limiting specifically on `/api/assistant` — a model call is the most
+      expensive request in the product and is currently unmetered per tenant
 - [ ] Real privacy policy and terms (current pages are placeholders)
 - [ ] Backup and restore rehearsal
 - [ ] SOC 2, if enterprise customers are ever targeted

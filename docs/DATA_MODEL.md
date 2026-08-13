@@ -31,12 +31,38 @@ the checkpoint that introduces them.
   trigger, since the rule spans rows and a CHECK constraint cannot express it.
 - Slugs are generated server-side; a client-supplied slug is a collision vector.
 
+## Implemented — Checkpoint 4
+
+| Table | Purpose | Isolation |
+| --- | --- | --- |
+| `assistant_threads` | One conversation | Members; renamable by its author or an admin |
+| `assistant_messages` | Turns, citations, token usage | Members; append-only (no UPDATE/DELETE policy) |
+| `assistant_tool_runs` | Every tool call, its status and duration | Members; append-only |
+| `action_approvals` | The gate every write passes through | Members; decided only via `decide_action_approval()` |
+| `goals` | What a proposed goal becomes once approved | Read by members, written by admins |
+| `notification_rules` | What a proposed alert becomes once approved | Read by members, written by admins |
+
+### Invariants enforced in the database
+
+- `action_approvals` carries `arguments_hash` — a SHA-256 of the canonicalised
+  arguments — and a partial unique index on
+  `(requested_for, tool_name, arguments_hash) where state in ('pending','approved')`.
+  Proposing the same thing twice reuses the grant instead of minting a parallel
+  one, and a changed argument produces a different hash, so "if the arguments
+  change, require a new approval" is enforced rather than intended.
+- Deciding an approval goes through `decide_action_approval()`, not an UPDATE
+  policy: only the named person, only while pending, only before expiry, always
+  audited. Those rules span rows and time and cannot be written as a predicate.
+- `mark_approval_executed()` transitions `approved → executed` and returns
+  whether it won, which is how a double-submitted approval executes once.
+- Assistant transcripts have no UPDATE or DELETE policy, so a conversation
+  cannot be quietly rewritten after the fact.
+
 ## Planned
 
 | Checkpoint | Tables |
 | --- | --- |
 | 2 | `stores`, `products`, `product_variants`, `product_costs`, `orders`, `order_items`, `refunds`, `customers`, `expenses`, `overhead_rules`, `exchange_rates`, `daily_business_metrics` |
-| 4 | `assistant_threads`, `assistant_messages`, `assistant_tool_runs`, `action_approvals` |
 | 5 | `integration_connections`, `integration_sync_runs`, `ad_accounts`, `campaigns`, `ad_groups`, `ads`, `ad_daily_metrics`, `attribution_mappings`, `calendar_connections`, `calendar_events`, `notification_*` |
 | 6 | `subscriptions`, `plan_entitlements`, `usage_events`, `feature_flags`, `referral_codes`, `referral_events`, `support_notes` |
 
