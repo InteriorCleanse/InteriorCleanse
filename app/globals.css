@@ -2896,3 +2896,342 @@ textarea {
   .site-header { grid-template-columns: 1fr auto; padding: 0 5vw; }
   .site-nav { display: none; }
 }
+
+/* ── RESIDENCE HERO ───────────────────────────────────────────────── */
+
+.residence-hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 65% 40%, #2a231c 0%, #14110e 55%, #0A0A0A 100%);
+}
+
+/* The globe replaces the pointer only over open scene area. */
+.residence-hero[data-cursor='globe'] { cursor: none; }
+
+.scene-bg { position: absolute; inset: 0; }
+
+.scene-poster,
+.scene-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Video fades in over the poster once it can actually play, so a slow
+   connection never shows a black rectangle where the room should be. */
+.scene-video { opacity: 0; transition: opacity 0.8s ease; }
+.scene-video[data-ready='true'] { opacity: 1; }
+
+.residence-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(100deg, rgba(10, 10, 10, 0.78) 0%, rgba(10, 10, 10, 0.35) 45%, rgba(10, 10, 10, 0.1) 70%),
+    linear-gradient(rgba(10, 10, 10, 0.35), rgba(10, 10, 10, 0) 30%);
+}
+
+/* Sits IN the room: inset from the margin, not pinned to it. */
+.residence-copy {
+  position: relative;
+  z-index: 3;
+  max-width: min(62ch, 54vw);
+  margin-left: clamp(2rem, 8vw, 8rem);
+  padding: calc(var(--header-h) + 4rem) 5vw 6rem 0;
+}
+
+.residence-headline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 5.1vw, 4.9rem);
+  text-wrap: balance;
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+  color: var(--bone);
+  /* Legibility over an unpredictable frame of video, without a flat box. */
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.residence-headline-line { display: block; }
+
+.residence-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2.8rem;
+}
+
+.btn-residence-primary,
+.btn-residence-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 2.4rem;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.btn-residence-primary {
+  background: var(--bone);
+  color: var(--ink);
+}
+
+.btn-residence-primary:hover { background: #fff; }
+
+.btn-residence-ghost {
+  border: 1px solid rgba(247, 244, 239, 0.55);
+  color: var(--bone);
+}
+
+.btn-residence-ghost:hover {
+  border-color: var(--bone);
+  background: rgba(247, 244, 239, 0.08);
+}
+
+/* ── HOTSPOTS ─────────────────────────────────────────────────────── */
+
+/* The layer spans the whole scene, so it must not take pointer events —
+   only the hotspots themselves do. Without this it sits above the copy at
+   z-index 4 and swallows every CTA click. */
+.hotspot-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.hotspot { pointer-events: auto; }
+
+.hotspot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  /* The dot is small; the hit area must not be. */
+  padding: 0.6rem;
+}
+
+.hotspot-dot {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bone);
+  box-shadow: 0 0 0 1px rgba(247, 244, 239, 0.55), 0 0 0 7px rgba(247, 244, 239, 0.12);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  flex: 0 0 auto;
+}
+
+.hotspot:hover .hotspot-dot,
+.hotspot[data-open='true'] .hotspot-dot {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 1px var(--bone), 0 0 0 11px rgba(247, 244, 239, 0.16);
+}
+
+.hotspot-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bone);
+  white-space: nowrap;
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(247, 244, 239, 0.14);
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.hotspot:hover .hotspot-label,
+.hotspot[data-open='true'] .hotspot-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.hotspot:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+/* ── FEATURED CARD ────────────────────────────────────────────────── */
+
+.featured-slot { position: absolute; z-index: 5; }
+.featured-slot[data-position='bottom-right'] { right: 3vw; bottom: 3.5rem; }
+.featured-slot[data-position='bottom-left'] { left: 3vw; bottom: 3.5rem; }
+
+.featured-card {
+  width: 268px;
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(247, 244, 239, 0.14);
+  padding: 0.9rem;
+}
+
+.featured-card-media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: #EDE7DC;
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+
+.featured-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featured-badge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  background: rgba(247, 244, 239, 0.92);
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+}
+
+.featured-fav {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(247, 244, 239, 0.9);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.featured-fav[aria-pressed='true'] { color: #A33; }
+
+.featured-card-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--bone);
+  line-height: 1.3;
+}
+
+.featured-card-price {
+  font-size: 13px;
+  color: var(--taupe);
+  margin: 0.25rem 0 0.9rem;
+}
+
+.featured-card .add-to-cart-btn { width: 100%; }
+
+/* ── MOBILE CAROUSEL (replaces hotspots) ──────────────────────────── */
+
+.hero-carousel { display: none; padding: 2.5rem 0 3rem 5vw; background: var(--black); }
+
+.hero-carousel-title {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-bottom: 1.2rem;
+}
+
+.hero-carousel-track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.8rem;
+  list-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hero-carousel-track li { flex: 0 0 62vw; scroll-snap-align: start; max-width: 240px; }
+.hero-carousel-track img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.hero-carousel-name { display: block; margin-top: 0.6rem; font-size: 13px; color: var(--bone); }
+.hero-carousel-price { display: block; font-size: 12px; color: var(--taupe); }
+
+/* ── GLOBE CURSOR ─────────────────────────────────────────────────── */
+
+.globe-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  color: var(--bone);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  will-change: transform;
+}
+
+.globe-cursor[data-active='true'] { opacity: 0.85; }
+
+/* A real, continuous spin — independent of pointer movement. */
+.globe-meridians {
+  transform-origin: 32px 32px;
+  animation: globe-spin 14s linear infinite;
+}
+
+@keyframes globe-spin {
+  from { transform: rotateY(0deg) scaleX(1); }
+  25%  { transform: scaleX(0.05); }
+  50%  { transform: scaleX(-1); }
+  75%  { transform: scaleX(-0.05); }
+  to   { transform: scaleX(1); }
+}
+
+.globe-cursor-hint {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 239, 0.75);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.globe-cursor-hint[data-shown='true'] { opacity: 1; }
+
+@media (max-width: 900px) {
+  .featured-slot { position: static; margin: 0 auto; padding: 0 5vw 3rem; }
+  .featured-card { width: 100%; max-width: 340px; }
+  .residence-copy { padding-bottom: 3rem; margin-left: 0; padding-left: 5vw; }
+}
+
+@media (max-width: 767px) {
+  .hotspot-layer { display: none; }
+  .hero-carousel { display: block; }
+  .residence-hero { min-height: 88svh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .globe-meridians { animation: none; }
+  .globe-cursor { display: none; }
+  .scene-video { display: none; }
+}
