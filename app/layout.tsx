@@ -20,7 +20,7 @@ const inter = Inter({
 })
 import { Footer, Header } from '@/components/layout'
 import { Experience } from '@/components/Experience'
-import { EmailPopup } from '@/components/EmailPopup'
+import { GuestBookModal } from '@/components/GuestBookModal'
 import { GSAPAnimations } from '@/components/GSAPAnimations'
 import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
@@ -75,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartProvider>
           <Experience />
           <GSAPAnimations />
-          <EmailPopup />
+          <GuestBookModal />
           <Header />
           <CartDrawer />
           <PageTransition>

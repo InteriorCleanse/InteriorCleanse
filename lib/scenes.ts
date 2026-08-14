@@ -13,11 +13,15 @@ export type Hotspot = {
 export type Cta = { label: string; href: string }
 
 export type Scene = {
-  /** All media is optional — the hero must be complete with none of it. */
-  desktopVideo?: string
-  mobileVideo?: string
-  posterImage?: string
-  reducedMotionPoster?: string
+  /**
+   * All media is optional and nullable — the manifest carries `null` for
+   * environments whose footage has not been shot yet, and the hero must be
+   * complete with none of it.
+   */
+  desktopVideo?: string | null
+  mobileVideo?: string | null
+  posterImage?: string | null
+  reducedMotionPoster?: string | null
   headline: string[]
   primaryCta: Cta
   secondaryCta?: Cta
@@ -25,9 +29,11 @@ export type Scene = {
   featuredProduct?: { slug: string; position: string }
 }
 
+export type SceneId = 'atrium' | 'library' | 'waterGarden' | 'atelier' | 'pavilion'
+
 const SCENES = scenes as Record<string, Scene>
 
-export const getScene = (id: string): Scene | undefined => SCENES[id]
+export const getScene = (id: SceneId): Scene | undefined => SCENES[id]
 
 /**
  * The featured product, resolved against the real catalogue.

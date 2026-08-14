@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
 import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
-import { EmailCapture } from '@/components/EmailCapture'
+import { GuestBook } from '@/components/GuestBook'
 import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
@@ -251,7 +251,7 @@ export default function Home() {
             <br />
             <em>quietly delivered.</em>
           </h2>
-          <EmailCapture />
+          <GuestBook />
         </div>
       </section>
     </>

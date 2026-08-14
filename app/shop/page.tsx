@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ShopBrowser } from '@/components/product/ShopBrowser'
-import { DisclosureBox, PageHero } from '@/components/ui'
+import { EnvironmentHero } from '@/components/hero/EnvironmentHero'
+import { DisclosureBox } from '@/components/ui'
 import { COLLECTIONS } from '@/lib/collections'
 import { allProducts } from '@/lib/content'
+import { getScene } from '@/lib/scenes'
 
 export const metadata: Metadata = {
   title: 'Shop the Edit',
@@ -12,19 +14,12 @@ export const metadata: Metadata = {
 }
 
 export default function Shop() {
+  const waterGarden = getScene('waterGarden')
+  const atelier = getScene('atelier')
+
   return (
     <>
-      <PageHero
-        eyebrow={`The object index / ${allProducts.length} objects / 2026`}
-        title={
-          <>
-            For the home.
-            <br />
-            <em>For the body.</em>
-          </>
-        }
-        sub="Objects selected not for novelty, but for how beautifully they serve."
-      />
+      {waterGarden ? <EnvironmentHero scene={waterGarden} height="band" id="home" /> : null}
 
       {/* One grid, driven by the filters. The old split into fixed "for the
           home" and "for the body" sections is now the collection nav — showing
@@ -47,6 +42,8 @@ export default function Shop() {
           </div>
         </div>
       </section>
+
+      {atelier ? <EnvironmentHero scene={atelier} height="band" id="body" headingLevel="h2" /> : null}
     </>
   )
 }

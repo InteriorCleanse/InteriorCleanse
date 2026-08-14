@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { GuestBookForm } from './GuestBook'
 import { BRAND_NAME, SITE } from '@/lib/site-config'
 
 const NAV: [string, string][] = [
@@ -44,6 +45,9 @@ export function Footer() {
             <br />
             Curated objects and ideas for a more considered life.
           </p>
+          {/* Always present, no modal required — the sign-up must never depend
+              on a visitor having triggered something. */}
+          <GuestBookForm variant="compact" id="guestbook-email-footer" />
         </div>
         <div>
           <p className="footer-col-title">Navigate</p>

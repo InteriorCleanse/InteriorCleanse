@@ -63,5 +63,165 @@
       "slug": "ic-signature-candle",
       "position": "bottom-right"
     }
+  },
+  "library": {
+    "posterImage": "/images/library-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "EVERY ROOM",
+      "BEGINS WITH AN IDEA."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE LIBRARY",
+      "href": "/library/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "mind",
+        "label": "Interiors",
+        "x": 28,
+        "y": 44,
+        "href": "/library/"
+      },
+      {
+        "id": "health",
+        "label": "Health reads",
+        "x": 66,
+        "y": 38,
+        "href": "/library/"
+      },
+      {
+        "id": "downloads",
+        "label": "Downloads",
+        "x": 82,
+        "y": 62,
+        "href": "/shop/digital/"
+      }
+    ]
+  },
+  "waterGarden": {
+    "posterImage": "/images/water-garden-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "CLEAN IS A",
+      "FEELING."
+    ],
+    "primaryCta": {
+      "label": "SHOP THE HOME EDIT",
+      "href": "/shop/home/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "cleaning",
+        "label": "Cleaning",
+        "x": 34,
+        "y": 68,
+        "href": "/shop/home/"
+      },
+      {
+        "id": "art",
+        "label": "Wall art",
+        "x": 61,
+        "y": 31,
+        "href": "/shop/wall-art/"
+      },
+      {
+        "id": "candles",
+        "label": "Candles",
+        "x": 79,
+        "y": 57,
+        "href": "/shop/ic-signature-candle/"
+      }
+    ]
+  },
+  "atelier": {
+    "posterImage": "/images/atelier-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "MADE TO BE",
+      "LIVED WITH."
+    ],
+    "primaryCta": {
+      "label": "SHOP APPAREL",
+      "href": "/shop/apparel/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "textiles",
+        "label": "Textiles",
+        "x": 26,
+        "y": 60,
+        "href": "/shop/apparel/"
+      },
+      {
+        "id": "wellness",
+        "label": "Wellness",
+        "x": 58,
+        "y": 42,
+        "href": "/shop/wellness/"
+      },
+      {
+        "id": "mugs",
+        "label": "Ceramics",
+        "x": 77,
+        "y": 71,
+        "href": "/shop/ic-ceramic-mug/"
+      }
+    ]
+  },
+  "pavilion": {
+    "posterImage": "/images/pavilion-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "THE THINGS",
+      "WORTH SAVING FOR."
+    ],
+    "primaryCta": {
+      "label": "VIEW THE PARTNERS",
+      "href": "/partners/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "sauna",
+        "label": "Sauna",
+        "x": 33,
+        "y": 47,
+        "href": "/partners/"
+      },
+      {
+        "id": "plunge",
+        "label": "Cold plunge",
+        "x": 62,
+        "y": 63,
+        "href": "/partners/"
+      },
+      {
+        "id": "furniture",
+        "label": "Furniture",
+        "x": 84,
+        "y": 40,
+        "href": "/partners/"
+      }
+    ]
   }
 }

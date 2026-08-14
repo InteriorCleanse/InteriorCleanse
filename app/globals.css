@@ -3343,3 +3343,169 @@ textarea {
   line-height: 1.6;
   color: var(--taupe);
 }
+
+/* Environment bands: the same hero at section scale, so a sub-page opens with
+   a scene without stealing a whole viewport from the content below it. */
+.residence-hero[data-height='band'] {
+  min-height: 62svh;
+}
+
+.residence-hero[data-height='band'] .residence-headline {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+}
+
+.residence-hero[data-height='band'] .residence-copy {
+  padding-top: calc(var(--header-h) + 3rem);
+  padding-bottom: 3.5rem;
+}
+
+/* A band's h1 is the page title on sub-pages, but the homepage atrium already
+   owns the h1 role; nothing to change structurally, only scale. */
+@media (max-width: 767px) {
+  .residence-hero[data-height='band'] { min-height: 52svh; }
+}
+
+/* ── THE GUEST BOOK ───────────────────────────────────────────────── */
+
+.guestbook {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 66svh;
+  overflow: hidden;
+  background: radial-gradient(120% 100% at 25% 50%, #2a231c 0%, #17130f 60%, #0A0A0A 100%);
+}
+
+.guestbook-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Warm scrim weighted to the right, where the copy sits. */
+.guestbook-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 10, 10, 0.15) 0%,
+    rgba(20, 16, 12, 0.55) 45%,
+    rgba(20, 16, 12, 0.88) 100%
+  );
+}
+
+.guestbook-panel {
+  position: relative;
+  grid-column: 2;
+  align-self: center;
+  padding: 4.5rem 6vw 4.5rem 2rem;
+  max-width: 56ch;
+}
+
+.guestbook-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--brass);
+  margin-bottom: 1.2rem;
+}
+
+.guestbook-heading {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 3.3vw, 3rem);
+  font-weight: 350;
+  color: var(--bone);
+  line-height: 1.1;
+  margin-bottom: 1.2rem;
+}
+
+.guestbook-body {
+  font-size: 15px;
+  line-height: 1.75;
+  color: rgba(247, 244, 239, 0.74);
+  margin-bottom: 2rem;
+}
+
+.guestbook-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--taupe);
+  margin-bottom: 0.6rem;
+}
+
+.guestbook-row { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+
+.guestbook-row input {
+  flex: 1 1 220px;
+  min-height: 50px;
+  padding: 0 1rem;
+  background: rgba(247, 244, 239, 0.06);
+  border: 1px solid rgba(247, 244, 239, 0.22);
+  color: var(--bone);
+  font-family: var(--font-sans);
+  font-size: 15px;
+}
+
+.guestbook-row input::placeholder { color: rgba(247, 244, 239, 0.38); }
+
+.guestbook-row input:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.guestbook-row button {
+  min-height: 50px;
+  padding: 0 1.6rem;
+  border: none;
+  background: var(--bone);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+
+.guestbook-row button:hover:not(:disabled) { background: #fff; }
+.guestbook-row button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.guestbook-row button:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.guestbook-micro {
+  margin-top: 0.9rem;
+  font-size: 11px;
+  color: var(--taupe);
+}
+
+.guestbook-error { margin-top: 0.7rem; font-size: 12px; color: #E0A090; }
+
+.guestbook-success {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--brass-light);
+  border-left: 2px solid var(--brass);
+  padding-left: 1rem;
+}
+
+/* Footer + modal variant: same form, narrower. */
+.guestbook-form-compact { margin-top: 1.6rem; max-width: 380px; }
+.guestbook-form-compact .guestbook-row input { flex-basis: 100%; }
+
+.guestbook-modal { text-align: left; }
+
+@media (max-width: 900px) {
+  .guestbook { grid-template-columns: 1fr; }
+  .guestbook-panel { grid-column: 1; padding: 3.5rem 5vw; }
+  .guestbook-scrim {
+    background: linear-gradient(rgba(10, 10, 10, 0.5), rgba(20, 16, 12, 0.92));
+  }
+}

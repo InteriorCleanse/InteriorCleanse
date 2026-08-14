@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { PartnerCard } from '@/components/PartnerCard'
-import { PageHero } from '@/components/ui'
+import { EnvironmentHero } from '@/components/hero/EnvironmentHero'
 import { allPartners, categoryLabel, isLive, partnersByCategory } from '@/lib/partners'
+import { getScene } from '@/lib/scenes'
 
 export const metadata: Metadata = {
   title: 'Partners',
@@ -11,22 +12,13 @@ export const metadata: Metadata = {
 }
 
 export default function Partners() {
+  const pavilion = getScene('pavilion')
   const groups = partnersByCategory()
   const liveCount = allPartners.filter(isLive).length
 
   return (
     <>
-      <PageHero
-        eyebrow="The residence — partners"
-        title={
-          <>
-            Makers we would
-            <br />
-            <em>put in our own house.</em>
-          </>
-        }
-        sub="A short list, not a directory. Each of these was chosen for one reason we can articulate — and we say plainly where the purchase happens."
-      />
+      {pavilion ? <EnvironmentHero scene={pavilion} height="band" /> : null}
 
       <section className="section" style={{ background: 'var(--ink)', paddingTop: 0 }}>
         <div className="section-inner">
