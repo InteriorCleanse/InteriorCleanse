@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { subscribeEmail, useSource } from '@/lib/use-source'
-import { LottieIcon } from './LottieIcon'
+import dynamic from 'next/dynamic'
+import { InView } from './InView'
+
+const LottieIcon = dynamic(() => import('./LottieIcon').then((m) => m.LottieIcon), {
+  ssr: false,
+  loading: () => null,
+})
 
 /** The inline subscribe line at the foot of the homepage. */
 export function EmailCapture() {
@@ -29,7 +35,13 @@ export function EmailCapture() {
   return (
     <>
       <div className="email-lottie">
-        <LottieIcon name="envelope" width={64} height={64} />
+        <InView
+          rootMargin="150px"
+          style={{ width: 64, height: 64, display: 'inline-block' }}
+          placeholder={<span style={{ display: 'block', width: 64, height: 64 }} aria-hidden="true" />}
+        >
+          <LottieIcon name="envelope" width={64} height={64} />
+        </InView>
       </div>
       <div className="email-line">
         <input

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -13,8 +12,10 @@
   --sage: #5B6357;
   --taupe: #8C8479;
   --line: rgba(169, 137, 90, 0.2);
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  /* Set by next/font in app/layout.tsx — self-hosted, preloaded, no
+     render-blocking third-party request. */
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
   --mind-bg: #1A2410;
   --mind-accent: #7FA872;
   --home-bg: #0F1419;

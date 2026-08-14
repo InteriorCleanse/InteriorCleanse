@@ -3,15 +3,16 @@ import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
 import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
 import { EmailCapture } from '@/components/EmailCapture'
+import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
 
-const TRUST: { icon: 'diamond'; text: string }[] = [
-  { icon: 'diamond', text: 'Secure checkout via Amazon & TikTok Shop' },
-  { icon: 'diamond', text: 'Hand-poured candles, made with care' },
-  { icon: 'diamond', text: 'Books written and published by the founder' },
-  { icon: 'diamond', text: 'Free shipping on Printful orders over $75' },
+const TRUST: { text: string }[] = [
+  { text: 'Secure checkout via Amazon & TikTok Shop' },
+  { text: 'Hand-poured candles, made with care' },
+  { text: 'Books written and published by the founder' },
+  { text: 'Free shipping on Printful orders over $75' },
 ]
 
 export default function Home() {
@@ -36,10 +37,10 @@ export default function Home() {
 
       {/* TRUST STRIP */}
       <section className="trust-strip" aria-label="Why InteriorCleanse">
-        {TRUST.map(({ icon, text }) => (
+        {TRUST.map(({ text }) => (
           <div key={text} className="trust-item">
             <span className="trust-icon">
-              <TrackIcon name={icon} size={30} />
+              <StaticMark size={30} />
             </span>
             <span className="trust-text">{text}</span>
           </div>

@@ -1,5 +1,23 @@
 import type { Metadata } from 'next'
+import { Fraunces, Inter } from 'next/font/google'
 import './globals.css'
+
+// Self-hosted and preloaded by Next. `display: swap` means text paints in the
+// fallback immediately rather than blocking on the webfont, which is what was
+// holding LCP hostage behind a third-party stylesheet.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-fraunces',
+  axes: ['opsz'],
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+  weight: ['300', '400', '500', '600'],
+})
 import { Footer, Header } from '@/components/layout'
 import { Experience } from '@/components/Experience'
 import { EmailPopup } from '@/components/EmailPopup'
@@ -47,7 +65,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
         <a className="skip-link" href="#main">
           Skip to content
