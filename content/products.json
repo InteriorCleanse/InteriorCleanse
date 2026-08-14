@@ -26,7 +26,8 @@
       "Approximately 50-hour burn time",
       "Trim the wick to ¼ inch before each burn",
       "Hand-poured soy-blend wax in a reusable vessel"
-    ]
+    ],
+    "renderMode": "depth_interactive"
   },
   {
     "slug": "ic-linen-tote",
@@ -53,7 +54,8 @@
       "Heavyweight natural cotton canvas",
       "Reinforced seams and long shoulder straps",
       "Machine wash cold, hang to dry"
-    ]
+    ],
+    "renderMode": "depth_interactive"
   },
   {
     "slug": "considered-home-art-print",
@@ -79,7 +81,8 @@
       "Giclée print on heavyweight matte stock",
       "Ships flat and unframed",
       "Handle by the edges; frame behind glass to prevent fading"
-    ]
+    ],
+    "renderMode": "depth_interactive"
   },
   {
     "slug": "ic-ceramic-mug",
@@ -105,7 +108,8 @@
       "Glazed stoneware, 11 oz",
       "Dishwasher and microwave safe",
       "Full handle, weighted base"
-    ]
+    ],
+    "renderMode": "depth_interactive"
   },
   {
     "slug": "ic-premium-hoodie",
@@ -131,7 +135,8 @@
       "Midweight brushed fleece, relaxed cut",
       "Ribbed cuff and hem",
       "Wash cold inside out, tumble dry low"
-    ]
+    ],
+    "renderMode": "depth_interactive"
   },
   {
     "slug": "cleaning-picks",
@@ -156,6 +161,7 @@
       "Curated selection — refreshed as new picks are tested",
       "Checkout completed securely on TikTok Shop",
       "Affiliate links; we may earn a commission at no cost to you"
-    ]
+    ],
+    "renderMode": "depth_interactive"
   }
 ]
