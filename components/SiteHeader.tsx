@@ -13,7 +13,7 @@ const NAV: [string, string][] = [
   ['Wellness', '/shop/wellness/'],
   ['Home', '/shop/home/'],
   ['Digital', '/shop/digital/'],
-  ['Partners', '/about/'],
+  ['Partners', '/partners/'],
 ]
 
 /** Routes that open with a full-bleed hero the header should float over. */

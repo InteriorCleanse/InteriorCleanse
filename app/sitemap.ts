@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ['/shop/', 0.9],
     ['/library/', 0.9],
     ['/spirit/', 0.8],
+    ['/partners/', 0.8],
     ['/journal/', 0.7],
     ['/about/', 0.6],
     ['/contact/', 0.5],

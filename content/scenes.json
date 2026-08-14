@@ -3,16 +3,61 @@
     "desktopVideo": "/video/hero-desktop.mp4",
     "mobileVideo": "/video/hero-mobile.mp4",
     "posterImage": "/images/hero-poster.jpg",
-    "headline": ["LIVE BEAUTIFULLY.", "FEEL RESTORED."],
-    "primaryCta": { "label": "ENTER THE RESIDENCE", "href": "/shop/" },
-    "secondaryCta": { "label": "SHOP THE EDIT", "href": "/shop/" },
+    "headline": [
+      "LIVE BEAUTIFULLY.",
+      "FEEL RESTORED."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE RESIDENCE",
+      "href": "/shop/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
     "hotspots": [
-      { "id": "books", "label": "Books", "x": 42, "y": 28, "href": "/library/" },
-      { "id": "art", "label": "Art & Wallpaper", "x": 62, "y": 32, "href": "/shop/wall-art/" },
-      { "id": "digital", "label": "Digital", "x": 78, "y": 38, "href": "/shop/digital/" },
-      { "id": "wellness", "label": "Wellness", "x": 91, "y": 37, "href": "/shop/wellness/" },
-      { "id": "candles", "label": "Candles", "x": 17, "y": 82, "href": "/shop/ic-signature-candle/" },
-      { "id": "textiles", "label": "Textiles", "x": 31, "y": 87, "href": "/shop/apparel/" }
+      {
+        "id": "books",
+        "label": "Books",
+        "x": 43,
+        "y": 29,
+        "href": "/library/"
+      },
+      {
+        "id": "art",
+        "label": "Art & Wallpaper",
+        "x": 62,
+        "y": 33,
+        "href": "/shop/wall-art/"
+      },
+      {
+        "id": "digital",
+        "label": "Digital",
+        "x": 80,
+        "y": 39,
+        "href": "/shop/digital/"
+      },
+      {
+        "id": "wellness",
+        "label": "Wellness",
+        "x": 92,
+        "y": 38,
+        "href": "/partners/"
+      },
+      {
+        "id": "candles",
+        "label": "Candles",
+        "x": 18,
+        "y": 83,
+        "href": "/shop/ic-signature-candle/"
+      },
+      {
+        "id": "textiles",
+        "label": "Textiles",
+        "x": 32,
+        "y": 88,
+        "href": "/shop/apparel/"
+      }
     ],
     "featuredProduct": {
       "slug": "ic-signature-candle",

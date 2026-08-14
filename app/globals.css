@@ -3235,3 +3235,110 @@ textarea {
   .globe-cursor { display: none; }
   .scene-video { display: none; }
 }
+
+/* ── PARTNERS ─────────────────────────────────────────────────────── */
+
+.partner-disclosure {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--brass);
+  padding: 1.4rem 1.6rem;
+  margin-bottom: 4rem;
+  max-width: 78ch;
+}
+
+.partner-disclosure p {
+  font-size: 13px;
+  line-height: 1.75;
+  color: rgba(247, 244, 239, 0.72);
+}
+
+.partner-disclosure strong { color: var(--bone); font-weight: 500; }
+.partner-disclosure-note { margin-top: 0.8rem; color: var(--brass-light) !important; }
+
+.partner-group { margin-bottom: 4rem; }
+
+.partner-group-title {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brass);
+  font-weight: 500;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2rem;
+}
+
+.partner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.partner-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  padding: 1.8rem;
+}
+
+.partner-category {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--taupe);
+  margin-bottom: 0.5rem;
+}
+
+.partner-brand {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 350;
+  color: var(--bone);
+  line-height: 1.1;
+}
+
+.partner-note { margin: 1.4rem 0 1.8rem; flex: 1; }
+
+.partner-note-title {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-bottom: 0.7rem;
+}
+
+.partner-note p {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(247, 244, 239, 0.68);
+}
+
+.partner-cta {
+  display: block;
+  text-align: center;
+  min-height: 48px;
+  line-height: 48px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: var(--bone);
+  color: var(--ink);
+  transition: background 0.25s;
+}
+
+.partner-cta:hover { background: #fff; }
+
+/* Not yet approved: visibly inert, and not a link element at all. */
+.partner-cta[data-disabled='true'] {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--taupe);
+  cursor: not-allowed;
+}
+
+.partner-disclosure-inline {
+  margin-top: 0.8rem;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--taupe);
+}
