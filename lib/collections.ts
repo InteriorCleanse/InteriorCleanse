@@ -61,6 +61,25 @@ export const COLLECTIONS: Collection[] = [
     match: inCategories('print'),
   },
   {
+    slug: 'wellness',
+    title: 'Wellness',
+    eyebrow: 'For the body',
+    emptyCopy: 'No wellness objects are listed yet.',
+    accent: 'var(--body-accent)',
+    background: 'var(--body-bg)',
+    match: inCategories('candle'),
+  },
+  {
+    slug: 'digital',
+    title: 'Digital',
+    eyebrow: 'Instant downloads',
+    emptyCopy:
+      'Digital goods are delivered through Gumroad today — see the downloads in the Library. Secure in-house delivery is still being built.',
+    emptyHref: '/library/',
+    emptyHrefLabel: 'See the downloads',
+    match: () => false,
+  },
+  {
     slug: 'wallpapers',
     title: 'Digital Wallpapers',
     eyebrow: 'For every screen',

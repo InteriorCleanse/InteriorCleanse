@@ -25,9 +25,24 @@ export const metadata: Metadata = {
     description:
       'Curated cleaning finds, interior design books, hand-poured candles, and Christian literature.',
     url: SITE.url,
+    images: [{ url: '/images/og-image.png', width: 1200, height: 630, alt: BRAND_NAME }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/images/og-image.png'],
   },
   // `trailingSlash: true` means the canonical form of every URL carries one.
   alternates: { canonical: '/' },
+  // The .ico carries 16/32/48 of the flowing-C silhouette only. The rose and
+  // vase from the master are fine graphite work and turn to mud below ~48px,
+  // so small marks come from the hand-drawn vector, never a shrunk raster.
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      { url: '/brand/flowing-c-dark.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/images/apple-touch-icon.png', sizes: '180x180' }],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
