@@ -14,12 +14,13 @@ export const metadata: Metadata = {
 }
 
 export default function Shop() {
-  const waterGarden = getScene('waterGarden')
+  const sunroom = getScene('sunroom')
+  const gallery = getScene('gallery')
   const atelier = getScene('atelier')
 
   return (
     <>
-      {waterGarden ? <EnvironmentHero scene={waterGarden} height="band" id="home" /> : null}
+      {sunroom ? <EnvironmentHero scene={sunroom} height="band" id="home" /> : null}
 
       {/* One grid, driven by the filters. The old split into fixed "for the
           home" and "for the body" sections is now the collection nav — showing
@@ -43,6 +44,9 @@ export default function Shop() {
         </div>
       </section>
 
+      {gallery ? (
+        <EnvironmentHero scene={gallery} height="band" id="digital" headingLevel="h2" />
+      ) : null}
       {atelier ? <EnvironmentHero scene={atelier} height="band" id="body" headingLevel="h2" /> : null}
     </>
   )

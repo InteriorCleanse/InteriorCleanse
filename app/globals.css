@@ -163,6 +163,7 @@ textarea {
 .header-lockup {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
   justify-self: start;
 }
 
@@ -2940,7 +2941,7 @@ textarea {
 .residence-copy {
   position: relative;
   z-index: 3;
-  max-width: min(62ch, 54vw);
+  max-width: min(70ch, 58vw);
   margin-left: clamp(2rem, 8vw, 8rem);
   padding: calc(var(--header-h) + 4rem) 5vw 6rem 0;
 }
@@ -2948,7 +2949,7 @@ textarea {
 .residence-headline {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(2.4rem, 5.1vw, 4.9rem);
+  font-size: clamp(2.6rem, 7vw, 9rem);
   text-wrap: balance;
   line-height: 0.94;
   letter-spacing: -0.03em;
@@ -3508,4 +3509,70 @@ textarea {
   .guestbook-scrim {
     background: linear-gradient(rgba(10, 10, 10, 0.5), rgba(20, 16, 12, 0.92));
   }
+}
+
+/* ── FLOATING BRAND MARK ──────────────────────────────────────────── */
+
+.floating-mark {
+  display: block;
+  line-height: 0;
+  perspective: 600px;
+  flex: 0 0 auto;
+}
+
+.floating-mark-inner {
+  --rx: 0deg;
+  --ry: 0deg;
+  display: block;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  animation: mark-float 4s ease-in-out infinite;
+}
+
+/* The float lives on a child transform so it composes with the tilt written
+   by the pointer loop instead of fighting it for the same property. */
+@keyframes mark-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+
+.floating-mark-inner svg {
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(247, 244, 239, 0));
+  transition: filter 0.4s ease;
+}
+
+.floating-mark-inner[data-hover='true'] svg {
+  filter: drop-shadow(0 0 9px rgba(247, 244, 239, 0.35));
+}
+
+.floating-mark:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 4px;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .floating-mark-inner { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-mark-inner { animation: none; transform: none; }
+  .floating-mark-inner svg animate { display: none; }
+}
+
+/* Parallax: transform only, driven by --py from the scroll loop. */
+.parallax-layer {
+  --py: 0px;
+  transform: translate3d(0, var(--py), 0);
+  will-change: transform;
+}
+
+.parallax-bg { position: absolute; inset: 0; }
+
+/* The background travels, so it needs slack at the bottom or the drift would
+   expose the section edge. */
+.parallax-bg .scene-bg { inset: -12% 0 -12% 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-layer { transform: none !important; will-change: auto; }
 }

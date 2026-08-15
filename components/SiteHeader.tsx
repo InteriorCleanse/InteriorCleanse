@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { CartButton } from './cart'
+import { FloatingMark } from './brand/FloatingMark'
 import { LogoMark } from './logo-mark'
 
 /** Centred navigation. Labels are the approved set; hrefs are real routes. */
@@ -53,6 +54,7 @@ export function SiteHeader() {
   return (
     <header className="site-header" data-transparent={overHero ? 'true' : undefined}>
       <div className="header-lockup">
+        <FloatingMark />
         <LogoMark />
       </div>
 

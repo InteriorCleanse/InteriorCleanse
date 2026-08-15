@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { GlobeCursor } from '@/components/cursor/GlobeCursor'
 import type { Scene } from '@/lib/scenes'
 import type { Product } from '@/lib/types'
 import { FeaturedCard } from './FeaturedCard'
 import { Hotspots } from './Hotspots'
 import { SceneBackground } from './SceneBackground'
+import { useParallax } from './useParallax'
 
 interface EnvironmentHeroProps {
   scene: Scene
@@ -52,7 +53,20 @@ export function EnvironmentHero({
   headingLevel = 'h1',
 }: EnvironmentHeroProps) {
   const stageRef = useRef<HTMLDivElement>(null)
+  const bgRef = useRef<HTMLDivElement>(null)
+  const copyRef = useRef<HTMLDivElement>(null)
   const Heading = headingLevel
+
+  // Background drifts slower than the page, the copy slightly faster than the
+  // background — the depth cue is the difference between them, not the numbers.
+  const layers = useMemo(
+    () => [
+      { ref: bgRef, speed: 0.3 },
+      { ref: copyRef, speed: 0.6 },
+    ],
+    []
+  )
+  useParallax(stageRef, layers)
 
   return (
     <>
@@ -64,16 +78,18 @@ export function EnvironmentHero({
         id={id}
       >
         {/* LAYER A */}
-        <SceneBackground
-          desktopVideo={scene.desktopVideo ?? undefined}
-          mobileVideo={scene.mobileVideo ?? undefined}
-          posterImage={scene.posterImage ?? undefined}
-          reducedMotionPoster={scene.reducedMotionPoster ?? undefined}
-        />
+        <div className="parallax-layer parallax-bg" ref={bgRef}>
+          <SceneBackground
+            desktopVideo={scene.desktopVideo ?? undefined}
+            mobileVideo={scene.mobileVideo ?? undefined}
+            posterImage={scene.posterImage ?? undefined}
+            reducedMotionPoster={scene.reducedMotionPoster ?? undefined}
+          />
+        </div>
         <div className="residence-scrim" aria-hidden="true" />
 
         {/* LAYER C */}
-        <div className="residence-copy">
+        <div className="residence-copy parallax-layer" ref={copyRef}>
           <Heading className="residence-headline">
             {scene.headline.map((line) => (
               <span key={line} className="residence-headline-line">

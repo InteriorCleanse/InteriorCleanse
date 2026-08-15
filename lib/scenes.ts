@@ -29,7 +29,16 @@ export type Scene = {
   featuredProduct?: { slug: string; position: string }
 }
 
-export type SceneId = 'atrium' | 'library' | 'waterGarden' | 'atelier' | 'pavilion'
+export type SceneId =
+  | 'atrium'
+  | 'library'
+  | 'conservatory'
+  | 'sunroom'
+  | 'chapel'
+  | 'gallery'
+  | 'atelier'
+  /** Not in the seven named environments, but /partners depends on it. */
+  | 'pavilion'
 
 const SCENES = scenes as Record<string, Scene>
 

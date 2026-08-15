@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 
 export default function Library() {
   const library = getScene('library')
+  const conservatory = getScene('conservatory')
+  const chapel = getScene('chapel')
 
   return (
     <>
@@ -27,6 +29,10 @@ export default function Library() {
           </div>
         </div>
       </section>
+
+      {conservatory ? (
+        <EnvironmentHero scene={conservatory} height="band" id="health" headingLevel="h2" />
+      ) : null}
 
       {healthBooks.length > 0 ? (
         <section className="section" style={{ background: '#0D1B2A' }}>
@@ -91,6 +97,9 @@ export default function Library() {
             </div>
           </div>
         </section>
+      ) : null}
+      {chapel ? (
+        <EnvironmentHero scene={chapel} height="band" id="spirit" headingLevel="h2" />
       ) : null}
     </>
   )

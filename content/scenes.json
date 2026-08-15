@@ -104,13 +104,53 @@
       }
     ]
   },
-  "waterGarden": {
-    "posterImage": "/images/water-garden-poster.jpg",
+  "conservatory": {
+    "posterImage": "/images/conservatory-poster.jpg",
     "desktopVideo": null,
     "mobileVideo": null,
     "headline": [
-      "CLEAN IS A",
-      "FEELING."
+      "THE BODY",
+      "KEEPS THE SCORE."
+    ],
+    "primaryCta": {
+      "label": "READ THE HEALTH SHELF",
+      "href": "/library/"
+    },
+    "secondaryCta": {
+      "label": "SHOP WELLNESS",
+      "href": "/shop/wellness/"
+    },
+    "hotspots": [
+      {
+        "id": "health",
+        "label": "Health reads",
+        "x": 30,
+        "y": 46,
+        "href": "/library/"
+      },
+      {
+        "id": "rest",
+        "label": "Rest",
+        "x": 64,
+        "y": 36,
+        "href": "/shop/wellness/"
+      },
+      {
+        "id": "air",
+        "label": "Clean air",
+        "x": 81,
+        "y": 64,
+        "href": "/shop/home/"
+      }
+    ]
+  },
+  "sunroom": {
+    "posterImage": "/images/sunroom-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "CLEAN IS",
+      "A FEELING."
     ],
     "primaryCta": {
       "label": "SHOP THE HOME EDIT",
@@ -141,6 +181,86 @@
         "x": 79,
         "y": 57,
         "href": "/shop/ic-signature-candle/"
+      }
+    ]
+  },
+  "chapel": {
+    "posterImage": "/images/chapel-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "QUIET",
+      "IS A PRACTICE."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE FAITH LIBRARY",
+      "href": "/spirit/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "bibles",
+        "label": "Bibles",
+        "x": 27,
+        "y": 42,
+        "href": "/spirit/"
+      },
+      {
+        "id": "devotionals",
+        "label": "Devotionals",
+        "x": 59,
+        "y": 55,
+        "href": "/spirit/"
+      },
+      {
+        "id": "colouring",
+        "label": "Colouring",
+        "x": 83,
+        "y": 38,
+        "href": "/spirit/"
+      }
+    ]
+  },
+  "gallery": {
+    "posterImage": "/images/gallery-poster.jpg",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "ART FOR",
+      "EVERY SURFACE."
+    ],
+    "primaryCta": {
+      "label": "SHOP WALL ART",
+      "href": "/shop/wall-art/"
+    },
+    "secondaryCta": {
+      "label": "DIGITAL DOWNLOADS",
+      "href": "/shop/digital/"
+    },
+    "hotspots": [
+      {
+        "id": "prints",
+        "label": "Prints",
+        "x": 31,
+        "y": 40,
+        "href": "/shop/wall-art/"
+      },
+      {
+        "id": "wallpaper",
+        "label": "Wallpaper",
+        "x": 63,
+        "y": 34,
+        "href": "/shop/digital/"
+      },
+      {
+        "id": "downloads",
+        "label": "Downloads",
+        "x": 84,
+        "y": 62,
+        "href": "/shop/digital/"
       }
     ]
   },
