@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
 import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
+import { ProductBrowser } from '@/components/browse/ProductBrowser'
 import { GuestBook } from '@/components/GuestBook'
 import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
@@ -46,6 +47,10 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      {/* SWIPE BROWSER — one product at a time over the scene. Every product
+          here is also in the plain grid at /shop, never trapped in this UI. */}
+      <ProductBrowser products={allProducts} label="Browse the edit" />
 
       {/* 3D SCROLL GALLERY */}
       <ScrollGalleryLoader products={featured} />

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { playClick, setSoundEnabled, soundEnabled } from '@/lib/click-sound'
 import { subscribeEmail, useSource } from '@/lib/use-source'
 
 /** Marks the visitor as subscribed so no modal ever interrupts them again. */
@@ -32,6 +33,7 @@ export function GuestBookForm({ variant = 'section', id }: GuestBookFormProps) {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (busy) return
+    playClick()
     setBusy(true)
     setError('')
     try {
@@ -92,6 +94,42 @@ export function GuestBookForm({ variant = 'section', id }: GuestBookFormProps) {
 }
 
 /**
+ * The sound toggle.
+ *
+ * Rendered next to the form rather than buried in a settings page, because a
+ * sound the visitor did not ask for needs its off switch within reach — and
+ * here it is really an on switch, since the default is silence.
+ */
+function SoundToggle() {
+  const [on, setOn] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Read after mount: localStorage during render would desync the markup.
+  useEffect(() => {
+    setOn(soundEnabled())
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+
+  return (
+    <button
+      type="button"
+      className="guestbook-sound"
+      aria-pressed={on}
+      onClick={() => {
+        const next = !on
+        setSoundEnabled(next)
+        setOn(next)
+        if (next) playClick()
+      }}
+    >
+      {on ? 'Sound on' : 'Sound off'}
+    </button>
+  )
+}
+
+/**
  * The full-width Guest Book band.
  *
  * The poster fills the section and the copy sits on the right half over a warm
@@ -122,6 +160,7 @@ export function GuestBook() {
           Sent when there&rsquo;s something genuinely worth saying.
         </p>
         <GuestBookForm variant="section" />
+        <SoundToggle />
       </div>
     </section>
   )
