@@ -4106,3 +4106,40 @@ textarea {
   .showroom-deck button { min-height: 52px; }
   .stage-media img { max-height: 30svh; }
 }
+
+/* Stage gesture transforms: swipe offset and zoom, transform only. */
+.stage-media {
+  transform: translate3d(var(--swipe, 0px), 0, 0) scale(var(--zoom, 1));
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center bottom;
+}
+
+/* While a finger is down the object must track it exactly, not ease behind it. */
+.stage-media:active { transition: none; }
+
+.showroom-view-controls { margin-top: 1.4rem; display: flex; gap: 0.6rem; }
+
+.showroom-view-controls button {
+  flex: 1;
+  min-height: 40px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: rgba(247, 244, 239, 0.75);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.showroom-view-controls button:hover:not(:disabled),
+.showroom-view-controls button[aria-pressed='true'] {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.showroom-view-controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Vertical scrolling stays with the page; horizontal is the stage's to claim. */
+.showroom-stage { touch-action: pan-y; }

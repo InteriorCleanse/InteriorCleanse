@@ -12,6 +12,7 @@ import {
   type ShowroomProduct,
 } from '@/lib/showroom'
 import { StageProduct } from './StageProduct'
+import { useStageGestures } from './useStageGestures'
 
 type Mode = 'discover' | 'browse'
 type Sort = 'featured' | 'price-asc' | 'price-desc' | 'name'
@@ -39,18 +40,28 @@ const SAVED_KEY = 'ic_showroom_saved'
 export function Showroom({
   products,
   initialCategory,
+  initialView = 'discover',
+  initialQuery = '',
+  initialSort = 'featured',
 }: {
   products: ShowroomProduct[]
   initialCategory?: string | null
+  initialView?: Mode
+  initialQuery?: string
+  initialSort?: string
 }) {
-  const [mode, setMode] = useState<Mode>('discover')
+  const [mode, setMode] = useState<Mode>(initialView)
   const [category, setCategory] = useState<ShowroomCategory | 'all'>(
     isValidCategory(initialCategory ?? null) ? (initialCategory as ShowroomCategory) : 'all'
   )
   const [index, setIndex] = useState(0)
   const [saved, setSaved] = useState<string[]>([])
-  const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<Sort>('featured')
+  const [query, setQuery] = useState(initialQuery)
+  const [sort, setSort] = useState<Sort>(
+    (['featured', 'price-asc', 'price-desc', 'name'] as const).includes(initialSort as Sort)
+      ? (initialSort as Sort)
+      : 'featured'
+  )
   const [rotating, setRotating] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -158,6 +169,34 @@ export function Showroom({
   const isSaved = onStage ? saved.includes(onStage.id) : false
   const empty = inCategory.length === 0
 
+  const { dx, zoom, resetZoom, handlers } = useStageGestures({
+    enabled: Boolean(onStage) && !empty && !rotating,
+    onSwipe: (dir) => {
+      if (!onStage) return
+      if (dir === 'pass') next()
+      else toggleSave(onStage.id)
+    },
+  })
+
+  // Zoom is a property of the object being looked at, so it resets when the
+  // object changes rather than carrying over to the next one.
+  useEffect(() => {
+    resetZoom()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onStage?.id])
+
+  // Keep the URL in step with the view so a reload, a share, or the back button
+  // lands on the same filters instead of resetting to All.
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (category !== 'all') params.set('category', category)
+    if (mode !== 'discover') params.set('view', mode)
+    if (query.trim()) params.set('q', query.trim())
+    if (sort !== 'featured') params.set('sort', sort)
+    const qs = params.toString()
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+  }, [category, mode, query, sort])
+
   return (
     <div className="showroom">
       {/* LAYER 1 — locked environment. Background only. */}
@@ -220,13 +259,10 @@ export function Showroom({
             tabIndex={0}
             onKeyDown={onKeyDown}
             aria-label="Product stage"
+            {...handlers}
           >
             {/* LAYER 3 */}
-            <StageProduct
-              product={empty ? null : onStage}
-              rotating={rotating}
-              onRotateStart={() => setRotating(true)}
-            />
+            <StageProduct product={empty ? null : onStage} rotating={rotating} zoom={zoom} dx={dx} />
 
             <div className="showroom-panel">
               {onStage && !empty ? (
@@ -274,6 +310,25 @@ export function Showroom({
                     </Link>
                   </div>
 
+                  <div className="showroom-view-controls">
+                    <button
+                      type="button"
+                      aria-pressed={rotating}
+                      disabled={onStage.rotationSequence.length < 2}
+                      onClick={() => setRotating((r) => !r)}
+                      title={
+                        onStage.rotationSequence.length < 2
+                          ? 'No rotation sequence for this product yet'
+                          : undefined
+                      }
+                    >
+                      360 View
+                    </button>
+                    <button type="button" onClick={resetZoom} disabled={zoom === 1}>
+                      Reset zoom
+                    </button>
+                  </div>
+
                   <div className="showroom-deck">
                     <button type="button" onClick={next} className="showroom-pass">
                       Pass
@@ -288,7 +343,8 @@ export function Showroom({
                     </button>
                   </div>
                   <p className="showroom-note">
-                    Pass moves on — nothing is removed. Saved items are kept on this device.
+                    Swipe left to pass, right to save — or use the buttons and arrow keys.
+                    Pass moves on; nothing is removed. Saved items are kept on this device.
                   </p>
                 </>
               ) : (

@@ -20,11 +20,15 @@ import { SIZE_PRESENTATION, type ShowroomProduct } from '@/lib/showroom'
 export function StageProduct({
   product,
   rotating,
-  onRotateStart,
+  zoom = 1,
+  dx = 0,
 }: {
   product: ShowroomProduct | null
+  /** True while the 360 mode is engaged; drags then rotate instead of swiping. */
   rotating: boolean
-  onRotateStart: () => void
+  zoom?: number
+  /** Live horizontal swipe offset, so the object tracks the finger. */
+  dx?: number
 }) {
   const [frame, setFrame] = useState(0)
   const dragRef = useRef<{ x: number; frame: number } | null>(null)
@@ -46,10 +50,10 @@ export function StageProduct({
     )
   }
 
-  // Only the turntable is interactive; a flat image has nothing to rotate to.
+  // Turntable dragging only applies while 360 mode is engaged — otherwise the
+  // gesture belongs to Pass/Save.
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!hasTurntable) return
-    onRotateStart()
+    if (!hasTurntable || !rotating) return
     dragRef.current = { x: e.clientX, frame }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -74,12 +78,18 @@ export function StageProduct({
     <div className="stage-product">
       <div
         className="stage-media"
-        style={{ '--max-h': size.maxHeight } as React.CSSProperties}
+        style={
+          {
+            '--max-h': size.maxHeight,
+            '--zoom': zoom,
+            '--swipe': `${dx}px`,
+          } as React.CSSProperties
+        }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        data-rotatable={hasTurntable ? 'true' : undefined}
+        data-rotatable={hasTurntable && rotating ? 'true' : undefined}
       >
         {media ? (
           <img src={media} alt={product.name} draggable={false} />
