@@ -62,7 +62,8 @@
     "featuredProduct": {
       "slug": "ic-signature-candle",
       "position": "bottom-right"
-    }
+    },
+    "posterMotion": "push-in"
   },
   "library": {
     "posterImage": "/images/library-poster.png",
@@ -102,7 +103,8 @@
         "y": 62,
         "href": "/shop/digital/"
       }
-    ]
+    ],
+    "posterMotion": "drift-right"
   },
   "conservatory": {
     "posterImage": "/images/conservatory-poster.png",
@@ -142,7 +144,8 @@
         "y": 64,
         "href": "/shop/home/"
       }
-    ]
+    ],
+    "posterMotion": "push-in"
   },
   "cleaning": {
     "posterImage": "/images/cleaning-poster.png",
@@ -182,7 +185,8 @@
         "y": 57,
         "href": "/shop/ic-signature-candle/"
       }
-    ]
+    ],
+    "posterMotion": "drift-left"
   },
   "chapel": {
     "posterImage": "/images/chapel-poster.png",
@@ -222,7 +226,8 @@
         "y": 38,
         "href": "/spirit/"
       }
-    ]
+    ],
+    "posterMotion": "drift-up"
   },
   "gallery": {
     "posterImage": "/images/gallery-poster.png",
@@ -262,7 +267,8 @@
         "y": 62,
         "href": "/shop/digital/"
       }
-    ]
+    ],
+    "posterMotion": "pull-out"
   },
   "atelier": {
     "posterImage": "/images/atelier-poster.png",
@@ -302,7 +308,8 @@
         "y": 71,
         "href": "/shop/ic-ceramic-mug/"
       }
-    ]
+    ],
+    "posterMotion": "push-in"
   },
   "pavilion": {
     "posterImage": null,
@@ -342,6 +349,7 @@
         "y": 40,
         "href": "/partners/"
       }
-    ]
+    ],
+    "posterMotion": "drift-right"
   }
 }

@@ -12,6 +12,15 @@ export type Hotspot = {
 
 export type Cta = { label: string; href: string }
 
+/** Camera moves available to a still poster. */
+export type PosterMotion =
+  | 'push-in'
+  | 'pull-out'
+  | 'drift-left'
+  | 'drift-right'
+  | 'drift-up'
+  | 'none'
+
 export type Scene = {
   /**
    * All media is optional and nullable — the manifest carries `null` for
@@ -22,6 +31,14 @@ export type Scene = {
   mobileVideo?: string | null
   /** Optional VP9/AV1 companion to desktopVideo. */
   webmVideo?: string | null
+  /**
+   * Free "living still" motion applied to the poster when no video exists.
+   *
+   * A slow transform on the poster gives the same imperceptible camera drift the
+   * scenes are written around, at no bandwidth cost, with no decode, and with a
+   * loop that is seamless by construction rather than by editing.
+   */
+  posterMotion?: PosterMotion | null
   posterImage?: string | null
   reducedMotionPoster?: string | null
   headline: string[]

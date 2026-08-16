@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { centreDistance, claimPlayback } from '@/lib/video-director'
 
 interface SceneBackgroundProps {
+  /** Free camera drift applied to the poster. See lib/scenes PosterMotion. */
+  posterMotion?: string
   desktopVideo?: string
   mobileVideo?: string
   /** Optional modern-format companion, offered ahead of the MP4 when present. */
@@ -28,6 +30,7 @@ const MOBILE_QUERY = '(max-width: 767px)'
  * HTML and let the browser speculate about it.
  */
 export function SceneBackground({
+  posterMotion,
   desktopVideo,
   mobileVideo,
   webmVideo,
@@ -101,6 +104,7 @@ export function SceneBackground({
           src={poster}
           alt=""
           className="scene-poster"
+          data-motion={posterMotion && posterMotion !== 'none' ? posterMotion : undefined}
           // The poster is the LCP candidate; nothing should outrank it.
           fetchPriority="high"
           decoding="async"

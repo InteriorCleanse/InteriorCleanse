@@ -140,7 +140,8 @@ export function GuestBook() {
     <section className="guestbook" aria-labelledby="guestbook-heading">
       <img
         className="guestbook-bg"
-        src="/images/guestbook-poster.jpg"
+        data-motion="drift-left"
+        src="/images/guestbook-poster.png"
         alt=""
         loading="lazy"
         decoding="async"

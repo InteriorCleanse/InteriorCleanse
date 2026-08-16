@@ -204,6 +204,7 @@ export function Showroom({
         <img
           src="/images/showroom-poster.png"
           alt=""
+          data-motion="push-in"
           fetchPriority="high"
           decoding="async"
           onError={(e) => {

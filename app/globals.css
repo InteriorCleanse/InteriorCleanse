@@ -4143,3 +4143,105 @@ textarea {
 
 /* Vertical scrolling stays with the page; horizontal is the stage's to claim. */
 .showroom-stage { touch-action: pan-y; }
+
+/* ── LIVING STILLS ────────────────────────────────────────────────────
+   Camera drift on a poster, for scenes whose footage does not exist yet — and
+   for the many that never need footage. Zero bytes, no decode, no autoplay
+   policy, and a loop that is seamless by construction rather than by editing.
+
+   Every move runs on transform alone so it stays on the compositor, and each
+   one returns exactly to its starting frame, so there is no visible restart.
+   The poster is over-sized so a scale of 1 never exposes an edge. */
+
+.scene-poster[data-motion] {
+  /* Headroom for the pan moves; the scale moves stay inside it. */
+  width: 112%;
+  height: 112%;
+  left: -6%;
+  top: -6%;
+  will-change: transform;
+  animation-duration: 44s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.scene-poster[data-motion='push-in'] { animation-name: scene-push-in; }
+.scene-poster[data-motion='pull-out'] { animation-name: scene-pull-out; }
+.scene-poster[data-motion='drift-left'] { animation-name: scene-drift-left; }
+.scene-poster[data-motion='drift-right'] { animation-name: scene-drift-right; }
+.scene-poster[data-motion='drift-up'] { animation-name: scene-drift-up; }
+
+/* `alternate` means each move plays forward then backward. On a still there is
+   no directional content to give that away — the reason ping-ponging real
+   footage fails — so it doubles the cycle for free and lands back exactly. */
+@keyframes scene-push-in {
+  from { transform: scale(1); }
+  to { transform: scale(1.09); }
+}
+
+@keyframes scene-pull-out {
+  from { transform: scale(1.09); }
+  to { transform: scale(1); }
+}
+
+@keyframes scene-drift-left {
+  from { transform: scale(1.06) translate3d(1.5%, 0, 0); }
+  to { transform: scale(1.06) translate3d(-1.5%, 0, 0); }
+}
+
+@keyframes scene-drift-right {
+  from { transform: scale(1.06) translate3d(-1.5%, 0, 0); }
+  to { transform: scale(1.06) translate3d(1.5%, 0, 0); }
+}
+
+@keyframes scene-drift-up {
+  from { transform: scale(1.06) translate3d(0, 1.6%, 0); }
+  to { transform: scale(1.06) translate3d(0, -1.6%, 0); }
+}
+
+/* Once real footage is playing it covers the poster, so the drift is spent
+   effort — stop it rather than animate something nobody can see. */
+.scene-video[data-ready='true'] ~ .scene-poster,
+.scene-bg:has(.scene-video[data-ready='true']) .scene-poster[data-motion] {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-poster[data-motion] {
+    animation: none;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+  }
+}
+
+/* The same living-still treatment for the two posters that are not scenes. */
+.guestbook-bg[data-motion],
+.showroom-bg img[data-motion] {
+  width: 112%;
+  height: 112%;
+  left: -6%;
+  top: -6%;
+  position: absolute;
+  will-change: transform;
+  animation-duration: 52s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.guestbook-bg[data-motion='drift-left'] { animation-name: scene-drift-left; }
+.showroom-bg img[data-motion='push-in'] { animation-name: scene-push-in; }
+
+@media (prefers-reduced-motion: reduce) {
+  .guestbook-bg[data-motion],
+  .showroom-bg img[data-motion] {
+    animation: none;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+  }
+}
