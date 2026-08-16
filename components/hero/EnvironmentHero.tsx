@@ -82,6 +82,7 @@ export function EnvironmentHero({
           <SceneBackground
             desktopVideo={scene.desktopVideo ?? undefined}
             mobileVideo={scene.mobileVideo ?? undefined}
+            webmVideo={scene.webmVideo ?? undefined}
             posterImage={scene.posterImage ?? undefined}
             reducedMotionPoster={scene.reducedMotionPoster ?? undefined}
           />

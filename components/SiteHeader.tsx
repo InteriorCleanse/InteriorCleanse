@@ -20,6 +20,15 @@ const NAV: [string, string][] = [
 /** Routes that open with a full-bleed hero the header should float over. */
 const TRANSPARENT_ROUTES = new Set(['/'])
 
+function AccountIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
+      <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M4 16.5c1.2-2.6 3.4-4 6-4s4.8 1.4 6 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function SearchIcon() {
   return (
     <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
@@ -70,6 +79,11 @@ export function SiteHeader() {
         {/* The catalogue search lives on /shop; this is the way in from anywhere. */}
         <Link href="/shop/#search" className="header-icon-btn" aria-label="Search the shop">
           <SearchIcon />
+        </Link>
+        {/* Accounts are not built yet; this is the way in to order help until
+            they are, rather than a link to a page that does not exist. */}
+        <Link href="/contact/" className="header-icon-btn" aria-label="Account and order help">
+          <AccountIcon />
         </Link>
         <CartButton />
       </div>

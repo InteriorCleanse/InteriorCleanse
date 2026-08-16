@@ -20,6 +20,8 @@ export type Scene = {
    */
   desktopVideo?: string | null
   mobileVideo?: string | null
+  /** Optional VP9/AV1 companion to desktopVideo. */
+  webmVideo?: string | null
   posterImage?: string | null
   reducedMotionPoster?: string | null
   headline: string[]
@@ -33,7 +35,7 @@ export type SceneId =
   | 'atrium'
   | 'library'
   | 'conservatory'
-  | 'sunroom'
+  | 'cleaning'
   | 'chapel'
   | 'gallery'
   | 'atelier'

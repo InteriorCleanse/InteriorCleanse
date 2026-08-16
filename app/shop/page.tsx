@@ -14,13 +14,13 @@ export const metadata: Metadata = {
 }
 
 export default function Shop() {
-  const sunroom = getScene('sunroom')
+  const cleaning = getScene('cleaning')
   const gallery = getScene('gallery')
   const atelier = getScene('atelier')
 
   return (
     <>
-      {sunroom ? <EnvironmentHero scene={sunroom} height="band" id="home" /> : null}
+      {cleaning ? <EnvironmentHero scene={cleaning} height="band" id="home" /> : null}
 
       {/* One grid, driven by the filters. The old split into fixed "for the
           home" and "for the body" sections is now the collection nav — showing

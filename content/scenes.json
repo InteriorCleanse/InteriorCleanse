@@ -1,8 +1,8 @@
 {
   "atrium": {
     "desktopVideo": "/video/hero-desktop.mp4",
-    "mobileVideo": "/video/hero-mobile.mp4",
-    "posterImage": "/images/hero-poster.jpg",
+    "mobileVideo": null,
+    "posterImage": "/images/hero-poster.png",
     "headline": [
       "LIVE BEAUTIFULLY.",
       "FEEL RESTORED."
@@ -65,8 +65,8 @@
     }
   },
   "library": {
-    "posterImage": "/images/library-poster.jpg",
-    "desktopVideo": null,
+    "posterImage": "/images/library-poster.png",
+    "desktopVideo": "/video/library-desktop.mp4",
     "mobileVideo": null,
     "headline": [
       "EVERY ROOM",
@@ -105,8 +105,8 @@
     ]
   },
   "conservatory": {
-    "posterImage": "/images/conservatory-poster.jpg",
-    "desktopVideo": null,
+    "posterImage": "/images/conservatory-poster.png",
+    "desktopVideo": "/video/conservatory-desktop.mp4",
     "mobileVideo": null,
     "headline": [
       "THE BODY",
@@ -144,9 +144,9 @@
       }
     ]
   },
-  "sunroom": {
-    "posterImage": "/images/sunroom-poster.jpg",
-    "desktopVideo": null,
+  "cleaning": {
+    "posterImage": "/images/cleaning-poster.png",
+    "desktopVideo": "/video/cleaning-desktop.mp4",
     "mobileVideo": null,
     "headline": [
       "CLEAN IS",
@@ -185,8 +185,8 @@
     ]
   },
   "chapel": {
-    "posterImage": "/images/chapel-poster.jpg",
-    "desktopVideo": null,
+    "posterImage": "/images/chapel-poster.png",
+    "desktopVideo": "/video/chapel-desktop.mp4",
     "mobileVideo": null,
     "headline": [
       "QUIET",
@@ -225,7 +225,7 @@
     ]
   },
   "gallery": {
-    "posterImage": "/images/gallery-poster.jpg",
+    "posterImage": "/images/gallery-poster.png",
     "desktopVideo": null,
     "mobileVideo": null,
     "headline": [
@@ -265,7 +265,7 @@
     ]
   },
   "atelier": {
-    "posterImage": "/images/atelier-poster.jpg",
+    "posterImage": "/images/atelier-poster.png",
     "desktopVideo": null,
     "mobileVideo": null,
     "headline": [
@@ -305,7 +305,7 @@
     ]
   },
   "pavilion": {
-    "posterImage": "/images/pavilion-poster.jpg",
+    "posterImage": null,
     "desktopVideo": null,
     "mobileVideo": null,
     "headline": [

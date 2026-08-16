@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { centreDistance, claimPlayback } from '@/lib/video-director'
 
 interface SceneBackgroundProps {
   desktopVideo?: string
   mobileVideo?: string
+  /** Optional modern-format companion, offered ahead of the MP4 when present. */
+  webmVideo?: string
   posterImage?: string
   reducedMotionPoster?: string
 }
@@ -27,6 +30,7 @@ const MOBILE_QUERY = '(max-width: 767px)'
 export function SceneBackground({
   desktopVideo,
   mobileVideo,
+  webmVideo,
   posterImage,
   reducedMotionPoster,
 }: SceneBackgroundProps) {
@@ -58,33 +62,32 @@ export function SceneBackground({
     }
   }, [desktopVideo, mobileVideo])
 
-  // Pause offscreen and when the tab is hidden. A hero video that keeps
-  // decoding behind another tab is pure battery cost.
+  // Eligibility is decided here; whether this video actually plays is decided
+  // by the director, which allows exactly one across the whole page. Tab
+  // visibility is handled there too, so it cannot disagree between scenes.
   useEffect(() => {
     const el = wrapRef.current
     const video = videoRef.current
     if (!el || !video || !src) return
 
-    let onscreen = true
-
-    const apply = () => {
-      if (onscreen && !document.hidden) video.play().catch(() => {})
-      else video.pause()
-    }
+    let release: (() => void) | null = null
 
     const io = new IntersectionObserver(
       ([entry]) => {
-        onscreen = entry.isIntersecting
-        apply()
+        if (entry.isIntersecting && !release) {
+          release = claimPlayback(video, () => centreDistance(el))
+        } else if (!entry.isIntersecting && release) {
+          release()
+          release = null
+        }
       },
-      { threshold: 0.1 }
+      { threshold: 0.25 }
     )
     io.observe(el)
-    document.addEventListener('visibilitychange', apply)
 
     return () => {
       io.disconnect()
-      document.removeEventListener('visibilitychange', apply)
+      release?.()
     }
   }, [src])
 
@@ -113,7 +116,6 @@ export function SceneBackground({
           ref={videoRef}
           className="scene-video"
           data-ready={ready ? 'true' : undefined}
-          src={src ?? undefined}
           poster={poster}
           autoPlay
           muted
@@ -125,7 +127,13 @@ export function SceneBackground({
           preload="auto"
           onCanPlay={() => setReady(true)}
           onError={() => setFailed(true)}
-        />
+        >
+          {/* A modern source is offered first where the manifest declares one.
+              It is not derived from the MP4 path: guessing a .webm that has not
+              been produced would cost a guaranteed 404 on every scene. */}
+          {webmVideo ? <source src={webmVideo} type="video/webm" /> : null}
+          <source src={src!} type="video/mp4" />
+        </video>
       ) : null}
     </div>
   )
