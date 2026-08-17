@@ -21,11 +21,21 @@ const API = 'https://cloud.leonardo.ai/api/rest/v1'
 const KEY = process.env.LEONARDO_API_KEY
 
 /**
- * Default model. Leonardo's ids change as models are added and retired, so
- * `--list-models` prints what the account can actually use — set MODEL_ID to
- * override rather than trusting this constant.
+ * Model. Leonardo adds and retires models, so nothing is hardcoded: the script
+ * asks the account what it can use and picks the best available by name.
+ * LEONARDO_MODEL_ID overrides the choice entirely.
  */
 const MODEL_ID = process.env.LEONARDO_MODEL_ID || ''
+
+/** Best-first. These are the families that suit photographic architecture. */
+const MODEL_PREFERENCE = [
+  'phoenix',
+  'photoreal',
+  'lucid',
+  'kino',
+  'vision xl',
+  'diffusion xl',
+]
 
 const WIDTH = 1536
 const HEIGHT = 864
@@ -196,16 +206,34 @@ async function api(path, options = {}) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function listModels() {
+async function fetchModels() {
   const data = await api('/platformModels')
-  const models = data.custom_models ?? data.platform_models ?? []
+  return data.custom_models ?? data.platform_models ?? []
+}
+
+async function listModels() {
+  const models = await fetchModels()
   console.log('\nAvailable models (id — name):\n')
   for (const m of models) console.log(`  ${m.id}   ${m.name}`)
-  console.log('\nSet one with:  export LEONARDO_MODEL_ID=<id>\n')
+  const auto = pickModel(models)
+  console.log(
+    auto
+      ? `\nThe script would pick automatically:\n  ${auto.id}   ${auto.name}\n`
+      : '\nNo preferred model matched; set LEONARDO_MODEL_ID=<id> from the list above.\n'
+  )
+}
+
+/** Chooses the best photographic model the account actually has. */
+function pickModel(models) {
+  for (const want of MODEL_PREFERENCE) {
+    const hit = models.find((m) => (m.name || '').toLowerCase().includes(want))
+    if (hit) return hit
+  }
+  return models[0] ?? null
 }
 
 /** Creates a generation and polls until it completes or fails. */
-async function generate(scene) {
+async function generate(scene, modelId) {
   const prompt = `${scene.prompt} ${scene.composition} ${STYLE}`
 
   const created = await api('/generations', {
@@ -213,7 +241,7 @@ async function generate(scene) {
     body: JSON.stringify({
       prompt,
       negative_prompt: NEGATIVE,
-      modelId: MODEL_ID || undefined,
+      modelId,
       width: WIDTH,
       height: HEIGHT,
       num_images: 1,
@@ -291,15 +319,24 @@ async function main() {
       'LEONARDO_API_KEY is not set.\n\n' +
         '  1. leonardo.ai → Settings → API Access → create a key\n' +
         '  2. export LEONARDO_API_KEY=...\n' +
-        '  3. node scripts/leonardo-generate.mjs --list-models\n\n' +
+        '  3. node scripts/leonardo-generate.mjs --only hero\n\n' +
         'The key is read from the environment only. It is never written to a file,\n' +
         'never logged, and must never be committed.'
     )
   }
 
+  let modelId = MODEL_ID
+  if (!modelId) {
+    const chosen = pickModel(await fetchModels())
+    if (!chosen) die('No models available on this account. Run --list-models.')
+    modelId = chosen.id
+    console.log(`\nModel: ${chosen.name}  (${chosen.id})`)
+    console.log('Override with LEONARDO_MODEL_ID if you want a different one.')
+  }
+
   console.log(`\nGenerating ${scenes.length} poster(s) at ${WIDTH}x${HEIGHT}:\n`)
   for (const scene of scenes) {
-    const url = await generate(scene)
+    const url = await generate(scene, modelId)
     const bytes = await download(url, `public/images/${scene.file}`)
     console.log(`  ${''.padEnd(14)} → public/images/${scene.file}  ${(bytes / 1024).toFixed(0)} KB`)
   }
