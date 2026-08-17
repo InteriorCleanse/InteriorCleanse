@@ -1,18 +1,23 @@
 import Link from 'next/link'
-import { HeroSceneLoader, ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
+import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
+import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
-import { EmailCapture } from '@/components/EmailCapture'
+import { ProductBrowser } from '@/components/browse/ProductBrowser'
+import { GuestBook } from '@/components/GuestBook'
+import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
+import { getScene, resolveFeatured } from '@/lib/scenes'
 
-const TRUST: { icon: 'diamond'; text: string }[] = [
-  { icon: 'diamond', text: 'Secure checkout via Amazon & TikTok Shop' },
-  { icon: 'diamond', text: 'Hand-poured candles, made with care' },
-  { icon: 'diamond', text: 'Books written and published by the founder' },
-  { icon: 'diamond', text: 'Free shipping on Printful orders over $75' },
+const TRUST: { text: string }[] = [
+  { text: 'Secure checkout via Amazon & TikTok Shop' },
+  { text: 'Hand-poured candles, made with care' },
+  { text: 'Books written and published by the founder' },
+  { text: 'Free shipping on Printful orders over $75' },
 ]
 
 export default function Home() {
+  const scene = getScene('atrium')
   const featured = allProducts.filter((p) => p.featured)
   const homeProducts = allProducts.filter((p) => p.category === 'cleaning' || p.category === 'print')
   const bodyProducts = allProducts.filter(
@@ -21,56 +26,31 @@ export default function Home() {
 
   return (
     <>
-      {/* HERO */}
-      <section className="hero-section">
-        <HeroSceneLoader />
-        <div className="hero-scrim" aria-hidden="true" />
-        <div className="hero-content">
-          <div className="hero-eyebrow">
-            <span className="eyebrow">For mind, home, body &amp; spirit</span>
-          </div>
-          <h1 className="hero-headline">
-            Clear
-            <br />
-            the noise.
-            <br />
-            <em>Reveal</em>
-            <br />
-            the room.
-          </h1>
-          {/* The brief's supporting line promises "AI-guided interiors" and
-              "visual tools". Neither exists yet, so this copy describes what the
-              site actually sells; it swaps over when the design studio ships. */}
-          <p className="hero-sub">
-            Curated cleaning finds, interior design books, hand-poured candles, and
-            Christian literature — for every dimension of a well-kept life.
-          </p>
-          <div className="hero-actions">
-            <Link href="/shop/" className="btn-primary">
-              Enter the Shop →
-            </Link>
-            <Link href="/library/" className="btn-ghost">
-              Explore the library
-            </Link>
-          </div>
-        </div>
-        <div className="hero-scroll-hint" aria-hidden="true">
-          <span className="scroll-line" />
-          Scroll to explore
-        </div>
-      </section>
+      {/* HERO — layered: poster/video background, hotspots, interface.
+          Fully functional with no video files present. */}
+      {scene ? (
+        <ResidenceHero
+          scene={scene}
+          featured={resolveFeatured(scene)}
+          carousel={featured.slice(0, 6)}
+        />
+      ) : null}
 
       {/* TRUST STRIP */}
       <section className="trust-strip" aria-label="Why InteriorCleanse">
-        {TRUST.map(({ icon, text }) => (
+        {TRUST.map(({ text }) => (
           <div key={text} className="trust-item">
             <span className="trust-icon">
-              <TrackIcon name={icon} size={30} />
+              <StaticMark size={30} />
             </span>
             <span className="trust-text">{text}</span>
           </div>
         ))}
       </section>
+
+      {/* SWIPE BROWSER — one product at a time over the scene. Every product
+          here is also in the plain grid at /shop, never trapped in this UI. */}
+      <ProductBrowser products={allProducts} label="Browse the edit" />
 
       {/* 3D SCROLL GALLERY */}
       <ScrollGalleryLoader products={featured} />
@@ -276,7 +256,7 @@ export default function Home() {
             <br />
             <em>quietly delivered.</em>
           </h2>
-          <EmailCapture />
+          <GuestBook />
         </div>
       </section>
     </>

@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { CartButton } from './cart'
-import { LogoMark } from './logo-mark'
+import { GuestBookForm } from './GuestBook'
 import { BRAND_NAME, SITE } from '@/lib/site-config'
 
 const NAV: [string, string][] = [
@@ -8,6 +7,7 @@ const NAV: [string, string][] = [
   ['Library', '/library/'],
   ['Spirit', '/spirit/'],
   ['Journal', '/journal/'],
+  ['Partners', '/partners/'],
   ['About', '/about/'],
 ]
 
@@ -19,32 +19,20 @@ const FOOTER_LEGAL: [string, string][] = [
   ['Terms', '/legal/terms/'],
 ]
 
+/**
+ * Footer wordmark. The ◇ separator is gone from the whole site — it read as
+ * decoration rather than as part of the mark, and the master logo has a star
+ * divider of its own.
+ */
 function Wordmark() {
   return (
     <Link href="/" className="wordmark">
-      INTERIOR<em>◇</em>CLEANSE
+      INTERIOR CLEANSE
     </Link>
   )
 }
 
-export function Header() {
-  return (
-    <header className="site-header">
-      <div className="header-left">
-        <LogoMark />
-        <Wordmark />
-      </div>
-      <nav className="site-nav">
-        {NAV.map(([label, href]) => (
-          <Link key={href} href={href}>
-            {label}
-          </Link>
-        ))}
-        <CartButton />
-      </nav>
-    </header>
-  )
-}
+export { SiteHeader as Header } from './SiteHeader'
 
 export function Footer() {
   return (
@@ -57,6 +45,9 @@ export function Footer() {
             <br />
             Curated objects and ideas for a more considered life.
           </p>
+          {/* Always present, no modal required — the sign-up must never depend
+              on a visitor having triggered something. */}
+          <GuestBookForm variant="compact" id="guestbook-email-footer" />
         </div>
         <div>
           <p className="footer-col-title">Navigate</p>

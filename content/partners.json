@@ -1,0 +1,67 @@
+[
+  {
+    "id": "sweaty-yeti",
+    "brand": "Sweaty Yeti",
+    "category": "sauna",
+    "commissionType": "flat",
+    "commissionAmount": 1500,
+    "commissionNote": "Flat $1,500 per sauna sold, any model. Paid monthly via Solid Affiliate after refund period.",
+    "programUrl": "https://sweatyyetisauna.com/affiliates/",
+    "affiliateLink": "PENDING_APPROVAL",
+    "applicationStatus": "applied",
+    "lastVerified": "2026-08-14",
+    "editorialNote": "A sauna earns its place when it is used, not admired. Sweaty Yeti build cabins that suit a real garden and a real routine — cedar that weathers honestly, and a heater specified for the room rather than the brochure."
+  },
+  {
+    "id": "sauna-kit-co",
+    "brand": "Sauna Kit Company",
+    "category": "sauna",
+    "commissionType": "percentage",
+    "commissionAmount": 5.5,
+    "commissionNote": "AOV $7,000-$10,000, typical earning $385-$550 per sale.",
+    "programUrl": "https://saunakitco.com/pages/sauna-affiliate-program",
+    "affiliateLink": "PENDING_APPROVAL",
+    "applicationStatus": "applied",
+    "lastVerified": "2026-08-14",
+    "editorialNote": "For the room you already have. A kit turns a spare corner into a sauna without rebuilding the house — the least invasive way to bring the ritual indoors."
+  },
+  {
+    "id": "select-saunas",
+    "brand": "Select Saunas",
+    "category": "sauna",
+    "commissionType": "percentage",
+    "commissionAmount": 5,
+    "commissionNote": "5% commission. Offers HSA/FSA via TrueMed at checkout.",
+    "programUrl": "https://selectsaunas.com/pages/affiliate-program",
+    "affiliateLink": "PENDING_APPROVAL",
+    "applicationStatus": "applied",
+    "lastVerified": "2026-08-14",
+    "editorialNote": "A broad bench of makers in one place, which matters when you are comparing heat sources rather than shopping a single brand. They also take HSA/FSA through TrueMed at checkout."
+  },
+  {
+    "id": "plunge",
+    "brand": "Plunge",
+    "category": "cold-plunge",
+    "commissionType": "unknown",
+    "commissionAmount": null,
+    "commissionNote": "Official program exists; rate not publicly disclosed.",
+    "programUrl": "https://plunge.com/pages/partnerships",
+    "affiliateLink": "PENDING_APPROVAL",
+    "applicationStatus": "applied",
+    "lastVerified": "2026-08-14",
+    "editorialNote": "The other half of the ritual. Cold is the part most people skip, and the part that makes the heat mean something — a tub built to sit outside and be stepped into daily."
+  },
+  {
+    "id": "castlery",
+    "brand": "Castlery",
+    "category": "furniture",
+    "commissionType": "unknown",
+    "commissionAmount": null,
+    "commissionNote": "Program exists with 30-day tracking window; rate not public.",
+    "programUrl": "https://castlery.com/us/affiliate-program",
+    "affiliateLink": "PENDING_APPROVAL",
+    "applicationStatus": "applied",
+    "lastVerified": "2026-08-14",
+    "editorialNote": "Furniture that reads quieter than its price suggests. Useful for the pieces a room is built around — a sofa, a table — where the shape has to hold up for a decade."
+  }
+]

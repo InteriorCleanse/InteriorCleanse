@@ -1,0 +1,355 @@
+{
+  "atrium": {
+    "desktopVideo": "/video/hero-desktop.mp4",
+    "mobileVideo": null,
+    "posterImage": "/images/hero-poster.png",
+    "headline": [
+      "LIVE BEAUTIFULLY.",
+      "FEEL RESTORED."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE RESIDENCE",
+      "href": "/shop/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "books",
+        "label": "Books",
+        "x": 43,
+        "y": 29,
+        "href": "/library/"
+      },
+      {
+        "id": "art",
+        "label": "Art & Wallpaper",
+        "x": 62,
+        "y": 33,
+        "href": "/shop/wall-art/"
+      },
+      {
+        "id": "digital",
+        "label": "Digital",
+        "x": 80,
+        "y": 39,
+        "href": "/shop/digital/"
+      },
+      {
+        "id": "wellness",
+        "label": "Wellness",
+        "x": 92,
+        "y": 38,
+        "href": "/partners/"
+      },
+      {
+        "id": "candles",
+        "label": "Candles",
+        "x": 18,
+        "y": 83,
+        "href": "/shop/ic-signature-candle/"
+      },
+      {
+        "id": "textiles",
+        "label": "Textiles",
+        "x": 32,
+        "y": 88,
+        "href": "/shop/apparel/"
+      }
+    ],
+    "featuredProduct": {
+      "slug": "ic-signature-candle",
+      "position": "bottom-right"
+    },
+    "posterMotion": "push-in"
+  },
+  "library": {
+    "posterImage": "/images/library-poster.png",
+    "desktopVideo": "/video/library-desktop.mp4",
+    "mobileVideo": null,
+    "headline": [
+      "EVERY ROOM",
+      "BEGINS WITH AN IDEA."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE LIBRARY",
+      "href": "/library/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "mind",
+        "label": "Interiors",
+        "x": 28,
+        "y": 44,
+        "href": "/library/"
+      },
+      {
+        "id": "health",
+        "label": "Health reads",
+        "x": 66,
+        "y": 38,
+        "href": "/library/"
+      },
+      {
+        "id": "downloads",
+        "label": "Downloads",
+        "x": 82,
+        "y": 62,
+        "href": "/shop/digital/"
+      }
+    ],
+    "posterMotion": "drift-right"
+  },
+  "conservatory": {
+    "posterImage": "/images/conservatory-poster.png",
+    "desktopVideo": "/video/conservatory-desktop.mp4",
+    "mobileVideo": null,
+    "headline": [
+      "THE BODY",
+      "KEEPS THE SCORE."
+    ],
+    "primaryCta": {
+      "label": "READ THE HEALTH SHELF",
+      "href": "/library/"
+    },
+    "secondaryCta": {
+      "label": "SHOP WELLNESS",
+      "href": "/shop/wellness/"
+    },
+    "hotspots": [
+      {
+        "id": "health",
+        "label": "Health reads",
+        "x": 30,
+        "y": 46,
+        "href": "/library/"
+      },
+      {
+        "id": "rest",
+        "label": "Rest",
+        "x": 64,
+        "y": 36,
+        "href": "/shop/wellness/"
+      },
+      {
+        "id": "air",
+        "label": "Clean air",
+        "x": 81,
+        "y": 64,
+        "href": "/shop/home/"
+      }
+    ],
+    "posterMotion": "push-in"
+  },
+  "cleaning": {
+    "posterImage": "/images/cleaning-poster.png",
+    "desktopVideo": "/video/cleaning-desktop.mp4",
+    "mobileVideo": null,
+    "headline": [
+      "CLEAN IS",
+      "A FEELING."
+    ],
+    "primaryCta": {
+      "label": "SHOP THE HOME EDIT",
+      "href": "/shop/home/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "cleaning",
+        "label": "Cleaning",
+        "x": 34,
+        "y": 68,
+        "href": "/shop/home/"
+      },
+      {
+        "id": "art",
+        "label": "Wall art",
+        "x": 61,
+        "y": 31,
+        "href": "/shop/wall-art/"
+      },
+      {
+        "id": "candles",
+        "label": "Candles",
+        "x": 79,
+        "y": 57,
+        "href": "/shop/ic-signature-candle/"
+      }
+    ],
+    "posterMotion": "drift-left"
+  },
+  "chapel": {
+    "posterImage": "/images/chapel-poster.png",
+    "desktopVideo": "/video/chapel-desktop.mp4",
+    "mobileVideo": null,
+    "headline": [
+      "QUIET",
+      "IS A PRACTICE."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE FAITH LIBRARY",
+      "href": "/spirit/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "bibles",
+        "label": "Bibles",
+        "x": 27,
+        "y": 42,
+        "href": "/spirit/"
+      },
+      {
+        "id": "devotionals",
+        "label": "Devotionals",
+        "x": 59,
+        "y": 55,
+        "href": "/spirit/"
+      },
+      {
+        "id": "colouring",
+        "label": "Colouring",
+        "x": 83,
+        "y": 38,
+        "href": "/spirit/"
+      }
+    ],
+    "posterMotion": "drift-up"
+  },
+  "gallery": {
+    "posterImage": "/images/gallery-poster.png",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "ART FOR",
+      "EVERY SURFACE."
+    ],
+    "primaryCta": {
+      "label": "SHOP WALL ART",
+      "href": "/shop/wall-art/"
+    },
+    "secondaryCta": {
+      "label": "DIGITAL DOWNLOADS",
+      "href": "/shop/digital/"
+    },
+    "hotspots": [
+      {
+        "id": "prints",
+        "label": "Prints",
+        "x": 31,
+        "y": 40,
+        "href": "/shop/wall-art/"
+      },
+      {
+        "id": "wallpaper",
+        "label": "Wallpaper",
+        "x": 63,
+        "y": 34,
+        "href": "/shop/digital/"
+      },
+      {
+        "id": "downloads",
+        "label": "Downloads",
+        "x": 84,
+        "y": 62,
+        "href": "/shop/digital/"
+      }
+    ],
+    "posterMotion": "pull-out"
+  },
+  "atelier": {
+    "posterImage": "/images/atelier-poster.png",
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "MADE TO BE",
+      "LIVED WITH."
+    ],
+    "primaryCta": {
+      "label": "SHOP APPAREL",
+      "href": "/shop/apparel/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "textiles",
+        "label": "Textiles",
+        "x": 26,
+        "y": 60,
+        "href": "/shop/apparel/"
+      },
+      {
+        "id": "wellness",
+        "label": "Wellness",
+        "x": 58,
+        "y": 42,
+        "href": "/shop/wellness/"
+      },
+      {
+        "id": "mugs",
+        "label": "Ceramics",
+        "x": 77,
+        "y": 71,
+        "href": "/shop/ic-ceramic-mug/"
+      }
+    ],
+    "posterMotion": "push-in"
+  },
+  "pavilion": {
+    "posterImage": null,
+    "desktopVideo": null,
+    "mobileVideo": null,
+    "headline": [
+      "THE THINGS",
+      "WORTH SAVING FOR."
+    ],
+    "primaryCta": {
+      "label": "VIEW THE PARTNERS",
+      "href": "/partners/"
+    },
+    "secondaryCta": {
+      "label": "SHOP THE EDIT",
+      "href": "/shop/"
+    },
+    "hotspots": [
+      {
+        "id": "sauna",
+        "label": "Sauna",
+        "x": 33,
+        "y": 47,
+        "href": "/partners/"
+      },
+      {
+        "id": "plunge",
+        "label": "Cold plunge",
+        "x": 62,
+        "y": 63,
+        "href": "/partners/"
+      },
+      {
+        "id": "furniture",
+        "label": "Furniture",
+        "x": 84,
+        "y": 40,
+        "href": "/partners/"
+      }
+    ],
+    "posterMotion": "drift-right"
+  }
+}

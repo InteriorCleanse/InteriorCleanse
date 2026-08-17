@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { BookCard } from '@/components/cards'
+import { EnvironmentHero } from '@/components/hero/EnvironmentHero'
 import { PageHero } from '@/components/ui'
 import { digitalProducts, gumroadUrl, healthBooks, mindBooks } from '@/lib/content'
+import { getScene } from '@/lib/scenes'
 
 export const metadata: Metadata = {
   title: 'The Library',
@@ -10,21 +12,13 @@ export const metadata: Metadata = {
 }
 
 export default function Library() {
+  const library = getScene('library')
+  const conservatory = getScene('conservatory')
+  const chapel = getScene('chapel')
+
   return (
     <>
-      <PageHero
-        eyebrow="For the mind — the library"
-        eyebrowColor="var(--mind-accent)"
-        background="var(--mind-bg)"
-        title={
-          <>
-            Books that change
-            <br />
-            <em style={{ color: 'var(--mind-accent)' }}>how you see your space.</em>
-          </>
-        }
-        sub="Field guides for spaces that support the life within them."
-      />
+      {library ? <EnvironmentHero scene={library} height="band" /> : null}
 
       <section className="section" style={{ background: 'var(--mind-bg)', paddingTop: 0 }}>
         <div className="section-inner">
@@ -35,6 +29,10 @@ export default function Library() {
           </div>
         </div>
       </section>
+
+      {conservatory ? (
+        <EnvironmentHero scene={conservatory} height="band" id="health" headingLevel="h2" />
+      ) : null}
 
       {healthBooks.length > 0 ? (
         <section className="section" style={{ background: '#0D1B2A' }}>
@@ -99,6 +97,9 @@ export default function Library() {
             </div>
           </div>
         </section>
+      ) : null}
+      {chapel ? (
+        <EnvironmentHero scene={chapel} height="band" id="spirit" headingLevel="h2" />
       ) : null}
     </>
   )

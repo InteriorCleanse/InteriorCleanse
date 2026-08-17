@@ -1,8 +1,26 @@
 import type { Metadata } from 'next'
+import { Fraunces, Inter } from 'next/font/google'
 import './globals.css'
+
+// Self-hosted and preloaded by Next. `display: swap` means text paints in the
+// fallback immediately rather than blocking on the webfont, which is what was
+// holding LCP hostage behind a third-party stylesheet.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-fraunces',
+  axes: ['opsz'],
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+  weight: ['300', '400', '500', '600'],
+})
 import { Footer, Header } from '@/components/layout'
 import { Experience } from '@/components/Experience'
-import { EmailPopup } from '@/components/EmailPopup'
+import { GuestBookModal } from '@/components/GuestBookModal'
 import { GSAPAnimations } from '@/components/GSAPAnimations'
 import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
@@ -25,14 +43,29 @@ export const metadata: Metadata = {
     description:
       'Curated cleaning finds, interior design books, hand-poured candles, and Christian literature.',
     url: SITE.url,
+    images: [{ url: '/images/og-image.png', width: 1200, height: 630, alt: BRAND_NAME }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/images/og-image.png'],
   },
   // `trailingSlash: true` means the canonical form of every URL carries one.
   alternates: { canonical: '/' },
+  // The .ico carries 16/32/48 of the flowing-C silhouette only. The rose and
+  // vase from the master are fine graphite work and turn to mud below ~48px,
+  // so small marks come from the hand-drawn vector, never a shrunk raster.
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      { url: '/brand/flowing-c-dark.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/images/apple-touch-icon.png', sizes: '180x180' }],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
         <a className="skip-link" href="#main">
           Skip to content
@@ -42,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartProvider>
           <Experience />
           <GSAPAnimations />
-          <EmailPopup />
+          <GuestBookModal />
           <Header />
           <CartDrawer />
           <PageTransition>
