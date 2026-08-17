@@ -61,6 +61,45 @@ Support impersonation is read-only by construction: `IMPERSONATION_FORBIDDEN` in
 `lib/authz.ts` blocks every consequential capability regardless of role,
 including for a platform owner. Covered by `tests/authz.test.ts`.
 
+## The credential vault
+
+A workspace hands us a live Stripe key. If it leaks, the damage is to *their*
+business. The design therefore starts from what happens when things go wrong.
+
+- **A database dump is worthless on its own.** Credentials are sealed with
+  AES-256-GCM before they reach Postgres; the key that opens them is not in the
+  database. A leaked backup, a read replica, or a successful SQL injection
+  yields ciphertext.
+- **`integration_credentials` has no RLS policies at all.** RLS is enabled and
+  forced, and no policy grants anything — so the table is unreachable from any
+  user session, including a workspace owner's and platform staff's. Only the
+  service role touches it, from one route that does its own authorization
+  first. The omission is the control.
+- **One compromised key does not open everything.** Every secret gets its own
+  random 256-bit data key, used once. The master key wraps data keys and never
+  touches a credential.
+- **A ciphertext is not portable.** Organization id, credential id and field
+  name are bound in as additional authenticated data, so a row copied into
+  another tenant's table fails authentication instead of decrypting. Four tests
+  cover the moved-row cases specifically.
+- **Rotation is cheap and safe.** `rewrapSecret()` re-wraps the small data key
+  and leaves the ciphertext untouched; retired keys stay configured until
+  everything is rewrapped, and dropping one early produces an error naming the
+  missing key rather than silent data loss.
+- **The plaintext is never returned.** After sealing, the only representation
+  that leaves the server is a masked hint (`sk_live_••••4242`). There is no
+  endpoint, view, or admin screen that reads a credential back.
+- **The shipped provider says it is not production-grade.** `productionReady`
+  is `false` on the static-key provider, and the launch checklist reads it.
+
+## Calendar feeds
+
+A subscription URL is a bearer credential that people paste into phone settings
+and forward to assistants. So the token is stored only as a SHA-256 hash, is
+revocable, and every failure — bad token, revoked token, deleted workspace —
+returns the same 404 with no explanation. The endpoint exposes no write method
+of any kind; read-only is structural, not a permission check.
+
 ## The assistant
 
 The assistant is the one component that reads attacker-influenceable text and
@@ -96,9 +135,11 @@ owners — append-only from the application's perspective.
 These are known and deliberately not done yet. None should be assumed handled.
 
 - [ ] Third-party security review
-- [ ] Credential vault for tenant integration keys (Checkpoint 5): envelope
-      encryption, a real KMS rather than one static key, and a rotation plan.
-      A single never-rotated master key is a single point of total compromise.
+- [ ] Wire `kmsProvider()` to a real KMS before production. The vault is built
+      (envelope encryption, per-secret data keys, rotation) but the shipped
+      provider holds a static key in an environment variable and reports
+      `productionReady: false`. That is a single point of compromise with no
+      hardware boundary and no per-unwrap audit trail.
 - [ ] Rate limiting and abuse monitoring on auth and assistant endpoints
 - [ ] GDPR/DPA paperwork, data export, and deletion workflows
 - [ ] Rate limiting specifically on `/api/assistant` — a model call is the most

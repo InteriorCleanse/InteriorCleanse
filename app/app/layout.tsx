@@ -18,6 +18,8 @@ const NAV = [
   { href: '/app/products', label: 'Products' },
   { href: '/app/briefings', label: 'Briefings' },
   { href: '/app/import', label: 'Import' },
+  { href: '/app/integrations', label: 'Integrations' },
+  { href: '/app/notifications', label: 'Notifications' },
   { href: '/app/onboarding', label: 'Onboarding' },
 ]
 
