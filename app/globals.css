@@ -2929,12 +2929,24 @@ textarea {
 .scene-video { opacity: 0; transition: opacity 0.8s ease; }
 .scene-video[data-ready='true'] { opacity: 1; }
 
+/* The scrim exists to make bone-white text survive an unpredictable photograph.
+   Measured against the hero: the ramp has to stay strong across the FULL width
+   of the copy block (~52% at desktop), not just the first third, because the
+   last line of the headline reaches furthest right and that is where contrast
+   bottomed out at 3.05:1. */
 .residence-scrim {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(100deg, rgba(10, 10, 10, 0.78) 0%, rgba(10, 10, 10, 0.35) 45%, rgba(10, 10, 10, 0.1) 70%),
-    linear-gradient(rgba(10, 10, 10, 0.35), rgba(10, 10, 10, 0) 30%);
+    linear-gradient(
+      100deg,
+      rgba(10, 10, 10, 0.86) 0%,
+      rgba(10, 10, 10, 0.72) 22%,
+      rgba(10, 10, 10, 0.5) 40%,
+      rgba(10, 10, 10, 0.24) 58%,
+      rgba(10, 10, 10, 0.06) 76%
+    ),
+    linear-gradient(rgba(10, 10, 10, 0.4), rgba(10, 10, 10, 0) 30%);
 }
 
 /* Sits IN the room: inset from the margin, not pinned to it. */
@@ -2954,8 +2966,15 @@ textarea {
   line-height: 0.94;
   letter-spacing: -0.03em;
   color: var(--bone);
-  /* Legibility over an unpredictable frame of video, without a flat box. */
-  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+  /* Legibility over an unpredictable photograph, without a flat box behind the
+     text. Three layers doing different jobs: a wide soft pool that lifts the
+     whole block off a bright sky, a mid halo, and a tight dense edge that hugs
+     each glyph. The tight one is what carries the worst case — it protects the
+     letterform itself instead of dimming the picture to protect the letterform. */
+  text-shadow:
+    0 2px 30px rgba(0, 0, 0, 0.72),
+    0 2px 8px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .residence-headline-line { display: block; }
@@ -4244,4 +4263,11 @@ textarea {
     left: 0;
     top: 0;
   }
+}
+
+/* A hotspot that would sit on the headline or a CTA steps aside. It is removed
+   from the tab order too — an invisible link is not a keyboard target. */
+.hotspot[data-clashing='true'] {
+  opacity: 0;
+  pointer-events: none;
 }
