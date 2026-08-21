@@ -20,6 +20,7 @@ const NAV = [
   { href: '/app/import', label: 'Import' },
   { href: '/app/integrations', label: 'Integrations' },
   { href: '/app/notifications', label: 'Notifications' },
+  { href: '/app/billing', label: 'Billing' },
   { href: '/app/onboarding', label: 'Onboarding' },
 ]
 

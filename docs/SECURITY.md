@@ -100,6 +100,21 @@ revocable, and every failure — bad token, revoked token, deleted workspace —
 returns the same 404 with no explanation. The endpoint exposes no write method
 of any kind; read-only is structural, not a permission check.
 
+## Billing
+
+The webhook is the only unauthenticated endpoint that can change what a
+workspace is entitled to, so it is treated accordingly: signatures verified
+over the **raw bytes** (never a re-serialised object), compared in constant
+time, rejected outside a five-minute window so a captured request cannot be
+replayed, and every event id claimed before its effect is applied so an
+at-least-once delivery becomes exactly-once. A verification failure returns 400
+with no detail; a processing failure returns 500 and releases the claim so the
+retry can do the work.
+
+Entitlements are read from our own mirror of Stripe's state, never from a
+client claim, and `subscriptions` has no write policy for anyone — a client
+that could write it could grant itself the top plan.
+
 ## The assistant
 
 The assistant is the one component that reads attacker-influenceable text and
@@ -142,8 +157,10 @@ These are known and deliberately not done yet. None should be assumed handled.
       hardware boundary and no per-unwrap audit trail.
 - [ ] Rate limiting and abuse monitoring on auth and assistant endpoints
 - [ ] GDPR/DPA paperwork, data export, and deletion workflows
-- [ ] Rate limiting specifically on `/api/assistant` — a model call is the most
-      expensive request in the product and is currently unmetered per tenant
+- [ ] A distributed rate-limit store. The limiter is built and wired to the
+      assistant, but the default store is in-memory and reports
+      `distributed: false`; on several instances the effective limit is the
+      policy times the instance count.
 - [ ] Real privacy policy and terms (current pages are placeholders)
 - [ ] Backup and restore rehearsal
 - [ ] SOC 2, if enterprise customers are ever targeted

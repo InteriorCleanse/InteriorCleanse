@@ -9,6 +9,7 @@ import { APPROVAL_TTL_MS, fingerprint } from '@/lib/assistant/approval'
 import { VOICE_ADDENDUM, systemPrompt } from '@/lib/assistant/prompt'
 import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant/sanitise'
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from '@/lib/assistant/tools'
+import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit'
 
 /**
  * The assistant endpoint.
@@ -108,6 +109,29 @@ export async function POST(request: Request) {
     )
   }
 
+  // Rate limiting happens after authorization and before the model call: this
+  // is the most expensive request in the product, and until it is metered per
+  // tenant the difference between a bug and a bill is nothing but goodwill.
+  // Keyed on the resolved workspace and user — both from the session, never
+  // from a header a caller could choose.
+  for (const policy of ['assistant', 'assistantDaily'] as const) {
+    const limit = await rateLimit({
+      key: limitKey(policy, membership.organizationId, session.userId),
+      policy,
+    })
+    if (!limit.allowed) {
+      return Response.json(
+        {
+          error:
+            policy === 'assistant'
+              ? `That is a lot of questions at once. Try again in ${limit.retryAfterSeconds} seconds.`
+              : 'This workspace has reached its assistant limit for today. It resets gradually through the day.',
+        },
+        { status: 429, headers: rateLimitHeaders(limit) },
+      )
+    }
+  }
+
   const env = assistantEnv()
   const supabase = await supabaseServer()
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
@@ -165,6 +189,15 @@ export async function POST(request: Request) {
     thread_id: thread,
     role: 'user',
     content: body.message,
+  })
+
+  // Metered for the billing page and the owner console's cost-per-tenant view.
+  // Recorded on acceptance rather than on success: a request that failed
+  // halfway still spent tokens at the provider.
+  await supabase.rpc('record_usage', {
+    org: membership.organizationId,
+    usage_kind: 'assistant_message',
+    qty: 1,
   })
 
   const toolContext: ToolContext = {

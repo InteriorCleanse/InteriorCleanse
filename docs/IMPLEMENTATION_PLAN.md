@@ -117,18 +117,49 @@ credential vault (envelope encryption + KMS); Google and Outlook calendar;
 Apple-compatible iCalendar feed labelled read-only; notification centre,
 preferences, delivery log.
 
-## ☐ Checkpoint 6 — Billing and owner console
+## ◐ Checkpoint 6 — Billing and owner console
 
-Database-driven plans mapped to Stripe products/prices; checkout, portal,
-upgrades, cancellation, grace period; entitlement checks server-side; usage
-meters; owner analytics, feature flags, audit and support tooling.
+- [x] Four plans as data, with what each one *excludes* stated beside what it
+      includes; an unknown plan key falls back to free, never to unlimited
+- [x] Entitlements resolved server-side from a mirrored subscription. A failed
+      payment gets a 14-day grace period, then read-only — data is never
+      deleted for non-payment and **export is never switched off**
+- [x] Over-limit is enforced on the action that would make it worse, never
+      retroactively: a downgrade does not eject existing members
+- [x] Stripe webhook with signature verification over raw bytes, constant-time
+      comparison, a replay window, and per-event idempotency — 39 tests
+- [x] Checkout and portal; downgrades go through Stripe's portal so proration
+      and tax are calculated once, by the system that bills
+- [x] Usage metering on the assistant, and a billing page that leads with
+      payment state rather than upsells
+- [x] Feature flags with deterministic rollout, and staff-only support notes
+- [ ] Owner console analytics beyond the existing page: cost per tenant,
+      retention, conversion
+- [ ] Plan configuration moved out of code into owner-editable settings
 
-## ☐ Checkpoint 7 — Public site and growth
+## ◐ Checkpoint 7 — Public site and growth
 
-Marketing pages, pricing, demo, ROI calculator that guarantees nothing,
-referral/affiliate, UTM capture, lifecycle hooks, share cards.
+- [x] Pricing page where every plan states what it does not include
+- [x] ROI calculator that reports a range, shows every assumption, refuses to
+      extrapolate from a business too small to model, and can return "this will
+      not pay for itself" — the test of whether a calculator is honest
+- [x] Attribution capture restricted to a known parameter list, path-only
+      landing URLs and host-only referrers, so a reset token or invite code
+      never lands in an analytics table
+- [x] Referral rules that block self-referral and same-company farming while
+      still crediting two people who both use Gmail — 30 tests
+- [ ] Marketing home page rewrite, demo tour, and share cards
 
-## ☐ Checkpoint 8 — Hardening and launch
+## ◐ Checkpoint 8 — Hardening and launch
 
-Full test suite, security review, performance, accessibility, deployment
-runbook, backups, monitoring, launch checklist.
+- [x] Rate limiting: token bucket rather than a fixed window, per-surface
+      policies, keys that a caller cannot choose, and a store that reports
+      honestly that it is not distributed — 17 tests
+- [x] Deployment runbook with named failure modes, including the exact step in
+      vault key rotation that causes data loss if done early
+- [x] Launch checklist rewritten as a gate list, with an explicit "honest gaps"
+      section
+- [ ] Alerting, on-call rota, status page
+- [ ] Screen-reader traversal and a WCAG AA contrast audit
+- [ ] Third-party security review and a restore rehearsal
+
