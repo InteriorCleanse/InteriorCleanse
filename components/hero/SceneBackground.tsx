@@ -38,6 +38,7 @@ export function SceneBackground({
   reducedMotionPoster,
 }: SceneBackgroundProps) {
   const [src, setSrc] = useState<string | null>(null)
+  const [near, setNear] = useState(false)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -64,6 +65,31 @@ export function SceneBackground({
       mobile.removeEventListener('change', pick)
     }
   }, [desktopVideo, mobileVideo])
+
+  /**
+   * Only scenes approaching the viewport get a video element at all.
+   *
+   * Pages like /library and /shop stack three environment bands. Without this,
+   * every band mounted its video one frame after paint and `preload="auto"`
+   * pulled all three clips down at once — the director stopped them *playing*,
+   * but the bytes were already on the wire. The margin is generous enough that
+   * the clip is loaded and running by the time the band is actually reached.
+   */
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el || !src || near) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setNear(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '400px 0px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [src, near])
 
   // Eligibility is decided here; whether this video actually plays is decided
   // by the director, which allows exactly one across the whole page. Tab
@@ -92,10 +118,13 @@ export function SceneBackground({
       io.disconnect()
       release?.()
     }
-  }, [src])
+    // `near` is a dependency because the video element does not exist until it
+    // flips — without it this observer would attach to nothing and no scene
+    // below the fold would ever claim playback.
+  }, [src, near])
 
   const poster = reducedMotionPoster ?? posterImage
-  const showVideo = Boolean(src) && !failed
+  const showVideo = Boolean(src) && near && !failed
 
   return (
     <div className="scene-bg" ref={wrapRef} aria-hidden="true">
