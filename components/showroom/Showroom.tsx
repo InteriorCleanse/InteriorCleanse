@@ -216,6 +216,13 @@ export function Showroom({
 
       {/* LAYER 2 — real interface, never part of the background. */}
       <div className="showroom-ui">
+        {/* The showroom is deliberately chrome-less, so its only visible
+            heading is the object currently on the stage — which changes as you
+            swipe. That left the page with no stable top-level heading at all:
+            the outline began at h2 with a product name. This names the page for
+            a screen reader and a crawler without putting type on the stage. */}
+        <h1 className="sr-only">The Collection</h1>
+
         <nav className="showroom-categories" aria-label="Showroom categories">
           <button
             type="button"
