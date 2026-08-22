@@ -23,6 +23,22 @@ from `organization_members` recurses infinitely.
 `FORCE ROW LEVEL SECURITY` is set on tenant tables so a connection that
 authenticates as the table owner does not silently bypass every policy.
 
+There is exactly one exception to membership-based reads, and it is worth
+knowing about because exceptions are where isolation bugs live. In
+`0008_workspace_creation_visibility.sql`, the creator of an organization can
+read it *while it has no membership rows at all* — the instant between the row
+landing and the `AFTER` trigger that makes them its owner. Without it,
+`insert ... returning` fails for the person creating the workspace. The
+condition stops being true microseconds later and cannot become true again: the
+last-owner trigger prevents a workspace from losing its final member. It is
+deliberately not "the creator can always read it", which would let a founder who
+was later removed keep reading the workspace's name, plan and billing status.
+
+**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 24
+isolation assertions against a real Postgres as the `authenticated` role — see
+`docs/TEST_PLAN.md`. Claims in this document that are not covered there should
+be read as intentions.
+
 ## Secrets
 
 | Secret | Where it lives | Exposure |

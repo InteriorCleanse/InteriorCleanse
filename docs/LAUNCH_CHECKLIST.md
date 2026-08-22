@@ -13,9 +13,11 @@ somebody can read it and know exactly what has and has not been done.
 - [ ] **A restore rehearsal.** Restore a backup into a scratch project and run
       `npm run verify` against it. Include the vault key in the drill — a
       database restored without it is ciphertext nobody can open.
-- [ ] **RLS integration tests against a live Postgres.** Ten assertions are
-      written out in `docs/TEST_PLAN.md`. They are the only tests that can
-      prove tenant isolation, and they remain the highest-value gap.
+- [x] **RLS integration tests against a live Postgres.** 24 assertions in
+      `tests/rls.integration.test.ts`, run with `npm run test:rls` against any
+      Postgres 14+. They found one real defect (workspace creation with
+      `RETURNING`) and are verified by mutation: disabling RLS on
+      `organizations` fails four of them. Still to do in CI — see below.
 - [ ] **A distributed rate-limit store.** The in-memory default is correct on
       one instance and reports that it is not distributed. Multi-instance
       without Redis means the assistant's spend cap is a fraction of what it
@@ -55,6 +57,12 @@ somebody can read it and know exactly what has and has not been done.
       ceiling as well as a burst limit.
 - [x] Append-only audit log, assistant transcripts, and delivery log.
 - [ ] Dependency and secret scanning in CI.
+- [ ] **Run `npm run test:rls` in CI**, against a Postgres service container.
+      The tests exist and pass locally; until they run on every change, a policy
+      can still be dropped by a migration nobody re-tested.
+- [x] No key-shaped literals in the repository. Vendor-shaped test fixtures are
+      composed at runtime in `tests/fixtures/secrets.ts` rather than
+      allow-listed, so a scanner finding is always a real one.
 - [ ] Confirm no request body is logged in production.
 
 ## Data protection

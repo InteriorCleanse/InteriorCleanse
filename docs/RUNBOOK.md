@@ -18,7 +18,10 @@ without Stripe.** Only Supabase is load-bearing.
 ## First deploy
 
 1. Create the Supabase project. Run `supabase/migrations/*.sql` **in filename
-   order** — later migrations reference earlier tables and functions.
+   order** — later migrations reference earlier tables and functions. To check
+   the set applies cleanly before touching the project, run `npm run test:rls`
+   against a scratch Postgres: it replays every migration from an empty schema
+   and then asserts isolation.
 2. Set the environment from `.env.example`. The minimum is the three Supabase
    values; everything else degrades honestly when absent.
 3. Generate the vault key: `npm run keygen` → `VAULT_MASTER_KEY`. Without it,
@@ -100,6 +103,10 @@ by RLS in the database, not by application code.
    Any `false` is the bug.
 4. If a policy was dropped, restore from the migration and rotate the vault key
    — assume any credential that was reachable is compromised.
+5. Reproduce before closing it out: point `npm run test:rls` at a scratch
+   database built from the current migrations. If the isolation tests pass there
+   and the incident was real, the cause is not the policies — look at the
+   service role, which bypasses them.
 
 ### Suspected credential compromise
 

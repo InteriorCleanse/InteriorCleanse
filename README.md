@@ -28,6 +28,17 @@ honest *Not Configured* state rather than failing or faking data.
 npm run verify   # lint → typecheck → test → build
 ```
 
+Tenant isolation is proved separately, against a real database — no TypeScript
+test can prove a database guarantee:
+
+```bash
+createdb aurelis_test
+RLS_TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5432/aurelis_test npm run test:rls
+```
+
+Any Postgres 14+ works; `tests/sql/supabase-shim.sql` supplies the `auth` schema
+and roles Supabase would. Without the variable the suite skips and says so.
+
 ## Database setup
 
 1. Create a project at [supabase.com](https://supabase.com).
@@ -96,6 +107,6 @@ and includes a third-party review that has not happened.
 | `docs/SECURITY.md` | Threat model, isolation, secrets, open items |
 | `docs/INTEGRATIONS.md` | Connector contract and priority |
 | `docs/IMPLEMENTATION_PLAN.md` | Checkpoint status |
-| `docs/TEST_PLAN.md` | What runs, and the RLS tests that need a live database |
+| `docs/TEST_PLAN.md` | What runs, including the tenant-isolation suite and how it is kept honest |
 | `docs/LAUNCH_CHECKLIST.md` | Honest gate list |
 | `docs/reference-audit.md` | Reference material audit |
