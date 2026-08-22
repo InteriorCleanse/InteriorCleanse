@@ -114,7 +114,7 @@ collision. `npm run harness` renders the real components to static HTML and
 screenshots them with Playwright:
 
 ```bash
-npx vitest run --config vitest.harness.config.ts   # writes /tmp/charts.html
+npx vitest run --config vitest.harness.config.mts   # writes /tmp/charts.html
 ```
 
 Running it on the first Checkpoint 3 build caught four bugs no unit test would

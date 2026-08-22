@@ -67,7 +67,7 @@ passing, and each produces something usable rather than scaffolding.
 - [x] Validated categorical palette (`scripts/validate_palette.js`, both modes)
 - [x] Drill-downs at `/app/revenue` and `/app/products`, reading through the
       same analytics module as the tiles that link to them
-- [x] Rendered and visually inspected via `vitest.harness.config.ts` +
+- [x] Rendered and visually inspected via `vitest.harness.config.mts` +
       Playwright, which caught four layout bugs the unit tests could not
 - [ ] Remaining chart modes from the spec: stacked/horizontal bar, combo,
       donut, treemap, heatmap, scatter, radar, forecast fan, and the runtime

@@ -56,10 +56,12 @@ somebody can read it and know exactly what has and has not been done.
 - [x] Rate limiting on the assistant, per workspace and per user, with a daily
       ceiling as well as a burst limit.
 - [x] Append-only audit log, assistant transcripts, and delivery log.
-- [ ] Dependency and secret scanning in CI.
-- [ ] **Run `npm run test:rls` in CI**, against a Postgres service container.
-      The tests exist and pass locally; until they run on every change, a policy
-      can still be dropped by a migration nobody re-tested.
+- [x] Dependency and secret scanning in CI — `.github/workflows/ci.yml` runs
+      gitleaks over full history and `npm audit --audit-level=high`, currently
+      zero findings.
+- [x] **`npm run test:rls` runs in CI** against a Postgres service container,
+      with a guard step that fails the job if the suite *skipped* — a green tick
+      that proved nothing about isolation is worse than a missing job.
 - [x] No key-shaped literals in the repository. Vendor-shaped test fixtures are
       composed at runtime in `tests/fixtures/secrets.ts` rather than
       allow-listed, so a scanner finding is always a real one.

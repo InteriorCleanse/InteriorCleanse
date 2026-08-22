@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A second push to the same branch cancels the first: a queue of stale runs
+# trains people to ignore the red X, which is worse than no CI.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  verify:
+    name: lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+
+  isolation:
+    name: tenant isolation (RLS)
+    runs-on: ubuntu-latest
+
+    # The whole point of this job is that it runs against a real database.
+    # `npm run test:rls` skips silently without one, so the guard step below
+    # fails the job if the suite skipped — a green tick that proved nothing
+    # about isolation is worse than a missing job, because people trust it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aurelis_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RLS_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/aurelis_test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Run the isolation suite
+        run: npm run test:rls -- --reporter=json --outputFile=rls-report.json
+
+      - name: Fail if the isolation suite skipped
+        run: |
+          node -e "
+            const r = require('./rls-report.json');
+            const total = r.numTotalTests ?? 0;
+            const passed = r.numPassedTests ?? 0;
+            const skipped = (r.numPendingTests ?? 0) + (r.numTodoTests ?? 0);
+            if (skipped > 0 || passed === 0) {
+              console.error('Isolation suite did not run: ' + passed + ' passed, ' + skipped + ' skipped of ' + total + '.');
+              console.error('RLS_TEST_DATABASE_URL is unset or the database was unreachable.');
+              process.exit(1);
+            }
+            console.log('Isolation verified: ' + passed + ' assertions against a live Postgres.');
+          "
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Gitleaks needs history to scan the commits in a push, not just the
+          # working tree — a key added and then removed is still a leaked key.
+          fetch-depth: 0
+      - name: Scan for credentials
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependencies:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # High and critical only. Failing on every low-severity transitive
+      # advisory means the job is permanently red and stops being read.
+      - run: npm audit --audit-level=high
