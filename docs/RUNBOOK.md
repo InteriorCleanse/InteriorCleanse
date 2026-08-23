@@ -115,7 +115,7 @@ by RLS in the database, not by application code.
    amount of retrying helps. `Degraded` means a rate limit or a vendor 5xx, and
    the next scheduled sweep will retry on its own.
 2. Check the scheduler is actually calling `GET /api/integrations/sync` with
-   `x-sync-secret`. It returns **404** for a wrong or missing secret, so a
+   `x-cron-secret`. It returns **404** for a wrong or missing secret, so a
    misconfigured cron looks exactly like a missing route.
 3. A run that keeps reporting `partial` on the same connection is a backfill
    that is larger than one run's page budget. That is working as designed —
@@ -123,6 +123,38 @@ by RLS in the database, not by application code.
    has more history than the sweep interval can absorb.
 4. Nothing here loses data on failure: the watermark only advances over records
    that were written, so a gap is always refetched.
+
+### Nobody is receiving notification email
+
+Check in this order — the first three are configuration, not faults.
+
+1. **Is a provider configured?** `RESEND_API_KEY` and `EMAIL_FROM` must both be
+   set. Without them every delivery row says so, in words, and the status is
+   `suppressed` rather than `failed`. That is a supported configuration.
+2. **Is the scheduler running?** `GET /api/notifications/dispatch` with
+   `x-cron-secret`. It returns **404** for a wrong or missing secret, so a
+   misconfigured cron looks exactly like a missing route.
+3. **Look at `notification_deliveries`.** Every decision is recorded with a
+   reason: quiet hours, a severity floor, email switched off, no address on
+   file, no provider, or a provider error. Silence is never ambiguous here.
+4. A `failed` row with a provider message is the only case that is ours. A
+   rejected API key is permanent and needs a new key; a 5xx is transient and
+   the next sweep retries.
+5. In-app notifications are never suppressed. If someone says they saw nothing
+   at all, check `notifications` before the email path — the two are separate.
+
+### Scheduled jobs
+
+Two endpoints, both hourly, both authorised by `CRON_SECRET` and both safe to
+run more often or to miss:
+
+| Endpoint | Does | If it does not run |
+| --- | --- | --- |
+| `/api/integrations/sync` | Refreshes connectors due for a sync | Figures go stale; the health badge says so, and no data is lost. |
+| `/api/notifications/dispatch` | Evaluates rules, sends due briefings | No alerts and no briefings. A missed hour is skipped, not sent late. |
+
+`vercel.json` declares both. On another host, point any scheduler at them with
+the secret in `x-cron-secret`.
 
 ### Suspected credential compromise
 

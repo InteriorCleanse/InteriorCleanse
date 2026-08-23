@@ -128,6 +128,7 @@ described to a customer as finished:
 
 - Google and Outlook calendar **OAuth handshakes**. The schema and the
   read-only iCalendar feed work; the provider connections do not.
-- **Scheduled** briefings and rule evaluation. Both run on request today.
-- **Email transport.** Delivery decisions are made and logged; nothing is sent.
+- **Email deliverability.** Transport, rendering and the delivery log are
+  built and tested, but nothing has been sent from a verified domain. SPF, DKIM
+  and DMARC are not set up, and an alert that lands in spam is not an alert.
 - Remaining chart modes and diagrams listed in `docs/IMPLEMENTATION_PLAN.md`.

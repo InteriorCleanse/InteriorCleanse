@@ -36,7 +36,7 @@ The decisions worth knowing, because each one is a wrong number if reversed:
   errors quote the offending request, and the request carries the API key.
 
 Triggered two ways: `POST /api/integrations/sync` for a signed-in admin
-("Sync now"), and `GET` on the same route with the `SYNC_CRON_SECRET` header for
+("Sync now"), and `GET` on the same route with the `CRON_SECRET` header for
 the scheduler, which sweeps every connection not attempted in the last 50
 minutes. Neither accepts an organization id from the caller.
 

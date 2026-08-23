@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { can } from '@/lib/authz'
+import { cronDenied, isCronAuthorized } from '@/lib/cron'
 import { ADAPTERS, syncConnection, type ConnectionRow } from '@/lib/integrations/sync'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit'
 import { getSessionContext } from '@/lib/session'
@@ -103,17 +104,9 @@ export async function POST(request: Request) {
   })
 }
 
-/**
- * Scheduled sweep. Called by cron with `x-sync-secret`.
- *
- * Returns 404 rather than 401 when the secret is unset or wrong: an endpoint
- * that answers "wrong password" confirms it exists and is worth attacking.
- */
+/** Scheduled sweep. Called by cron with `x-cron-secret`; see `lib/cron.ts`. */
 export async function GET(request: Request) {
-  const expected = process.env.SYNC_CRON_SECRET
-  if (!expected || !timingSafeEqual(request.headers.get('x-sync-secret') ?? '', expected)) {
-    return new Response('Not found', { status: 404 })
-  }
+  if (!isCronAuthorized(request)) return cronDenied()
 
   const admin = supabaseAdmin()
   const dueBefore = new Date(Date.now() - MIN_INTERVAL_MS).toISOString()
@@ -146,16 +139,3 @@ export async function GET(request: Request) {
 const MIN_INTERVAL_MS = 50 * 60_000
 /** Bounded so one invocation terminates; the next sweep takes the rest. */
 const BATCH_SIZE = 25
-
-/**
- * Constant-time comparison.
- *
- * `a === b` on a secret returns as soon as two bytes differ, which leaks the
- * length of the matching prefix to anyone who can measure it.
- */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
-}

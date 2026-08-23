@@ -19,6 +19,8 @@ npm run verify   # lint → typecheck → test → build
 | `tests/charts.test.ts` | Zero-inclusive axes, tick/bound agreement, Sankey balance, waterfall chaining, bubble area scaling | 37 passing |
 | `tests/palette.test.ts` | Series colours resolve to `rgb(...)`, fixed slot order, fold-to-Other conservation | 8 passing |
 | `tests/sync.test.ts` | Connector adapters against recorded vendor responses, HTTP failure classification, window and watermark arithmetic | 43 passing |
+| `tests/email.test.ts` | Transport failure classification, HTML escaping and link safety, every delivery outcome recorded with a reason | 22 passing |
+| `tests/schedule.test.ts` | Local-time briefing windows across DST and the date line, dedupe keys, constant-time cron authorization | 20 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
