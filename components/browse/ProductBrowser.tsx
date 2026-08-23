@@ -176,6 +176,7 @@ export function ProductBrowser({
                 {isInternalCheckout(p) ? (
                   <AddToCartButton
                     disabled={p.comingSoon}
+                    tabIndex={isActive ? 0 : -1}
                     item={{ slug: p.slug, name: p.name, price: p.price, heroImage: p.heroImage }}
                   />
                 ) : (
