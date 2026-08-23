@@ -3,7 +3,9 @@ import { requireCapability } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { isVaultConfigured } from '@/lib/vault'
 import { CONNECTORS } from '@/lib/integrations/registry'
-import { assessConnection, summariseHealth, type ConnectionRecord } from '@/lib/integrations/health'
+import { assessConnection, describeAge, summariseHealth, type ConnectionRecord } from '@/lib/integrations/health'
+import { ADAPTERS } from '@/lib/integrations/sync'
+import { SyncButton } from './sync-button'
 
 export const metadata = { title: 'Integrations' }
 
@@ -27,10 +29,26 @@ export default async function IntegrationsPage() {
   const { membership } = await requireCapability('integrations:view')
   const supabase = await supabaseServer()
 
-  const { data: rows } = await supabase
-    .from('integration_connections')
-    .select('provider, display_name, status, status_detail, last_success_at, last_attempt_at')
-    .eq('organization_id', membership.organizationId)
+  const [{ data: rows }, { data: runs }] = await Promise.all([
+    supabase
+      .from('integration_connections')
+      .select('id, provider, display_name, status, status_detail, last_success_at, last_attempt_at')
+      .eq('organization_id', membership.organizationId),
+    // The last run per connection. Shown because "connected" and "the last
+    // fetch worked" are different claims, and only the second one is evidence.
+    supabase
+      .from('integration_sync_runs')
+      .select('connection_id, status, finished_at, records_written, error')
+      .eq('organization_id', membership.organizationId)
+      .order('started_at', { ascending: false })
+      .limit(50),
+  ])
+
+  const connectionIds = new Map((rows ?? []).map((row) => [row.provider, row.id as string]))
+  const lastRun = new Map<string, NonNullable<typeof runs>[number]>()
+  for (const run of runs ?? []) {
+    if (!lastRun.has(run.connection_id)) lastRun.set(run.connection_id, run)
+  }
 
   const byProvider = new Map(
     (rows ?? []).map((row) => [
@@ -134,6 +152,27 @@ export default async function IntegrationsPage() {
                   </dd>
                 </div>
               </dl>
+
+              {(() => {
+                const connectionId = connectionIds.get(definition.provider)
+                const run = connectionId ? lastRun.get(connectionId) : undefined
+                if (!run) return null
+                return (
+                  <p className="mt-4 text-xs text-muted">
+                    Last run: {run.status}
+                    {run.finished_at
+                      ? `, ${describeAge((Date.now() - new Date(run.finished_at).getTime()) / 3_600_000)} ago`
+                      : ''}
+                    , {run.records_written} records written
+                    {run.error ? `. ${run.error}` : '.'}
+                  </p>
+                )
+              })()}
+
+              {!planned && ADAPTERS[definition.provider] && byProvider.get(definition.provider) &&
+              byProvider.get(definition.provider)!.status !== 'not_connected' ? (
+                <SyncButton provider={definition.provider} label={definition.name} />
+              ) : null}
 
               {definition.credentials.length > 0 ? (
                 <p className="mt-4 text-xs text-muted">

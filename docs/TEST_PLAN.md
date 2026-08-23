@@ -18,6 +18,7 @@ npm run verify   # lint → typecheck → test → build
 | `tests/periods.test.ts` | Preset ranges, non-overlapping comparisons, zero-baseline growth, metric-aware sentiment | 23 passing |
 | `tests/charts.test.ts` | Zero-inclusive axes, tick/bound agreement, Sankey balance, waterfall chaining, bubble area scaling | 37 passing |
 | `tests/palette.test.ts` | Series colours resolve to `rgb(...)`, fixed slot order, fold-to-Other conservation | 8 passing |
+| `tests/sync.test.ts` | Connector adapters against recorded vendor responses, HTTP failure classification, window and watermark arithmetic | 43 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
@@ -102,8 +103,6 @@ true microseconds later and can never become true again.
   (Checkpoint 2). Money math and division-by-zero get explicit cases.
 - Playwright for signup → onboarding → command center, and for a tenant-switching
   isolation flow (Checkpoint 3).
-- Connector adapters tested against recorded fixtures so they stay testable while
-  unconfigured (Checkpoint 5).
 - Stripe test-mode subscription lifecycle (Checkpoint 6).
 
 

@@ -108,6 +108,22 @@ by RLS in the database, not by application code.
    and the incident was real, the cause is not the policies — look at the
    service role, which bypasses them.
 
+### A connector has stopped syncing
+
+1. `/app/integrations` shows the badge and the last run. `Access revoked` means
+   the vendor rejected the credential — the customer must reconnect, and no
+   amount of retrying helps. `Degraded` means a rate limit or a vendor 5xx, and
+   the next scheduled sweep will retry on its own.
+2. Check the scheduler is actually calling `GET /api/integrations/sync` with
+   `x-sync-secret`. It returns **404** for a wrong or missing secret, so a
+   misconfigured cron looks exactly like a missing route.
+3. A run that keeps reporting `partial` on the same connection is a backfill
+   that is larger than one run's page budget. That is working as designed —
+   each sweep advances the watermark — but if it never converges, the account
+   has more history than the sweep interval can absorb.
+4. Nothing here loses data on failure: the watermark only advances over records
+   that were written, so a gap is always refetched.
+
 ### Suspected credential compromise
 
 1. Rotate the vault master key (above).
@@ -124,8 +140,11 @@ Alert on these, in priority order:
 1. **Auth failure rate** — a spike means either an outage or an attack.
 2. **Webhook 4xx/5xx rate** — money silently not being recorded.
 3. **Assistant error rate and spend** — the only endpoint with unbounded cost.
-4. **`integration_sync_runs` with `status = 'failed'`** — customers' numbers
-   are quietly going stale, and they will not notice until they act on them.
+4. **`integration_sync_runs` with `status = 'failed'` or `'partial'`** —
+   customers' numbers are quietly going stale, and they will not notice until
+   they act on them. A run stuck in `'running'` with no `finished_at` means the
+   process died mid-sync; the watermark did not move, so the next run refetches
+   the gap and no data is lost.
 5. **p95 latency on `/app/command-center`** — the page everyone lives on.
 
 Do **not** alert on rate-limit 429s. They are the system working, and paging on

@@ -121,9 +121,11 @@ somebody can read it and know exactly what has and has not been done.
 Built to the point of being useful and no further. None of these should be
 described to a customer as finished:
 
-- Connector **sync loops** for Stripe and Shopify. Registry, health model,
-  vault and UI are complete; the background fetch is not, so nothing populates
-  `integration_sync_runs` yet.
+- Connector sync loops **run, but have never been pointed at a real account**.
+  Stripe and Shopify are implemented end to end and tested against recorded
+  responses; neither has met a live API, a real rate limit, or an account with
+  four years of history. Treat the first production sync as a test.
+
 - Google and Outlook calendar **OAuth handshakes**. The schema and the
   read-only iCalendar feed work; the provider connections do not.
 - **Scheduled** briefings and rule evaluation. Both run on request today.
