@@ -104,7 +104,7 @@ it everywhere is a site-wide rebrand and was not assumed.
 | Empty states | **Verified** | `/shop/wallpapers` renders 0 cards and explains delivery is still being built; `/shop/books` points to the Library |
 | Multi-source checkout behaviour | **Verified with a fixture** | See below |
 | Analytics | Done | `lib/analytics.ts` — `add_to_cart`, `checkout_started`, and outbound events fire; every call is wrapped so a tracking failure cannot break shopping |
-| Mobile | **Verified** | Controls are 44px tall at 390px wide; no horizontal overflow |
+| Mobile | **Verified** | Search and both sort controls measure exactly 44px tall at 390px wide; no horizontal overflow. Collection chips are 37px and text links smaller — above the 24px WCAG 2.2 AA floor, below the 44px comfort target |
 
 **Checkout-mode enforcement.** `PurchaseAction` renders the CTA from
 `checkoutMode`, and `CartProvider.add()` refuses external items outright —
@@ -270,7 +270,47 @@ product with no price renders "Coming soon", never `$0`.
 **Performance, measured on the production build:** homepage First Load JS
 **114 kB** (5.74 kB page + 89.5 kB shared), against a 200 kB target. `/shop`
 112 kB, `/collection` 109 kB, `/partners` 109 kB. Zero WebGL canvases in any
-product grid.
+product grid. LCP 168–480 ms and CLS 0 on `/`, `/shop`, and `/spirit`;
+`/collection` measures CLS 0.0048.
+
+---
+
+## Site-wide verification · **All sixteen routes swept in Chromium**
+
+Against `npm run start` on the production build, not a dev server.
+
+| Check | Result |
+| --- | --- |
+| HTTP status | 200 on all sixteen routes |
+| Headings | Exactly one `h1` per route |
+| Accessible names | Zero nameless interactive elements on six sampled routes, using Chromium's own accessibility snapshot rather than text content |
+| Focus | Every tab stop has a visible focus ring; no focusable element inside an `aria-hidden` subtree |
+| Images | No `<img>` without an `alt` attribute |
+| Mobile, 390px | No horizontal overflow anywhere; hotspots correctly absent |
+| Reduced motion | No video element mounted on any page; no poster drift; no running CSS animation |
+| Prices | No `$0` anywhere — an unpriced product reads "Coming soon" |
+
+**Three defects this sweep found and fixed:**
+
+1. `/collection` had no `h1` — the outline began at an `h2` product name that
+   changes as you swipe. It now carries a visually-hidden page heading.
+2. Stacked scene bands requested every clip on load. `/library` and `/shop`
+   render three environments each, and every `SceneBackground` mounted its
+   video one frame after paint with `preload="auto"`. The director stopped the
+   offscreen ones playing, but the bytes were already on the wire. Video
+   creation is now gated on the band approaching the viewport. Measured on
+   `/library`: three clips at load → one at load, the rest on scroll.
+3. `ProductBrowser` documents that inactive cards are removed from the tab
+   order. Both `Link` branches honoured it; `AddToCartButton` had no way to
+   accept a `tabIndex`, so two buttons sat in the tab order inside an
+   `aria-hidden` subtree. Now zero.
+
+**One known cost, not a defect.** `/spirit` downloads roughly **1 MB of
+JavaScript** — Babylon.js, for the decorative rotating object in its hero. Every
+other page is an order of magnitude lighter. It is above the fold, so deferring
+it with `InView` would not help; the real options are replacing it with the
+Three.js path the rest of the site already ships, or with a still. That is a
+design decision, not a bug, so it has been left alone and written down instead.
 
 ---
 
