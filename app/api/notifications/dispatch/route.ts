@@ -7,6 +7,7 @@ import { emailTransport } from '@/lib/notifications/email'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
 import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
 import { runRetention } from '@/lib/retention'
+import { purgeCutoff, purgeExpiredWorkspaces } from '@/lib/workspace/purge'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 /**
@@ -200,8 +201,36 @@ export async function GET(request: Request) {
     return data?.length ?? 0
   })
 
+  // Workspaces whose grace period has run out. The deletion endpoint tells the
+  // customer their records are removed after 30 days; this is what makes that
+  // sentence true rather than a hope.
+  const { data: expired } = await admin
+    .from('organizations')
+    .select('id, name, deleted_at')
+    .not('deleted_at', 'is', null)
+    .lt('deleted_at', purgeCutoff(now).toISOString())
+    .limit(25)
+
+  const workspacePurge = await purgeExpiredWorkspaces({
+    candidates: (expired ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      deletedAt: new Date(row.deleted_at as string),
+    })),
+    now,
+    // One statement: every tenant table cascades from the organization row, so
+    // a hand-written table list — which would go stale the next time a table is
+    // added — is not needed and would be a liability.
+    remove: async (id) => {
+      const { error } = await admin.from('organizations').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+  })
+
   return Response.json({
     workspaces: organizations?.length ?? 0,
+    workspacesPurged: workspacePurge.purged.length,
+    workspacePurgeFailures: workspacePurge.failed.length,
     purged: purged.map((p) => ({ table: p.table, deleted: p.deleted, failed: Boolean(p.error) })),
     rulesRaised,
     briefingsSent,

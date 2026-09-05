@@ -97,8 +97,11 @@ What follows includes the half no code can check.
 - [x] **Retention decided and written down** — `lib/retention.ts`, with a reason
       per window, running on the hourly sweep. Audit logs and the customer's own
       commerce records are never expired on a timer, and a test asserts it.
-- [ ] Confirm the 30-day purge actually removes soft-deleted workspaces. The
-      grace period is stated to the customer; nothing yet enforces its end.
+- [x] **The 30-day purge runs**, on the same hourly sweep, removing workspaces
+      whose grace period has elapsed. The deletion response quotes that figure
+      to the customer, and a test asserts the two constants cannot drift apart.
+      Cascade deletes do the work, so a table added later cannot be left behind
+      the way a hand-written list would leave it.
 
 ## Product
 

@@ -8,6 +8,13 @@ import {
   toCsv,
 } from '@/lib/workspace/export'
 import { NEVER_PURGED, RETENTION, cutoffFor, retentionPlan, runRetention } from '@/lib/retention'
+import {
+  GRACE_PERIOD_DAYS,
+  isDue,
+  purgeCutoff,
+  purgeExpiredWorkspaces,
+} from '@/lib/workspace/purge'
+import { GRACE_PERIOD_DAYS as ENDPOINT_GRACE } from '@/app/api/workspace/route'
 
 /**
  * Export and retention.
@@ -218,5 +225,91 @@ describe('runRetention', () => {
     }, now)
 
     expect(seen.every((cutoff) => cutoff < now)).toBe(true)
+  })
+})
+
+describe('the deletion grace period', () => {
+  const now = new Date('2025-06-01T00:00:00Z')
+
+  it('matches the figure quoted to the customer', () => {
+    // The endpoint tells them "retained for N days, then removed". Two
+    // constants drifting apart makes that sentence false, quietly.
+    expect(GRACE_PERIOD_DAYS).toBe(ENDPOINT_GRACE)
+  })
+
+  it('never purges a workspace that was not deleted', () => {
+    expect(isDue({ deletedAt: null }, now)).toBe(false)
+  })
+
+  it('does not purge a day early', () => {
+    const oneDayShort = new Date(purgeCutoff(now).getTime() + 86_400_000)
+    expect(isDue({ deletedAt: oneDayShort }, now)).toBe(false)
+  })
+
+  it('purges once the period has elapsed', () => {
+    expect(isDue({ deletedAt: purgeCutoff(now) }, now)).toBe(true)
+    expect(isDue({ deletedAt: new Date(purgeCutoff(now).getTime() - 1) }, now)).toBe(true)
+  })
+
+  it('leaves a workspace deleted moments ago alone', () => {
+    expect(isDue({ deletedAt: new Date(now.getTime() - 1_000) }, now)).toBe(false)
+  })
+})
+
+describe('purgeExpiredWorkspaces', () => {
+  const now = new Date('2025-06-01T00:00:00Z')
+  const due = { id: 'due', name: 'Old Co', deletedAt: new Date('2025-01-01T00:00:00Z') }
+  const notDue = { id: 'fresh', name: 'New Co', deletedAt: new Date('2025-05-31T00:00:00Z') }
+
+  it('removes only what is due', async () => {
+    const removed: string[] = []
+    const result = await purgeExpiredWorkspaces({
+      candidates: [due, notDue],
+      now,
+      remove: async (id) => {
+        removed.push(id)
+      },
+    })
+
+    expect(removed).toEqual(['due'])
+    expect(result.purged).toEqual(['due'])
+  })
+
+  it('reports a failure instead of leaving data believed to be gone', async () => {
+    const result = await purgeExpiredWorkspaces({
+      candidates: [due],
+      now,
+      remove: async () => {
+        throw new Error('foreign key violation')
+      },
+    })
+
+    expect(result.purged).toEqual([])
+    expect(result.failed).toEqual([{ id: 'due', error: 'foreign key violation' }])
+  })
+
+  it('keeps going after one workspace fails', async () => {
+    const second = { id: 'due2', name: 'Other', deletedAt: new Date('2025-01-01T00:00:00Z') }
+    const result = await purgeExpiredWorkspaces({
+      candidates: [due, second],
+      now,
+      remove: async (id) => {
+        if (id === 'due') throw new Error('locked')
+      },
+    })
+
+    expect(result.purged).toEqual(['due2'])
+    expect(result.failed).toHaveLength(1)
+  })
+
+  it('bounds one sweep so it terminates', async () => {
+    const many = Array.from({ length: 100 }, (_, i) => ({
+      id: `w${i}`,
+      name: 'x',
+      deletedAt: new Date('2025-01-01T00:00:00Z'),
+    }))
+
+    const result = await purgeExpiredWorkspaces({ candidates: many, now, remove: async () => {} })
+    expect(result.purged).toHaveLength(25)
   })
 })
