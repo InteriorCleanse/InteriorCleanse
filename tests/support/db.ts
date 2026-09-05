@@ -46,6 +46,7 @@ const MIGRATIONS = [
   '0006_integrations_notifications_calendar.sql',
   '0007_billing_and_platform.sql',
   '0008_workspace_creation_visibility.sql',
+  '0009_calendar_credentials.sql',
 ]
 
 export async function migrate(): Promise<Client> {

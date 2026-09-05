@@ -21,13 +21,14 @@ npm run verify   # lint → typecheck → test → build
 | `tests/sync.test.ts` | Connector adapters against recorded vendor responses, HTTP failure classification, window and watermark arithmetic | 43 passing |
 | `tests/email.test.ts` | Transport failure classification, HTML escaping and link safety, every delivery outcome recorded with a reason | 22 passing |
 | `tests/schedule.test.ts` | Local-time briefing windows across DST and the date line, dedupe keys, constant-time cron authorization | 20 passing |
+| `tests/calendar-oauth.test.ts` | PKCE derivation, state comparison, token exchange failure classes, Graph/Google event parsing | 27 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
 
 ## Tenant isolation, against a real Postgres
 
-`tests/rls.integration.test.ts` — **24 assertions, passing.** This was the
+`tests/rls.integration.test.ts` — **26 assertions, passing.** This was the
 longest-standing gap in the product: isolation is enforced by RLS in the
 database, so no TypeScript test could ever prove it.
 
@@ -83,8 +84,10 @@ even an allowlisted one — the allowlist is not a standing grant. Both are now
 asserted, along with the function being unreachable by an end user at all.
 
 Beyond the ten: cross-tenant `orders`, `integration_credentials` unreadable even
-by the workspace owner whose key it is, and `subscriptions` unwritable by the
-tenant whose entitlements it decides.
+by the workspace owner whose key it is, `subscriptions` unwritable by the tenant
+whose entitlements it decides, and — after `0009` let a credential belong to a
+per-user calendar connection — that widening the *ownership* of a secret did not
+widen access to it.
 
 ### What these tests found
 

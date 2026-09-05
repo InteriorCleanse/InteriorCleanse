@@ -479,6 +479,61 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     })
   })
 
+  it('hides a calendar refresh token from the person who connected it', async () => {
+    // 0009 lets a credential belong to a per-user calendar connection instead
+    // of a workspace-wide integration. The table it lives in still has no
+    // policy at all, and widening the ownership must not have widened access.
+    const { rows } = await db.query<{ id: string }>(
+      `insert into public.calendar_connections
+         (organization_id, user_id, provider, account_email, status)
+       values ($1, $2, 'google', 'person@example.com', 'connected') returning id`,
+      [orgA, ownerA],
+    )
+    const calendarConnectionId = rows[0]!.id
+
+    await db.query(
+      `insert into public.integration_credentials
+         (organization_id, calendar_connection_id, field, sealed, key_id, masked_hint)
+       values ($1, $2, 'refresh_token', '{"ct":"z"}'::jsonb, 'k1', 'rt_****')`,
+      [orgA, calendarConnectionId],
+    )
+
+    await asUser(db, ownerA, async (s) => {
+      const secrets = await s.query('select id from public.integration_credentials')
+      expect(secrets.rowCount).toBe(0)
+
+      // The connection itself is theirs to see; the token is not.
+      const conns = await s.query('select id from public.calendar_connections')
+      expect(conns.rowCount).toBe(1)
+    })
+  })
+
+  it('refuses a credential that claims both owners, or neither', async () => {
+    // The check constraint is what keeps "exactly one owner" a database rule
+    // rather than a convention every future call site has to remember.
+    const both = await db
+      .query(
+        `insert into public.integration_credentials
+           (organization_id, connection_id, calendar_connection_id, field, sealed, key_id, masked_hint)
+         values ($1, gen_random_uuid(), gen_random_uuid(), 'api_key', '{}'::jsonb, 'k1', 'x')`,
+        [orgA],
+      )
+      .then(() => null)
+      .catch((e: { code?: string }) => e.code)
+    expect(both).toBeTruthy()
+
+    const neither = await db
+      .query(
+        `insert into public.integration_credentials
+           (organization_id, field, sealed, key_id, masked_hint)
+         values ($1, 'api_key', '{}'::jsonb, 'k1', 'x')`,
+        [orgA],
+      )
+      .then(() => null)
+      .catch((e: { code?: string }) => e.code)
+    expect(neither).toBe('23514')
+  })
+
   it('does not let a tenant edit their own subscription', async () => {
     // Entitlements are read from this table. A tenant that could write it could
     // grant themselves the top plan for nothing.

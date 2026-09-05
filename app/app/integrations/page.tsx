@@ -1,10 +1,11 @@
-import { Eyebrow, Panel } from '@/components/ui'
+import { ButtonLink, Eyebrow, Panel } from '@/components/ui'
 import { requireCapability } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { isVaultConfigured } from '@/lib/vault'
 import { CONNECTORS } from '@/lib/integrations/registry'
 import { assessConnection, describeAge, summariseHealth, type ConnectionRecord } from '@/lib/integrations/health'
 import { ADAPTERS } from '@/lib/integrations/sync'
+import { CALENDAR_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
 import { SyncButton } from './sync-button'
 
 export const metadata = { title: 'Integrations' }
@@ -25,11 +26,18 @@ const TONE_CLASS = {
  * figures is how someone ends up making a decision on numbers that stopped
  * updating on Tuesday.
  */
-export default async function IntegrationsPage() {
-  const { membership } = await requireCapability('integrations:view')
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>
+}) {
+  const [{ membership, session }, params] = await Promise.all([
+    requireCapability('integrations:view'),
+    searchParams,
+  ])
   const supabase = await supabaseServer()
 
-  const [{ data: rows }, { data: runs }] = await Promise.all([
+  const [{ data: rows }, { data: runs }, { data: calendarRows }] = await Promise.all([
     supabase
       .from('integration_connections')
       .select('id, provider, display_name, status, status_detail, last_success_at, last_attempt_at')
@@ -42,7 +50,16 @@ export default async function IntegrationsPage() {
       .eq('organization_id', membership.organizationId)
       .order('started_at', { ascending: false })
       .limit(50),
+    // Only this person's own calendar connections. A colleague's calendar is
+    // not the workspace's to display.
+    supabase
+      .from('calendar_connections')
+      .select('provider, account_email, status')
+      .eq('organization_id', membership.organizationId)
+      .eq('user_id', session.userId),
   ])
+
+  const calendars = calendarRows ?? []
 
   const connectionIds = new Map((rows ?? []).map((row) => [row.provider, row.id as string]))
   const lastRun = new Map<string, NonNullable<typeof runs>[number]>()
@@ -85,6 +102,15 @@ export default async function IntegrationsPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Integrations</h1>
         <p className={`text-sm ${TONE_CLASS[summary.tone]}`}>{summary.message}</p>
       </header>
+
+      {params.notice ? (
+        // The OAuth callback has nowhere to render, so it reports back here.
+        <Panel className="border-hairline">
+          <p className="text-sm text-ink" role="status">
+            {params.notice}
+          </p>
+        </Panel>
+      ) : null}
 
       {!isVaultConfigured() ? (
         <Panel className="border-amber/40">
@@ -184,6 +210,44 @@ export default async function IntegrationsPage() {
           )
         })}
       </div>
+
+      <Panel>
+        <Eyebrow>Calendars</Eyebrow>
+        <p className="mt-1 text-sm text-muted">
+          Connect your own calendar to see deadlines and briefings alongside your meetings. This is
+          a <strong className="text-ink">read-only</strong> connection: nothing in this product
+          writes to your calendar, and it asks for no permission to do so.
+        </p>
+
+        <ul className="mt-4 space-y-3">
+          {(['google', 'outlook'] as CalendarProvider[]).map((provider) => {
+            const configured = isCalendarConfigured(provider)
+            const connected = calendars.filter((c) => c.provider === provider)
+
+            return (
+              <li key={provider} className="flex flex-wrap items-center gap-3">
+                <span className="text-sm text-ink">{CALENDAR_PROVIDERS[provider].name}</span>
+                {connected.length > 0 ? (
+                  <span className="text-xs text-positive">
+                    {connected.map((c) => c.account_email).join(', ')}
+                  </span>
+                ) : null}
+                {configured ? (
+                  <ButtonLink href={`/api/calendar/connect/${provider}`} variant="secondary">
+                    {connected.length > 0 ? 'Reconnect' : 'Connect'}
+                  </ButtonLink>
+                ) : (
+                  // Named plainly rather than shown as a dead button: the
+                  // difference between "not set up here" and "broken" matters.
+                  <span className="text-xs text-muted">
+                    Not configured on this deployment.
+                  </span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </Panel>
     </div>
   )
 }

@@ -7,7 +7,7 @@
 | CSV import | none | n/a by design | A file is a snapshot, not a connection. |
 | Stripe | secret key, sealed | **yes** | Settled charges and refunds, fees from the expanded balance transaction. |
 | Shopify | admin token, sealed | **yes** | Orders, line items and nested refunds, on `updated_at`. |
-| Google / Outlook calendar | — | no | Schema and the read-only feed exist; the OAuth handshakes do not. |
+| Google / Outlook calendar | refresh token, sealed | on connect | Authorization-code flow with PKCE; read-only scopes. |
 | Meta Ads, Google Ads | — | no | Registry entries only, marked `planned` in the UI. |
 
 ## The sync loop
@@ -76,6 +76,38 @@ Outlook Calendar, iCalendar subscription feed.
 
 **Phase 2** — Meta Ads, Google Ads, TikTok Ads, WooCommerce, Etsy, Amazon seller
 data where permitted, QuickBooks.
+
+## Calendar OAuth
+
+`lib/calendar/oauth.ts`. The parts usually got wrong, written out longhand:
+
+- **PKCE with S256, even though we are a confidential client.** A client secret
+  is not a reason to skip it: PKCE binds the code to the browser that started
+  the flow, so a code intercepted from a redirect cannot be redeemed elsewhere.
+  A `plain` challenge *is* the verifier and protects nothing.
+- **`state` is compared against an httpOnly cookie**, in constant time, and the
+  cookie is cleared on every path including the failures. An attacker can make
+  a victim's browser hit our callback with the attacker's code, but cannot set
+  that cookie — so "your calendar is now connected to my account" fails.
+- **Nothing is exchanged before the state check passes.** A code redeemed first
+  is a token we had no business holding.
+- **`access_type=offline` and `prompt=consent` for Google**; `offline_access`
+  for Microsoft. Without them no refresh token is issued on a reconnect and the
+  connection works for an hour and then dies. If one is missing anyway, the
+  callback refuses and says why rather than storing a connection that will rot.
+- **Read-only scopes**: `calendar.readonly` and `Calendars.Read`. The product
+  renders a read-only feed and says so.
+- **Microsoft Graph times arrive without a `Z`** and with the zone in a sibling
+  field. Handing that to `Date` reads it as server-local and shifts every
+  meeting by the server's offset.
+- Refresh tokens are sealed into `integration_credentials` like every other
+  secret. Because calendar connections are per person and
+  `integration_connections` is per workspace, `0009_calendar_credentials.sql`
+  lets a credential row point at either owner, with a check constraint making
+  "exactly one" a database rule. A second secret store would have been the
+  easier change and the wrong one.
+
+27 tests, plus two isolation assertions against a live Postgres.
 
 ## Apple Calendar — accuracy requirement
 

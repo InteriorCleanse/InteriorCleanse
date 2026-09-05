@@ -13,7 +13,7 @@ somebody can read it and know exactly what has and has not been done.
 - [ ] **A restore rehearsal.** Restore a backup into a scratch project and run
       `npm run verify` against it. Include the vault key in the drill — a
       database restored without it is ciphertext nobody can open.
-- [x] **RLS integration tests against a live Postgres.** 24 assertions in
+- [x] **RLS integration tests against a live Postgres.** 26 assertions in
       `tests/rls.integration.test.ts`, run with `npm run test:rls` against any
       Postgres 14+. They found one real defect (workspace creation with
       `RETURNING`) and are verified by mutation: disabling RLS on
@@ -126,8 +126,12 @@ described to a customer as finished:
   responses; neither has met a live API, a real rate limit, or an account with
   four years of history. Treat the first production sync as a test.
 
-- Google and Outlook calendar **OAuth handshakes**. The schema and the
-  read-only iCalendar feed work; the provider connections do not.
+- Calendar OAuth **has not been through a provider's app review**. The flows
+  are implemented and tested; Google restricts `calendar.readonly` and will
+  require verification before more than a handful of accounts can connect.
+- Calendar events are pulled **once, at connect time**. There is no incremental
+  refresh yet, so a meeting added tomorrow will not appear until the connection
+  is remade.
 - **Email deliverability.** Transport, rendering and the delivery log are
   built and tested, but nothing has been sent from a verified domain. SPF, DKIM
   and DMARC are not set up, and an alert that lands in spam is not an alert.
