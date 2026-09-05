@@ -1,7 +1,8 @@
 # Security
 
-Status: **Checkpoint 1.** The isolation model is in place. A third-party
-security review has not happened and is required before real customer data.
+Status: **Checkpoints 1–8, plus hardening.** The isolation model is in place and
+verified against a live Postgres. A third-party security review has not happened
+and is required before real customer data.
 
 ## Threat model in one line
 
@@ -34,7 +35,18 @@ last-owner trigger prevents a workspace from losing its final member. It is
 deliberately not "the creator can always read it", which would let a founder who
 was later removed keep reading the workspace's name, plan and billing status.
 
-**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 24
+RLS decides **which rows**, never **which columns**, and for `organizations`
+those are different questions: an admin renaming the workspace and an admin
+ending it are not the same act. `0010_organization_column_privileges.sql`
+withdraws the table-level `UPDATE` grant from `authenticated` and grants back
+only the settings columns, so `deleted_at`, `plan_key`, `subscription_status`,
+`trial_ends_at`, `is_demo` and `created_by` are service-role only. This was
+found by asking the database rather than reading the code — before it, one
+PATCH from any admin deleted the workspace, skipping the owner-only endpoint,
+the typed confirmation, the audit entry and the destruction of stored
+credentials.
+
+**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 31
 isolation assertions against a real Postgres as the `authenticated` role — see
 `docs/TEST_PLAN.md`. Claims in this document that are not covered there should
 be read as intentions.
@@ -45,7 +57,7 @@ be read as intentions.
 | --- | --- | --- |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server env only | Bypasses RLS. No `NEXT_PUBLIC_` prefix; `serverEnv()` throws in the browser |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Shipped to the browser | Safe by design — it is governed by RLS |
-| Tenant integration credentials | Not yet stored (Checkpoint 5) | See "Open items" |
+| Tenant integration credentials | Sealed in `integration_credentials`, per-secret data key | Ciphertext only; the key that opens them is not in the database |
 
 `.env*` is gitignored except `.env.example`, which contains only placeholders.
 

@@ -356,6 +356,74 @@ describe.skipIf(!hasTestDatabase)('RLS: tenant isolation', () => {
     })
   })
 
+  // ── Column privileges (0010) ───────────────────────────────────────────────
+
+  it('refuses an admin writing deleted_at directly', async () => {
+    // Found by asking the database rather than reading the code. RLS permits an
+    // admin to update the organization, and RLS answers "which rows", never
+    // "which columns" — so before 0010 an admin could end the workspace with
+    // one PATCH, skipping the owner-only endpoint, the typed confirmation, the
+    // audit entry, and the destruction of stored credentials.
+    await asUser(db, ownerA, async (s) => {
+      const failure = await s.refused(
+        'update public.organizations set deleted_at = now() where id = $1',
+        [orgA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+
+    const { rows } = await db.query<{ deleted_at: string | null }>(
+      'select deleted_at from public.organizations where id = $1',
+      [orgA],
+    )
+    expect(rows[0]!.deleted_at).toBeNull()
+  })
+
+  it('refuses an admin granting their own workspace a plan', async () => {
+    await asUser(db, ownerA, async (s) => {
+      const failure = await s.refused(
+        `update public.organizations set plan_key = 'scale' where id = $1`,
+        [orgA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+  })
+
+  it('refuses an admin clearing the demonstration flag', async () => {
+    // The one bit of state whose whole purpose is to stop synthetic figures
+    // being mistaken for real ones.
+    await asUser(db, ownerA, async (s) => {
+      const failure = await s.refused(
+        'update public.organizations set is_demo = false where id = $1',
+        [orgA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+  })
+
+  it('still lets an admin rename and re-currency the workspace', async () => {
+    // The restriction has to be narrow, or it breaks the settings screen.
+    await asUser(db, ownerA, async (s) => {
+      const updated = await s.query(
+        `update public.organizations set name = 'Renamed', base_currency = 'EUR' where id = $1`,
+        [orgA],
+      )
+      expect(updated.rowCount).toBe(1)
+    })
+  })
+
+  it('lets the service role write the columns a tenant cannot', async () => {
+    // The Stripe webhook and the deletion endpoint both need these, and both
+    // authorize the caller themselves before writing.
+    await asServiceRole(db, async (s) => {
+      const updated = await s.query(
+        `update public.organizations set plan_key = 'scale' where id = $1`,
+        [orgA],
+      )
+      expect(updated.rowCount).toBe(1)
+    })
+  })
+
   it('refuses a workspace created in someone else’s name', async () => {
     await asUser(db, ownerA, async (s) => {
       const failure = await s.refused(

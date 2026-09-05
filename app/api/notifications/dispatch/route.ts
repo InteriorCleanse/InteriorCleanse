@@ -6,6 +6,7 @@ import { dispatch, localHourIn, type DeliveryRecord, type Recipient } from '@/li
 import { emailTransport } from '@/lib/notifications/email'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
 import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
+import { runRetention } from '@/lib/retention'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 /**
@@ -186,8 +187,22 @@ export async function GET(request: Request) {
     }
   }
 
+  // Retention runs on the same sweep rather than on a schedule of its own:
+  // one scheduled endpoint to configure and to notice the absence of, and a
+  // purge that has not run for a week is then visible in the same place.
+  const purged = await runRetention(async ({ table, column, cutoff }) => {
+    const { data, error } = await admin
+      .from(table)
+      .delete()
+      .lt(column, cutoff.toISOString())
+      .select('id')
+    if (error) throw new Error(error.message)
+    return data?.length ?? 0
+  })
+
   return Response.json({
     workspaces: organizations?.length ?? 0,
+    purged: purged.map((p) => ({ table: p.table, deleted: p.deleted, failed: Boolean(p.error) })),
     rulesRaised,
     briefingsSent,
     delivered,

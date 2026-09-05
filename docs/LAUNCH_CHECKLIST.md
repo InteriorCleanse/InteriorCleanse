@@ -63,6 +63,10 @@ What follows includes the half no code can check.
 - [x] Rate limiting on the assistant, per workspace and per user, with a daily
       ceiling as well as a burst limit.
 - [x] Append-only audit log, assistant transcripts, and delivery log.
+- [x] Column-level write privileges on `organizations`: a tenant admin cannot
+      write `deleted_at`, `plan_key`, `subscription_status` or `is_demo`
+      directly. RLS answers "which rows", never "which columns", and for this
+      table the two questions differ.
 - [x] Dependency and secret scanning in CI — `.github/workflows/ci.yml` runs
       gitleaks over full history and `npm audit --audit-level=high`, currently
       zero findings.
@@ -77,10 +81,24 @@ What follows includes the half no code can check.
 ## Data protection
 
 - [ ] Data processing agreement and sub-processor list published.
-- [ ] Export and deletion workflows tested end to end, including that a deleted
-      workspace's calendar feed 404s.
-- [ ] Retention decided and written down for `assistant_messages` and
-      `usage_events`.
+- [x] **Export.** `GET /api/workspace/export` emits every tenant-owned table as
+      raw rows, read through the user's own client so RLS decides what comes
+      out — the worst a bug in that file can produce is an empty download, not
+      a cross-tenant dump. Works while the workspace is read-only, because a
+      past-due account that cannot get its data out is being held hostage. A
+      test asserts every table in the migrations is either exported or
+      excluded with a stated reason.
+- [x] **Deletion.** `DELETE /api/workspace` is owner-only and requires the
+      workspace name typed out. Stored credentials and calendar feed tokens are
+      destroyed immediately and irreversibly; business records are marked
+      deleted and kept 30 days. Those have opposite failure modes and are
+      treated differently on purpose. The calendar feed already 404s on a
+      deleted workspace.
+- [x] **Retention decided and written down** — `lib/retention.ts`, with a reason
+      per window, running on the hourly sweep. Audit logs and the customer's own
+      commerce records are never expired on a timer, and a test asserts it.
+- [ ] Confirm the 30-day purge actually removes soft-deleted workspaces. The
+      grace period is stated to the customer; nothing yet enforces its end.
 
 ## Product
 

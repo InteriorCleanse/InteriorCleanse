@@ -24,13 +24,14 @@ npm run verify   # lint → typecheck → test → build
 | `tests/calendar-oauth.test.ts` | PKCE derivation, state comparison, token exchange failure classes, Graph/Google event parsing | 27 passing |
 | `tests/ratelimit-distributed.test.ts` | The concurrency race an atomic store exists to fix, plus a counter-example proving the test bites | 10 passing |
 | `tests/readiness.test.ts` | Severity of each deployment check, and that no key material reaches the report | 15 passing |
+| `tests/workspace-data.test.ts` | Export list checked against the migrations, RFC 4180 CSV, retention windows and what must never expire | 28 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
 
 ## Tenant isolation, against a real Postgres
 
-`tests/rls.integration.test.ts` — **26 assertions, passing.** This was the
+`tests/rls.integration.test.ts` — **31 assertions, passing.** This was the
 longest-standing gap in the product: isolation is enforced by RLS in the
 database, so no TypeScript test could ever prove it.
 
@@ -92,6 +93,15 @@ per-user calendar connection — that widening the *ownership* of a secret did n
 widen access to it.
 
 ### What these tests found
+
+**A tenant admin could delete the workspace with one PATCH.** RLS permits an
+admin to update the organization row, and RLS constrains rows rather than
+columns — so writing `deleted_at` directly skipped the owner-only endpoint, the
+typed confirmation, the audit entry, and the destruction of stored credentials.
+The same route was open to granting the workspace a plan and to clearing the
+demonstration flag that stops synthetic figures being read as real. Fixed by
+column grants in `0010_organization_column_privileges.sql`; five assertions now
+cover it, including that renaming the workspace still works.
 
 **`insert into organizations (...) returning id` failed for the person creating
 the workspace.** `RETURNING` is projected before `AFTER ROW` triggers fire, so at
