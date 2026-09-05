@@ -9,7 +9,7 @@ import { APPROVAL_TTL_MS, fingerprint } from '@/lib/assistant/approval'
 import { VOICE_ADDENDUM, systemPrompt } from '@/lib/assistant/prompt'
 import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant/sanitise'
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from '@/lib/assistant/tools'
-import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit'
+import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 
 /**
  * The assistant endpoint.

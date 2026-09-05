@@ -27,9 +27,43 @@ export type RateLimitResult = {
 
 export type Bucket = { tokens: number; updatedAt: number }
 
+export type ConsumeInput = {
+  key: string
+  capacity: number
+  refillPerSecond: number
+  cost: number
+  /**
+   * Milliseconds, or **0 meaning "use your own clock"**.
+   *
+   * Zero is the production path and is not a default worth skipping past: on
+   * several instances the application clocks disagree, and a bucket refilled
+   * against a fast instance's clock hands out tokens that have not accrued
+   * yet. A shared store has one clock and should use it. A caller passes a
+   * real value only to make a test deterministic.
+   */
+  now: number
+  ttlMs: number
+}
+
+export type ConsumeResult = { allowed: boolean; tokens: number }
+
 export type RateLimitStore = {
   get: (key: string) => Promise<Bucket | undefined> | Bucket | undefined
   set: (key: string, bucket: Bucket, ttlMs: number) => Promise<void> | void
+
+  /**
+   * Atomically refill, test and deduct in one operation.
+   *
+   * This is not an optimisation, it is the whole of correctness for a shared
+   * store. `get` then `set` is a read-modify-write: two instances handling
+   * concurrent requests both read the same bucket, both see enough tokens, and
+   * both allow — so the effective limit is the policy times the number of
+   * instances, which is precisely the failure a distributed store is bought to
+   * fix. A store that reports `distributed: true` without this would be worse
+   * than the in-memory one, because it would be believed.
+   */
+  consume?: (input: ConsumeInput) => Promise<ConsumeResult>
+
   readonly distributed: boolean
 }
 
@@ -92,7 +126,42 @@ export function memoryStore(): RateLimitStore {
   }
 }
 
-const defaultStore = memoryStore()
+let defaultStore: RateLimitStore | null = null
+
+/**
+ * The store this deployment actually uses.
+ *
+ * Resolved once, from the environment, and deliberately not silently upgraded:
+ * if the Upstash variables are absent the in-memory store is returned and
+ * `isDistributed()` says false, which every surface that cares can report.
+ */
+export function rateLimitStore(): RateLimitStore {
+  if (!defaultStore) defaultStore = createStoreFromEnv()
+  return defaultStore
+}
+
+/** Test seam: forget the resolved store after changing the environment. */
+export function resetRateLimitStore(): void {
+  defaultStore = null
+}
+
+let storeFactory: (() => RateLimitStore | null) | null = null
+
+/**
+ * Registers the distributed store factory.
+ *
+ * Injected rather than imported so `lib/ratelimit` stays free of any transport
+ * concern and remains testable with no network. `lib/ratelimit-upstash.ts`
+ * calls this at import time.
+ */
+export function registerStoreFactory(factory: () => RateLimitStore | null): void {
+  storeFactory = factory
+  defaultStore = null
+}
+
+function createStoreFromEnv(): RateLimitStore {
+  return storeFactory?.() ?? memoryStore()
+}
 
 export async function rateLimit(input: {
   /** Identity being limited. Must never be attacker-chosen — see `limitKey`. */
@@ -104,9 +173,43 @@ export async function rateLimit(input: {
   cost?: number
 }): Promise<RateLimitResult> {
   const policy = typeof input.policy === 'string' ? POLICIES[input.policy] : input.policy
-  const store = input.store ?? defaultStore
+  const store = input.store ?? rateLimitStore()
   const now = input.now ?? Date.now()
   const cost = input.cost ?? 1
+
+  // Time to live covers a full refill, so an idle key expires rather than
+  // being retained forever.
+  const ttl = Math.ceil((policy.capacity / policy.refillPerSecond) * 1000) + 60_000
+
+  if (store.consume) {
+    const result = await store.consume({
+      key: input.key,
+      capacity: policy.capacity,
+      refillPerSecond: policy.refillPerSecond,
+      cost,
+      // Only a time the caller asked for. Otherwise zero, so the shared store
+      // uses its own clock rather than this instance's.
+      now: input.now ?? 0,
+      ttlMs: ttl,
+    })
+
+    return result.allowed
+      ? {
+          allowed: true,
+          remaining: Math.floor(result.tokens),
+          retryAfterSeconds: 0,
+          limit: policy.capacity,
+        }
+      : {
+          allowed: false,
+          remaining: 0,
+          retryAfterSeconds: Math.max(
+            1,
+            Math.ceil((cost - result.tokens) / policy.refillPerSecond),
+          ),
+          limit: policy.capacity,
+        }
+  }
 
   const existing = await store.get(input.key)
   const elapsedSeconds = existing ? Math.max(0, (now - existing.updatedAt) / 1000) : 0
@@ -116,9 +219,7 @@ export async function rateLimit(input: {
     (existing?.tokens ?? policy.capacity) + elapsedSeconds * policy.refillPerSecond,
   )
 
-  // Time to live covers a full refill, so an idle key expires rather than being
-  // retained forever.
-  const ttlMs = Math.ceil((policy.capacity / policy.refillPerSecond) * 1000) + 60_000
+  const ttlMs = ttl
 
   if (tokens < cost) {
     const deficit = cost - tokens
@@ -169,6 +270,6 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
 }
 
 /** Whether the configured store is safe for a multi-instance deployment. */
-export function isDistributed(store: RateLimitStore = defaultStore): boolean {
+export function isDistributed(store: RateLimitStore = rateLimitStore()): boolean {
   return store.distributed
 }

@@ -6,6 +6,10 @@ somebody can read it and know exactly what has and has not been done.
 
 ## Blocking — do not take real customer data without these
 
+`/owner-admin` reports the environment-checkable half of this list on every
+request, read from the running deployment rather than from a record of one.
+What follows includes the half no code can check.
+
 - [ ] **A real KMS behind the vault.** `lib/vault/providers.ts` ships
       `kmsProvider()` ready to wire. The default static-key provider reports
       `productionReady: false` for a reason: one key, in an environment
@@ -18,10 +22,13 @@ somebody can read it and know exactly what has and has not been done.
       Postgres 14+. They found one real defect (workspace creation with
       `RETURNING`) and are verified by mutation: disabling RLS on
       `organizations` fails four of them. Still to do in CI — see below.
-- [ ] **A distributed rate-limit store.** The in-memory default is correct on
-      one instance and reports that it is not distributed. Multi-instance
-      without Redis means the assistant's spend cap is a fraction of what it
-      claims.
+- [x] **A distributed rate-limit store.** `lib/ratelimit-upstash.ts` runs the
+      whole token bucket as one Lua script inside Redis, so two instances
+      racing on the same bucket cannot both be allowed — a get-then-set store
+      would report `distributed: true` and still multiply the limit by the
+      instance count. Falls back to in-memory and says so. **Still to do:** set
+      `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` on the
+      deployment; `/owner-admin` reports which store is actually in use.
 - [ ] **Real privacy policy and terms.** The current pages are placeholders and
       say so on the page.
 - [ ] Third-party security review.

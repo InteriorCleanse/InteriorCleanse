@@ -22,6 +22,8 @@ npm run verify   # lint → typecheck → test → build
 | `tests/email.test.ts` | Transport failure classification, HTML escaping and link safety, every delivery outcome recorded with a reason | 22 passing |
 | `tests/schedule.test.ts` | Local-time briefing windows across DST and the date line, dedupe keys, constant-time cron authorization | 20 passing |
 | `tests/calendar-oauth.test.ts` | PKCE derivation, state comparison, token exchange failure classes, Graph/Google event parsing | 27 passing |
+| `tests/ratelimit-distributed.test.ts` | The concurrency race an atomic store exists to fix, plus a counter-example proving the test bites | 10 passing |
+| `tests/readiness.test.ts` | Severity of each deployment check, and that no key material reaches the report | 15 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.

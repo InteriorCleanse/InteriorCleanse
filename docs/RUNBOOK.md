@@ -15,6 +15,18 @@ states what to check first, what to do, and how to know it worked.
 The dependency order matters: **the product is useful without Anthropic and
 without Stripe.** Only Supabase is load-bearing.
 
+## Is this deployment ready?
+
+`/owner-admin` answers the environment-checkable part on every request: the
+database, the vault and whether its key sits in a KMS, whether rate limiting is
+shared across instances, billing, the assistant, email, the scheduler and the
+calendar providers. Each entry says what is true now and what to do about it.
+
+Severity there means consequence, not tidiness. No email provider is a note —
+notifications are still raised and shown. A static vault key is a blocker,
+because it is the difference between custodying other businesses' API keys
+defensibly and not.
+
 ## First deploy
 
 1. Create the Supabase project. Run `supabase/migrations/*.sql` **in filename
@@ -186,9 +198,14 @@ them trains people to ignore the channel.
 
 - The rate limiter's default store is in-memory and reports
   `distributed: false`. On more than one instance the effective limit is the
-  policy times the instance count. **Move to Redis before running multiple
-  instances**, or the protection on the expensive endpoint is a fraction of
-  what it says.
+  policy times the instance count. **Set `UPSTASH_REDIS_REST_URL` and
+  `UPSTASH_REDIS_REST_TOKEN` before running multiple instances** — the whole
+  bucket then runs as one Lua script inside Redis, which is what makes the
+  limit hold under concurrency. `/owner-admin` shows which store is live.
+- If Redis becomes unreachable the limiter **fails open**: requests are allowed
+  and the error is recorded on the store. That is deliberate — an unreachable
+  limiter must not take down the endpoint it protects — but it means a Redis
+  outage silently removes the spend cap on the assistant. Alert on it.
 - `loadWorkspaceAnalytics` recomputes from raw records. Above roughly a hundred
   thousand orders per workspace, materialise `daily_business_metrics` and read
   from that.
