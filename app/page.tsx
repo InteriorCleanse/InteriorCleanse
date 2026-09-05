@@ -256,7 +256,7 @@ export default function Home() {
             <br />
             <em>quietly delivered.</em>
           </h2>
-          <GuestBook />
+          <GuestBook scene={getScene('guestbook')} />
         </div>
       </section>
     </>

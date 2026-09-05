@@ -104,7 +104,8 @@
         "href": "/shop/digital/"
       }
     ],
-    "posterMotion": "drift-right"
+    "posterMotion": "drift-right",
+    "ambientSound": "classical"
   },
   "conservatory": {
     "posterImage": "/images/conservatory-poster.png",
@@ -145,7 +146,8 @@
         "href": "/shop/home/"
       }
     ],
-    "posterMotion": "push-in"
+    "posterMotion": "push-in",
+    "ambientSound": "birdsong"
   },
   "cleaning": {
     "posterImage": "/images/cleaning-poster.png",
@@ -186,7 +188,8 @@
         "href": "/shop/ic-signature-candle/"
       }
     ],
-    "posterMotion": "drift-left"
+    "posterMotion": "drift-left",
+    "ambientSound": "water"
   },
   "chapel": {
     "posterImage": "/images/chapel-poster.png",
@@ -312,7 +315,7 @@
     "posterMotion": "push-in"
   },
   "pavilion": {
-    "posterImage": null,
+    "posterImage": "/images/arrival-poster.png",
     "desktopVideo": null,
     "mobileVideo": null,
     "headline": [
@@ -351,5 +354,35 @@
       }
     ],
     "posterMotion": "drift-right"
+  },
+  "guestbook": {
+    "posterImage": "/images/guestbook-poster.png",
+    "desktopVideo": "/video/guestbook-desktop.mp4",
+    "mobileVideo": null,
+    "headline": [
+      "EVERY HOUSE",
+      "KEEPS ONE."
+    ],
+    "primaryCta": {
+      "label": "SIGN THE GUEST BOOK",
+      "href": "/#guestbook"
+    },
+    "hotspots": [],
+    "posterMotion": "drift-left"
+  },
+  "showroom": {
+    "posterImage": "/images/showroom-poster.png",
+    "desktopVideo": "/video/showroom-desktop.mp4",
+    "mobileVideo": null,
+    "headline": [
+      "THE",
+      "COLLECTION."
+    ],
+    "primaryCta": {
+      "label": "ENTER THE SHOWROOM",
+      "href": "/collection/"
+    },
+    "hotspots": [],
+    "posterMotion": "push-in"
   }
 }

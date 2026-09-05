@@ -11,6 +11,9 @@ import {
   type ShowroomCategory,
   type ShowroomProduct,
 } from '@/lib/showroom'
+import { RealismLayer } from '@/components/hero/RealismLayer'
+import { SceneBackground } from '@/components/hero/SceneBackground'
+import type { Scene } from '@/lib/scenes'
 import { StageProduct } from './StageProduct'
 import { useStageGestures } from './useStageGestures'
 
@@ -39,12 +42,15 @@ const SAVED_KEY = 'ic_showroom_saved'
  */
 export function Showroom({
   products,
+  scene,
   initialCategory,
   initialView = 'discover',
   initialQuery = '',
   initialSort = 'featured',
 }: {
   products: ShowroomProduct[]
+  /** The `showroom` environment from the manifest; the locked background. */
+  scene?: Scene
   initialCategory?: string | null
   initialView?: Mode
   initialQuery?: string
@@ -199,18 +205,17 @@ export function Showroom({
 
   return (
     <div className="showroom">
-      {/* LAYER 1 — locked environment. Background only. */}
+      {/* LAYER 1 — locked environment. Background only, from the `showroom`
+          entry of the scene manifest, through the shared SceneBackground. */}
       <div className="showroom-bg" aria-hidden="true">
-        <img
-          src="/images/showroom-poster.png"
-          alt=""
-          data-motion="push-in"
-          fetchPriority="high"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
+        <SceneBackground
+          desktopVideo={scene?.desktopVideo ?? undefined}
+          mobileVideo={scene?.mobileVideo ?? undefined}
+          webmVideo={scene?.webmVideo ?? undefined}
+          posterImage={scene?.posterImage ?? '/images/showroom-poster.png'}
+          posterMotion={scene?.posterMotion ?? 'push-in'}
         />
+        <RealismLayer />
         <span className="showroom-bg-scrim" />
       </div>
 

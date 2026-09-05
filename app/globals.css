@@ -2925,9 +2925,73 @@ textarea {
 }
 
 /* Video fades in over the poster once it can actually play, so a slow
-   connection never shows a black rectangle where the room should be. */
-.scene-video { opacity: 0; transition: opacity 0.8s ease; }
+   connection never shows a black rectangle where the room should be.
+   Nothing else touches the footage: no filter, no radius, no border. The grade
+   and grain are baked in, and a frontend "improvement" is exactly what makes
+   generated footage look generated. */
+.scene-video { opacity: 0; transition: opacity 0.8s ease; border-radius: 0; filter: none; }
 .scene-video[data-ready='true'] { opacity: 1; }
+
+/* ── REALISM LAYER ──────────────────────────────────────────────────
+   Living grain and a vignette, between the footage and the scrim. */
+.scene-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0.06) 78%,
+    rgba(0, 0, 0, 0.14) 100%
+  );
+}
+
+/* The speaker in the corner. Quiet until pressed, like the sound it controls. */
+.ambient-toggle {
+  position: absolute;
+  z-index: 6;
+  right: 3vw;
+  top: calc(var(--header-h) + 1.25rem);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 244, 239, 0.22);
+  background: rgba(10, 10, 10, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(247, 244, 239, 0.7);
+  cursor: pointer;
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+}
+
+.ambient-toggle:hover,
+.ambient-toggle:focus-visible {
+  color: var(--brass);
+  border-color: var(--brass);
+  outline: none;
+}
+
+.ambient-toggle[aria-pressed='true'] {
+  color: var(--brass);
+  border-color: rgba(169, 137, 90, 0.7);
+  background: rgba(10, 10, 10, 0.55);
+}
+
+@media (max-width: 767px) {
+  .ambient-toggle { right: 4vw; top: calc(var(--header-h) + 0.75rem); }
+}
 
 /* The scrim exists to make bone-white text survive an unpredictable photograph.
    Measured against the hero: the ramp has to stay strong across the FULL width
@@ -2966,15 +3030,13 @@ textarea {
   line-height: 0.94;
   letter-spacing: -0.03em;
   color: var(--bone);
-  /* Legibility over an unpredictable photograph, without a flat box behind the
-     text. Three layers doing different jobs: a wide soft pool that lifts the
-     whole block off a bright sky, a mid halo, and a tight dense edge that hugs
-     each glyph. The tight one is what carries the worst case — it protects the
-     letterform itself instead of dimming the picture to protect the letterform. */
+  /* Reads as printed on the scene, not floated over it: one soft pool, plus a
+     hairline edge that keeps the glyph itself intact where the photograph is
+     bright. Legibility is carried by the scrim, and measured by
+     `npm run check:contrast` — heavier shadows here made the type look pasted. */
   text-shadow:
-    0 2px 30px rgba(0, 0, 0, 0.72),
-    0 2px 8px rgba(0, 0, 0, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.85);
+    0 2px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .residence-headline-line { display: block; }
@@ -3396,13 +3458,17 @@ textarea {
   background: radial-gradient(120% 100% at 25% 50%, #2a231c 0%, #17130f 60%, #0A0A0A 100%);
 }
 
-.guestbook-bg {
+.guestbook-bg,
+.guestbook-scene {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
+/* The scene wrapper is a clip for the over-sized living still. */
+.guestbook-scene { overflow: hidden; }
 
 /* Warm scrim weighted to the right, where the copy sits. */
 .guestbook-scrim {
