@@ -128,7 +128,15 @@ What follows includes the half no code can check.
       colour-vision separation in both themes.
 - [x] Interactive targets at least 44px.
 - [ ] Full keyboard traversal of the assistant dock with a screen reader.
-- [ ] Contrast audit of both themes against WCAG AA.
+- [x] **Contrast audit of both themes against WCAG AA** — `tests/contrast.test.ts`
+      computes every text token against every surface from the real CSS, so
+      the audit is a build step rather than a spreadsheet. Its first run found
+      three light-theme failures that had passed visual inspection (`signal`
+      3.5:1, `amber` 3.6:1, `muted` 4.4:1 on raised panels — fixed), and a
+      theme bug: the explicit dark toggle omitted the chart series slots, so
+      charts rendered in light-tuned hues on a dark ground. Series fills are
+      exempt from SC 1.4.11 by design — every chart carries direct labels and a
+      table equivalent — and that exemption is written in the test, not assumed.
 
 ## Operations
 

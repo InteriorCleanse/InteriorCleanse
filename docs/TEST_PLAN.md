@@ -24,7 +24,8 @@ npm run verify   # lint → typecheck → test → build
 | `tests/calendar-oauth.test.ts` | PKCE derivation, state comparison, token exchange failure classes, Graph/Google event parsing | 27 passing |
 | `tests/ratelimit-distributed.test.ts` | The concurrency race an atomic store exists to fix, plus a counter-example proving the test bites | 10 passing |
 | `tests/readiness.test.ts` | Severity of each deployment check, and that no key material reaches the report | 15 passing |
-| `tests/workspace-data.test.ts` | Export list checked against the migrations, RFC 4180 CSV, retention windows and what must never expire | 28 passing |
+| `tests/workspace-data.test.ts` | Export list checked against the migrations, RFC 4180 CSV, retention windows and what must never expire, the deletion grace period | 37 passing |
+| `tests/contrast.test.ts` | WCAG AA 4.5:1 for every text token on every surface in both themes, parsed from the real CSS; the two dark blocks held identical | 49 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.

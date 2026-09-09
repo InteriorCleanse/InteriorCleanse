@@ -9,10 +9,15 @@
   --panel-raised: 245 245 244;
   --hairline: 214 211 209;
   --ink: 28 25 23;
-  --muted: 120 113 108;
-  --signal: 8 145 178;
+  /* muted, signal and amber are used as body-size text, so they are held at
+     WCAG AA 4.5:1 against every surface — including the raised panel, which is
+     the darkest light-theme background and the one that fails first. The
+     values are the lightest that pass, found by tests/contrast.test.ts, and
+     that test refuses any regression. */
+  --muted: 116 109 104;
+  --signal: 7 120 148;
   --cobalt: 37 99 235;
-  --amber: 180 120 20;
+  --amber: 150 100 16;
   --positive: 21 128 61;
   --negative: 190 50 42;
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -57,6 +62,13 @@
   --amber: 232 168 74;
   --positive: 74 222 128;
   --negative: 248 113 113;
+  /* The series slots were missing from this block, so an explicit dark toggle
+     rendered charts with the light-tuned hues on a dark ground. The two dark
+     blocks are now asserted identical by tests/contrast.test.ts. */
+  --series-1: 57 135 229;
+  --series-2: 217 89 38;
+  --series-3: 25 158 112;
+  --series-4: 201 133 0;
 }
 
 * { box-sizing: border-box; }
