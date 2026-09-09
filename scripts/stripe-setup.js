@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
  * Creates the Stripe Products, Prices, and webhook endpoint for this store,
- * then writes the Price IDs back into content/products.json.
+ * then writes the Price IDs back into content/catalog.json.
+ *
+ * The same thing per product, from the browser, is the "Create Stripe Price"
+ * button in /admin/products. This script is the batch form for a fresh account.
  *
  *   npm run stripe:setup            # dry run — shows what it would do
  *   npm run stripe:setup -- --apply # actually creates things
@@ -19,7 +22,7 @@ const fs = require('fs')
 const path = require('path')
 
 const ROOT = path.join(__dirname, '..')
-const PRODUCTS_FILE = path.join(ROOT, 'content', 'products.json')
+const CATALOG_FILE = path.join(ROOT, 'content', 'catalog.json')
 
 const APPLY = process.argv.includes('--apply')
 const DO_WEBHOOK = process.argv.includes('--webhook')
@@ -76,13 +79,17 @@ async function main() {
   }
 
   // ── 2. Create missing Products and Prices ────────────────────────────
-  const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8'))
+  const products = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8'))
   let created = 0
   let adopted = 0
 
   for (const item of products) {
-    if (!(item.price > 0) || item.comingSoon) {
-      console.log(`skip   ${item.slug} (${item.comingSoon ? 'coming soon' : 'no price'})`)
+    if (item.purchaseType !== 'stripe') {
+      console.log(`skip   ${item.slug} (sells via ${item.purchaseType})`)
+      continue
+    }
+    if (!(item.price > 0)) {
+      console.log(`skip   ${item.slug} (no price — status ${item.status})`)
       continue
     }
 
@@ -98,15 +105,12 @@ async function main() {
 
       product = await stripe.products.create({
         name: item.name,
-        description: item.tagline || undefined,
-        images: item.heroImage?.startsWith('https://') ? [item.heroImage] : undefined,
+        description: item.tagline || item.description || undefined,
+        images: item.images?.hero?.startsWith('https://') ? [item.images.hero] : undefined,
         metadata: {
           ic_slug: item.slug,
           // The webhook reads this when session metadata is unavailable.
-          printfulVariantId:
-            item.channels?.printfulId && item.channels.printfulId !== 'TODO'
-              ? item.channels.printfulId
-              : '',
+          printfulVariantId: item.printfulVariantId || '',
         },
         // Lets Stripe Tax pick the right rate per jurisdiction.
         tax_code: 'txcd_99999999',
@@ -133,12 +137,14 @@ async function main() {
       console.log(`       price ${price.id} already matches`)
     }
 
-    item.channels.stripePriceId = price.id
+    item.stripePriceId = price.id
+    if (item.status === 'needs-pricing') item.status = 'needs-assets'
+    item.updatedAt = new Date().toISOString()
   }
 
   if (APPLY) {
-    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2) + '\n')
-    console.log(`\nWrote Price IDs into content/products.json`)
+    fs.writeFileSync(CATALOG_FILE, JSON.stringify(products, null, 2) + '\n')
+    console.log(`\nWrote Price IDs into content/catalog.json`)
     console.log(`Products created: ${created}, adopted: ${adopted}`)
     console.log('Review the diff and commit it — checkout reads these IDs.')
   }

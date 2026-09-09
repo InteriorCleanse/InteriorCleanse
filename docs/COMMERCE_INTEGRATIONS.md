@@ -8,7 +8,7 @@ fixtures, but no credential has ever been validated against the live API.
 
 | Source | Status | Evidence |
 | --- | --- | --- |
-| Stripe checkout | Adapter only — **no Price IDs minted** | `content/products.json`: every `stripePriceId` is `null` |
+| Stripe checkout | **Test-mode Price IDs on all 5 published products** | `content/catalog.json`: `stripePriceId` set; live keys still to be swapped in |
 | Stripe webhook | Adapter only | `app/api/webhook/route.ts` verified by inspection, never by a live event |
 | Printful | Adapter only | `lib/print-providers.ts`, `app/api/printful/sync/route.ts` |
 | Printify | Adapter only | `lib/print-providers.ts`, `app/api/printify/sync/route.ts` |
@@ -53,7 +53,7 @@ Six products, zero Price IDs. Checkout 409s on all of them.
 
 ```bash
 npm run stripe:setup            # dry run, prints what it would create
-npm run stripe:setup -- --apply # creates Products/Prices, writes IDs back to content/products.json
+npm run stripe:setup -- --apply # creates Products/Prices, writes IDs back to content/catalog.json
 npm run stripe:setup -- --webhook
 ```
 

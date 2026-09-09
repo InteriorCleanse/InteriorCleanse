@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Pulls the Printful and Printify catalogues into content/products.json.
+ * Pulls the Printful and Printify catalogues into content/catalog.json.
  *
- * Runs as a local script rather than through the API routes because a
- * serverless filesystem is read-only and ephemeral — a route that wrote this
- * file would appear to succeed and lose the change on the next deploy. Here
- * the write lands in the repo, where it can be reviewed and committed.
+ * The same sync, from the browser, is the "Sync from Printful / Printify"
+ * button in /admin/products (which on Vercel commits through GitHub). This is
+ * the local form: the write lands in your checkout, to review and commit.
+ *
+ * Follows the same rules as lib/catalog-sync.ts: a new product arrives as
+ * needs-pricing with the provider's mockups and variant id and NO price — the
+ * owner sets retail. A re-sync refreshes only provider-owned facts and never
+ * touches a name, description, price, status, or an uploaded image.
  *
  *   npm run sync
  *
@@ -15,7 +19,7 @@ const fs = require('fs')
 const path = require('path')
 
 const ROOT = path.join(__dirname, '..')
-const TARGET = path.join(ROOT, 'content', 'products.json')
+const TARGET = path.join(ROOT, 'content', 'catalog.json')
 
 /** Minimal .env parser — avoids a dependency for four variables. */
 function loadEnvFile() {
@@ -143,29 +147,48 @@ async function fetchPrintify() {
   })
 }
 
-/** Hand-written copy always wins — the providers have no equivalent field. */
-function merge(existing, incoming) {
-  const bySlug = new Map(existing.map((p) => [p.slug, p]))
+const CATEGORY = { candle: 'fragrance', cleaning: 'cleaning', print: 'wall-art', tote: 'merch', mug: 'home', custom: 'merch', book: 'books' }
+const ENVIRONMENT = { candle: 'atrium', cleaning: 'cleaning', print: 'gallery', tote: 'atelier', mug: 'atelier', custom: 'atelier', book: 'library' }
 
-  for (const next of incoming) {
-    const prev = bySlug.get(next.slug)
-    bySlug.set(
-      next.slug,
-      prev
-        ? {
-            ...next,
-            tagline: prev.tagline || next.tagline,
-            description: prev.description || next.description,
-            careNotes: prev.careNotes ?? next.careNotes,
-            materialColor: prev.materialColor ?? next.materialColor,
-            featured: prev.featured,
-            comingSoon: prev.comingSoon,
-            badge: prev.badge ?? next.badge,
-          }
-        : next
-    )
+/** Same rules as lib/catalog-sync.ts — kept in step by hand, so read both when changing either. */
+function merge(existing, incoming, provider) {
+  const now = new Date().toISOString()
+  const created = []
+  const updated = []
+  for (const s of incoming) {
+    const variantId = provider === 'printful' ? s.channels.printfulId : s.channels.printifyId
+    const idKey = provider === 'printful' ? 'printfulVariantId' : 'printifyVariantId'
+    let p = existing.find((x) => x.slug === s.slug || (variantId && x[idKey] === variantId))
+    if (!p) {
+      existing.push({
+        id: s.slug, slug: s.slug, name: s.name,
+        category: CATEGORY[s.category] ?? 'merch',
+        environment: ENVIRONMENT[s.category] ?? 'atelier',
+        description: '', price: 0, currency: 'USD', compareAtPrice: null,
+        images: { hero: s.heroImage || null, transparent: null, gallery: s.gallery ?? [] },
+        rotationSequence: null, modelUrl: null,
+        sizeClass: s.category === 'mug' || s.category === 'candle' ? 'small' : 'medium',
+        purchaseType: 'stripe', stripePriceId: null, affiliateUrl: null, gumroadUrl: null, amazonUrl: null,
+        fulfillment: provider,
+        printfulVariantId: provider === 'printful' ? variantId : null,
+        printifyVariantId: provider === 'printify' ? variantId : null,
+        status: 'needs-pricing', featured: false, tags: [s.category, provider],
+        seoTitle: null, seoDescription: null, lastVerified: null,
+        objectType: s.category, tagline: '', badge: 'NEW', careNotes: null, materialColor: null, renderMode: null,
+        createdAt: now, updatedAt: now,
+      })
+      created.push(s.slug)
+      continue
+    }
+    const before = JSON.stringify(p)
+    p[idKey] = variantId
+    if (p.fulfillment === 'manual') p.fulfillment = provider
+    if (!p.images.hero && s.heroImage) p.images.hero = s.heroImage
+    if (p.images.gallery.length === 0 && s.gallery?.length) p.images.gallery = s.gallery
+    if (!p.tags.includes(provider)) p.tags.push(provider)
+    if (JSON.stringify(p) !== before) { p.updatedAt = now; updated.push(p.slug) }
   }
-  return Array.from(bySlug.values())
+  return { created, updated }
 }
 
 async function main() {
@@ -198,16 +221,18 @@ async function main() {
   console.log(`Printify: ${printify.length} products`)
 
   if (printful.length === 0 && printify.length === 0) {
-    console.error('Nothing fetched — leaving content/products.json untouched.')
+    console.error('Nothing fetched — leaving content/catalog.json untouched.')
     process.exit(1)
   }
 
-  // Deduplicate by slug; a product in both providers keeps the Printful entry.
-  const merged = merge(existing, [...printify, ...printful])
-
-  fs.writeFileSync(TARGET, JSON.stringify(merged, null, 2) + '\n')
-  console.log(`Wrote ${merged.length} products to content/products.json`)
-  console.log('Review the diff, fill in any blank taglines, then commit.')
+  const a = merge(existing, printful, 'printful')
+  const b = merge(existing, printify, 'printify')
+  existing.sort((x, y) => x.slug.localeCompare(y.slug))
+  fs.writeFileSync(TARGET, JSON.stringify(existing, null, 2) + '\n')
+  console.log(`Printful: ${a.created.length} new, ${a.updated.length} updated`)
+  console.log(`Printify: ${b.created.length} new, ${b.updated.length} updated`)
+  console.log(`Wrote ${existing.length} records to content/catalog.json`)
+  console.log('New products are needs-pricing: set retail prices in /admin/products, then commit.')
 }
 
 main().catch((e) => {
