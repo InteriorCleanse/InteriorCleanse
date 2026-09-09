@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { publishedProducts } from '@/lib/catalog'
 import { COLLECTIONS } from '@/lib/collections'
 import { allBooks, allProducts, articles } from '@/lib/content'
 import { SITE } from '@/lib/site-config'
@@ -9,6 +10,7 @@ const url = (path: string) => `${SITE.url}${path}`
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPaths = [
     ['/', 1],
+    ['/collection/', 0.9],
     ['/shop/', 0.9],
     ['/library/', 0.9],
     ['/spirit/', 0.8],
@@ -37,6 +39,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...allProducts.map((p) => ({
       url: url(`/shop/${p.slug}/`),
       lastModified: new Date(),
+      priority: 0.8,
+    })),
+    // Published catalog products in their rooms. Drafts never appear here:
+    // the page itself is a 404 for anything not published.
+    ...publishedProducts().map((p) => ({
+      url: url(`/collection/${p.slug}/`),
+      lastModified: new Date(p.updatedAt),
       priority: 0.8,
     })),
     ...allBooks.map((b) => ({
