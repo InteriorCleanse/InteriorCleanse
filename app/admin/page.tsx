@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { useRouter } from 'next/navigation'
@@ -68,6 +69,9 @@ export default function AdminDashboard() {
               {t}
             </button>
           ))}
+          <Link className="admin-tab" href="/admin/products/">
+            Products
+          </Link>
         </nav>
         <button className="admin-signout" onClick={signOut}>
           Sign out

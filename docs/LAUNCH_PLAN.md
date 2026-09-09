@@ -150,7 +150,7 @@ build specification is in `docs/KIE_ASSET_PIPELINE.md`.
 
 ---
 
-## Checkpoint 7 — admin, content, and launch · **SEO, readiness, and legal done; product studio blocked**
+## Checkpoint 7 — admin, content, and launch · **SEO, readiness, legal, and product studio done**
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
@@ -206,10 +206,22 @@ stops for any of three independent reasons and any one of them wins.
 The tuned lighting values in `ProductStage` (bloom threshold 0.85, exposure 0.98)
 were not touched; the controls are purely additive.
 
-**Still blocked:** the product studio (create/edit/archive, GLB upload, 360-frame
-upload, depth-layer builder, variant mapping, bulk operations). The brief
-requires adding a normal product without a code deploy, and that is not possible
-against flat JSON files — it needs a database and object storage.
+**Product studio — built, without a database.** `/admin/products` manages
+`content/catalog.json`: status filter, inline edit, side-panel editor, image
+upload, cut-out generation, Stripe Price creation, Gumroad link check, bulk
+status, CSV import, Printful/Printify sync. The repository is the database: on
+Vercel every save is a commit through the GitHub Contents API and goes live on
+the redeploy; locally it writes to disk. Publishing is server-gated by the
+eight rules in `docs/PRODUCT_PIPELINE.md`, and the public site reads only
+`published` records. Verified against the production build: the gate refuses a
+draft with 422 and lists why; a bulk publish skips blocked rows and names
+them; bad enums are rejected; CSV with one bad row fails whole with the row
+number; upload, cut-out (alpha 0 at the edge, 255 at the centre), create,
+delete, and the 409 on deleting a published record all behave.
+
+**Not built:** GLB upload, depth-layer builder, per-variant mapping. The fields
+exist on the record (`modelUrl`, `rotationSequence`) and the editor writes them
+as URLs; the upload UI for those binaries does not.
 
 ---
 
@@ -362,6 +374,12 @@ event fails silently.
 `ANTHROPIC_API_KEY`, `KIE_API_KEY`, TikTok Shop app credentials,
 `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`.
 
+For the product studio on Vercel: `GITHUB_TOKEN` (fine-grained, this one
+repository, *Contents: Read and write*) — without it the admin can read but
+every save reports exactly this as the blocker. Optional: `REMOVEBG_API_KEY`
+for real background removal; without it the cut-out is a white-threshold
+fallback.
+
 Paste them into the Vercel dashboard directly. `.env.example` holds placeholders
 only and no real key belongs in this repository.
 
@@ -372,10 +390,11 @@ only and no real key belongs in this repository.
 2. Land the environment posters — generate with `scripts/leonardo-generate.mjs`
    or upload to `public/images/` directly — then re-run `npm run check:contrast`
    and re-tune any surface that reports FAIL or THIN.
-3. Paste affiliate links into `content/partners.json` as approvals come in.
-4. Optional footage per environment, dropped into `public/video/`; the manifest
-   and the video director already account for it.
-5. Choose and provision a database — everything in Checkpoints 5–7 waits on it,
-   including the admin product studio.
+3. Add `GITHUB_TOKEN` to Vercel so `/admin/products` can save in production,
+   then fill the twenty draft shells (see `docs/PRODUCT_PIPELINE.md`).
+4. Paste affiliate links into `content/partners.json` and onto the five
+   `partner-*` catalog records as approvals come in.
+5. Optional footage per environment, dropped into `public/video/`; then
+   `npm run posters:extract` so every poster is the clip's first frame.
 6. Build the AI design studio, then swap in the brief's held-back hero copy and
    its "Design Your Space" CTA.
