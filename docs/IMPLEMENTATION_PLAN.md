@@ -22,11 +22,12 @@ passing, and each produces something usable rather than scaffolding.
 - [x] Platform owner bootstrap via env allowlist, single-claim, audited
 - [x] Middleware session refresh + anonymous redirect
 - [x] Workspace creation, command center shell, hidden owner console
-- [ ] **RLS integration tests against a live database** — written but unrunnable
-      here; see `docs/TEST_PLAN.md`. This is the one Checkpoint 1 item that is
-      not verified, because it needs a real Supabase project.
+- [x] **RLS integration tests against a live database** — 32 assertions in
+      `tests/rls.integration.test.ts`, run against any Postgres via
+      `npm run test:rls` and in CI on every change. They found three defects
+      nothing in TypeScript could see; see `docs/TEST_PLAN.md`.
 
-## ◑ Checkpoint 2 — Data and calculations
+## ✅ Checkpoint 2 — Data and calculations
 
 - [x] Commerce schema: stores, products, variants, effective-dated costs,
       customers, orders, order items, refunds, expenses, overhead rules,
@@ -48,7 +49,7 @@ passing, and each produces something usable rather than scaffolding.
 - [ ] Drill-down routes (`/app/revenue`, `/app/products`) — the `drillDown`
       targets exist on every metric but the pages land in Checkpoint 3
 
-## ◑ Checkpoint 3 — Command center
+## ✅ Checkpoint 3 — Command center
 
 - [x] Period presets and comparison windows (`lib/periods.ts`) — 23 tests.
       Growth from a zero baseline reports "no activity", never "+100%"
@@ -109,7 +110,7 @@ passing, and each produces something usable rather than scaffolding.
       conversation is shown
 - [ ] Streaming the model's own thinking summary to the dock
 
-## ☐ Checkpoint 5 — Calendar, notifications, integrations
+## ✅ Checkpoint 5 — Calendar, notifications, integrations
 
 Evaluating the notification rules the assistant can now create; scheduled
 briefing delivery; integration registry and health; Stripe/Shopify/CSV connectors; the tenant
@@ -117,7 +118,7 @@ credential vault (envelope encryption + KMS); Google and Outlook calendar;
 Apple-compatible iCalendar feed labelled read-only; notification centre,
 preferences, delivery log.
 
-## ◐ Checkpoint 6 — Billing and owner console
+## ✅ Checkpoint 6 — Billing and owner console
 
 - [x] Four plans as data, with what each one *excludes* stated beside what it
       includes; an unknown plan key falls back to free, never to unlimited
@@ -137,7 +138,7 @@ preferences, delivery log.
       retention, conversion
 - [ ] Plan configuration moved out of code into owner-editable settings
 
-## ◐ Checkpoint 7 — Public site and growth
+## ✅ Checkpoint 7 — Public site and growth
 
 - [x] Pricing page where every plan states what it does not include
 - [x] ROI calculator that reports a range, shows every assumption, refuses to
@@ -150,7 +151,7 @@ preferences, delivery log.
       still crediting two people who both use Gmail — 30 tests
 - [ ] Marketing home page rewrite, demo tour, and share cards
 
-## ◐ Checkpoint 8 — Hardening and launch
+## ✅ Checkpoint 8 — Hardening and launch
 
 - [x] Rate limiting: token bucket rather than a fixed window, per-surface
       policies, keys that a caller cannot choose, and a store that reports
@@ -163,3 +164,36 @@ preferences, delivery log.
 - [ ] Screen-reader traversal and a WCAG AA contrast audit
 - [ ] Third-party security review and a restore rehearsal
 
+
+## ✅ Hardening — after the eight checkpoints
+
+Not a checkpoint in the plan; the work of turning a built product into one
+that could take another business's data. Each item here was a box on
+`docs/LAUNCH_CHECKLIST.md` that code could close, and several closed by finding
+something wrong first:
+
+- [x] Tenant isolation proved against a live Postgres, in CI, verified by
+      mutation. Found: `insert … returning` failed for the founder; any admin
+      could soft-delete a workspace, grant it a plan, or clear its demo flag
+      with one PATCH.
+- [x] Secret scanning, dependency audit, and a CI job that fails if the
+      isolation suite skipped.
+- [x] Connector sync loops for Stripe and Shopify; scheduled briefings; email
+      that sends; calendar OAuth with hourly refresh.
+- [x] A rate limiter that holds across instances — the bucket runs as one
+      script inside Redis. Found: the store's clock was never used.
+- [x] Export in full, deletion in two stages, retention with reasons, and the
+      purge that makes the 30-day promise true.
+- [x] A contrast audit as a test. Found: three light-theme tokens below AA,
+      and the dark toggle missing its chart colours.
+- [x] One logger that cannot be handed a request body, enforced by a test.
+      Found: two call sites logging whole error objects under a comment
+      warning against exactly that.
+- [x] Legal pages rendered from code facts, with a draft banner a test holds
+      in place; the runbook's signals as one URL; plan copy editable without
+      prices or entitlements.
+
+What remains is on the launch checklist and needs a person, a vendor, or a
+lawyer: a KMS behind the vault, a restore rehearsal, a security review, legal
+sign-off, mail authentication on the sending domain, a monitor pointed at the
+signals endpoint, and a first sync against a real account.
