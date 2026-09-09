@@ -1,3 +1,4 @@
+import { logFailure, logWarning } from '@/lib/log'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { StripeError, mapStatus, planKeyForPrice, verifyWebhook } from '@/lib/billing/stripe'
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     const code = error instanceof StripeError ? error.code : 'bad_signature'
-    console.warn('stripe webhook rejected', code)
+    logWarning('billing.webhook.rejected', { code })
     // Deliberately terse: an attacker probing signatures learns nothing.
     return new Response('Invalid signature.', { status: 400 })
   }
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   try {
     await handle(event, admin)
   } catch (error) {
-    console.error('stripe webhook processing failed', event.type, error)
+    logFailure('billing.webhook.processing', error, { eventType: event.type })
     // Release the claim so the retry can actually do the work, rather than
     // being deduplicated against a failed attempt.
     await admin.from('stripe_events').delete().eq('id', event.id)

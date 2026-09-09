@@ -76,7 +76,13 @@ What follows includes the half no code can check.
 - [x] No key-shaped literals in the repository. Vendor-shaped test fixtures are
       composed at runtime in `tests/fixtures/secrets.ts` rather than
       allow-listed, so a scanner finding is always a real one.
-- [ ] Confirm no request body is logged in production.
+- [x] **No request body is logged in production** — made structural rather
+      than confirmed once. `lib/log.ts` is the only logger; its signature takes
+      primitives only, drops objects at runtime, and bounds every message to
+      200 characters because vendor errors quote the request. A test fails the
+      build on any raw `console.*` in server code. The audit that produced it
+      found two call sites in the assistant route logging whole error objects,
+      directly under a comment saying error text can echo request content.
 
 ## Data protection
 
@@ -165,9 +171,6 @@ described to a customer as finished:
 - Calendar OAuth **has not been through a provider's app review**. The flows
   are implemented and tested; Google restricts `calendar.readonly` and will
   require verification before more than a handful of accounts can connect.
-- Calendar events are pulled **once, at connect time**. There is no incremental
-  refresh yet, so a meeting added tomorrow will not appear until the connection
-  is remade.
 - **Email deliverability.** Transport, rendering and the delivery log are
   built and tested, but nothing has been sent from a verified domain. SPF, DKIM
   and DMARC are not set up, and an alert that lands in spam is not an alert.

@@ -6,6 +6,7 @@ import { dispatch, localHourIn, type DeliveryRecord, type Recipient } from '@/li
 import { emailTransport } from '@/lib/notifications/email'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
 import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
+import { isCalendarDue, syncCalendar, type CalendarConnectionRow } from '@/lib/calendar/sync'
 import { runRetention } from '@/lib/retention'
 import { purgeCutoff, purgeExpiredWorkspaces } from '@/lib/workspace/purge'
 import { supabaseAdmin } from '@/lib/supabase/server'
@@ -188,6 +189,23 @@ export async function GET(request: Request) {
     }
   }
 
+  // Connected calendars, refreshed on the same sweep. Until this ran, a
+  // calendar was pulled once at connect time and never again.
+  const { data: calendars } = await admin
+    .from('calendar_connections')
+    .select('id, organization_id, user_id, provider, status, last_synced_at')
+    .in('status', ['connected', 'degraded'])
+    .limit(50)
+
+  let calendarsRefreshed = 0
+  let calendarsFailed = 0
+  for (const calendar of (calendars ?? []) as CalendarConnectionRow[]) {
+    if (!isCalendarDue(calendar, now)) continue
+    const outcome = await syncCalendar(admin, calendar, { now })
+    if (outcome.status === 'succeeded') calendarsRefreshed += 1
+    else if (outcome.status === 'failed') calendarsFailed += 1
+  }
+
   // Retention runs on the same sweep rather than on a schedule of its own:
   // one scheduled endpoint to configure and to notice the absence of, and a
   // purge that has not run for a week is then visible in the same place.
@@ -229,6 +247,8 @@ export async function GET(request: Request) {
 
   return Response.json({
     workspaces: organizations?.length ?? 0,
+    calendarsRefreshed,
+    calendarsFailed,
     workspacesPurged: workspacePurge.purged.length,
     workspacePurgeFailures: workspacePurge.failed.length,
     purged: purged.map((p) => ({ table: p.table, deleted: p.deleted, failed: Boolean(p.error) })),

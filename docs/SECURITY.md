@@ -120,6 +120,16 @@ business. The design therefore starts from what happens when things go wrong.
 - **The shipped provider says it is not production-grade.** `productionReady`
   is `false` on the static-key provider, and the launch checklist reads it.
 
+## Logging
+
+There is one server-side logger, `lib/log.ts`, and it cannot be handed a
+request body: `fields` accepts primitives only, non-primitives are dropped at
+runtime, and every message is cut at 200 characters because vendor errors quote
+the offending request — an Anthropic 400 echoes the prompt, a Postgres
+constraint violation echoes the row. `tests/logging.test.ts` fails the build on
+any raw `console.*` under `app/` or `lib/`, so the guarantee is that nobody can
+log a body without first deleting the test that says so.
+
 ## Calendar feeds
 
 A subscription URL is a bearer credential that people paste into phone settings

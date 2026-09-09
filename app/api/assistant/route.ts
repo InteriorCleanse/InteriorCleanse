@@ -10,6 +10,7 @@ import { VOICE_ADDENDUM, systemPrompt } from '@/lib/assistant/prompt'
 import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant/sanitise'
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from '@/lib/assistant/tools'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
+import { logFailure } from '@/lib/log'
 
 /**
  * The assistant endpoint.
@@ -332,8 +333,9 @@ export async function POST(request: Request) {
 
         send({ type: 'done', citations: cited })
       } catch (error) {
-        // The model's own error text can echo request content; never forward it.
-        console.error('assistant stream failed', error)
+        // The model's own error text can echo request content; never forward
+        // it to the client, and log only a bounded description of it.
+        logFailure('assistant.stream', error)
         send({
           type: 'error',
           message: 'The assistant could not finish that. Nothing was changed.',
@@ -459,7 +461,8 @@ async function runTool(input: {
       citations: result.citations ?? [],
     }
   } catch (error) {
-    console.error(`tool ${call.name} failed`, error)
+    // The tool's arguments are tenant data and are not part of the log line.
+    logFailure('assistant.tool', error, { tool: call.name })
     await record('error', error instanceof Error ? error.message : 'unknown')
     return {
       content: 'That tool failed. Say so plainly rather than guessing the answer.',

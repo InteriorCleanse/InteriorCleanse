@@ -7,7 +7,7 @@
 | CSV import | none | n/a by design | A file is a snapshot, not a connection. |
 | Stripe | secret key, sealed | **yes** | Settled charges and refunds, fees from the expanded balance transaction. |
 | Shopify | admin token, sealed | **yes** | Orders, line items and nested refunds, on `updated_at`. |
-| Google / Outlook calendar | refresh token, sealed | on connect | Authorization-code flow with PKCE; read-only scopes. |
+| Google / Outlook calendar | refresh token, sealed | **yes**, hourly | PKCE, read-only scopes; rotated refresh tokens written back before events are fetched. |
 | Meta Ads, Google Ads | — | no | Registry entries only, marked `planned` in the UI. |
 
 ## The sync loop

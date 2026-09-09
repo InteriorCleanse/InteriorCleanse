@@ -5,13 +5,13 @@ import {
   calendarCredentials,
   exchangeCode,
   fetchAccountEmail,
-  fetchEvents,
   stateMatches,
   type CalendarProvider,
 } from '@/lib/calendar/oauth'
+import { importEvents, storeRefreshToken } from '@/lib/calendar/sync'
 import { getSessionContext } from '@/lib/session'
 import { supabaseAdmin, supabaseServer } from '@/lib/supabase/server'
-import { isVaultConfigured, maskSecret, sealSecret, vaultProvider } from '@/lib/vault'
+import { isVaultConfigured } from '@/lib/vault'
 
 /**
  * Completing a calendar OAuth flow.
@@ -31,9 +31,6 @@ import { isVaultConfigured, maskSecret, sealSecret, vaultProvider } from '@/lib/
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-/** How far ahead to pull events on the first sync. */
-const HORIZON_DAYS = 60
 
 export async function GET(
   request: Request,
@@ -141,8 +138,7 @@ export async function GET(
   if (error || !connection) return redirect(settings, 'The connection could not be saved.')
 
   const admin = supabaseAdmin()
-  const stored = await storeRefreshToken({
-    admin,
+  const stored = await storeRefreshToken(admin, {
     organizationId: membership.organizationId,
     calendarConnectionId: connection.id,
     refreshToken: tokens.refreshToken,
@@ -150,15 +146,14 @@ export async function GET(
   if (!stored) return redirect(settings, 'The calendar credential could not be stored.')
 
   // A first pull, so the connection visibly does something. A failure here is
-  // not a failure of the connection — the token is stored and the next sweep
-  // will try again.
-  const imported = await importEvents({
-    admin,
+  // not a failure of the connection — the token is stored and the hourly
+  // sweep (lib/calendar/sync.ts) will try again.
+  const imported = await importEvents(admin, {
     provider: provider as CalendarProvider,
     accessToken: tokens.accessToken,
     organizationId: membership.organizationId,
     calendarConnectionId: connection.id,
-  })
+  }).catch(() => 0)
 
   await supabase.from('audit_logs').insert({
     organization_id: membership.organizationId,
@@ -174,87 +169,6 @@ export async function GET(
     settings,
     `${CALENDAR_PROVIDERS[provider].name} connected as ${accountEmail}. ${imported} upcoming events imported.`,
   )
-}
-
-async function storeRefreshToken(input: {
-  admin: ReturnType<typeof supabaseAdmin>
-  organizationId: string
-  calendarConnectionId: string
-  refreshToken: string
-}): Promise<boolean> {
-  // Reserved before sealing: the id is part of the sealed context, so a row
-  // moved to another tenant or another connection fails to open.
-  const credentialId = crypto.randomUUID()
-
-  const sealed = await sealSecret(
-    input.refreshToken,
-    {
-      organizationId: input.organizationId,
-      credentialId,
-      field: 'refresh_token',
-    },
-    vaultProvider(),
-  )
-
-  const { error } = await input.admin.from('integration_credentials').upsert(
-    {
-      id: credentialId,
-      organization_id: input.organizationId,
-      calendar_connection_id: input.calendarConnectionId,
-      connection_id: null,
-      field: 'refresh_token',
-      sealed,
-      key_id: sealed.wrappedKey.keyId,
-      masked_hint: maskSecret(input.refreshToken),
-      rotated_at: new Date().toISOString(),
-      revoked_at: null,
-    },
-    { onConflict: 'calendar_connection_id,field' },
-  )
-
-  // Never surface the driver's message: on a constraint violation Postgres
-  // echoes the offending row, and the offending row contains ciphertext.
-  return !error
-}
-
-async function importEvents(input: {
-  admin: ReturnType<typeof supabaseAdmin>
-  provider: CalendarProvider
-  accessToken: string
-  organizationId: string
-  calendarConnectionId: string
-}): Promise<number> {
-  const from = new Date()
-  const to = new Date(from.getTime() + HORIZON_DAYS * 86_400_000)
-
-  try {
-    const events = await fetchEvents({
-      provider: input.provider,
-      accessToken: input.accessToken,
-      from,
-      to,
-    })
-    if (events.length === 0) return 0
-
-    const { error } = await input.admin.from('calendar_events').upsert(
-      events.map((event) => ({
-        organization_id: input.organizationId,
-        connection_id: input.calendarConnectionId,
-        external_id: event.externalId,
-        title: event.title,
-        description: event.description,
-        starts_at: event.startsAt.toISOString(),
-        ends_at: event.endsAt.toISOString(),
-        all_day: event.allDay,
-        source: 'external',
-      })),
-      { onConflict: 'connection_id,external_id' },
-    )
-
-    return error ? 0 : events.length
-  } catch {
-    return 0
-  }
 }
 
 function redirect(path: string, notice: string): Response {

@@ -26,6 +26,8 @@ npm run verify   # lint → typecheck → test → build
 | `tests/readiness.test.ts` | Severity of each deployment check, and that no key material reaches the report | 15 passing |
 | `tests/workspace-data.test.ts` | Export list checked against the migrations, RFC 4180 CSV, retention windows and what must never expire, the deletion grace period | 37 passing |
 | `tests/contrast.test.ts` | WCAG AA 4.5:1 for every text token on every surface in both themes, parsed from the real CSS; the two dark blocks held identical | 49 passing |
+| `tests/logging.test.ts` | No raw `console.*` in server code; the logger bounds messages, drops objects, never serialises a thrown non-Error | 7 passing |
+| `tests/calendar-sync.test.ts` | Refresh cadence, revoked-never-retried, and the token write-back decision that separates a connection from a countdown | 7 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
