@@ -2,8 +2,12 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Eyebrow, Panel } from '@/components/ui'
 import { can } from '@/lib/authz'
+import { applyPlanCopy } from '@/lib/billing/plan-copy'
+import { PLAN_ORDER, formatPlanPrice } from '@/lib/billing/plans'
 import { readiness, type ReadinessLevel } from '@/lib/readiness'
 import { requireSession } from '@/lib/session'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import { PlanCopyForm } from './plan-copy-form'
 // Imported for its side effect as well as its type: this is what registers the
 // distributed rate-limit store, and without it the page would report the
 // in-memory fallback on a deployment that actually has Redis.
@@ -43,6 +47,12 @@ export default async function OwnerAdminPage() {
   if (!can(actor, 'platform:view_console')) redirect('/app/command-center')
 
   const report = readiness()
+
+  // Vendor configuration, read with the service role after the staff check
+  // above — the table has no policies and no tenant path to it.
+  const canEditPlans = can(actor, 'platform:manage_flags')
+  const { data: overrideRows } = await supabaseAdmin().from('plan_copy_overrides').select('*')
+  const plans = applyPlanCopy(overrideRows ?? [])
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -94,6 +104,23 @@ export default async function OwnerAdminPage() {
           Back to command center
         </Link>
       </Panel>
+
+      {canEditPlans ? (
+        <Panel className="mt-8">
+          <h2 className="text-lg font-semibold">Plan copy</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            What each plan is called and how it is described on the pricing page. Prices are set in
+            Stripe and entitlements are business rules in code; neither is editable here, on
+            purpose — a second place to store either is where the two start to disagree. Clearing a
+            field restores the default.
+          </p>
+          <div className="mt-6 grid gap-8 md:grid-cols-2">
+            {PLAN_ORDER.map((key) => (
+              <PlanCopyForm key={key} plan={plans[key]} priceLabel={formatPlanPrice(plans[key])} />
+            ))}
+          </div>
+        </Panel>
+      ) : null}
     </main>
   )
 }

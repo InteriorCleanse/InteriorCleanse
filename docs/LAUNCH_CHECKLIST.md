@@ -168,13 +168,13 @@ What follows includes the half no code can check.
 ## Commercial
 
 - [ ] Trademark clearance on the final product name before public launch.
-- [ ] Plan **copy** (names, audience lines, highlights) made owner-editable.
-      Deliberately not prices and not entitlements: `lib/billing/plans.ts`
-      argues, correctly, that prices belong to Stripe alone and entitlements
-      are business rules that must be enforceable without asking anyone — a
-      second editable store for either is the drift the file exists to
-      prevent. The remaining work is a small overrides table for the display
-      text and a form on `/owner-admin`.
+- [x] Plan **copy** (names, audience lines, highlights, exclusions) is
+      owner-editable from `/owner-admin`, stored in `plan_copy_overrides`
+      (service-role only). Deliberately not prices and not entitlements:
+      `lib/billing/plans.ts` argues, correctly, that prices belong to Stripe
+      alone and entitlements are business rules enforceable without asking
+      anyone. The override shape has no field for either, and a test smuggles
+      both past the types to prove they cannot reach the page.
 
 ## Honest gaps
 

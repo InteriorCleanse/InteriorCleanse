@@ -68,6 +68,7 @@ export const EXPORTED_TABLES = [
 export const NEVER_EXPORTED: Record<string, string> = {
   integration_credentials:
     'Sealed third-party API keys. The customer already holds the plaintext; putting ciphertext in a download would only create a second place to steal it from.',
+  plan_copy_overrides: 'Vendor configuration: display copy for the pricing page. Not the customer’s data.',
   calendar_feed_tokens:
     'Hashes of live subscription URLs. Exporting them would let anyone with the file reconstruct nothing useful, but the hash is still an authenticator and belongs nowhere but the database.',
   platform_staff: 'Vendor operators. Not the customer’s data.',

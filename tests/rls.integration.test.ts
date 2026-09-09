@@ -424,6 +424,47 @@ describe.skipIf(!hasTestDatabase)('RLS: tenant isolation', () => {
     })
   })
 
+  it('keeps plan copy overrides service-role only', async () => {
+    // Vendor configuration for the pricing page. A tenant reading it is
+    // harmless; a tenant writing it renames a plan for every customer.
+    await db.query(
+      `insert into public.plan_copy_overrides (plan_key, name) values ('starter', 'Founder')
+       on conflict (plan_key) do nothing`,
+    )
+
+    await asUser(db, ownerA, async (s) => {
+      const rows = await s.query('select plan_key from public.plan_copy_overrides')
+      expect(rows.rowCount).toBe(0)
+
+      // An UPDATE against rows the policy hides matches nothing and reports
+      // success — silent, like every rejected UPDATE under RLS. Assert on the
+      // count and re-read, never on a thrown error.
+      const updated = await s.query(
+        `update public.plan_copy_overrides set name = 'Hijacked' where plan_key = 'starter'`,
+      )
+      expect(updated.rowCount).toBe(0)
+
+      // INSERT is the one write that raises, because WITH CHECK is evaluated
+      // on the new row and no policy admits it.
+      const failure = await s.refused(
+        `insert into public.plan_copy_overrides (plan_key, name) values ('scale', 'Hijacked')`,
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+
+    const { rows: after } = await db.query<{ name: string }>(
+      `select name from public.plan_copy_overrides where plan_key = 'starter'`,
+    )
+    expect(after[0]!.name).toBe('Founder')
+
+    await asServiceRole(db, async (s) => {
+      const rows = await s.query('select plan_key from public.plan_copy_overrides')
+      expect(rows.rowCount).toBe(1)
+    })
+
+    await db.query('delete from public.plan_copy_overrides')
+  })
+
   it('refuses a workspace created in someone else’s name', async () => {
     await asUser(db, ownerA, async (s) => {
       const failure = await s.refused(

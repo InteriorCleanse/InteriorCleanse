@@ -29,13 +29,14 @@ npm run verify   # lint → typecheck → test → build
 | `tests/logging.test.ts` | No raw `console.*` in server code; the logger bounds messages, drops objects, never serialises a thrown non-Error | 7 passing |
 | `tests/calendar-sync.test.ts` | Refresh cadence, revoked-never-retried, and the token write-back decision that separates a connection from a countdown | 7 passing |
 | `tests/legal.test.ts` | Draft banner held until sign-off; retention and grace period on the legal pages pinned to the code that enforces them | 7 passing |
+| `tests/plan-copy.test.ts` | Overrides reach name and copy only; a smuggled price or entitlement never reaches the page; blank restores the default | 10 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
 
 ## Tenant isolation, against a real Postgres
 
-`tests/rls.integration.test.ts` — **31 assertions, passing.** This was the
+`tests/rls.integration.test.ts` — **32 assertions, passing.** This was the
 longest-standing gap in the product: isolation is enforced by RLS in the
 database, so no TypeScript test could ever prove it.
 

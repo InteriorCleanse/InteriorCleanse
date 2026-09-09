@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { branding } from '@/lib/env'
 import { Eyebrow, Panel } from '@/components/ui'
 import { RoiCalculator } from '@/components/growth/RoiCalculator'
-import { PLANS, PLAN_ORDER, formatPlanPrice } from '@/lib/billing/plans'
+import { applyPlanCopy } from '@/lib/billing/plan-copy'
+import { PLAN_ORDER, formatPlanPrice } from '@/lib/billing/plans'
+import { isSupabaseConfigured } from '@/lib/env'
+import { supabaseAdmin } from '@/lib/supabase/server'
 
 export const metadata = {
   title: 'Pricing',
@@ -19,7 +22,18 @@ export const metadata = {
  * a customer who bought the wrong tier is a refund, a support thread and a
  * bad review, and it exceeds the revenue from selling it to them.
  */
-export default function PricingPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function PricingPage() {
+  // A public page with no session, so the service role reads the copy
+  // overrides — a table with no tenant data and no policies. Without a
+  // database the code catalogue renders as-is; the build must not need one.
+  const PLANS = applyPlanCopy(
+    isSupabaseConfigured()
+      ? ((await supabaseAdmin().from('plan_copy_overrides').select('*')).data ?? [])
+      : [],
+  )
+
   return (
     <main className="mx-auto max-w-6xl space-y-12 px-6 py-16">
       <header className="max-w-2xl space-y-3">

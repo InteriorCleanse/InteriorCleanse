@@ -48,6 +48,7 @@ const MIGRATIONS = [
   '0008_workspace_creation_visibility.sql',
   '0009_calendar_credentials.sql',
   '0010_organization_column_privileges.sql',
+  '0011_plan_copy_overrides.sql',
 ]
 
 export async function migrate(): Promise<Client> {
