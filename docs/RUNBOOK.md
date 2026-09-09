@@ -194,6 +194,12 @@ Alert on these, in priority order:
 Do **not** alert on rate-limit 429s. They are the system working, and paging on
 them trains people to ignore the channel.
 
+Signals 2 through 4, and several the list above did not name, are exposed by
+`GET /api/ops/signals` with the cron secret: one JSON document, each entry with
+its threshold, a `firing` flag, and the first thing to do. Point any monitor
+that can fetch a URL at it. Signals 1 and 5 are measured at the host, not here,
+and the response says so by name rather than reporting a zero it cannot know.
+
 ## Scaling notes
 
 - The rate limiter's default store is in-memory and reports

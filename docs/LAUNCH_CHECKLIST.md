@@ -29,8 +29,13 @@ What follows includes the half no code can check.
       instance count. Falls back to in-memory and says so. **Still to do:** set
       `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` on the
       deployment; `/owner-admin` reports which store is actually in use.
-- [ ] **Real privacy policy and terms.** The current pages are placeholders and
-      say so on the page.
+- [ ] **Legal review of the privacy notice and terms.** The pages are no longer
+      placeholders: every factual claim on them is rendered from `lib/legal.ts`,
+      which imports the retention windows from the purge job and the deletion
+      grace period from the endpoint, so the notice cannot drift from what the
+      software does. Both carry a draft banner as their first element until
+      `LEGAL_STATUS.reviewedAt` is set — and a test holds it there. What remains
+      is the part no codebase can do: a lawyer reading them.
 - [ ] Third-party security review.
 
 ## Before charging anyone
@@ -86,7 +91,9 @@ What follows includes the half no code can check.
 
 ## Data protection
 
-- [ ] Data processing agreement and sub-processor list published.
+- [ ] Data processing agreement. The **sub-processor list is published** on
+      the privacy page from `SUB_PROCESSORS` in `lib/legal.ts`, stating for
+      each what it receives and whether it is optional on this deployment.
 - [x] **Export.** `GET /api/workspace/export` emits every tenant-owned table as
       raw rows, read through the user's own client so RLS decides what comes
       out — the worst a bug in that file can produce is an empty download, not
@@ -148,15 +155,26 @@ What follows includes the half no code can check.
 
 - [x] Deployment runbook (`docs/RUNBOOK.md`) with named failure modes and the
       exact step in key rotation that causes data loss if done early.
-- [ ] Alerting configured for the five signals in the runbook.
+- [ ] Alerting **wired to a monitor**. `GET /api/ops/signals` (cron secret)
+      exposes the three database-visible runbook signals plus four more found
+      worth watching — stuck sync runs, overdue purges, approved-but-unexecuted
+      assistant actions, and a failing-open rate-limit store — each with its
+      threshold, a `firing` flag, and the runbook's first action. Auth failure
+      rate and p95 latency are measured at the host and named in the response
+      as such. Still to do: point a monitor at it.
 - [ ] On-call rota and escalation path.
 - [ ] Status page.
 
 ## Commercial
 
 - [ ] Trademark clearance on the final product name before public launch.
-- [ ] Plan names and prices moved from `lib/billing/plans.ts` into owner-editable
-      configuration.
+- [ ] Plan **copy** (names, audience lines, highlights) made owner-editable.
+      Deliberately not prices and not entitlements: `lib/billing/plans.ts`
+      argues, correctly, that prices belong to Stripe alone and entitlements
+      are business rules that must be enforceable without asking anyone — a
+      second editable store for either is the drift the file exists to
+      prevent. The remaining work is a small overrides table for the display
+      text and a form on `/owner-admin`.
 
 ## Honest gaps
 
