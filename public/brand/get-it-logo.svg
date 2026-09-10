@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Get-it app icon">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#F5A623" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#F5A623" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ember" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF6A2B"/>
+      <stop offset="100%" stop-color="#F5A623"/>
+    </linearGradient>
+  </defs>
+  <!-- Graphite tile -->
+  <rect width="1024" height="1024" rx="228" fill="#111214"/>
+  <rect width="1024" height="1024" rx="228" fill="url(#glow)"/>
+  <!-- The G: a progress ring that is almost complete, opening at top-right -->
+  <path d="M 512 240
+           A 272 272 0 1 0 784 512"
+        fill="none" stroke="#F4F1EC" stroke-width="104" stroke-linecap="round"/>
+  <!-- The crossbar of the G, tilted upward like a progress tick -->
+  <path d="M 540 512 L 784 512"
+        fill="none" stroke="#F4F1EC" stroke-width="104" stroke-linecap="round"/>
+  <!-- The ember dot that closes the ring -->
+  <circle cx="704" cy="318" r="66" fill="url(#ember)"/>
+</svg>
