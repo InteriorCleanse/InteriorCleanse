@@ -1,0 +1,43 @@
+{
+  "_note": "Generated 2026-09-10 with Higgsfield Cinema Studio Image 2.5, 16:9 at 2K (2752x1536), 2 credits each. Download into public/images with `npm run posters:fetch`. Keys match content/scenes.json.",
+  "atrium": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_085527_8155a571-159c-473c-999a-37cd359ac492.png",
+    "job": "8155a571-159c-473c-999a-37cd359ac492"
+  },
+  "library": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_dd6aae2f-4aee-4a7a-aaed-18513dc1e4e7.png",
+    "job": "dd6aae2f-4aee-4a7a-aaed-18513dc1e4e7"
+  },
+  "conservatory": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_41e2c13b-67e4-430a-ae6d-6627d98797dd.png",
+    "job": "41e2c13b-67e4-430a-ae6d-6627d98797dd"
+  },
+  "cleaning": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_caec3d41-4708-452e-a752-3b19ba5df38d.png",
+    "job": "caec3d41-4708-452e-a752-3b19ba5df38d"
+  },
+  "chapel": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_67b52468-d892-44d1-a1ff-ccfc89ce1272.png",
+    "job": "67b52468-d892-44d1-a1ff-ccfc89ce1272"
+  },
+  "gallery": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_14d81fe4-6286-4e26-875f-ccce6947fd09.png",
+    "job": "14d81fe4-6286-4e26-875f-ccce6947fd09"
+  },
+  "atelier": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_4341caea-44af-4295-a5e9-3d685441877e.png",
+    "job": "4341caea-44af-4295-a5e9-3d685441877e"
+  },
+  "pavilion": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_ea7d8617-018f-435d-a040-a954173a73f7.png",
+    "job": "ea7d8617-018f-435d-a040-a954173a73f7"
+  },
+  "guestbook": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_1a9937bd-e8bf-4ef4-9f36-51c50961070e.png",
+    "job": "1a9937bd-e8bf-4ef4-9f36-51c50961070e"
+  },
+  "showroom": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_d8e417eb-6cd0-4a6a-9f3b-bf94a8b2f12e.png",
+    "job": "d8e417eb-6cd0-4a6a-9f3b-bf94a8b2f12e"
+  }
+}
