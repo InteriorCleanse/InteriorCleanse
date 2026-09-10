@@ -1,8 +1,15 @@
 {
-  "_note": "Generated 2026-09-10 with Higgsfield Cinema Studio Image 2.5, 16:9 at 2K (2752x1536), 2 credits each. Download into public/images with `npm run posters:fetch`. Keys match content/scenes.json.",
+  "_note": "Generated 2026-09-10 with Higgsfield Cinema Studio Image 2.5, 16:9 at 2K (2752x1536), 2 credits each. Download into public/images with `npm run posters:fetch`. Keys match content/scenes.json. Entries may also carry `video` (a generated clip, raw — run `npm run clips:loop` on it) fetched into raw-clips/ by the same script.",
   "atrium": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_085527_8155a571-159c-473c-999a-37cd359ac492.png",
-    "job": "8155a571-159c-473c-999a-37cd359ac492"
+    "job": "8155a571-159c-473c-999a-37cd359ac492",
+    "video": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091741_7357ac1e-45cd-499e-b1a2-df94ef4293cf.mp4",
+      "job": "7357ac1e-45cd-499e-b1a2-df94ef4293cf",
+      "model": "cinematic_studio_video_v2",
+      "duration": 10,
+      "note": "raw 10s pro clip, silent; slow dolly push-in from the poster frame"
+    }
   },
   "library": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_dd6aae2f-4aee-4a7a-aaed-18513dc1e4e7.png",

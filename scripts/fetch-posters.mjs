@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Downloads the generated environment stills into public/images under the
- * exact filenames content/scenes.json expects.
+ * exact filenames content/scenes.json expects — and any raw clips into
+ * raw-clips/ (not public/video: a raw clip still needs `npm run clips:loop`).
  *
  *   node scripts/fetch-posters.mjs            # every scene with a source URL
  *   node scripts/fetch-posters.mjs --only hero,library
@@ -57,7 +58,22 @@ for (const [key, entry] of Object.entries(sources)) {
   mkdirSync(dirname(dst), { recursive: true })
   writeFileSync(dst, Buffer.from(await res.arrayBuffer()))
   done++
+
+  if (entry.video?.url) {
+    const rawDir = join(ROOT, 'raw-clips')
+    const rawDst = join(rawDir, `${key}.mp4`)
+    console.log(`  ${''.padEnd(14)} raw clip → raw-clips/${key}.mp4`)
+    const v = await fetch(entry.video.url)
+    if (!v.ok) console.error(`  ${''.padEnd(14)} clip FAILED — ${v.status}`)
+    else {
+      mkdirSync(rawDir, { recursive: true })
+      writeFileSync(rawDst, Buffer.from(await v.arrayBuffer()))
+    }
+  }
 }
 
 console.log(`\n${done} poster(s) written, ${skipped} skipped.`)
-if (done) console.log('Next: git add public/images && git commit -m "assets: environment posters", then npm run check:contrast against a production build.')
+if (done) {
+  console.log('Next: git add public/images && git commit -m "assets: environment posters", then npm run check:contrast against a production build.')
+  if (existsSync(join(ROOT, 'raw-clips'))) console.log('Raw clips are in raw-clips/ — run: npm run clips:loop raw-clips/*.mp4 --auto')
+}

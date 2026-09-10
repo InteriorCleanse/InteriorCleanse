@@ -8,3 +8,4 @@ out/
 tsconfig.tsbuildinfo
 
 # Brand master originals are preserved but not needed by the build
+raw-clips/
