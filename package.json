@@ -10,7 +10,8 @@
     "check:contrast": "node scripts/check-contrast.mjs",
     "seed:catalog": "node scripts/seed-catalog.mjs",
     "posters:extract": "node scripts/extract-posters.mjs",
-    "posters:fetch": "node scripts/fetch-posters.mjs"
+    "posters:fetch": "node scripts/fetch-posters.mjs",
+    "clips:loop": "node scripts/loop-clips.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
