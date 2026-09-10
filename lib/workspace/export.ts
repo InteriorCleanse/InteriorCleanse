@@ -57,6 +57,8 @@ export const EXPORTED_TABLES = [
   'subscriptions',
   'usage_events',
   'audit_logs',
+  'knowledge_documents',
+  'crm_deals',
 ] as const
 
 /**

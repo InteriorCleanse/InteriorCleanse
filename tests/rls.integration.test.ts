@@ -643,6 +643,64 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     expect(neither).toBe('23514')
   })
 
+  it("does not show one tenant another tenant's notes or pipeline", async () => {
+    // Knowledge is the assistant's memory and the pipeline is next month's
+    // revenue. Both are tenant-scoped through the same helpers as orders, and
+    // both are asserted rather than assumed.
+    for (const [org, tag] of [[orgA, 'A'], [orgB, 'B']] as const) {
+      await db.query(
+        `insert into public.knowledge_documents
+           (organization_id, source, external_id, title, content, content_hash)
+         values ($1, 'notion', $2, $3, $4, $5)`,
+        [org, `page-${tag}`, `Refund policy ${tag}`, `Tenant ${tag} refunds within 30 days.`, `hash-${tag}`],
+      )
+      await db.query(
+        `insert into public.crm_deals (organization_id, source, external_id, name, stage, outcome, amount_minor, currency)
+         values ($1, 'hubspot', $2, $3, 'Contract sent', 'open', 100000, 'USD')`,
+        [org, `deal-${tag}`, `Deal ${tag}`],
+      )
+    }
+
+    await asUser(db, ownerA, async (s) => {
+      const notes = await s.query<{ title: string }>('select title from public.knowledge_documents')
+      expect(notes.rows.map((r) => r.title)).toEqual(['Refund policy A'])
+
+      // Full-text search goes through the same policy: a query that would
+      // match both tenants' notes returns only this tenant's.
+      const found = await s.query<{ title: string }>(
+        `select title from public.knowledge_documents
+          where search @@ to_tsquery('english', $1)`,
+        ["'refund':*"],
+      )
+      expect(found.rows.map((r) => r.title)).toEqual(['Refund policy A'])
+
+      const deals = await s.query<{ name: string }>('select name from public.crm_deals')
+      expect(deals.rows.map((r) => r.name)).toEqual(['Deal A'])
+    })
+  })
+
+  it('lets a member upload a note but not write a deal', async () => {
+    // Notes are imported by people, like a CSV. Deals come only from the
+    // CRM through the sync — a hand-written deal would be a number nobody's
+    // CRM agrees with.
+    await asUser(db, ownerA, async (s) => {
+      const inserted = await s.query(
+        `insert into public.knowledge_documents
+           (organization_id, source, external_id, title, content, content_hash)
+         values ($1, 'obsidian', 'note.md', 'My note', 'body', 'h') returning id`,
+        [orgA],
+      )
+      expect(inserted.rowCount).toBe(1)
+
+      const failure = await s.refused(
+        `insert into public.crm_deals (organization_id, source, external_id, name, stage)
+         values ($1, 'manual', 'x', 'Invented', 'Won')`,
+        [orgA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+  })
+
   it('does not let a tenant edit their own subscription', async () => {
     // Entitlements are read from this table. A tenant that could write it could
     // grant themselves the top plan for nothing.

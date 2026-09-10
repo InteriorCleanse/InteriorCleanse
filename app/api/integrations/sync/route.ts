@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { can } from '@/lib/authz'
 import { cronDenied, isCronAuthorized } from '@/lib/cron'
 import { ADAPTERS, syncConnection, type ConnectionRow } from '@/lib/integrations/sync'
+import { SOURCE_ADAPTERS, syncSource } from '@/lib/knowledge/sync'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { getSessionContext } from '@/lib/session'
 import { supabaseAdmin, supabaseServer } from '@/lib/supabase/server'
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
   const parsed = syncSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return Response.json({ error: 'Malformed request.' }, { status: 400 })
 
-  if (!ADAPTERS[parsed.data.provider]) {
+  if (!ADAPTERS[parsed.data.provider] && !SOURCE_ADAPTERS[parsed.data.provider]) {
     return Response.json(
       { error: `${parsed.data.provider} does not have an automatic sync.` },
       { status: 409 },
@@ -91,13 +92,17 @@ export async function POST(request: Request) {
 
   if (!connection) return Response.json({ error: 'Not connected.' }, { status: 404 })
 
-  const outcome = await syncConnection(supabaseAdmin(), connection as ConnectionRow)
+  // Commerce and knowledge/CRM syncs are siblings, not one runner: orders are
+  // money and get overlapping windows; notes and deals catch up by edit time.
+  const outcome = SOURCE_ADAPTERS[parsed.data.provider]
+    ? await syncSource(supabaseAdmin(), connection as ConnectionRow)
+    : await syncConnection(supabaseAdmin(), connection as ConnectionRow)
 
   return Response.json({
     status: outcome.status,
     recordsRead: outcome.recordsRead,
     recordsWritten: outcome.recordsWritten,
-    truncated: outcome.truncated,
+    truncated: outcome.status === 'partial',
     // The operator-facing message, which by construction never contains a
     // credential or a vendor payload.
     detail: outcome.error,
@@ -114,7 +119,7 @@ export async function GET(request: Request) {
   const { data: connections } = await admin
     .from('integration_connections')
     .select('id, organization_id, provider, settings, last_success_at, last_attempt_at')
-    .in('provider', Object.keys(ADAPTERS))
+    .in('provider', [...Object.keys(ADAPTERS), ...Object.keys(SOURCE_ADAPTERS)])
     .in('status', ['connected', 'degraded'])
     .or(`last_attempt_at.is.null,last_attempt_at.lt.${dueBefore}`)
     .limit(BATCH_SIZE)
@@ -122,7 +127,9 @@ export async function GET(request: Request) {
   const results: { connectionId: string; status: string; written: number }[] = []
 
   for (const connection of connections ?? []) {
-    const outcome = await syncConnection(admin, connection as ConnectionRow)
+    const outcome = SOURCE_ADAPTERS[connection.provider]
+      ? await syncSource(admin, connection as ConnectionRow)
+      : await syncConnection(admin, connection as ConnectionRow)
     results.push({
       connectionId: connection.id,
       status: outcome.status,

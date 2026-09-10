@@ -12,7 +12,26 @@ import {
 const READ_ARGS: Record<string, unknown> = {
   compare_periods: { metric: 'netRevenue' },
   get_metric_definition: { metric: 'roas' },
+  search_knowledge: { question: 'refund policy' },
 }
+
+/** What a connected workspace would hand the two injected readers. */
+const KNOWLEDGE_HITS = [
+  {
+    id: 'doc-1',
+    title: 'Refund policy',
+    source: 'notion',
+    url: 'https://www.notion.so/refunds',
+    snippet: 'Refunds are accepted within 30 days of delivery.',
+    updatedAt: '2025-06-10T09:00:00.000Z',
+  },
+]
+
+const PIPELINE = [
+  { name: 'Annual', stage: 'Contract sent', amountMinor: 1_200_050, currency: 'GBP', probability: 90, expectedCloseOn: '2025-07-15', owner: null, source: 'hubspot' },
+  { name: 'US deal', stage: 'Qualified', amountMinor: 50_000, currency: 'USD', probability: 20, expectedCloseOn: null, owner: null, source: 'hubspot' },
+  { name: 'Early', stage: 'Qualified', amountMinor: null, currency: null, probability: null, expectedCloseOn: null, owner: null, source: 'hubspot' },
+]
 
 function ctx(over: Partial<ToolContext> = {}): ToolContext {
   return {
@@ -20,6 +39,9 @@ function ctx(over: Partial<ToolContext> = {}): ToolContext {
     isDemo: true,
     currency: 'GBP',
     can: () => true,
+    // Injected readers, as the route injects them with the user's client.
+    searchKnowledge: async () => KNOWLEDGE_HITS,
+    queryPipeline: async () => PIPELINE,
     ...over,
   }
 }
@@ -322,5 +344,60 @@ describe('write tools', () => {
       threshold: 100_000,
     })
     expect((await rule.execute(inApp, ctx())).preview!.targetIntegration).toBeNull()
+  })
+})
+
+describe('knowledge and pipeline tools', () => {
+  it('says plainly when nothing is connected, and still says where it looked', async () => {
+    const search = TOOLS_BY_NAME.get('search_knowledge')!
+    const bare = ctx({ searchKnowledge: undefined, queryPipeline: undefined })
+    const result = await search.execute({ question: 'refund policy', limit: 5 }, bare)
+    expect(result.data).toMatchObject({ available: false })
+    expect(result.citations).toEqual(['knowledge_documents'])
+
+    const pipeline = TOOLS_BY_NAME.get('query_pipeline')!
+    expect((await pipeline.execute({}, bare)).data).toMatchObject({ available: false })
+  })
+
+  it('returns passages with a citation per document', async () => {
+    const search = TOOLS_BY_NAME.get('search_knowledge')!
+    const result = await search.execute({ question: 'refund policy', limit: 5 }, ctx())
+    const data = result.data as { matches: { title: string; url: string; passage: string }[]; note: string }
+    expect(data.matches[0]!.title).toBe('Refund policy')
+    expect(data.matches[0]!.passage).toContain('30 days')
+    expect(result.citations).toEqual(['doc:doc-1'])
+    // The note reminds the model these are intentions, not measurements.
+    expect(data.note).toMatch(/not measured results/)
+  })
+
+  it('tells the model to say so when nothing matched, rather than guess', async () => {
+    const search = TOOLS_BY_NAME.get('search_knowledge')!
+    const result = await search.execute(
+      { question: 'unicorns', limit: 5 },
+      ctx({ searchKnowledge: async () => [] }),
+    )
+    expect((result.data as { note: string }).note).toMatch(/do not guess/i)
+  })
+
+  it('totals the pipeline per currency and never across them', async () => {
+    const pipeline = TOOLS_BY_NAME.get('query_pipeline')!
+    const data = (await pipeline.execute({}, ctx())).data as {
+      openDeals: number
+      openValue: { currency: string; display: string }[]
+      dealsWithoutAmount: number
+      caution: string
+    }
+    expect(data.openDeals).toBe(3)
+    expect(data.openValue.map((v) => v.currency).sort()).toEqual(['GBP', 'USD'])
+    expect(data.openValue.find((v) => v.currency === 'GBP')!.display).toContain('12,000.50')
+    expect(data.dealsWithoutAmount).toBe(1)
+    expect(data.caution).toMatch(/not revenue/i)
+  })
+
+  it('bounds the question and the result count', () => {
+    const search = TOOLS_BY_NAME.get('search_knowledge')!
+    expect(search.schema.safeParse({ question: 'x' }).success).toBe(false)
+    expect(search.schema.safeParse({ question: 'refunds', limit: 50 }).success).toBe(false)
+    expect(search.schema.safeParse({ question: 'refunds' }).success).toBe(true)
   })
 })

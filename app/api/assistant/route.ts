@@ -11,6 +11,7 @@ import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from '@/lib/assistant/tools'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { logFailure } from '@/lib/log'
+import { snippet, toTsQuery } from '@/lib/knowledge/search'
 
 /**
  * The assistant endpoint.
@@ -206,6 +207,47 @@ export async function POST(request: Request) {
     isDemo: membership.isDemo,
     currency: membership.baseCurrency,
     can: (capability) => can(actor, capability),
+
+    // Both readers go through the user's own client, so RLS decides what the
+    // assistant can see — the same rows the person asking could open
+    // themselves. Results are treated as external content by the caller.
+    searchKnowledge: async (question, limit) => {
+      const query = toTsQuery(question)
+      if (!query) return []
+      const { data } = await supabase
+        .from('knowledge_documents')
+        .select('id, title, source, url, content, source_updated_at')
+        .eq('organization_id', membership.organizationId)
+        .textSearch('search', query, { config: 'english' })
+        .limit(limit)
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        source: row.source,
+        url: row.url,
+        snippet: snippet(row.content, question),
+        updatedAt: row.source_updated_at,
+      }))
+    },
+    queryPipeline: async () => {
+      const { data } = await supabase
+        .from('crm_deals')
+        .select('name, stage, outcome, amount_minor, currency, probability, expected_close_on, owner_name, source')
+        .eq('organization_id', membership.organizationId)
+        .eq('outcome', 'open')
+        .order('expected_close_on', { ascending: true, nullsFirst: false })
+        .limit(200)
+      return (data ?? []).map((d) => ({
+        name: d.name,
+        stage: d.stage,
+        amountMinor: d.amount_minor,
+        currency: d.currency,
+        probability: d.probability,
+        expectedCloseOn: d.expected_close_on,
+        owner: d.owner_name,
+        source: d.source,
+      }))
+    },
   }
 
   const system =

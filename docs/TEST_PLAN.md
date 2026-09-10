@@ -30,13 +30,15 @@ npm run verify   # lint → typecheck → test → build
 | `tests/calendar-sync.test.ts` | Refresh cadence, revoked-never-retried, and the token write-back decision that separates a connection from a countdown | 7 passing |
 | `tests/legal.test.ts` | Draft banner held until sign-off; retention and grace period on the legal pages pinned to the code that enforces them | 7 passing |
 | `tests/plan-copy.test.ts` | Overrides reach name and copy only; a smuggled price or entitlement never reaches the page; blank restores the default | 10 passing |
+| `tests/knowledge.test.ts` | Notion blocks → Markdown, adapter cursors against recorded responses, HubSpot money and stage mapping, Base44 records, search terms and snippets | 41 passing |
+| `tests/knowledge-transport.test.ts` | Store-only zip against the CRC-32 vector, Obsidian frontmatter and note parsing, Slack escaping and failure classes | 28 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
 
 ## Tenant isolation, against a real Postgres
 
-`tests/rls.integration.test.ts` — **32 assertions, passing.** This was the
+`tests/rls.integration.test.ts` — **34 assertions, passing.** This was the
 longest-standing gap in the product: isolation is enforced by RLS in the
 database, so no TypeScript test could ever prove it.
 
@@ -95,7 +97,10 @@ Beyond the ten: cross-tenant `orders`, `integration_credentials` unreadable even
 by the workspace owner whose key it is, `subscriptions` unwritable by the tenant
 whose entitlements it decides, and — after `0009` let a credential belong to a
 per-user calendar connection — that widening the *ownership* of a secret did not
-widen access to it.
+widen access to it. Then `knowledge_documents` and `crm_deals`: cross-tenant reads
+return nothing, full-text search through the same policy returns only the
+tenant's own notes, a member can upload a note, and nobody can hand-write a
+deal.
 
 ### What these tests found
 

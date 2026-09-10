@@ -46,7 +46,7 @@ PATCH from any admin deleted the workspace, skipping the owner-only endpoint,
 the typed confirmation, the audit entry and the destruction of stored
 credentials.
 
-**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 32
+**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 34
 isolation assertions against a real Postgres as the `authenticated` role — see
 `docs/TEST_PLAN.md`. Claims in this document that are not covered there should
 be read as intentions.

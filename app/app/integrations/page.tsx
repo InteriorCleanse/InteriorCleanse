@@ -5,6 +5,9 @@ import { isVaultConfigured } from '@/lib/vault'
 import { CONNECTORS } from '@/lib/integrations/registry'
 import { assessConnection, describeAge, summariseHealth, type ConnectionRecord } from '@/lib/integrations/health'
 import { ADAPTERS } from '@/lib/integrations/sync'
+import { SOURCE_ADAPTERS } from '@/lib/knowledge/sync'
+import { can } from '@/lib/authz'
+import { ObsidianPanel } from './obsidian-panel'
 import { CALENDAR_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
 import { SyncButton } from './sync-button'
 
@@ -195,9 +198,21 @@ export default async function IntegrationsPage({
                 )
               })()}
 
-              {!planned && ADAPTERS[definition.provider] && byProvider.get(definition.provider) &&
+              {!planned &&
+              (ADAPTERS[definition.provider] || SOURCE_ADAPTERS[definition.provider]) &&
+              byProvider.get(definition.provider) &&
               byProvider.get(definition.provider)!.status !== 'not_connected' ? (
                 <SyncButton provider={definition.provider} label={definition.name} />
+              ) : null}
+
+              {definition.provider === 'obsidian' ? (
+                // No credential and no vendor: a snapshot out, notes in.
+                <ObsidianPanel
+                  canImport={can(
+                    { userId: session.userId, tenantRole: membership.role, platformRole: session.platformRole },
+                    'data:import',
+                  )}
+                />
               ) : null}
 
               {definition.credentials.length > 0 ? (

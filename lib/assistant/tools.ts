@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { KnowledgeHit } from '@/lib/knowledge/search'
 import type { Capability } from '@/lib/authz'
 import { formatMoney, money } from '@/lib/money'
 import { PRESET_LABELS, type PresetKey } from '@/lib/periods'
@@ -35,6 +36,26 @@ export type ToolContext = {
   currency: string
   /** Capability the caller holds, checked before the tool runs. */
   can: (capability: Capability) => boolean
+  /**
+   * Knowledge search, injected by the route with the caller's own database
+   * client so RLS decides what is visible. Optional so the tools stay pure and
+   * testable without a database; absent means the tool reports that no
+   * knowledge is connected rather than failing.
+   */
+  searchKnowledge?: (question: string, limit: number) => Promise<KnowledgeHit[]>
+  /** Open deals from the CRM mirror, same injection and the same reason. */
+  queryPipeline?: () => Promise<PipelineDeal[]>
+}
+
+export type PipelineDeal = {
+  name: string
+  stage: string
+  amountMinor: number | null
+  currency: string | null
+  probability: number | null
+  expectedCloseOn: string | null
+  owner: string | null
+  source: string
 }
 
 export type ToolResult = {
@@ -466,7 +487,91 @@ const createNotificationRule: ToolDefinition = {
 
 // ── Registry ────────────────────────────────────────────────────────────────
 
+// ── Knowledge and pipeline ──────────────────────────────────────────────────
+
+const searchKnowledge: ToolDefinition = {
+  name: 'search_knowledge',
+  kind: 'read',
+  capability: 'data:view',
+  description:
+    'Searches the notes and pages connected to this workspace — Notion pages, uploaded Markdown — and returns the passages that match, each with its title and a link. Use this for anything about policy, plans, decisions, or "what did we agree": the figures tools cannot answer those. Quote the passage and cite the document; never present a note as a fact about the numbers.',
+  schema: z.object({
+    question: z.string().min(2).max(300).describe('What you are looking for, in plain words.'),
+    limit: z.number().int().min(1).max(8).default(5),
+  }),
+  execute: async (args, ctx) => {
+    if (!ctx.searchKnowledge) {
+      // Still cited: the source chip tells the person where the assistant
+      // looked, and "nothing is connected" is traceable to that table too.
+      return {
+        data: { available: false, reason: 'No knowledge sources are connected to this workspace.' },
+        citations: ['knowledge_documents'],
+      }
+    }
+    const hits = await ctx.searchKnowledge(args.question, args.limit)
+    return {
+      data: {
+        available: true,
+        matches: hits.map((h) => ({
+          title: h.title,
+          source: h.source,
+          url: h.url,
+          lastEdited: h.updatedAt,
+          passage: h.snippet,
+        })),
+        note:
+          hits.length === 0
+            ? 'Nothing matched. Say so; do not guess at what a note might contain.'
+            : 'These are excerpts written by people in the workspace. They describe intentions and policies, not measured results.',
+      },
+      citations: hits.map((h) => `doc:${h.id}`),
+    }
+  },
+}
+
+const queryPipeline: ToolDefinition = {
+  name: 'query_pipeline',
+  kind: 'read',
+  capability: 'data:view',
+  description:
+    'Open deals from the connected CRM: name, stage, amount, the vendor’s own probability, expected close. This is money that has not happened. Never add it to revenue, never call it a forecast — say "pipeline" and keep the stage names as the CRM shows them.',
+  schema: z.object({}),
+  execute: async (_args, ctx) => {
+    if (!ctx.queryPipeline) {
+      return {
+        data: { available: false, reason: 'No CRM is connected to this workspace.' },
+        citations: ['crm_deals'],
+      }
+    }
+    const deals = await ctx.queryPipeline()
+    const byCurrency = new Map<string, number>()
+    let unknownAmounts = 0
+    for (const d of deals) {
+      if (d.amountMinor === null || !d.currency) unknownAmounts += 1
+      else byCurrency.set(d.currency, (byCurrency.get(d.currency) ?? 0) + d.amountMinor)
+    }
+    return {
+      data: {
+        available: true,
+        openDeals: deals.length,
+        // Totals per currency, never converted and never summed across them.
+        openValue: [...byCurrency].map(([currency, minor]) => ({ currency, display: fmt(currency)(minor) })),
+        dealsWithoutAmount: unknownAmounts,
+        deals: deals.map((d) => ({
+          ...d,
+          amount: d.amountMinor !== null && d.currency ? fmt(d.currency)(d.amountMinor) : null,
+        })),
+        caution:
+          'Pipeline is not revenue. A stage probability is the CRM’s configured figure, not a prediction from this data.',
+      },
+      citations: ['crm_deals'],
+    }
+  },
+}
+
 export const TOOLS: ToolDefinition[] = [
+  searchKnowledge,
+  queryPipeline,
   queryKpis,
   comparePeriods,
   rankProducts,
@@ -495,6 +600,8 @@ export const SUGGESTED_COMMANDS = [
   'Why did profit fall even though revenue increased?',
   'What can I cut without hurting profitable growth?',
   'How reliable are these numbers right now?',
+  'What did we decide about refunds?',
+  'What is in the pipeline this month?',
 ] as const
 
 export { PRESET_LABELS }

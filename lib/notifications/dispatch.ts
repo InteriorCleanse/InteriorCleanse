@@ -1,5 +1,6 @@
 import { decideEmail, decideInApp, emailSubject, type Preferences, type Severity } from './delivery'
 import { renderNotificationEmail, type EmailTransport } from './email'
+import { SLACK_MIN_SEVERITY, type SlackTransport } from './slack'
 
 /**
  * Turning a raised notification into deliveries.
@@ -42,14 +43,17 @@ export type DispatchableNotification = {
 
 export type DeliveryRecord = {
   notificationId: string
-  userId: string
-  channel: 'in_app' | 'email'
+  /** Null for a workspace-level channel such as Slack. */
+  userId: string | null
+  channel: 'in_app' | 'email' | 'slack'
   status: 'delivered' | 'suppressed' | 'failed'
   detail: string | null
 }
 
 export type DispatchContext = {
   transport: EmailTransport
+  /** The workspace's Slack channel, when one is connected. */
+  slack?: SlackTransport | null
   workspaceName: string
   isDemo: boolean
   /** Absolute base, e.g. https://app.example.com. */
@@ -141,6 +145,39 @@ export async function dispatch(
       status: result.sent ? 'delivered' : 'failed',
       detail: result.sent ? null : result.detail,
     })
+  }
+
+  // One post per notification for the whole workspace, not one per person:
+  // a channel is a shared place. Info never goes — a channel that carries
+  // every briefing is muted within a week — and quiet hours do not apply,
+  // because a channel post wakes nobody.
+  if (context.slack) {
+    const rank = { info: 0, warning: 1, critical: 2 }
+    if (rank[notification.severity] < rank[SLACK_MIN_SEVERITY]) {
+      records.push({
+        notificationId: notification.id,
+        userId: null,
+        channel: 'slack',
+        status: 'suppressed',
+        detail: `Below the ${SLACK_MIN_SEVERITY} floor for a shared channel.`,
+      })
+    } else {
+      const result = await context.slack.send({
+        title: notification.title,
+        body: notification.body,
+        evidence: notification.evidence,
+        severity: notification.severity,
+        workspace: context.workspaceName,
+        link: absolute(context.siteUrl, notification.link),
+      })
+      records.push({
+        notificationId: notification.id,
+        userId: null,
+        channel: 'slack',
+        status: result.sent ? 'delivered' : 'failed',
+        detail: result.sent ? null : result.detail,
+      })
+    }
   }
 
   return records

@@ -181,6 +181,9 @@ What follows includes the half no code can check.
 Built to the point of being useful and no further. None of these should be
 described to a customer as finished:
 
+- Notion, HubSpot, Base44 and Slack **have met only recorded responses**, like
+  the commerce connectors. Notion is read-only — writing briefings back to a
+  Notion database is the obvious next step and is not built.
 - Connector sync loops **run, but have never been pointed at a real account**.
   Stripe and Shopify are implemented end to end and tested against recorded
   responses; neither has met a live API, a real rate limit, or an account with

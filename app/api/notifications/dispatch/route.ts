@@ -4,6 +4,8 @@ import { publicEnv } from '@/lib/env'
 import { DEFAULT_PREFERENCES, type Preferences, type Severity } from '@/lib/notifications/delivery'
 import { dispatch, localHourIn, type DeliveryRecord, type Recipient } from '@/lib/notifications/dispatch'
 import { emailTransport } from '@/lib/notifications/email'
+import { slackWebhookTransport, type SlackTransport } from '@/lib/notifications/slack'
+import { openSecret, vaultProvider, type SealedSecret } from '@/lib/vault'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
 import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
 import { isCalendarDue, syncCalendar, type CalendarConnectionRow } from '@/lib/calendar/sync'
@@ -64,6 +66,7 @@ export async function GET(request: Request) {
       const recipients = await loadRecipients(admin, org.id, org.timezone, now)
       const context = {
         transport,
+        slack: await slackFor(admin, org.id),
         workspaceName: org.name,
         isDemo: org.is_demo,
         siteUrl,
@@ -263,6 +266,45 @@ export async function GET(request: Request) {
 }
 
 type LoadedRecipient = Recipient & { timezone: string; briefings: string[] }
+
+/**
+ * The workspace's Slack transport, or null.
+ *
+ * The webhook URL is the credential and lives sealed in the vault under the
+ * workspace's Slack connection. It is opened here, handed to the transport,
+ * and never logged or stored anywhere else — the same rule as every other
+ * secret the sweep touches.
+ */
+async function slackFor(admin: ReturnType<typeof supabaseAdmin>, organizationId: string): Promise<SlackTransport | null> {
+  const { data: connection } = await admin
+    .from('integration_connections')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('provider', 'slack')
+    .eq('status', 'connected')
+    .maybeSingle()
+  if (!connection) return null
+
+  const { data: credential } = await admin
+    .from('integration_credentials')
+    .select('id, sealed')
+    .eq('connection_id', connection.id)
+    .eq('field', 'webhook_url')
+    .is('revoked_at', null)
+    .maybeSingle()
+  if (!credential) return null
+
+  try {
+    const webhookUrl = await openSecret(
+      credential.sealed as SealedSecret,
+      { organizationId, credentialId: credential.id, field: 'webhook_url' },
+      vaultProvider(),
+    )
+    return slackWebhookTransport({ webhookUrl })
+  } catch {
+    return null
+  }
+}
 
 /**
  * Active members of a workspace, with their preferences.

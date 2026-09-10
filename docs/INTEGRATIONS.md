@@ -8,7 +8,12 @@
 | Stripe | secret key, sealed | **yes** | Settled charges and refunds, fees from the expanded balance transaction. |
 | Shopify | admin token, sealed | **yes** | Orders, line items and nested refunds, on `updated_at`. |
 | Google / Outlook calendar | refresh token, sealed | **yes**, hourly | PKCE, read-only scopes; rotated refresh tokens written back before events are fetched. |
-| Meta Ads, Google Ads | — | no | Registry entries only, marked `planned` in the UI. |
+| Notion | internal integration token, sealed | **yes**, hourly | Shared pages → searchable, citable notes. Stops paging at the first page older than the cursor. |
+| Base44 | API key, sealed | **yes**, hourly | One entity per connection → one note per record, a field per line. |
+| HubSpot | private app token, sealed | **yes**, hourly | Contacts → customers; deals → `crm_deals`, never `orders`. Free tier, free API. |
+| Slack | incoming webhook URL, sealed | on notify | Warnings and critical alerts to one channel. Info never. |
+| Obsidian | none | snapshot | Vault bundle out (zip, frontmatter); Markdown notes in as knowledge. No cloud API exists, and the card says so. |
+| Meta Ads, Google Ads, Salesforce | — | no | Registry entries only, marked `planned` in the UI. Salesforce has no free production tier; HubSpot does. |
 
 ## The sync loop
 
@@ -76,6 +81,37 @@ Outlook Calendar, iCalendar subscription feed.
 
 **Phase 2** — Meta Ads, Google Ads, TikTok Ads, WooCommerce, Etsy, Amazon seller
 data where permitted, QuickBooks.
+
+## Knowledge and CRM
+
+`lib/knowledge/` — the assistant answered from figures alone; a business's
+*decisions* live in Notion, in a vault, in a CRM. Two tables, both RLS-forced:
+`knowledge_documents` (whole documents, Postgres full-text search over a
+generated `tsvector`, title weighted above body) and `crm_deals` (money that
+has not happened, kept structurally apart from `orders`).
+
+The assistant gets two read tools. `search_knowledge` returns passages with a
+`doc:` citation each and reminds the model that notes describe intentions, not
+measurements; `query_pipeline` totals open deals per currency and never across
+them, and calls it pipeline, never revenue. Both are injected by the route with
+the caller's own client so RLS decides what the assistant can see — the same
+rows the person could open themselves.
+
+Chunking and embeddings were considered and declined: on a few hundred pages,
+ranked full-text search is cheaper, deterministic, and can show the person the
+document it quoted. That trade reverses at thousands of pages, which would be
+a good problem.
+
+`lib/knowledge/sync.ts` is a sibling of the commerce runner, not a
+generalisation: orders get overlapping windows because a missed one is a wrong
+number; notes catch up by edit time. Content is hashed so an unchanged page is
+a no-op rather than a rewrite that makes the whole base look edited today.
+
+Obsidian is handled honestly. There is no cloud API — a vault is a folder —
+so the connector exports a zip of Markdown with Dataview-ready frontmatter
+(every briefing figure as a property) and accepts Markdown uploads as
+knowledge. The store-only zip writer is forty lines in `lib/zip.ts`, checked
+against the CRC-32 reference vector, rather than a dependency.
 
 ## Calendar OAuth
 
