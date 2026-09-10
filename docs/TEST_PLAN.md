@@ -35,6 +35,7 @@ npm run verify   # lint → typecheck → test → build
 | `tests/notion-write.test.ts` | Rich-text chunking at Notion's limit, blocks and properties matched to a database's real schema, request shape, refusals without a request | 13 passing |
 | `tests/prompt.test.ts` | The assistant's standing rules pinned: demo marking, notes are not figures, pipeline is not revenue, who can approve, the spoken reply's formatting | 7 passing |
 | `tests/pipeline.test.ts` | Pipeline totalled per currency and never across them, stages in the vendor's labels ordered by the vendor's probability, overdue and closing-soon from the expected date, nothing weighted | 13 passing |
+| `tests/demo-sources.test.ts` | The demo CRM and notes: fixed, one currency, every stage the pipeline page shows has a deal in it, the closed window bites, and a search for a target finds the plan rather than a figure | 11 passing |
 | `tests/citations.test.ts` | Source chips: a cited record shows its title and link, a metric key its dictionary label, and no chip ever follows a `javascript:` or relative link | 4 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a

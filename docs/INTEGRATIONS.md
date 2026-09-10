@@ -115,6 +115,16 @@ are displayed, not multiplied: a weighted total is a number nobody measured.
 `lib/crm/pipeline.ts` is the pure summary the page renders and is tested on
 its own.
 
+The demonstration workspace has a CRM and notes of its own, in memory like
+the rest of the demo dataset (`lib/demo/sources.ts`): seven open deals in
+HubSpot's default stage names, including one past its close and one with no
+amount, three closed inside the 90-day window and one outside it, and four
+notes written so that a question about the figures finds a note that sounds
+like an answer and is not one — the advertising plan states a ROAS target,
+the dashboard states the ROAS. The pipeline page, the Knowledge page, and
+both assistant tools read the same fixtures on the same fixed clock, and all
+of it carries the demo badge.
+
 Chunking and embeddings were considered and declined: on a few hundred pages,
 ranked full-text search is cheaper, deterministic, and can show the person the
 document it quoted. That trade reverses at thousands of pages, which would be

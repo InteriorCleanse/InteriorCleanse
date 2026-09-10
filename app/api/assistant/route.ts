@@ -12,6 +12,8 @@ import { TOOLS, TOOLS_BY_NAME, type CitationSource, type ToolContext } from '@/l
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { logFailure } from '@/lib/log'
 import { snippet, toTsQuery } from '@/lib/knowledge/search'
+import { buildDemoPipeline, searchDemoKnowledge } from '@/lib/demo/sources'
+import { DEMO_NOW } from '@/lib/workspace-analytics'
 
 /**
  * The assistant endpoint.
@@ -212,6 +214,7 @@ export async function POST(request: Request) {
     // assistant can see — the same rows the person asking could open
     // themselves. Results are treated as external content by the caller.
     searchKnowledge: async (question, limit) => {
+      if (membership.isDemo) return searchDemoKnowledge(question, limit)
       const query = toTsQuery(question)
       if (!query) return []
       const { data } = await supabase
@@ -230,6 +233,23 @@ export async function POST(request: Request) {
       }))
     },
     queryPipeline: async () => {
+      if (membership.isDemo) {
+        // Same fixed clock as the pipeline page, so the two agree.
+        return buildDemoPipeline({
+          today: DEMO_NOW.toISOString().slice(0, 10),
+          currency: membership.baseCurrency,
+        })
+          .filter((d) => d.outcome === 'open')
+          .sort((a, b) =>
+            a.expectedCloseOn === b.expectedCloseOn
+              ? 0
+              : a.expectedCloseOn === null
+                ? 1
+                : b.expectedCloseOn === null
+                  ? -1
+                  : a.expectedCloseOn.localeCompare(b.expectedCloseOn),
+          )
+      }
       const { data } = await supabase
         .from('crm_deals')
         .select('name, stage, outcome, amount_minor, currency, probability, expected_close_on, owner_name, source')

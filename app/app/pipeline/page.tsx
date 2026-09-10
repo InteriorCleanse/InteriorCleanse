@@ -1,14 +1,16 @@
 import Link from 'next/link'
-import { Eyebrow, Panel } from '@/components/ui'
+import { DemoBadge, Eyebrow, Panel } from '@/components/ui'
 import {
   CLOSING_SOON_DAYS,
   summarisePipeline,
   type CurrencyTotal,
   type PipelineDeal,
 } from '@/lib/crm/pipeline'
+import { buildDemoPipeline } from '@/lib/demo/sources'
 import { formatMoney, money } from '@/lib/money'
 import { requireCapability } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
+import { DEMO_NOW } from '@/lib/workspace-analytics'
 
 export const metadata = { title: 'Pipeline' }
 
@@ -29,51 +31,30 @@ const MAX_DEALS = 500
  */
 export default async function PipelinePage() {
   const { membership } = await requireCapability('data:view')
-  const supabase = await supabaseServer()
 
-  const now = new Date()
+  // The demo clock is fixed, like every other demo surface, so its overdue
+  // deal stays four days overdue in every screenshot ever taken of it.
+  const now = membership.isDemo ? DEMO_NOW : new Date()
   const today = now.toISOString().slice(0, 10)
   const closedSince = new Date(now.getTime() - CLOSED_WINDOW_DAYS * 86_400_000).toISOString()
 
-  const [{ data: rows }, { data: connections }] = await Promise.all([
-    supabase
-      .from('crm_deals')
-      .select(
-        'id, name, stage, outcome, amount_minor, currency, probability, expected_close_on, owner_name, source, updated_at',
-      )
-      .eq('organization_id', membership.organizationId)
-      .or(`outcome.eq.open,updated_at.gte.${closedSince}`)
-      .order('updated_at', { ascending: false })
-      .limit(MAX_DEALS),
-    supabase
-      .from('integration_connections')
-      .select('provider, display_name, status, last_success_at')
-      .eq('organization_id', membership.organizationId)
-      .in('provider', ['hubspot', 'salesforce']),
-  ])
-
-  const deals: PipelineDeal[] = (rows ?? []).map((row) => ({
-    id: row.id,
-    name: row.name,
-    stage: row.stage,
-    outcome: row.outcome as PipelineDeal['outcome'],
-    amountMinor: row.amount_minor,
-    currency: row.currency,
-    probability: row.probability,
-    expectedCloseOn: row.expected_close_on,
-    owner: row.owner_name,
-    source: row.source,
-    updatedAt: row.updated_at,
-  }))
+  const { deals, crm } = membership.isDemo
+    ? {
+        deals: buildDemoPipeline({ today, currency: membership.baseCurrency }),
+        crm: { display_name: 'HubSpot (demo)', last_success_at: now.toISOString() },
+      }
+    : await loadPipeline(membership.organizationId, closedSince)
 
   const summary = summarisePipeline(deals, today, closedSince)
-  const crm = (connections ?? [])[0] ?? null
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Eyebrow>Pipeline</Eyebrow>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Money that has not happened</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Money that has not happened</h1>
+          {membership.isDemo ? <DemoBadge /> : null}
+        </div>
         <p className="text-sm text-muted">
           Open deals from {crm ? crm.display_name : 'the connected CRM'}, in its own stage names.
           Nothing here appears on the revenue page until an order exists.
@@ -185,6 +166,54 @@ export default async function PipelinePage() {
       </p>
     </div>
   )
+}
+
+/**
+ * A real workspace's deals and CRM connection, through the caller's client.
+ * Open deals always; closed deals only from the window, so the page never
+ * pulls a decade of history to count three recent wins.
+ */
+async function loadPipeline(
+  organizationId: string,
+  closedSince: string,
+): Promise<{
+  deals: PipelineDeal[]
+  crm: { display_name: string; last_success_at: string | null } | null
+}> {
+  const supabase = await supabaseServer()
+  const [{ data: rows }, { data: connections }] = await Promise.all([
+    supabase
+      .from('crm_deals')
+      .select(
+        'id, name, stage, outcome, amount_minor, currency, probability, expected_close_on, owner_name, source, updated_at',
+      )
+      .eq('organization_id', organizationId)
+      .or(`outcome.eq.open,updated_at.gte.${closedSince}`)
+      .order('updated_at', { ascending: false })
+      .limit(MAX_DEALS),
+    supabase
+      .from('integration_connections')
+      .select('provider, display_name, status, last_success_at')
+      .eq('organization_id', organizationId)
+      .in('provider', ['hubspot', 'salesforce']),
+  ])
+
+  return {
+    deals: (rows ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      stage: row.stage,
+      outcome: row.outcome as PipelineDeal['outcome'],
+      amountMinor: row.amount_minor,
+      currency: row.currency,
+      probability: row.probability,
+      expectedCloseOn: row.expected_close_on,
+      owner: row.owner_name,
+      source: row.source,
+      updatedAt: row.updated_at,
+    })),
+    crm: (connections ?? [])[0] ?? null,
+  }
 }
 
 function totalsLine(totals: readonly CurrencyTotal[]): string {

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Eyebrow, Panel, inputClass } from '@/components/ui'
+import { DemoBadge, Eyebrow, Panel, inputClass } from '@/components/ui'
+import { DEMO_DOCUMENTS, searchDemoKnowledge } from '@/lib/demo/sources'
 import { snippet, toTsQuery } from '@/lib/knowledge/search'
 import { requireCapability } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
@@ -24,31 +25,23 @@ export default async function KnowledgePage({
 }) {
   const [{ membership }, params] = await Promise.all([requireCapability('data:view'), searchParams])
   const question = (params.q ?? '').trim().slice(0, 300)
-  const supabase = await supabaseServer()
-
-  const base = supabase
-    .from('knowledge_documents')
-    .select('id, title, source, url, content, truncated, source_updated_at, updated_at')
-    .eq('organization_id', membership.organizationId)
-
   const query = question ? toTsQuery(question) : null
-  const { data: rows } = query
-    ? await base.textSearch('search', query, { config: 'english' }).limit(50)
-    : await base.order('updated_at', { ascending: false }).limit(100)
 
-  const { count } = await supabase
-    .from('knowledge_documents')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', membership.organizationId)
+  const { rows, count } = membership.isDemo
+    ? demoDocuments(question)
+    : await loadDocuments(membership.organizationId, query)
 
   const bySource = new Map<string, number>()
-  for (const row of rows ?? []) bySource.set(row.source, (bySource.get(row.source) ?? 0) + 1)
+  for (const row of rows) bySource.set(row.source, (bySource.get(row.source) ?? 0) + 1)
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Eyebrow>Knowledge</Eyebrow>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">What the assistant can cite</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">What the assistant can cite</h1>
+          {membership.isDemo ? <DemoBadge /> : null}
+        </div>
         <p className="text-sm text-muted">
           {count ?? 0} {count === 1 ? 'document' : 'documents'} from connected sources and uploads.
           When an answer quotes a note, it is one of these. Connect more on the{' '}
@@ -79,7 +72,7 @@ export default async function KnowledgePage({
         <p className="text-sm text-muted">Nothing in that question is worth searching for. Try a noun.</p>
       ) : null}
 
-      {(rows ?? []).length === 0 ? (
+      {rows.length === 0 ? (
         <Panel>
           <p className="text-sm text-muted">
             {question
@@ -89,7 +82,7 @@ export default async function KnowledgePage({
         </Panel>
       ) : (
         <ul className="space-y-3">
-          {(rows ?? []).map((row) => (
+          {rows.map((row) => (
             <li key={row.id}>
               <Panel>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -128,4 +121,57 @@ export default async function KnowledgePage({
       ) : null}
     </div>
   )
+}
+
+type DocumentRow = {
+  id: string
+  title: string
+  source: string
+  url: string | null
+  content: string
+  truncated: boolean
+  source_updated_at: string | null
+  updated_at: string
+}
+
+/** A real workspace's documents through the caller's client, searched or listed. */
+async function loadDocuments(
+  organizationId: string,
+  query: string | null,
+): Promise<{ rows: DocumentRow[]; count: number }> {
+  const supabase = await supabaseServer()
+  const base = supabase
+    .from('knowledge_documents')
+    .select('id, title, source, url, content, truncated, source_updated_at, updated_at')
+    .eq('organization_id', organizationId)
+
+  const [{ data: rows }, { count }] = await Promise.all([
+    query
+      ? base.textSearch('search', query, { config: 'english' }).limit(50)
+      : base.order('updated_at', { ascending: false }).limit(100),
+    supabase
+      .from('knowledge_documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId),
+  ])
+
+  return { rows: (rows ?? []) as DocumentRow[], count: count ?? 0 }
+}
+
+/** The demo workspace's notes, searched the way the assistant searches them. */
+function demoDocuments(question: string): { rows: DocumentRow[]; count: number } {
+  const matched = question
+    ? new Set(searchDemoKnowledge(question, 50).map((hit) => hit.id))
+    : null
+  const rows = DEMO_DOCUMENTS.filter((doc) => !matched || matched.has(doc.id)).map((doc) => ({
+    id: doc.id,
+    title: doc.title,
+    source: doc.source,
+    url: doc.url,
+    content: doc.content,
+    truncated: false,
+    source_updated_at: doc.updatedAt,
+    updated_at: doc.updatedAt,
+  }))
+  return { rows, count: DEMO_DOCUMENTS.length }
 }
