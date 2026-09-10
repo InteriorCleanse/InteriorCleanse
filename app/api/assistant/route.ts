@@ -8,7 +8,7 @@ import { supabaseServer } from '@/lib/supabase/server'
 import { APPROVAL_TTL_MS, fingerprint } from '@/lib/assistant/approval'
 import { VOICE_ADDENDUM, systemPrompt } from '@/lib/assistant/prompt'
 import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant/sanitise'
-import { TOOLS, TOOLS_BY_NAME, type ToolContext } from '@/lib/assistant/tools'
+import { TOOLS, TOOLS_BY_NAME, type CitationSource, type ToolContext } from '@/lib/assistant/tools'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { logFailure } from '@/lib/log'
 import { snippet, toTsQuery } from '@/lib/knowledge/search'
@@ -62,7 +62,7 @@ type Event =
         fields: { label: string; value: string }[]
       }
     }
-  | { type: 'done'; citations: string[] }
+  | { type: 'done'; citations: string[]; sources: CitationSource[] }
   | { type: 'error'; message: string }
 
 export async function POST(request: Request) {
@@ -282,6 +282,8 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`))
 
       const citations = new Set<string>()
+      // Keyed so a document found by two searches gets one chip, not two.
+      const sources = new Map<string, CitationSource>()
       let answer = ''
 
       send({ type: 'thread', threadId: thread })
@@ -336,6 +338,7 @@ export async function POST(request: Request) {
             })
 
             for (const citation of outcome.citations) citations.add(citation)
+            for (const source of outcome.sources) sources.set(source.key, source)
             send({
               type: 'tool_start',
               id: call.id,
@@ -373,7 +376,7 @@ export async function POST(request: Request) {
           model: env.ASSISTANT_MODEL,
         })
 
-        send({ type: 'done', citations: cited })
+        send({ type: 'done', citations: cited, sources: Array.from(sources.values()) })
       } catch (error) {
         // The model's own error text can echo request content; never forward
         // it to the client, and log only a bounded description of it.
@@ -403,6 +406,7 @@ type ToolOutcome = {
   content: string
   isError: boolean
   citations: string[]
+  sources: CitationSource[]
   detail?: string
   approval?: Extract<Event, { type: 'approval' }>['approval']
 }
@@ -444,6 +448,7 @@ async function runTool(input: {
       content: 'That tool is not available in this workspace.',
       isError: true,
       citations: [],
+      sources: [],
     }
   }
 
@@ -455,6 +460,7 @@ async function runTool(input: {
       content: `Invalid arguments — ${detail.join('; ')}. Correct them and call the tool again.`,
       isError: true,
       citations: [],
+      sources: [],
     }
   }
 
@@ -478,6 +484,7 @@ async function runTool(input: {
           content: 'The approval request could not be created, so nothing was proposed.',
           isError: true,
           citations: [],
+          sources: [],
         }
       }
 
@@ -488,6 +495,7 @@ async function runTool(input: {
           : `Nothing has happened yet. An approval request was raised: “${approval.summary}”. This person cannot approve actions — tell them a workspace admin must.`,
         isError: false,
         citations: [],
+        sources: [],
         detail: approval.summary,
         approval,
       }
@@ -501,6 +509,7 @@ async function runTool(input: {
       content: wrapExternal(`tool:${tool.name}`, JSON.stringify(safe, null, 2), 12_000),
       isError: false,
       citations: result.citations ?? [],
+      sources: result.sources ?? [],
     }
   } catch (error) {
     // The tool's arguments are tenant data and are not part of the log line.
@@ -510,6 +519,7 @@ async function runTool(input: {
       content: 'That tool failed. Say so plainly rather than guessing the answer.',
       isError: true,
       citations: [],
+      sources: [],
     }
   }
 }

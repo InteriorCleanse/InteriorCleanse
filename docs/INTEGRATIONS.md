@@ -97,6 +97,14 @@ them, and calls it pipeline, never revenue. Both are injected by the route with
 the caller's own client so RLS decides what the assistant can see — the same
 rows the person could open themselves.
 
+A `doc:` citation is a row id, which is no use on a chip. So the tool also
+returns a source per document — title and link — the route forwards them with
+the answer, and the dock renders the chip as the document's title, linked out
+to Notion or wherever it came from. Only `http(s)` links are followed; a URL
+from a connected app is third-party content and is not trusted to be one. The
+system prompt carries the same distinction the tool descriptions do: a note is
+what someone intended, a figure is what happened, and pipeline is neither.
+
 Chunking and embeddings were considered and declined: on a few hundred pages,
 ranked full-text search is cheaper, deterministic, and can show the person the
 document it quoted. That trade reverses at thousands of pages, which would be

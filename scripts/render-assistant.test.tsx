@@ -48,11 +48,28 @@ describe('assistant render harness', () => {
       id: 'a1',
       role: 'assistant' as const,
       text: 'Contribution profit fell 7.4% over the last 30 days while net revenue rose 3.1%. The gap is almost entirely advertising: spend is up 41% and the extra orders came in at a lower margin than the base.\n\nAd spend of £24,180.00 could not be attributed to a product for £3,940.00 of that total, so per-product profit below is understated somewhere.',
-      citations: ['net_revenue', 'contribution_profit', 'ad_spend', 'roas', 'data_quality'],
+      citations: [
+        'net_revenue',
+        'contribution_profit',
+        'ad_spend',
+        'roas',
+        'data_quality',
+        'doc:5e2c9a1f-1b7e-4c1d-9c3a-2f6d8e7b1a00',
+      ],
+      // A cited note renders by its title and links out; the raw id never
+      // reaches the chip.
+      sources: [
+        {
+          key: 'doc:5e2c9a1f-1b7e-4c1d-9c3a-2f6d8e7b1a00',
+          label: 'Q3 advertising plan',
+          url: 'https://www.notion.so/example/q3-advertising-plan',
+        },
+      ],
       tools: [
         { id: 't1', name: 'inspect_data_quality', ok: true },
         { id: 't2', name: 'query_kpis', ok: true },
         { id: 't3', name: 'analyze_profit_bridge', ok: true },
+        { id: 't5', name: 'search_knowledge', ok: true },
         { id: 't4', name: 'forecast_revenue', ok: false },
       ],
       approvals: [],

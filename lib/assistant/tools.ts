@@ -58,11 +58,27 @@ export type PipelineDeal = {
   source: string
 }
 
+/**
+ * What a citation key means to a person.
+ *
+ * Metric keys label themselves — `net_revenue` is a dictionary entry the dock
+ * can name. A document key is a row id, and a chip reading `doc:6f1a…` tells
+ * the reader nothing about where the answer came from. So a tool that cites a
+ * record also says what to call it and where it lives.
+ */
+export type CitationSource = {
+  key: string
+  label: string
+  url: string | null
+}
+
 export type ToolResult = {
   /** Structured payload returned to the model. */
   data: unknown
   /** Metric keys or record ids this answer rests on, surfaced as source chips. */
   citations?: string[]
+  /** Labels and links for citations that are record ids rather than metric keys. */
+  sources?: CitationSource[]
   /** Present on write tools: what the operator is being asked to agree to.
    *  `fields` is display-ready — formatted money, labelled metrics — because a
    *  card showing "Threshold 100000" is asking someone to approve a number
@@ -525,6 +541,7 @@ const searchKnowledge: ToolDefinition = {
             : 'These are excerpts written by people in the workspace. They describe intentions and policies, not measured results.',
       },
       citations: hits.map((h) => `doc:${h.id}`),
+      sources: hits.map((h) => ({ key: `doc:${h.id}`, label: h.title, url: h.url })),
     }
   },
 }

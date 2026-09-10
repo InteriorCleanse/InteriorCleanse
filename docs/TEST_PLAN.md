@@ -33,6 +33,8 @@ npm run verify   # lint → typecheck → test → build
 | `tests/knowledge.test.ts` | Notion blocks → Markdown, adapter cursors against recorded responses, HubSpot money and stage mapping, Base44 records, search terms and snippets | 41 passing |
 | `tests/knowledge-transport.test.ts` | Store-only zip against the CRC-32 vector, Obsidian frontmatter and note parsing, Slack escaping and failure classes | 28 passing |
 | `tests/notion-write.test.ts` | Rich-text chunking at Notion's limit, blocks and properties matched to a database's real schema, request shape, refusals without a request | 13 passing |
+| `tests/prompt.test.ts` | The assistant's standing rules pinned: demo marking, notes are not figures, pipeline is not revenue, who can approve, the spoken reply's formatting | 7 passing |
+| `tests/citations.test.ts` | Source chips: a cited record shows its title and link, a metric key its dictionary label, and no chip ever follows a `javascript:` or relative link | 4 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.

@@ -36,11 +36,16 @@ type Approval = {
 
 type ToolRun = { id: string; name: string; ok?: boolean; detail?: string }
 
+/** A cited record, as the tool that cited it described it. */
+type Source = { key: string; label: string; url: string | null }
+
 type Turn = {
   id: string
   role: 'user' | 'assistant'
   text: string
   citations?: string[]
+  /** Labels and links for citations that are record ids rather than metric keys. */
+  sources?: Source[]
   tools?: ToolRun[]
   approvals?: Approval[]
   failed?: boolean
@@ -70,6 +75,36 @@ const METRIC_LABELS: Record<string, string> = {
   units_sold: 'Units',
   top_products: 'Product mix',
   data_quality: 'Data quality',
+  // Tables the knowledge tools consult when nothing matched or nothing is
+  // connected — the chip still says where the assistant looked.
+  knowledge_documents: 'Connected notes',
+  crm_deals: 'CRM pipeline',
+}
+
+/**
+ * What a source chip should say, and where it should go.
+ *
+ * A tool that cited a record supplied its title and link; a metric key is
+ * looked up in the dictionary; anything else is shown as-is rather than
+ * hidden, because an unlabelled source is still a source.
+ */
+export function describeCitation(
+  key: string,
+  sources: readonly Source[] | undefined,
+): { label: string; href: string | null } {
+  const source = sources?.find((s) => s.key === key)
+  if (source) return { label: source.label, href: safeHref(source.url) }
+  return { label: METRIC_LABELS[key] ?? key, href: null }
+}
+
+/**
+ * A document's link came from a third party and is rendered as a real
+ * anchor, so it is held to the two schemes a browser should follow from here.
+ * Anything else — `javascript:`, a bare path, an empty string — becomes no link.
+ */
+function safeHref(url: string | null): string | null {
+  if (!url) return null
+  return /^https?:\/\//i.test(url) ? url : null
 }
 
 export function AssistantDock(props: Props) {
@@ -203,7 +238,11 @@ export function AssistantDock(props: Props) {
                 }))
                 break
               case 'done':
-                patch((t) => ({ ...t, citations: event.citations as string[] }))
+                patch((t) => ({
+                  ...t,
+                  citations: event.citations as string[],
+                  sources: (event.sources as Source[] | undefined) ?? [],
+                }))
                 break
               case 'error':
                 patch((t) => ({ ...t, failed: true, text: event.message as string }))
@@ -530,14 +569,29 @@ export function AssistantTurn({
 
       {turn.citations && turn.citations.length > 0 ? (
         <ul className="flex flex-wrap gap-1.5" aria-label="Sources for this answer">
-          {turn.citations.map((key) => (
-            <li
-              key={key}
-              className="rounded-full border border-hairline px-2 py-0.5 text-[11px] text-muted"
-            >
-              {METRIC_LABELS[key] ?? key}
-            </li>
-          ))}
+          {turn.citations.map((key) => {
+            const { label, href } = describeCitation(key, turn.sources)
+            return (
+              <li
+                key={key}
+                className="max-w-full truncate rounded-full border border-hairline px-2 py-0.5 text-[11px] text-muted"
+                title={label}
+              >
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-hairline underline-offset-2 hover:text-ink"
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  label
+                )}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
 

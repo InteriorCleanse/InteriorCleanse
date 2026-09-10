@@ -366,8 +366,30 @@ describe('knowledge and pipeline tools', () => {
     expect(data.matches[0]!.title).toBe('Refund policy')
     expect(data.matches[0]!.passage).toContain('30 days')
     expect(result.citations).toEqual(['doc:doc-1'])
+    // A record id is meaningless on a chip, so the tool says what to call it.
+    expect(result.sources).toEqual([
+      { key: 'doc:doc-1', label: 'Refund policy', url: 'https://www.notion.so/refunds' },
+    ])
     // The note reminds the model these are intentions, not measurements.
     expect(data.note).toMatch(/not measured results/)
+  })
+
+  it('labels every record citation it makes', async () => {
+    // Every `doc:` key must have a matching source, or the dock would fall
+    // back to showing the raw id.
+    const search = TOOLS_BY_NAME.get('search_knowledge')!
+    const result = await search.execute(
+      { question: 'refund policy', limit: 5 },
+      ctx({
+        searchKnowledge: async () => [
+          ...KNOWLEDGE_HITS,
+          { ...KNOWLEDGE_HITS[0]!, id: 'doc-2', title: 'Returns FAQ', url: null },
+        ],
+      }),
+    )
+    const keys = new Set((result.sources ?? []).map((s) => s.key))
+    for (const citation of result.citations ?? []) expect(keys.has(citation)).toBe(true)
+    expect(result.sources?.[1]).toMatchObject({ label: 'Returns FAQ', url: null })
   })
 
   it('tells the model to say so when nothing matched, rather than guess', async () => {
