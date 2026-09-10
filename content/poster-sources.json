@@ -68,7 +68,14 @@
   },
   "atelier": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_4341caea-44af-4295-a5e9-3d685441877e.png",
-    "job": "4341caea-44af-4295-a5e9-3d685441877e"
+    "job": "4341caea-44af-4295-a5e9-3d685441877e",
+    "video": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_093740_6c3a4e52-a12b-46d2-8fd3-cba7a704a953.mp4",
+      "job": "6c3a4e52-a12b-46d2-8fd3-cba7a704a953",
+      "model": "cinematic_studio_video_v2",
+      "duration": 10,
+      "note": "raw 10s pro clip, silent; slow dolly push-in"
+    }
   },
   "pavilion": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_ea7d8617-018f-435d-a040-a954173a73f7.png",
@@ -76,10 +83,24 @@
   },
   "guestbook": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_1a9937bd-e8bf-4ef4-9f36-51c50961070e.png",
-    "job": "1a9937bd-e8bf-4ef4-9f36-51c50961070e"
+    "job": "1a9937bd-e8bf-4ef4-9f36-51c50961070e",
+    "video": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_093740_36561825-1a90-4c05-a65d-967ebf02dfb1.mp4",
+      "job": "36561825-1a90-4c05-a65d-967ebf02dfb1",
+      "model": "cinematic_studio_video_v2",
+      "duration": 10,
+      "note": "raw 10s pro clip, silent; slow lateral drift left; candle flicker"
+    }
   },
   "showroom": {
     "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_091108_d8e417eb-6cd0-4a6a-9f3b-bf94a8b2f12e.png",
-    "job": "d8e417eb-6cd0-4a6a-9f3b-bf94a8b2f12e"
+    "job": "d8e417eb-6cd0-4a6a-9f3b-bf94a8b2f12e",
+    "video": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260910_093740_ccd63d55-b5d5-4b77-829d-d6ef81406f0e.mp4",
+      "job": "ccd63d55-b5d5-4b77-829d-d6ef81406f0e",
+      "model": "cinematic_studio_video_v2",
+      "duration": 10,
+      "note": "raw 10s pro clip, silent; slow dolly push-in on the empty pedestal"
+    }
   }
 }
