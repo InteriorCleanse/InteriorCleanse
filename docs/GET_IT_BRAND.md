@@ -22,8 +22,21 @@ Three raster explorations, 2K, in your Higgsfield library:
 | Stacked chevrons reading as G and ascent | `76e1aa93-cef8-4c9e-af01-aff49c83f2cd` |
 | Wordmark with tick hyphen | `6b8f6da8-a063-4434-b509-361b9357cb2d` |
 
-The SVG is the source of truth; the raster concepts are for taste checks
-only. If the chevron concept wins, rebuild it as SVG before use.
+## Refinements of the chosen wordmark concept
+
+The wordmark concept (`6b8f6da8…`) was picked as the direction. Four
+refinements were generated from it as an image reference:
+
+| Refinement | Job id |
+| --- | --- |
+| Final dark wordmark, cleaned spacing and alignment | `a03cede7-341c-44af-a6e5-fa50192d3751` |
+| Matching app icon: the G with the tick and dot in its counter | `1da613d4-fcb2-4699-af31-cf33eea41b8d` |
+| Light-background wordmark (Graphite on Bone) | `6e61ae4d-cc7b-4976-b1b2-8b72cc91c10d` |
+| App Store screenshot mock-up using the wordmark | `7462aad4-972f-4704-a28d-3bdedf631c36` |
+
+The raster files are for approval and mock-ups. Once one is approved,
+rebuild it as SVG (update `get-it-wordmark.svg` and `get-it-logo.svg`) so
+the shipped logo is vector and pixel-exact at every size.
 
 ## Usage rules
 
