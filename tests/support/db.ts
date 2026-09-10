@@ -50,6 +50,7 @@ const MIGRATIONS = [
   '0010_organization_column_privileges.sql',
   '0011_plan_copy_overrides.sql',
   '0012_knowledge_and_crm.sql',
+  '0013_notion_delivery_channel.sql',
 ]
 
 export async function migrate(): Promise<Client> {

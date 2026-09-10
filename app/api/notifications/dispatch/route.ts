@@ -5,6 +5,7 @@ import { DEFAULT_PREFERENCES, type Preferences, type Severity } from '@/lib/noti
 import { dispatch, localHourIn, type DeliveryRecord, type Recipient } from '@/lib/notifications/dispatch'
 import { emailTransport } from '@/lib/notifications/email'
 import { slackWebhookTransport, type SlackTransport } from '@/lib/notifications/slack'
+import { createBriefingPage } from '@/lib/knowledge/notion-write'
 import { openSecret, vaultProvider, type SealedSecret } from '@/lib/vault'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
 import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
@@ -64,6 +65,7 @@ export async function GET(request: Request) {
   for (const org of organizations ?? []) {
     try {
       const recipients = await loadRecipients(admin, org.id, org.timezone, now)
+      const notion = await notionFor(admin, org.id)
       const context = {
         transport,
         slack: await slackFor(admin, org.id),
@@ -184,6 +186,30 @@ export async function GET(request: Request) {
           delivered += counts.delivered
           suppressed += counts.suppressed
           failed += counts.failed
+
+          // One Notion page per briefing, for the workspace, not per
+          // recipient: the database is a shared place. Written only when
+          // the notification was newly created, so a double-fired sweep
+          // cannot create two pages — the dedupe key already decided.
+          if (notion) {
+            const written = await createBriefingPage({
+              token: notion.token,
+              databaseId: notion.databaseId,
+              briefing,
+              at: now,
+            })
+            const notionCounts = await recordDeliveries(admin, org.id, [
+              {
+                notificationId: created,
+                userId: null,
+                channel: 'notion',
+                status: written.ok ? 'delivered' : 'failed',
+                detail: written.ok ? written.url : written.detail,
+              },
+            ])
+            delivered += notionCounts.delivered
+            failed += notionCounts.failed
+          }
         }
       }
     } catch (error) {
@@ -266,6 +292,48 @@ export async function GET(request: Request) {
 }
 
 type LoadedRecipient = Recipient & { timezone: string; briefings: string[] }
+
+/**
+ * The workspace's Notion briefing target, or null.
+ *
+ * Null whenever any piece is missing — no connection, no database chosen, no
+ * openable token — and the sweep simply does not write. The token is opened
+ * here, handed to the writer, and never stored or logged.
+ */
+async function notionFor(
+  admin: ReturnType<typeof supabaseAdmin>,
+  organizationId: string,
+): Promise<{ token: string; databaseId: string } | null> {
+  const { data: connection } = await admin
+    .from('integration_connections')
+    .select('id, settings')
+    .eq('organization_id', organizationId)
+    .eq('provider', 'notion')
+    .eq('status', 'connected')
+    .maybeSingle()
+  const databaseId = String((connection?.settings as { briefingDatabaseId?: string } | null)?.briefingDatabaseId ?? '').trim()
+  if (!connection || !databaseId) return null
+
+  const { data: credential } = await admin
+    .from('integration_credentials')
+    .select('id, sealed')
+    .eq('connection_id', connection.id)
+    .eq('field', 'api_key')
+    .is('revoked_at', null)
+    .maybeSingle()
+  if (!credential) return null
+
+  try {
+    const token = await openSecret(
+      credential.sealed as SealedSecret,
+      { organizationId, credentialId: credential.id, field: 'api_key' },
+      vaultProvider(),
+    )
+    return { token, databaseId }
+  } catch {
+    return null
+  }
+}
 
 /**
  * The workspace's Slack transport, or null.

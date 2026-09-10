@@ -110,11 +110,16 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: 'notion',
     name: 'Notion',
     purpose: 'Reads the pages you share with it, so the assistant can answer from your decisions, not only your figures.',
-    provides: ['Pages and sub-pages as searchable, citable notes', 'Database rows as pages', 'Incremental refresh by last edit'],
+    provides: [
+      'Pages and sub-pages as searchable, citable notes',
+      'Database rows as pages',
+      'Incremental refresh by last edit',
+      'Briefings written into a database you choose — one new page each, never edited after',
+    ],
     doesNotProvide: [
       'Anything you have not explicitly shared with the integration — Notion enforces that, not us',
       'Comments, page history, or who edited what',
-      'Writing back to Notion (planned; read-only today)',
+      'Any other write: the briefing database is the only thing this product ever creates in Notion',
     ],
     credentials: [
       {
@@ -125,6 +130,13 @@ export const CONNECTORS: ConnectorDefinition[] = [
         patternHelp: 'Notion tokens start with ntn_ (or secret_ on older integrations).',
       },
     ],
+    settings: z.object({
+      briefingDatabaseId: z
+        .string()
+        .regex(/^[0-9a-f-]{32,36}$/i, 'A Notion database id: the 32 hex characters in the database’s URL.')
+        .optional()
+        .or(z.literal('')),
+    }),
     docsUrl: 'https://www.notion.so/my-integrations',
     status: 'available',
   },

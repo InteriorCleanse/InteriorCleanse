@@ -8,7 +8,7 @@
 | Stripe | secret key, sealed | **yes** | Settled charges and refunds, fees from the expanded balance transaction. |
 | Shopify | admin token, sealed | **yes** | Orders, line items and nested refunds, on `updated_at`. |
 | Google / Outlook calendar | refresh token, sealed | **yes**, hourly | PKCE, read-only scopes; rotated refresh tokens written back before events are fetched. |
-| Notion | internal integration token, sealed | **yes**, hourly | Shared pages → searchable, citable notes. Stops paging at the first page older than the cursor. |
+| Notion | internal integration token, sealed | **yes**, hourly | Shared pages → searchable, citable notes. Briefings written into a database you choose — one new page each, never edited after. |
 | Base44 | API key, sealed | **yes**, hourly | One entity per connection → one note per record, a field per line. |
 | HubSpot | private app token, sealed | **yes**, hourly | Contacts → customers; deals → `crm_deals`, never `orders`. Free tier, free API. |
 | Slack | incoming webhook URL, sealed | on notify | Warnings and critical alerts to one channel. Info never. |
@@ -106,6 +106,19 @@ a good problem.
 generalisation: orders get overlapping windows because a missed one is a wrong
 number; notes catch up by edit time. Content is hashed so an unchanged page is
 a no-op rather than a rewrite that makes the whole base look edited today.
+
+Notion is the one place this product writes: a new page per briefing in a
+database the workspace chose, with figures as properties where the database has
+matching columns and in the body regardless, so an unconfigured database still
+gets a complete page and nothing is refused. Rich text is chunked at Notion's
+2,000-character limit, because one over-long line fails the whole create on the
+day the briefing has the most to say. Every write leaves a delivery row
+(channel `notion`), so a page that never appeared is diagnosable rather than
+ambiguous.
+
+`/app/knowledge` shows what the assistant can cite — the same rows, policy and
+snippets its search tool sees — because a knowledge base nobody can inspect is
+one nobody can correct.
 
 Obsidian is handled honestly. There is no cloud API — a vault is a folder —
 so the connector exports a zip of Markdown with Dataview-ready frontmatter

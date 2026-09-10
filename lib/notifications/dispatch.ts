@@ -45,7 +45,7 @@ export type DeliveryRecord = {
   notificationId: string
   /** Null for a workspace-level channel such as Slack. */
   userId: string | null
-  channel: 'in_app' | 'email' | 'slack'
+  channel: 'in_app' | 'email' | 'slack' | 'notion'
   status: 'delivered' | 'suppressed' | 'failed'
   detail: string | null
 }
