@@ -68,13 +68,17 @@ separate accessible static gallery alongside the 3D viewer.
 
 ---
 
-## Checkpoint 3 — homepage cinematic room · **Copy applied, scroll story not started**
+## Checkpoint 3 — homepage cinematic room · **Superseded by the Residence build**
 
-The hero now carries the brief's headline, "Clear the noise. Reveal the room.",
-and its "Enter the Shop" CTA.
+The original brief's five-act scroll story was overtaken by the Residence
+specification, which asks for something different: not one page that scrolls
+through five acts, but eight environments sharing one layered hero, plus a
+locked showroom. That work is Checkpoint 8 below and it is built.
 
-**Two lines from the brief were deliberately not applied**, because both promise
-capabilities that do not exist:
+What survives from this checkpoint's decisions:
+
+**Two lines from the original brief are still deliberately not applied**,
+because both promise capabilities that do not exist:
 
 - The supporting copy *"AI-guided interiors, thoughtful objects, and visual
   tools…"* — there is no AI studio, so this would be a claim about a product
@@ -84,14 +88,9 @@ capabilities that do not exist:
 
 Both are one-line swaps the moment the AI design studio ships.
 
-**The slogan question, resolved narrowly:** the brief specifies homepage hero
-copy, so that is what changed. "For Mind, Home, Body & Spirit" still appears in
-the footer, `lib/site-config.ts`, and page metadata. Retiring it everywhere is a
-site-wide rebrand and was not assumed.
-
-The five-act scroll story (room awakens → design with intention → shop the world
-→ categories → final transformation) is still a rebuild of `app/page.tsx`, not
-an edit, and has not been started. `HeroScene` and `ScrollGallery` are untouched.
+**The slogan question, resolved narrowly:** "For Mind, Home, Body & Spirit"
+still appears in the footer, `lib/site-config.ts`, and page metadata. Retiring
+it everywhere is a site-wide rebrand and was not assumed.
 
 ---
 
@@ -105,7 +104,7 @@ an edit, and has not been started. `HeroScene` and `ScrollGallery` are untouched
 | Empty states | **Verified** | `/shop/wallpapers` renders 0 cards and explains delivery is still being built; `/shop/books` points to the Library |
 | Multi-source checkout behaviour | **Verified with a fixture** | See below |
 | Analytics | Done | `lib/analytics.ts` — `add_to_cart`, `checkout_started`, and outbound events fire; every call is wrapped so a tracking failure cannot break shopping |
-| Mobile | **Verified** | Controls are 44px tall at 390px wide; no horizontal overflow |
+| Mobile | **Verified** | Search and both sort controls measure exactly 44px tall at 390px wide; no horizontal overflow. Collection chips are 37px and text links smaller — above the 24px WCAG 2.2 AA floor, below the 44px comfort target |
 
 **Checkout-mode enforcement.** `PurchaseAction` renders the CTA from
 `checkoutMode`, and `CartProvider.add()` refuses external items outright —
@@ -151,7 +150,7 @@ build specification is in `docs/KIE_ASSET_PIPELINE.md`.
 
 ---
 
-## Checkpoint 7 — admin, content, and launch · **SEO, readiness, and legal done; product studio blocked**
+## Checkpoint 7 — admin, content, and launch · **SEO, readiness, legal, and product studio done**
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
@@ -207,10 +206,145 @@ stops for any of three independent reasons and any one of them wins.
 The tuned lighting values in `ProductStage` (bloom threshold 0.85, exposure 0.98)
 were not touched; the controls are purely additive.
 
-**Still blocked:** the product studio (create/edit/archive, GLB upload, 360-frame
-upload, depth-layer builder, variant mapping, bulk operations). The brief
-requires adding a normal product without a code deploy, and that is not possible
-against flat JSON files — it needs a database and object storage.
+**Product studio — built, without a database.** `/admin/products` manages
+`content/catalog.json`: status filter, inline edit, side-panel editor, image
+upload, cut-out generation, Stripe Price creation, Gumroad link check, bulk
+status, CSV import, Printful/Printify sync. The repository is the database: on
+Vercel every save is a commit through the GitHub Contents API and goes live on
+the redeploy; locally it writes to disk. Publishing is server-gated by the
+eight rules in `docs/PRODUCT_PIPELINE.md`, and the public site reads only
+`published` records. Verified against the production build: the gate refuses a
+draft with 422 and lists why; a bulk publish skips blocked rows and names
+them; bad enums are rejected; CSV with one bad row fails whole with the row
+number; upload, cut-out (alpha 0 at the edge, 255 at the centre), create,
+delete, and the 409 on deleting a published record all behave.
+
+**Not built:** GLB upload, depth-layer builder, per-variant mapping. The fields
+exist on the record (`modelUrl`, `rotationSequence`) and the editor writes them
+as URLs; the upload UI for those binaries does not.
+
+---
+
+## Checkpoint 8 — the Residence build · **Code complete, waiting on photography**
+
+Eight environments, one hero component, a locked showroom, a guest book, and a
+partner system. All of it is built and every piece degrades cleanly to the
+poster-less state it is in today.
+
+| Piece | Where | Status |
+| --- | --- | --- |
+| Scene manifest | `content/scenes.json`, `lib/scenes.ts` | 8 environments: atrium, library, conservatory, cleaning, chapel, gallery, atelier, pavilion |
+| Layered hero | `components/hero/EnvironmentHero.tsx` | Layer A background, scrim, Layer C copy, Layer B hotspots + featured card |
+| Background | `components/hero/SceneBackground.tsx` | Poster paints first; video mounts one rAF later and only if a file exists |
+| Single-video rule | `lib/video-director.ts` | Exactly one video plays site-wide; nearest to viewport centre wins |
+| Living stills | `app/globals.css` + `posterMotion` | Slow camera drift on each poster, so an environment is never dead before its clip arrives |
+| Parallax | `components/hero/useParallax.ts` | Writes `--py` only, rAF-coalesced, IntersectionObserver-gated, no-op under reduced motion |
+| Hotspots | `components/hero/Hotspots.tsx` | Real links, never painted into footage; collision avoidance below |
+| Floating mark | `components/brand/FloatingMark.tsx` | Brand mark that drifts with scroll |
+| Swipe browser | `components/browse/ProductBrowser.tsx` | One product at a time; every item also sits in the plain `/shop` grid |
+| Locked showroom | `app/collection/`, `components/showroom/` | Four independent layers; swipe left passes, right saves; pinch/wheel zoom 1–2.6× |
+| Guest book | `components/GuestBook.tsx`, `lib/click-sound.ts` | Web Audio click, synthesised — no audio file to load |
+| Partners | `/partners`, `content/partners.json`, `lib/partners.ts` | Placeholder-first; see below |
+
+**Hotspot collision avoidance.** Hotspot coordinates are authored against a
+photograph, but the copy reflows with the viewport — a position that clears the
+headline at 1440 can sit under it at 1024. Rather than hand-tuning coordinates
+per breakpoint forever, `Hotspots` measures its dots against the real headline
+and CTA rectangles on mount, on resize, and after `document.fonts.ready`, and
+the offender steps aside with `aria-hidden` and `tabIndex -1`. It only ever
+hides a duplicate route: every hotspot destination is also reachable from the
+nav. Verified at 1440, 1280, and 1024 — at 1024 the "Art & Wallpaper" hotspot
+steps aside and **0 collisions remain unresolved**.
+
+**Text-over-image legibility is measured, not eyeballed.** `npm run
+check:contrast` hides the interface, screenshots the backdrop behind seven text
+surfaces, and reports WCAG contrast against bone — mean, worst point, and the
+share of area under 4.5:1. It exits non-zero when a worst point falls below 3:1.
+Tuning the hero scrim and the three-layer glyph shadow moved the headline from
+mean 6.39:1 / worst 3.05:1 / 14.7% thin to mean 8.50:1 / worst 3.47:1 / 7.0%
+thin against a stand-in image.
+
+The tool also reports **NO POSTER** where no photograph is loaded, because a run
+against the painted gradient reads ~17:1 everywhere and would look like
+validation while proving nothing. **Today all seven surfaces report NO POSTER.**
+
+**Partners, built for links that do not exist yet.** There are zero approved
+affiliate links. Every partner carries `affiliateLink: "PENDING_APPROVAL"`,
+which renders a greyed *Coming soon* — not a link element, no outbound event,
+and a page banner stating that no links are live. Replacing that one string with
+a real tracking URL flips the card, the disclosure, and the analytics
+automatically. No commission rate is stated for any partner whose rate is
+unknown. Full instructions: `docs/AFFILIATE_LINKS.md`.
+
+**No invented products.** Empty category shelves stay empty and say so. A
+product with no price renders "Coming soon", never `$0`.
+
+**Performance, measured on the production build:** homepage First Load JS
+**114 kB** (5.74 kB page + 89.5 kB shared), against a 200 kB target. `/shop`
+112 kB, `/collection` 109 kB, `/partners` 109 kB. Zero WebGL canvases in any
+product grid. LCP 168–480 ms and CLS 0 on `/`, `/shop`, and `/spirit`;
+`/collection` measures CLS 0.0048.
+
+---
+
+## Site-wide verification · **All sixteen routes swept in Chromium**
+
+Against `npm run start` on the production build, not a dev server.
+
+| Check | Result |
+| --- | --- |
+| HTTP status | 200 on all sixteen routes |
+| Headings | Exactly one `h1` per route |
+| Accessible names | Zero nameless interactive elements on six sampled routes, using Chromium's own accessibility snapshot rather than text content |
+| Focus | Every tab stop has a visible focus ring; no focusable element inside an `aria-hidden` subtree |
+| Images | No `<img>` without an `alt` attribute |
+| Mobile, 390px | No horizontal overflow anywhere; hotspots correctly absent |
+| Reduced motion | No video element mounted on any page; no poster drift; no running CSS animation |
+| Prices | No `$0` anywhere — an unpriced product reads "Coming soon" |
+
+**Three defects this sweep found and fixed:**
+
+1. `/collection` had no `h1` — the outline began at an `h2` product name that
+   changes as you swipe. It now carries a visually-hidden page heading.
+2. Stacked scene bands requested every clip on load. `/library` and `/shop`
+   render three environments each, and every `SceneBackground` mounted its
+   video one frame after paint with `preload="auto"`. The director stopped the
+   offscreen ones playing, but the bytes were already on the wire. Video
+   creation is now gated on the band approaching the viewport. Measured on
+   `/library`: three clips at load → one at load, the rest on scroll.
+3. `ProductBrowser` documents that inactive cards are removed from the tab
+   order. Both `Link` branches honoured it; `AddToCartButton` had no way to
+   accept a `tabIndex`, so two buttons sat in the tab order inside an
+   `aria-hidden` subtree. Now zero.
+
+**One known cost, not a defect.** `/spirit` downloads roughly **1 MB of
+JavaScript** — Babylon.js, for the decorative rotating object in its hero. Every
+other page is an order of magnitude lighter. It is above the fold, so deferring
+it with `InView` would not help; the real options are replacing it with the
+Three.js path the rest of the site already ships, or with a still. That is a
+design decision, not a bug, so it has been left alone and written down instead.
+
+---
+
+## The asset gap — the one thing holding the Residence back
+
+`public/images/` contains **no environment posters** and `public/video/`
+does not exist. Every path in `content/scenes.json` — `hero-poster.png`,
+`library-poster.png`, and the rest — resolves to nothing today.
+
+This is by design: the build was specified for assets that arrive later, and it
+works without them. But eight environments are currently painted gradients.
+
+- Prompts for all ten stills, briefed around where the copy and hotspots sit:
+  `scripts/leonardo-generate.mjs` (`--dry-run`, `--only <scene>`,
+  `--list-models`). It needs `LEONARDO_API_KEY` in the environment; the key is
+  never read from or written to this repository.
+- Posters can equally be uploaded straight to `public/images/` on the branch.
+- **After any poster lands, re-run `npm run check:contrast`.** Until then the
+  scrim tuning is unvalidated against a real photograph.
+- Video is optional everywhere. `SceneBackground` only emits a `<source>` for a
+  file the manifest declares, and `lib/video-director.ts` guarantees that at
+  most one plays regardless of how many arrive.
 
 ---
 
@@ -240,14 +374,27 @@ event fails silently.
 `ANTHROPIC_API_KEY`, `KIE_API_KEY`, TikTok Shop app credentials,
 `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`.
 
+For the product studio on Vercel: `GITHUB_TOKEN` (fine-grained, this one
+repository, *Contents: Read and write*) — without it the admin can read but
+every save reports exactly this as the blocker. Optional: `REMOVEBG_API_KEY`
+for real background removal; without it the cut-out is a white-threshold
+fallback.
+
 Paste them into the Vercel dashboard directly. `.env.example` holds placeholders
 only and no real key belongs in this repository.
 
 ## Next actions, in order
 
-1. Owner runs the Stripe setup and registers the trailing-slash webhook.
-2. Rebuild the homepage around the five-act scroll story (Checkpoint 3).
-3. Per-category hero scenes and recently-viewed on the storefront.
-4. Choose and provision a database — everything in Checkpoints 5–7 waits on it.
-5. Build the AI design studio, then swap in the brief's held-back hero copy and
+1. Owner runs the Stripe setup and registers the trailing-slash webhook. Nothing
+   can be bought until this happens.
+2. Land the environment posters — generate with `scripts/leonardo-generate.mjs`
+   or upload to `public/images/` directly — then re-run `npm run check:contrast`
+   and re-tune any surface that reports FAIL or THIN.
+3. Add `GITHUB_TOKEN` to Vercel so `/admin/products` can save in production,
+   then fill the twenty draft shells (see `docs/PRODUCT_PIPELINE.md`).
+4. Paste affiliate links into `content/partners.json` and onto the five
+   `partner-*` catalog records as approvals come in.
+5. Optional footage per environment, dropped into `public/video/`; then
+   `npm run posters:extract` so every poster is the clip's first frame.
+6. Build the AI design studio, then swap in the brief's held-back hero copy and
    its "Design Your Space" CTA.

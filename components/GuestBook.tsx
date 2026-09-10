@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { RealismLayer } from '@/components/hero/RealismLayer'
+import { SceneBackground } from '@/components/hero/SceneBackground'
 import { playClick, setSoundEnabled, soundEnabled } from '@/lib/click-sound'
+import type { Scene } from '@/lib/scenes'
 import { subscribeEmail, useSource } from '@/lib/use-source'
 
 /** Marks the visitor as subscribed so no modal ever interrupts them again. */
@@ -132,24 +135,25 @@ function SoundToggle() {
 /**
  * The full-width Guest Book band.
  *
- * The poster fills the section and the copy sits on the right half over a warm
- * scrim, so the text is legible whatever the photograph turns out to be.
+ * The scene fills the section and the copy sits on the right half over a warm
+ * scrim, so the text is legible whatever the photograph turns out to be. Media
+ * comes from the `guestbook` entry of the scene manifest, through the same
+ * SceneBackground every environment uses — so it gains the video, the
+ * one-at-a-time playback rule, and the living-still drift without its own code.
  */
-export function GuestBook() {
+export function GuestBook({ scene }: { scene?: Scene }) {
   return (
-    <section className="guestbook" aria-labelledby="guestbook-heading">
-      <img
-        className="guestbook-bg"
-        data-motion="drift-left"
-        src="/images/guestbook-poster.png"
-        alt=""
-        loading="lazy"
-        decoding="async"
-        onError={(e) => {
-          // No poster yet — the painted gradient behind it stands in.
-          e.currentTarget.style.display = 'none'
-        }}
-      />
+    <section className="guestbook" id="guestbook" aria-labelledby="guestbook-heading">
+      <div className="guestbook-scene" aria-hidden="true">
+        <SceneBackground
+          desktopVideo={scene?.desktopVideo ?? undefined}
+          mobileVideo={scene?.mobileVideo ?? undefined}
+          webmVideo={scene?.webmVideo ?? undefined}
+          posterImage={scene?.posterImage ?? '/images/guestbook-poster.png'}
+          posterMotion={scene?.posterMotion ?? 'drift-left'}
+        />
+        <RealismLayer />
+      </div>
       <div className="guestbook-scrim" aria-hidden="true" />
       <div className="guestbook-panel">
         <p className="guestbook-eyebrow">THE GUEST BOOK</p>

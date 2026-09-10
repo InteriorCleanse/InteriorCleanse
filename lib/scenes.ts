@@ -1,4 +1,5 @@
 import scenes from '@/content/scenes.json'
+import type { AmbientKind } from './ambient-audio'
 import { getProduct } from './content'
 
 export type Hotspot = {
@@ -41,6 +42,11 @@ export type Scene = {
   posterMotion?: PosterMotion | null
   posterImage?: string | null
   reducedMotionPoster?: string | null
+  /**
+   * Synthesised room tone offered by this environment. Off by default, never
+   * under reduced motion; see lib/ambient-audio.
+   */
+  ambientSound?: AmbientKind | null
   headline: string[]
   primaryCta: Cta
   secondaryCta?: Cta
@@ -58,10 +64,20 @@ export type SceneId =
   | 'atelier'
   /** Not in the seven named environments, but /partners depends on it. */
   | 'pavilion'
+  /**
+   * The Guest Book band and the /collection showroom carry footage too, and
+   * they read their media from here so a re-shoot is a manifest edit for every
+   * environment, not seven manifest edits and two component edits.
+   */
+  | 'guestbook'
+  | 'showroom'
 
 const SCENES = scenes as Record<string, Scene>
 
 export const getScene = (id: SceneId): Scene | undefined => SCENES[id]
+
+/** Every environment id in the manifest, in manifest order. */
+export const sceneIds = (): SceneId[] => Object.keys(SCENES) as SceneId[]
 
 /**
  * The featured product, resolved against the real catalogue.

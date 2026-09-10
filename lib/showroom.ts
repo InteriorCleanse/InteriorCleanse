@@ -1,4 +1,5 @@
-import { allProducts } from './content'
+import { externalUrlOf, publishedProducts } from './catalog'
+import type { CatalogProduct } from './catalog-schema'
 import type { Product } from './types'
 
 export type SizeClass = 'small' | 'medium' | 'large' | 'oversized'
@@ -14,6 +15,7 @@ export const SHOWROOM_CATEGORIES = [
   'fragrance',
   'merch',
   'digital',
+  'wall-art',
   'partners',
 ] as const
 
@@ -110,11 +112,41 @@ export function toShowroomProduct(p: Product): ShowroomProduct {
   }
 }
 
+/**
+ * The catalog record projected directly — the richer path, used by the
+ * product page, where the cut-out, the environment, and the size class come
+ * from the record itself rather than being inferred.
+ */
+export function catalogToShowroom(p: CatalogProduct): ShowroomProduct {
+  const external = p.purchaseType !== 'stripe'
+  const affiliate = externalUrlOf(p) ?? null
+  return {
+    id: p.slug,
+    name: p.name,
+    category: p.category,
+    description: p.tagline || p.description,
+    price: p.price || null,
+    productImage: p.images.hero,
+    transparentImage: p.images.transparent,
+    rotationSequence: p.rotationSequence ?? [],
+    modelUrl: p.modelUrl,
+    sizeClass: p.sizeClass,
+    purchaseType: external ? 'affiliate' : 'internal',
+    checkoutUrl: external ? null : `/collection/${p.slug}/`,
+    affiliateUrl: affiliate,
+    stockStatus:
+      p.status !== 'published' ? 'coming_soon' : external || p.stripePriceId ? 'in_stock' : 'unknown',
+    environment: p.environment,
+    featured: p.featured,
+    saved: false,
+  }
+}
+
 export const showroomProducts = (): ShowroomProduct[] =>
-  allProducts.map(toShowroomProduct)
+  publishedProducts().map(catalogToShowroom)
 
 export const isValidCategory = (v: string | null): v is ShowroomCategory =>
   Boolean(v) && (SHOWROOM_CATEGORIES as readonly string[]).includes(v as string)
 
 export const categoryLabel = (c: string) =>
-  c.charAt(0).toUpperCase() + c.slice(1)
+  c.replace(/-/g, ' ').replace(/^./, (ch) => ch.toUpperCase())

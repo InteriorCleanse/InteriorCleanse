@@ -1,9 +1,16 @@
-import products from '@/content/products.json'
 import books from '@/content/books.json'
 import digital from '@/content/digital-products.json'
+import { publishedProducts, toLegacyProduct } from './catalog'
 import type { Article, Book, DigitalProduct, Product, SpiritBook } from './types'
 
-export const allProducts = products as Product[]
+/**
+ * The storefront's products, projected from content/catalog.json.
+ *
+ * Only `published` records appear. content/products.json is no longer read by
+ * the site — it is kept as the input to scripts/seed-catalog.mjs and for the
+ * older Stripe setup script, and will be removed once both are retired.
+ */
+export const allProducts: Product[] = publishedProducts().map(toLegacyProduct)
 export const allBooks = books as Book[]
 export const digitalProducts = digital as DigitalProduct[]
 

@@ -2925,16 +2925,92 @@ textarea {
 }
 
 /* Video fades in over the poster once it can actually play, so a slow
-   connection never shows a black rectangle where the room should be. */
-.scene-video { opacity: 0; transition: opacity 0.8s ease; }
+   connection never shows a black rectangle where the room should be.
+   Nothing else touches the footage: no filter, no radius, no border. The grade
+   and grain are baked in, and a frontend "improvement" is exactly what makes
+   generated footage look generated. */
+.scene-video { opacity: 0; transition: opacity 0.8s ease; border-radius: 0; filter: none; }
 .scene-video[data-ready='true'] { opacity: 1; }
 
+/* ── REALISM LAYER ──────────────────────────────────────────────────
+   Living grain and a vignette, between the footage and the scrim. */
+.scene-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0.06) 78%,
+    rgba(0, 0, 0, 0.14) 100%
+  );
+}
+
+/* The speaker in the corner. Quiet until pressed, like the sound it controls. */
+.ambient-toggle {
+  position: absolute;
+  z-index: 6;
+  right: 3vw;
+  top: calc(var(--header-h) + 1.25rem);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 244, 239, 0.22);
+  background: rgba(10, 10, 10, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(247, 244, 239, 0.7);
+  cursor: pointer;
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+}
+
+.ambient-toggle:hover,
+.ambient-toggle:focus-visible {
+  color: var(--brass);
+  border-color: var(--brass);
+  outline: none;
+}
+
+.ambient-toggle[aria-pressed='true'] {
+  color: var(--brass);
+  border-color: rgba(169, 137, 90, 0.7);
+  background: rgba(10, 10, 10, 0.55);
+}
+
+@media (max-width: 767px) {
+  .ambient-toggle { right: 4vw; top: calc(var(--header-h) + 0.75rem); }
+}
+
+/* The scrim exists to make bone-white text survive an unpredictable photograph.
+   Measured against the hero: the ramp has to stay strong across the FULL width
+   of the copy block (~52% at desktop), not just the first third, because the
+   last line of the headline reaches furthest right and that is where contrast
+   bottomed out at 3.05:1. */
 .residence-scrim {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(100deg, rgba(10, 10, 10, 0.78) 0%, rgba(10, 10, 10, 0.35) 45%, rgba(10, 10, 10, 0.1) 70%),
-    linear-gradient(rgba(10, 10, 10, 0.35), rgba(10, 10, 10, 0) 30%);
+    linear-gradient(
+      100deg,
+      rgba(10, 10, 10, 0.86) 0%,
+      rgba(10, 10, 10, 0.72) 22%,
+      rgba(10, 10, 10, 0.5) 40%,
+      rgba(10, 10, 10, 0.24) 58%,
+      rgba(10, 10, 10, 0.06) 76%
+    ),
+    linear-gradient(rgba(10, 10, 10, 0.4), rgba(10, 10, 10, 0) 30%);
 }
 
 /* Sits IN the room: inset from the margin, not pinned to it. */
@@ -2954,8 +3030,13 @@ textarea {
   line-height: 0.94;
   letter-spacing: -0.03em;
   color: var(--bone);
-  /* Legibility over an unpredictable frame of video, without a flat box. */
-  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+  /* Reads as printed on the scene, not floated over it: one soft pool, plus a
+     hairline edge that keeps the glyph itself intact where the photograph is
+     bright. Legibility is carried by the scrim, and measured by
+     `npm run check:contrast` — heavier shadows here made the type look pasted. */
+  text-shadow:
+    0 2px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .residence-headline-line { display: block; }
@@ -3377,13 +3458,17 @@ textarea {
   background: radial-gradient(120% 100% at 25% 50%, #2a231c 0%, #17130f 60%, #0A0A0A 100%);
 }
 
-.guestbook-bg {
+.guestbook-bg,
+.guestbook-scene {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
+/* The scene wrapper is a clip for the over-sized living still. */
+.guestbook-scene { overflow: hidden; }
 
 /* Warm scrim weighted to the right, where the copy sits. */
 .guestbook-scrim {
@@ -4245,3 +4330,109 @@ textarea {
     top: 0;
   }
 }
+
+/* A hotspot that would sit on the headline or a CTA steps aside. It is removed
+   from the tab order too — an invisible link is not a keyboard target. */
+.hotspot[data-clashing='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── ADMIN · PRODUCTS ─────────────────────────────────────────────── */
+.admin-store {
+  font-size: 12px;
+  color: rgba(247, 244, 239, 0.6);
+  border: 1px solid var(--line);
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.5rem;
+}
+.admin-store.blocked { border-color: #b3543a; color: #e2a58f; }
+.admin-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+.admin-filters .admin-search { margin-left: auto; min-width: 240px; }
+.admin-chip {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 239, 0.6);
+  border: 1px solid var(--line);
+  padding: 0.5rem 0.85rem;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.admin-chip span { color: var(--brass); }
+.admin-chip.active { color: var(--brass); border-color: rgba(169, 137, 90, 0.6); }
+.admin-bulk { display: flex; gap: 0.75rem; align-items: center; padding: 0.75rem 1rem; border: 1px solid rgba(169, 137, 90, 0.4); margin-bottom: 1rem; font-size: 12px; }
+.admin-notice { color: #9fc79a; font-size: 13px; margin: 0.5rem 0 1rem; }
+.admin-products td { vertical-align: middle; }
+.admin-products tbody tr { cursor: default; }
+.admin-thumb { width: 40px; height: 40px; object-fit: cover; display: block; background: #111; }
+.admin-thumb.empty { display: block; border: 1px dashed rgba(247, 244, 239, 0.25); }
+.admin-thumb.big { width: 100%; height: 120px; }
+.admin-inline {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--bone);
+  font: inherit;
+  font-size: 13px;
+  padding: 0.3rem 0.4rem;
+  width: 100%;
+  min-width: 90px;
+}
+.admin-inline:hover, .admin-inline:focus { border-color: rgba(169, 137, 90, 0.5); outline: none; background: rgba(10, 10, 10, 0.5); }
+.admin-inline.num { text-align: right; width: 80px; min-width: 0; }
+.admin-inline option { background: #1c1a17; }
+.admin-inline.status-published { color: #9fc79a; }
+.admin-inline.status-approved { color: var(--brass); }
+.admin-inline.status-draft { color: rgba(247, 244, 239, 0.45); }
+.admin-ready { color: #9fc79a; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.admin-blocking { color: #e2a58f; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.admin-muted.small { display: block; font-size: 11px; }
+.admin-editor { min-width: 380px; max-width: 520px; max-height: calc(100vh - 140px); overflow-y: auto; }
+.admin-editor h3 { margin-bottom: 1rem; }
+.admin-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; }
+.admin-row { display: grid; gap: 0.5rem; }
+.admin-fieldset { border: 1px solid var(--line); padding: 1rem; margin: 0.5rem 0; }
+.admin-fieldset legend { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); padding: 0 0.4rem; }
+.admin-images { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; }
+.admin-images figure { margin: 0; display: grid; gap: 0.4rem; }
+.admin-images img { width: 100%; height: 120px; object-fit: contain; background: #111; }
+.admin-images figcaption { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(247, 244, 239, 0.5); }
+.checker { background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; background-color: #333; }
+.admin-file { font-size: 11px; color: rgba(247, 244, 239, 0.6); display: grid; gap: 0.3rem; }
+.admin-file input { font-size: 11px; }
+.admin-gallery { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
+.admin-gallery-item { position: relative; width: 56px; height: 56px; }
+.admin-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.admin-gallery-item button { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: #1c1a17; color: var(--bone); border: 1px solid var(--line); font-size: 10px; }
+.btn-ghost.small { padding: 0.6rem 1rem; font-size: 9px; }
+.admin-danger { margin-left: auto; color: #e2a58f; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; background: none; border: 1px solid transparent; padding: 0.6rem 0.8rem; }
+.admin-danger:hover:not(:disabled) { border-color: #b3543a; }
+.admin-danger:disabled { opacity: 0.35; }
+
+/* ── COLLECTION PRODUCT PAGE ─────────────────────────────────────── */
+.collection-product { padding-top: 4rem; }
+.pedestal { position: relative; min-height: 52svh; display: grid; place-items: center; }
+.pedestal-rotate {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 239, 0.7);
+  border: 1px solid var(--line);
+  padding: 0.6rem 1rem;
+  background: rgba(10, 10, 10, 0.5);
+}
+.pedestal-rotate[aria-pressed='true'] { color: var(--brass); border-color: var(--brass); }
+.product-compare { color: rgba(247, 244, 239, 0.45); margin-left: 0.75rem; font-size: 14px; }
+.product-meta ul { padding-left: 1rem; }
+.related-section { background: var(--ink); }
+.related-heading { font-family: var(--font-display); font-weight: 350; font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--bone); margin: 0.4rem 0 2rem; }
+.related-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+.related-grid a { display: grid; gap: 0.5rem; color: var(--bone); }
+.related-grid img, .related-empty { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: #111; }
+.related-name { font-size: 14px; }
+.related-price { font-size: 12px; color: var(--taupe); }

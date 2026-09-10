@@ -112,10 +112,13 @@ npm run stripe:setup -- --apply --webhook # also create the webhook endpoint
 What it does:
 
 1. Lists the products already in your Stripe account.
-2. Creates a Product + Price for every priced item in `content/products.json`
-   that doesn't exist yet, tagging each with `metadata.ic_slug`.
-3. Writes the resulting `price_…` IDs back into `content/products.json` under
-   `channels.stripePriceId`. **Commit that diff** — checkout reads those IDs.
+2. Creates a Product + Price for every priced Stripe-sold item in
+   `content/catalog.json` that doesn't exist yet, tagging each with
+   `metadata.ic_slug`.
+3. Writes the resulting `price_…` IDs back into `content/catalog.json` as
+   `stripePriceId`. **Commit that diff** — checkout reads those IDs. (Per
+   product, the **Create Stripe Price** button in `/admin/products` does the
+   same and commits for you on Vercel.)
 4. With `--webhook`, creates the endpoint and prints the signing secret.
 
 It is idempotent: it matches on `ic_slug` first, so re-running adopts what
@@ -167,20 +170,30 @@ yet, set `automatic_tax` to `{ enabled: false }` in
 
 ## Syncing products
 
-Run locally, not on the server — a serverless filesystem is read-only, so a
-route that wrote `content/products.json` would lose the change on next deploy.
+Two ways, same rules:
 
-```bash
-npm run sync     # pulls Printful + Printify into content/products.json
-git diff         # review — fill in blank taglines and descriptions
-git commit -am "chore: sync product catalogue"
-```
+- **`/admin/products` → Sync from Printful / Printify.** On Vercel the result
+  is committed to GitHub and redeployed. Needs `GITHUB_TOKEN` (below).
+- **Locally:**
 
-Existing hand-written `tagline`, `description`, and `careNotes` are preserved;
-the providers have no equivalent field and would otherwise blank them.
+  ```bash
+  npm run sync     # pulls Printful + Printify into content/catalog.json
+  git diff         # review
+  git commit -am "chore: sync product catalogue"
+  ```
 
-`/api/printful/sync/` and `/api/printify/sync/` return the same mapped JSON
-read-only, for inspecting what the providers currently expose.
+New products arrive as `needs-pricing` — set retail prices in the admin. A
+re-sync never touches a name, description, price, status, or uploaded image.
+`GET /api/printful/sync/` and `/api/printify/sync/` return the mapped JSON
+read-only, for inspecting what the providers expose.
+
+### GitHub token for the admin
+
+On Vercel the filesystem is read-only, so every save in `/admin/products` is a
+commit through the GitHub Contents API. Create a **fine-grained personal access
+token** at github.com → Settings → Developer settings, scoped to **only this
+repository**, with **Contents: Read and write**. Add it as `GITHUB_TOKEN`.
+Optional: `REMOVEBG_API_KEY` for real background removal.
 
 ---
 
@@ -194,8 +207,8 @@ read-only, for inspecting what the providers currently expose.
       These replace the GitHub Pages records.
 - [ ] **Create the Gumroad products** for `content/digital-products.json` and
       confirm each `gumroadPath` matches the real product URL.
-- [ ] **Replace the `"TODO"` channel URLs** in `content/products.json` with
-      real Amazon/Etsy/TikTok listing links.
+- [ ] **Fill in the Amazon / affiliate / Gumroad URLs** on the catalog
+      records in `/admin/products`; the publish gate lists which are missing.
 - [ ] **Put a rate limiter in front of `/api/subscribe/`.** The in-process
       counter there resets on every cold start, so it slows a naive script but
       does not stop a distributed one — and each call that gets through spends

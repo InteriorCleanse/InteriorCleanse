@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Showroom } from '@/components/showroom/Showroom'
+import { getScene } from '@/lib/scenes'
 import { showroomProducts } from '@/lib/showroom'
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function Collection({
   return (
     <Showroom
       products={showroomProducts()}
+      scene={getScene('showroom')}
       initialCategory={searchParams?.category ?? null}
       initialView={searchParams?.view === 'browse' ? 'browse' : 'discover'}
       initialQuery={searchParams?.q ?? ''}

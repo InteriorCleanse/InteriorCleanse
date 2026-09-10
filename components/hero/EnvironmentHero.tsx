@@ -5,8 +5,10 @@ import { useMemo, useRef } from 'react'
 import { GlobeCursor } from '@/components/cursor/GlobeCursor'
 import type { Scene } from '@/lib/scenes'
 import type { Product } from '@/lib/types'
+import { AmbientToggle } from './AmbientToggle'
 import { FeaturedCard } from './FeaturedCard'
 import { Hotspots } from './Hotspots'
+import { RealismLayer } from './RealismLayer'
 import { SceneBackground } from './SceneBackground'
 import { useParallax } from './useParallax'
 
@@ -88,6 +90,9 @@ export function EnvironmentHero({
             reducedMotionPoster={scene.reducedMotionPoster ?? undefined}
           />
         </div>
+        {/* Grain and vignette sit between the footage and the scrim: they are
+            part of the picture, not part of the interface. */}
+        <RealismLayer />
         <div className="residence-scrim" aria-hidden="true" />
 
         {/* LAYER C */}
@@ -117,6 +122,10 @@ export function EnvironmentHero({
           <div className="featured-slot" data-position={scene.featuredProduct?.position ?? 'bottom-right'}>
             <FeaturedCard product={featured} />
           </div>
+        ) : null}
+
+        {scene.ambientSound ? (
+          <AmbientToggle kind={scene.ambientSound} sceneRef={stageRef} />
         ) : null}
 
         {cursor ? <GlobeCursor targetRef={stageRef} /> : null}

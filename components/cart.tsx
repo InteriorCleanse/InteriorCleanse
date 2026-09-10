@@ -141,22 +141,31 @@ export function useCart(): CartContextValue {
 export function AddToCartButton({
   item,
   disabled,
+  /**
+   * Pass -1 where the button sits inside a subtree that is hidden from the
+   * accessibility tree — a carousel card behind the active one, for instance.
+   * `aria-hidden` alone does not remove a control from the tab order, and a
+   * keyboard user landing on a button no screen reader will describe is worse
+   * than not reaching it at all.
+   */
+  tabIndex,
 }: {
   item: Omit<CartItem, 'quantity'>
   disabled?: boolean
+  tabIndex?: number
 }) {
   const { add } = useCart()
 
   if (disabled) {
     return (
-      <button className="add-to-cart-btn" disabled>
+      <button className="add-to-cart-btn" disabled tabIndex={tabIndex}>
         COMING SOON <span>◇</span>
       </button>
     )
   }
 
   return (
-    <button className="add-to-cart-btn" onClick={() => add(item)}>
+    <button className="add-to-cart-btn" onClick={() => add(item)} tabIndex={tabIndex}>
       ADD TO CART <span>→</span>
     </button>
   )

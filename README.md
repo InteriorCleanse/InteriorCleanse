@@ -98,7 +98,8 @@ failures come back as `{"failures": [...]}`.
 
 ### Admin dashboard
 
-`/admin` — contacts, orders, analytics, and a Claude email composer. Gated by
+`/admin` — contacts, orders, analytics, and a Claude email composer;
+`/admin/products` — the catalog manager (see `docs/PRODUCT_PIPELINE.md`). Gated by
 `ADMIN_PASSWORD`, with an HMAC-signed session cookie keyed on
 `ADMIN_SESSION_SECRET`. `middleware.ts` verifies the signature and each admin
 route re-checks it, so the dashboard is never the only guard.
@@ -106,7 +107,7 @@ route re-checks it, so the dashboard is never the only guard.
 ### Stripe products and prices
 
 Checkout uses Stripe **Price IDs**, resolved server-side from
-`content/products.json` by slug. The browser sends only slugs and quantities,
+`content/catalog.json` by slug. The browser sends only slugs and quantities,
 so nothing it sends can change what a customer is charged; a product without a
 `stripePriceId` returns `409` rather than falling back to a guessed amount.
 
@@ -118,7 +119,8 @@ npm run stripe:setup -- --apply --webhook # also create the webhook, print its s
 
 Idempotent — Products are tagged `metadata.ic_slug` and re-runs adopt what
 already exists. Needs your own `STRIPE_SECRET_KEY`; start with an `sk_test_`
-key. See `VERCEL_ENV_SETUP.md`.
+key. See `VERCEL_ENV_SETUP.md`. Per product, the same thing is the **Create
+Stripe Price** button in `/admin/products`.
 
 ### Syncing the catalogue
 
@@ -126,20 +128,20 @@ key. See `VERCEL_ENV_SETUP.md`.
 npm run sync
 ```
 
-Writes `content/products.json` from Printful and Printify, deduplicated by slug
-and preserving hand-written `tagline`, `description`, and `careNotes`. Runs
-locally by design — a serverless filesystem is read-only, so a route that wrote
-the file would lose the change on the next deploy.
+Writes Printful and Printify products into `content/catalog.json` as
+`needs-pricing` records, never touching a name, description, price, status, or
+uploaded image on re-sync. The same sync is a button in `/admin/products`,
+which on Vercel commits through GitHub.
 
 ## Add a product
 
-Edit `content/products.json`. Required: `slug`, `name`, `category`, `tagline`,
-`description`, `price`, `heroImage`, `gallery`, `viewer`, `channels`,
-`featured`, `comingSoon`. Optional: `materialColor` (the 3D viewer's base
-colour), `badge`, `careNotes`.
+Use `/admin/products` — no code, no deploy step beyond the commit it makes.
+The full walkthrough, the publish rules, and every route are in
+`docs/PRODUCT_PIPELINE.md`. The record lives in `content/catalog.json`; only
+`published` records reach the public site.
 
-`category` must be one of `candle`, `print`, `tote`, `mug`, `cleaning`, `book`,
-`custom` — each maps to real geometry in `components/3d/ProductGeometry.tsx`.
+`objectType` (what the 3D presentation treats it as) must be one of `candle`,
+`print`, `tote`, `mug`, `cleaning`, `book`, `custom`.
 
 ## Add a book
 
