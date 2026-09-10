@@ -3,14 +3,22 @@
 Get-it is the fitness app. Palette and type are defined in
 `BASE44_GET_IT_FITNESS_APP_PROMPT.md` ("Ember on Graphite").
 
-## Logo files (vector, final)
+## Approved logo (10 September 2026)
 
-- `public/brand/get-it-logo.svg` — app icon. A bone-white G drawn as a
-  progress ring that is almost complete, closed by an ember dot. Export at
-  1024 px for the App Store, 512 px for Play, 180 px for iOS home screen.
-- `public/brand/get-it-wordmark.svg` — horizontal lockup. The hyphen is an
-  upward Ember tick; the i carries an Amber dot. Set in Space Grotesk Bold;
-  install the font before exporting or the fallback sans will render.
+The owner approved the Higgsfield wordmark concept `6b8f6da8…`: bone-white
+"Get" and "it" in a bold geometric grotesque, an ember tilted bar for the
+hyphen, and an amber glowing dot on the i. It has been rebuilt as vector:
+
+- `public/brand/get-it-wordmark.svg` — the wordmark, 1400 × 520. Set in
+  Bricolage Grotesque or Space Grotesk; install one before exporting or
+  the fallback sans will render.
+- `public/brand/get-it-logo.svg` — the app icon: the G with the same tick
+  and dot inside its counter on Graphite. Export at 1024 px for the App
+  Store, 512 px for Play, 180 px for the iOS home screen.
+
+The design system built around the logo is in
+`BASE44_GET_IT_UI_AND_TIERS_PROMPT.md` and the live Get-it Design System
+artifact.
 
 ## Logo concepts (Higgsfield, for comparison)
 

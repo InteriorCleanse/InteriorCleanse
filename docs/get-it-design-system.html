@@ -1,0 +1,475 @@
+<title>Get-it Design System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    /* Light theme: Sand ground (the "outdoor" version of the app) */
+    --ground: #E6D9C3;
+    --surface: #F4F1EC;
+    --surface-2: #DCCFB8;
+    --restore: #D3DCCF;
+    --restore-ink: #24382E;
+    --ink: #111214;
+    --ink-2: #4E5A4E;
+    --line: rgba(17,18,20,.14);
+    --ember: #E44E17;
+    --amber: #D98F12;
+    --fern: #2F8F55;
+    --signal: #D92A48;
+    --glow: rgba(217,143,18,.28);
+    --shadow: 0 18px 40px rgba(17,18,20,.14);
+    --radius: 22px;
+    --radius-s: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #111214; --surface: #191C1A; --surface-2: #22272A; --restore: #24382E; --restore-ink: #BFD3C2;
+      --ink: #F4F1EC; --ink-2: #9DB39B; --line: rgba(244,241,236,.10);
+      --ember: #FF5A1F; --amber: #F5A623; --fern: #5BBF7A; --signal: #FF3B5C;
+      --glow: rgba(245,166,35,.35); --shadow: 0 18px 40px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #111214; --surface: #191C1A; --surface-2: #22272A; --restore: #24382E; --restore-ink: #BFD3C2;
+    --ink: #F4F1EC; --ink-2: #9DB39B; --line: rgba(244,241,236,.10);
+    --ember: #FF5A1F; --amber: #F5A623; --fern: #5BBF7A; --signal: #FF3B5C;
+    --glow: rgba(245,166,35,.35); --shadow: 0 18px 40px rgba(0,0,0,.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Manrope", "Helvetica Neue", Arial, sans-serif; font-size: 15px; line-height: 1.5;
+    padding-block: 32px 80px; padding-inline: 20px;
+  }
+  .display { font-family: "Bricolage Grotesque", "Arial Narrow", Arial, sans-serif; font-weight: 800; letter-spacing: -.02em; line-height: .95; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  h2 { font-family: "Bricolage Grotesque", Arial, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -.01em; }
+  p { max-width: 62ch; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 56px; }
+  header { display: grid; gap: 22px; }
+  header .logo { width: min(360px, 80vw); height: auto; display: block; }
+  header h1 { font-size: clamp(38px, 6vw, 68px); }
+  header p { color: var(--ink-2); font-size: 17px; }
+
+  section { display: grid; gap: 20px; }
+  .section-head { display: grid; gap: 6px; }
+  .section-head p { color: var(--ink-2); margin: 0; }
+
+  /* Palette */
+  .palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .swatch { border-radius: var(--radius-s); padding: 14px; min-height: 118px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; border: 1px solid var(--line); }
+  .swatch b { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 17px; }
+  .swatch span { font-size: 12px; opacity: .8; font-variant-numeric: tabular-nums; }
+  .swatch small { font-size: 11px; opacity: .7; }
+
+  /* Phone frame */
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 760px) { .stage { grid-template-columns: 1fr; } }
+  .notes { display: grid; gap: 14px; align-content: start; }
+  .notes h3 { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 18px; font-weight: 700; }
+  .notes p { margin: 0; color: var(--ink-2); }
+  .phone { background: var(--surface); border: 1px solid var(--line); border-radius: 34px; padding: 22px 18px 18px; box-shadow: var(--shadow); display: grid; gap: 18px; max-width: 420px; width: 100%; justify-self: center; }
+  .phone .title { display: flex; justify-content: space-between; align-items: baseline; }
+  .phone .title .display { font-size: 30px; }
+
+  /* Buttons */
+  .btn { -webkit-tap-highlight-color: transparent; appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 700; color: inherit; position: relative; overflow: hidden; touch-action: manipulation; transition: transform .16s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, background .2s ease; user-select: none; }
+  .btn:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+  .btn:active { transform: scale(.96); }
+  .btn-primary { background: var(--ember); color: #111214; border-radius: 999px; padding: 18px 26px; font-size: 17px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 10px 28px rgba(255,90,31,.32); }
+  .btn-primary:hover { box-shadow: 0 14px 34px rgba(255,90,31,.42); }
+  .btn-primary .arrow { width: 34px; height: 34px; border-radius: 50%; background: rgba(17,18,20,.16); display: grid; place-items: center; transition: transform .2s; }
+  .btn-primary:hover .arrow { transform: translateX(4px); }
+  .spark { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--amber); pointer-events: none; transform: translate(-50%,-50%) scale(1); opacity: .9; animation: spark .55s ease-out forwards; }
+  @keyframes spark { to { transform: translate(-50%,-50%) scale(28); opacity: 0; } }
+
+  /* Effort / Restore segmented */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 999px; padding: 4px; position: relative; }
+  .seg button { background: transparent; border: 0; padding: 12px; border-radius: 999px; font: inherit; font-weight: 700; color: var(--ink-2); cursor: pointer; position: relative; z-index: 1; transition: color .25s; }
+  .seg button[aria-pressed="true"] { color: #111214; }
+  .seg .thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px; background: var(--ember); transition: transform .32s cubic-bezier(.3,1.4,.4,1), background .32s; }
+  .seg[data-mode="restore"] .thumb { transform: translateX(100%); background: var(--fern); }
+
+  /* Hold to log */
+  .hold { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; background: var(--surface-2); border-radius: var(--radius); padding: 14px 14px 14px 18px; border: 1px solid var(--line); transition: background .3s; }
+  .hold.done { background: color-mix(in srgb, var(--fern) 22%, var(--surface-2)); }
+  .hold .meta { display: grid; gap: 2px; }
+  .hold .meta b { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 20px; }
+  .hold .meta span { color: var(--ink-2); font-size: 13px; }
+  .ring { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; position: relative; background: var(--surface); cursor: pointer; border: 0; padding: 0; }
+  .ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 5; }
+  .ring .track { stroke: var(--line); }
+  .ring .bar { stroke: var(--amber); stroke-dasharray: 176; stroke-dashoffset: 176; transition: stroke-dashoffset .05s linear; }
+  .ring .icon { font-size: 20px; font-weight: 800; color: var(--ink); z-index: 1; font-family: "Bricolage Grotesque", Arial, sans-serif; }
+  .hold.done .ring .bar { stroke: var(--fern); stroke-dashoffset: 0; }
+  .hold.done .ring .icon { color: var(--fern); }
+
+  /* Swipe to complete */
+  .swipe { position: relative; border-radius: var(--radius-s); overflow: hidden; background: var(--restore); border: 1px solid var(--line); }
+  .swipe .under { position: absolute; inset: 0; display: flex; align-items: center; padding-left: 18px; color: var(--restore-ink); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .swipe .row { position: relative; background: var(--surface-2); display: grid; grid-template-columns: 44px 1fr 1fr 1fr; align-items: center; padding: 14px 12px; gap: 8px; touch-action: pan-y; cursor: grab; transition: transform .35s cubic-bezier(.2,.9,.2,1), background .3s; }
+  .swipe .row.dragging { transition: none; cursor: grabbing; }
+  .swipe .row.done { background: color-mix(in srgb, var(--fern) 24%, var(--surface-2)); }
+  .swipe .row .set { font-family: "Bricolage Grotesque", Arial, sans-serif; font-weight: 800; font-size: 18px; width: 34px; height: 34px; border-radius: 10px; background: var(--surface); display: grid; place-items: center; }
+  .swipe .row .cell { display: grid; gap: 0; }
+  .swipe .row .cell span { font-size: 11px; color: var(--ink-2); letter-spacing: .08em; text-transform: uppercase; }
+  .swipe .row .cell b { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .swipe .row.done .cell b { color: var(--fern); }
+  .swipe-list { display: grid; gap: 8px; }
+
+  /* Rest timer */
+  .rest { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; background: var(--restore); color: var(--restore-ink); border-radius: var(--radius); padding: 12px 14px; }
+  .rest .big { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .rest .label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; }
+  .rest .chip { background: rgba(0,0,0,.12); color: inherit; border-radius: 999px; padding: 10px 14px; font-size: 14px; }
+  .rest.breathing .big { animation: breathe 4s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  .rest .actions { display: flex; gap: 6px; }
+
+  /* Muscle chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip-t { border-radius: 999px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; font-weight: 600; color: var(--ink); }
+  .chip-t[aria-pressed="true"] { background: var(--amber); color: #111214; border-color: transparent; box-shadow: 0 0 0 6px var(--glow); }
+
+  /* Tab bar */
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface-2); border-radius: 22px; padding: 8px 6px; position: relative; }
+  .tabs .dot { position: absolute; top: 6px; height: 3px; width: calc(20% - 12px); left: 6px; border-radius: 3px; background: var(--ember); transition: transform .4s cubic-bezier(.3,1.5,.4,1); }
+  .tabs button { background: none; border: 0; color: var(--ink-2); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 12px 0 6px; cursor: pointer; display: grid; gap: 4px; justify-items: center; }
+  .tabs button[aria-selected="true"] { color: var(--ink); }
+  .tabs button i { width: 22px; height: 22px; border-radius: 7px; background: currentColor; opacity: .25; display: block; }
+  .tabs button[aria-selected="true"] i { opacity: 1; background: var(--ember); }
+
+  /* Tiers */
+  .tier-toggle { display: inline-flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px; }
+  .tier-toggle button { border: 0; background: transparent; padding: 10px 16px; border-radius: 999px; font: inherit; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+  .tier-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+  .tier-toggle .save { font-size: 12px; color: var(--fern); font-weight: 700; padding-right: 10px; }
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: stretch; }
+  .tier { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: grid; gap: 16px; align-content: start; }
+  .tier.pro { background: var(--restore); color: var(--restore-ink); border-color: transparent; }
+  .tier .name { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 22px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+  .tier .name em { font-style: normal; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; background: var(--ember); color: #111214; border-radius: 999px; padding: 4px 10px; }
+  .tier .price { font-family: "Bricolage Grotesque", Arial, sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tier .price small { font-family: "Manrope", Arial, sans-serif; font-size: 14px; font-weight: 600; opacity: .75; letter-spacing: 0; margin-left: 4px; }
+  .tier .per { font-size: 13px; opacity: .75; min-height: 20px; }
+  .tier ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; font-size: 14px; }
+  .tier li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; }
+  .tier li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--fern); margin-top: 6px; }
+  .tier.pro li::before { background: var(--amber); }
+  .tier .cta { margin-top: auto; border-radius: 999px; padding: 14px; font-weight: 700; text-align: center; background: var(--surface-2); color: var(--ink); }
+  .tier.plus .cta { background: var(--ember); color: #111214; }
+  .tier.pro .cta { background: var(--restore-ink); color: var(--restore); }
+
+  /* Rules table */
+  .rules { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--radius-s); overflow: hidden; }
+  .rule { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: var(--surface); border-top: 1px solid var(--line); font-size: 14px; }
+  .rule:first-child { border-top: 0; }
+  .rule b { font-family: "Bricolage Grotesque", Arial, sans-serif; font-weight: 700; }
+  .rule span { color: var(--ink-2); }
+  @media (max-width: 520px) { .rule { grid-template-columns: 1fr; gap: 4px; } }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: var(--ink); color: var(--ground); padding: 12px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 9; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast .pr { color: var(--amber); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 1400 520" role="img" aria-label="Get-it">
+      <defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#F5A623" stop-opacity=".55"/><stop offset="100%" stop-color="#F5A623" stop-opacity="0"/></radialGradient></defs>
+      <g font-family="'Bricolage Grotesque','Space Grotesk',Arial,sans-serif" font-weight="800" font-size="300" letter-spacing="-4" fill="currentColor">
+        <text x="150" y="370">Get</text><text x="905" y="370">ıt</text>
+      </g>
+      <rect x="770" y="242" width="150" height="46" rx="4" fill="#FF5A1F" transform="rotate(-18 845 265)"/>
+      <circle cx="948" cy="120" r="68" fill="url(#g1)"/><circle cx="948" cy="120" r="30" fill="#F5A623"/>
+    </svg>
+    <div>
+      <div class="eyebrow">Design system · Ember and Earth</div>
+      <h1 class="display">Train like a sprinter.<br>Recover like a forest.</h1>
+    </div>
+    <p>Get-it borrows its intensity from Nike and Under Armour and its calm from the outdoors. Ember is effort. Moss and Fern are recovery. Every screen shows you which one you are in. Press everything on this page: it all works.</p>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>Palette</h2>
+      <p>Two warm accents from the logo, one green family for the holistic side, and neutrals with a hint of green in them so nothing reads as plain grey.</p>
+    </div>
+    <div class="palette">
+      <div class="swatch" style="background:#111214;color:#F4F1EC"><b>Graphite</b><span>#111214</span><small>App ground</small></div>
+      <div class="swatch" style="background:#191C1A;color:#F4F1EC"><b>Basalt</b><span>#191C1A</span><small>Cards, sheets</small></div>
+      <div class="swatch" style="background:#24382E;color:#BFD3C2"><b>Moss</b><span>#24382E</span><small>Restore surfaces</small></div>
+      <div class="swatch" style="background:#5BBF7A;color:#111214"><b>Fern</b><span>#5BBF7A</span><small>Done, on target, growth</small></div>
+      <div class="swatch" style="background:#9DB39B;color:#111214"><b>Sage</b><span>#9DB39B</span><small>Secondary text</small></div>
+      <div class="swatch" style="background:#E6D9C3;color:#111214"><b>Sand</b><span>#E6D9C3</span><small>Light ground, outdoor mode</small></div>
+      <div class="swatch" style="background:#F4F1EC;color:#111214"><b>Bone</b><span>#F4F1EC</span><small>Primary text</small></div>
+      <div class="swatch" style="background:#FF5A1F;color:#111214"><b>Ember</b><span>#FF5A1F</span><small>Effort, primary action</small></div>
+      <div class="swatch" style="background:#F5A623;color:#111214"><b>Amber</b><span>#F5A623</span><small>Muscle glow, records</small></div>
+      <div class="swatch" style="background:#FF3B5C;color:#111214"><b>Signal</b><span>#FF3B5C</span><small>Over target, missed</small></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Buttons and controls</h2>
+      <p>Each control has a physical idea behind it. Nothing just changes colour.</p>
+    </div>
+    <div class="stage">
+      <div class="phone" aria-label="Live component demo">
+        <div class="title"><span class="display">Today</span><span class="eyebrow num">Wed · Day 12</span></div>
+
+        <div class="seg" id="seg" data-mode="effort">
+          <div class="thumb"></div>
+          <button id="segEffort" aria-pressed="true">Effort</button>
+          <button id="segRestore" aria-pressed="false">Restore</button>
+        </div>
+
+        <button class="btn btn-primary" id="primary">
+          <span id="primaryLabel">Start Upper A · 52 min</span>
+          <span class="arrow" aria-hidden="true">→</span>
+        </button>
+
+        <div class="hold" id="hold">
+          <div class="meta"><b class="num">Bench press · 60 kg × 8</b><span id="holdHint">Hold the ring to log the set</span></div>
+          <button class="ring" id="ringBtn" aria-label="Hold to log set">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="track" cx="32" cy="32" r="28"/><circle class="bar" id="ringBar" cx="32" cy="32" r="28"/></svg>
+            <span class="icon" id="ringIcon">+</span>
+          </button>
+        </div>
+
+        <div class="swipe-list" id="swipes">
+          <div class="swipe"><div class="under">Swipe to complete</div>
+            <div class="row" data-set="1"><span class="set">1</span><div class="cell"><span>Prev</span><b>60 × 8</b></div><div class="cell"><span>Kg</span><b>62.5</b></div><div class="cell"><span>Reps</span><b>8</b></div></div></div>
+          <div class="swipe"><div class="under">Swipe to complete</div>
+            <div class="row" data-set="2"><span class="set">2</span><div class="cell"><span>Prev</span><b>60 × 8</b></div><div class="cell"><span>Kg</span><b>62.5</b></div><div class="cell"><span>Reps</span><b>8</b></div></div></div>
+        </div>
+
+        <div class="rest" id="rest">
+          <div><div class="label">Rest</div><div class="big num" id="restBig">1:30</div></div>
+          <div id="restHint" style="font-size:12px;line-height:1.35;opacity:.85">Tap start. Breathe with the number.</div>
+          <div class="actions"><button class="btn chip" id="restMinus">−15</button><button class="btn chip" id="restStart">Start</button><button class="btn chip" id="restPlus">+15</button></div>
+        </div>
+
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">Target a muscle</div>
+          <div class="chips" id="chips">
+            <button class="btn chip-t" aria-pressed="true">Chest</button><button class="btn chip-t" aria-pressed="false">Back</button><button class="btn chip-t" aria-pressed="false">Shoulders</button><button class="btn chip-t" aria-pressed="false">Glutes</button><button class="btn chip-t" aria-pressed="false">Core</button><button class="btn chip-t" aria-pressed="false">Mobility</button>
+          </div>
+        </div>
+
+        <nav class="tabs" id="tabs" aria-label="App tabs">
+          <div class="dot"></div>
+          <button aria-selected="true"><i></i>Today</button><button aria-selected="false"><i></i>Train</button><button aria-selected="false"><i></i>Fuel</button><button aria-selected="false"><i></i>Restore</button><button aria-selected="false"><i></i>You</button>
+        </nav>
+      </div>
+
+      <div class="notes">
+        <div><h3>Effort / Restore switch</h3><p>The whole app has two moods. Ember for training, Fern for mobility, breathwork, walks and sleep. The thumb springs across so the mode change feels physical.</p></div>
+        <div><h3>Primary button</h3><p>Pill, Ember, full width, always in thumb reach. Pressing scales it to 96% and fires an amber spark from the touch point. A short haptic tick on phones.</p></div>
+        <div><h3>Hold-to-log ring</h3><p>A tap is too easy to hit by accident mid-set. Holding for 0.7 s fills the ring; letting go early cancels. Logging turns the row Fern. A record turns the ring Amber and says so.</p></div>
+        <div><h3>Swipe-to-complete rows</h3><p>Drag a set row to the right past 40% and it locks in. Under it is Moss, so completing a set reveals the recovery colour. Drag back to undo.</p></div>
+        <div><h3>Rest timer that breathes</h3><p>The number swells and settles on a four-second cycle, a cue to breathe. Buttons shift by 15 s. It runs in the background and vibrates at zero.</p></div>
+        <div><h3>Muscle chips</h3><p>Selected chips glow Amber, the same light as the Coach figure's working muscles, so the chip and the video speak the same language.</p></div>
+        <div><h3>Tab bar</h3><p>Five tabs. The Ember indicator overshoots and settles like a cable on a pulley. Restore has its own tab: the holistic side is not buried in settings.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Tiers</h2>
+      <p>Priced between Fitbod and Centr. Free must be honestly good. Plus is the everyday product. Pro is the coaching and recovery layer.</p>
+    </div>
+    <div class="tier-toggle" role="group" aria-label="Billing period">
+      <button id="billMonthly" aria-pressed="false">Monthly</button>
+      <button id="billAnnual" aria-pressed="true">Annual</button>
+      <span class="save" id="saveNote">Save 50%</span>
+    </div>
+    <div class="tiers">
+      <div class="tier free">
+        <div class="name">Get-it</div>
+        <div class="price num">$0</div>
+        <div class="per">Forever</div>
+        <ul>
+          <li>Full intake and one generated program</li>
+          <li>Sets-and-reps logger with rest timer</li>
+          <li>25 exercises with Coach video</li>
+          <li>Calorie and protein targets, food search logging</li>
+          <li>Weight trend and personal records</li>
+        </ul>
+        <div class="cta">Start free</div>
+      </div>
+      <div class="tier plus">
+        <div class="name">Plus <em>Most popular</em></div>
+        <div class="price num" data-m="9.99" data-a="59.99">$59.99<small>/yr</small></div>
+        <div class="per" id="plusPer">$5 a month, billed yearly · 7-day trial</div>
+        <ul>
+          <li>Full exercise library, both angles, slow motion</li>
+          <li>Unlimited program regeneration and per-muscle sessions</li>
+          <li>Seven-day diet plans, swaps, and grocery lists</li>
+          <li>Barcode and photo food logging</li>
+          <li>Coach shorts feed, analytics, muscle balance</li>
+          <li>Offline mode and Apple Health / Google Fit sync</li>
+        </ul>
+        <div class="cta">Start 7-day trial</div>
+      </div>
+      <div class="tier pro">
+        <div class="name">Pro</div>
+        <div class="price num" data-m="19.99" data-a="149.99">$149.99<small>/yr</small></div>
+        <div class="per" id="proPer">$12.50 a month, billed yearly · 7-day trial</div>
+        <ul>
+          <li>Everything in Plus</li>
+          <li>Weekly AI coach check-in that adjusts your plan from your logs and sleep</li>
+          <li>Restore programs: mobility, breathwork, outdoor sessions, sleep routines</li>
+          <li>Form review: upload a set, get cues within a day</li>
+          <li>Partner seat: share Pro with one other person</li>
+          <li>Early access to new Coach shorts and programs</li>
+        </ul>
+        <div class="cta">Go Pro</div>
+      </div>
+    </div>
+    <p style="color:var(--ink-2);font-size:14px;margin:0">Optional: a Founding tier, one payment of $199 for lifetime Pro, capped at the first 500 members. It funds the video library and gives early users a reason to talk about the app.</p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Motion and material rules</h2>
+      <p>Hand these to Base44 with the palette. They are what keep the app from feeling like a template.</p>
+    </div>
+    <div class="rules">
+      <div class="rule"><b>Timing</b><span>200 to 350 ms, ease-out. Springs only on the segmented thumb, the tab indicator, and the match of a record badge.</span></div>
+      <div class="rule"><b>Press</b><span>Every button scales to 96% while pressed and returns in 160 ms. Primary buttons also fire the amber spark.</span></div>
+      <div class="rule"><b>Colour by mood</b><span>Ember means effort and action. Fern and Moss mean recovery and completion. Amber means light: muscle glow, records, selection. Signal is reserved for over-target and missed days.</span></div>
+      <div class="rule"><b>Corners</b><span>Pills for actions, 22 px for cards, 14 px for rows. Never one radius everywhere.</span></div>
+      <div class="rule"><b>Texture</b><span>Cards carry a 3% grain overlay in dark mode so surfaces feel like stone, not plastic. No gradients except the amber glow.</span></div>
+      <div class="rule"><b>Type</b><span>Bricolage Grotesque 800 for headlines and big numbers, tabular figures. Manrope for everything else. Uppercase labels at 11 px with 0.12 em tracking.</span></div>
+      <div class="rule"><b>Light mode</b><span>Sand ground with Graphite text: the outdoor version. Same accents, same rules.</span></div>
+      <div class="rule"><b>Never</b><span>Confetti, cartoon badges, red-green traffic lights, full-screen paywall on open, default component styling, a spinner longer than 400 ms.</span></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+  const toast = (html, ms = 1600) => { const t = $('#toast'); t.innerHTML = html; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms); };
+
+  // Effort / Restore
+  const seg = $('#seg');
+  const setMode = (mode) => {
+    seg.dataset.mode = mode;
+    $('#segEffort').setAttribute('aria-pressed', mode === 'effort');
+    $('#segRestore').setAttribute('aria-pressed', mode === 'restore');
+    $('#primaryLabel').textContent = mode === 'effort' ? 'Start Upper A · 52 min' : 'Start Evening Reset · 18 min';
+    $('#primary').style.background = mode === 'effort' ? 'var(--ember)' : 'var(--fern)';
+    $('#primary').style.boxShadow = mode === 'effort' ? '0 10px 28px rgba(255,90,31,.32)' : '0 10px 28px rgba(91,191,122,.32)';
+    buzz(8);
+  };
+  $('#segEffort').addEventListener('click', () => setMode('effort'));
+  $('#segRestore').addEventListener('click', () => setMode('restore'));
+
+  // Primary spark
+  $('#primary').addEventListener('pointerdown', (e) => {
+    const b = e.currentTarget, r = b.getBoundingClientRect();
+    const s = document.createElement('span'); s.className = 'spark';
+    s.style.left = (e.clientX - r.left) + 'px'; s.style.top = (e.clientY - r.top) + 'px';
+    b.appendChild(s); setTimeout(() => s.remove(), 600); buzz(10);
+  });
+  $('#primary').addEventListener('click', () => toast(seg.dataset.mode === 'effort' ? 'Session started. Bench press is up first.' : 'Reset started. Four minutes of box breathing.'));
+
+  // Hold to log
+  const hold = $('#hold'), ring = $('#ringBtn'), bar = $('#ringBar');
+  const HOLD = 700; let t0 = 0, raf = 0, holding = false;
+  const draw = () => {
+    if (!holding) return;
+    const p = Math.min(1, (performance.now() - t0) / HOLD);
+    bar.style.strokeDashoffset = String(176 - 176 * p);
+    if (p >= 1) { complete(); return; }
+    raf = requestAnimationFrame(draw);
+  };
+  const start = (e) => { if (hold.classList.contains('done')) return; e.preventDefault(); holding = true; t0 = performance.now(); ring.setPointerCapture && ring.setPointerCapture(e.pointerId); raf = requestAnimationFrame(draw); };
+  const cancel = () => { if (!holding) return; holding = false; cancelAnimationFrame(raf); bar.style.strokeDashoffset = '176'; };
+  const complete = () => {
+    holding = false; cancelAnimationFrame(raf); hold.classList.add('done');
+    $('#ringIcon').textContent = '✓'; $('#holdHint').textContent = 'Logged · rest started';
+    buzz([12, 40, 12]); toast('<span class="pr">New record</span> · 60 kg × 8 is your best set'); startRest();
+  };
+  ring.addEventListener('pointerdown', start);
+  ring.addEventListener('pointerup', cancel);
+  ring.addEventListener('pointercancel', cancel);
+  ring.addEventListener('pointerleave', cancel);
+  ring.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!holding) { holding = true; t0 = performance.now(); raf = requestAnimationFrame(draw); } } });
+  ring.addEventListener('keyup', cancel);
+
+  // Swipe rows
+  document.querySelectorAll('#swipes .row').forEach((row) => {
+    let x0 = 0, dx = 0, active = false, w = 0;
+    row.addEventListener('pointerdown', (e) => { active = true; x0 = e.clientX; w = row.offsetWidth; row.classList.add('dragging'); row.setPointerCapture(e.pointerId); });
+    row.addEventListener('pointermove', (e) => {
+      if (!active) return; dx = e.clientX - x0;
+      const done = row.classList.contains('done');
+      const lim = done ? Math.min(0, dx) : Math.max(0, dx);
+      row.style.transform = 'translateX(' + Math.max(-w * .6, Math.min(w * .6, lim)) + 'px)';
+    });
+    const end = () => {
+      if (!active) return; active = false; row.classList.remove('dragging');
+      const done = row.classList.contains('done');
+      if (!done && dx > w * .4) { row.classList.add('done'); buzz(12); toast('Set ' + row.dataset.set + ' complete'); }
+      else if (done && dx < -w * .4) { row.classList.remove('done'); toast('Set ' + row.dataset.set + ' reopened'); }
+      row.style.transform = 'translateX(0)'; dx = 0;
+    };
+    row.addEventListener('pointerup', end); row.addEventListener('pointercancel', end);
+  });
+
+  // Rest timer
+  const rest = $('#rest'), big = $('#restBig'); let secs = 90, tick = 0;
+  const fmt = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  const render = () => { big.textContent = fmt(secs); };
+  function startRest() {
+    if (tick) return; rest.classList.add('breathing'); $('#restStart').textContent = 'Skip'; $('#restHint').textContent = 'In through the nose. Out slow.';
+    tick = setInterval(() => { secs -= 1; render(); if (secs <= 0) stopRest(true); }, 1000);
+  }
+  function stopRest(done) {
+    clearInterval(tick); tick = 0; rest.classList.remove('breathing'); $('#restStart').textContent = 'Start'; secs = 90; render();
+    $('#restHint').textContent = done ? 'Go. Next set is loaded.' : 'Tap start. Breathe with the number.'; if (done) buzz([30, 60, 30]);
+  }
+  $('#restStart').addEventListener('click', () => tick ? stopRest(false) : startRest());
+  $('#restPlus').addEventListener('click', () => { secs = Math.min(600, secs + 15); render(); });
+  $('#restMinus').addEventListener('click', () => { secs = Math.max(0, secs - 15); render(); });
+
+  // Chips
+  document.querySelectorAll('#chips .chip-t').forEach((c) => c.addEventListener('click', () => { c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true'); buzz(6); }));
+
+  // Tabs
+  const tabs = $('#tabs'); const dot = $('.dot', tabs);
+  const tabBtns = Array.from(tabs.querySelectorAll('button'));
+  tabBtns.forEach((b, i) => b.addEventListener('click', () => { tabBtns.forEach((x) => x.setAttribute('aria-selected', x === b)); dot.style.transform = 'translateX(' + (i * 100) + '%)'; buzz(6); }));
+
+  // Tiers
+  const setBilling = (annual) => {
+    $('#billAnnual').setAttribute('aria-pressed', annual); $('#billMonthly').setAttribute('aria-pressed', !annual);
+    document.querySelectorAll('.tier .price[data-m]').forEach((p) => { const v = annual ? p.dataset.a : p.dataset.m; p.innerHTML = '$' + v + '<small>/' + (annual ? 'yr' : 'mo') + '</small>'; });
+    $('#plusPer').textContent = annual ? '$5 a month, billed yearly · 7-day trial' : 'Billed monthly · 7-day trial';
+    $('#proPer').textContent = annual ? '$12.50 a month, billed yearly · 7-day trial' : 'Billed monthly · 7-day trial';
+    $('#saveNote').textContent = annual ? 'Save 50%' : 'Switch to annual and save 50%';
+  };
+  $('#billAnnual').addEventListener('click', () => setBilling(true));
+  $('#billMonthly').addEventListener('click', () => setBilling(false));
+
+  try {
+    const saved = localStorage.getItem('getit-mode'); if (saved) setMode(saved);
+  } catch (e) {}
+  seg.addEventListener('click', () => { try { localStorage.setItem('getit-mode', seg.dataset.mode); } catch (e) {} });
+})();
+</script>

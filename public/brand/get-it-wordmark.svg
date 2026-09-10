@@ -1,24 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-label="Get-it wordmark">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 520" width="1400" height="520" role="img" aria-label="Get-it">
   <defs>
-    <linearGradient id="ember" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FF6A2B"/>
-      <stop offset="100%" stop-color="#F5A623"/>
-    </linearGradient>
+    <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F5A623" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#F5A623" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="1200" height="360" fill="#111214"/>
-  <!-- Mark -->
-  <g transform="translate(110,60) scale(0.2344)">
-    <path d="M 512 240 A 272 272 0 1 0 784 512" fill="none" stroke="#F4F1EC" stroke-width="104" stroke-linecap="round"/>
-    <path d="M 540 512 L 784 512" fill="none" stroke="#F4F1EC" stroke-width="104" stroke-linecap="round"/>
-    <circle cx="704" cy="318" r="66" fill="url(#ember)"/>
+  <rect width="1400" height="520" fill="#111214"/>
+  <g font-family="'Space Grotesk','Manrope','Inter','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="300" letter-spacing="-4" fill="#F4F1EC">
+    <text x="150" y="370">Get</text>
+    <text x="905" y="370">ıt</text>
   </g>
-  <!-- Wordmark: Space Grotesk with a system fallback. "ıt" uses a dotless i so the amber dot is the only dot. -->
-  <g font-family="'Space Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="176" letter-spacing="-6" fill="#F4F1EC">
-    <text x="380" y="238">Get</text>
-    <text x="792" y="238">ıt</text>
-  </g>
-  <!-- Hyphen as an upward progress tick -->
-  <path d="M 692 222 L 756 194" stroke="url(#ember)" stroke-width="26" stroke-linecap="round" fill="none"/>
-  <!-- Amber dot of the i -->
-  <circle cx="814" cy="102" r="17" fill="#F5A623"/>
+  <!-- Ember tick: a rotated bar standing in for the hyphen -->
+  <rect x="770" y="242" width="150" height="46" rx="4" fill="#FF5A1F" transform="rotate(-18 845 265)"/>
+  <!-- Amber dot of the i, with a soft glow -->
+  <circle cx="948" cy="120" r="68" fill="url(#dotGlow)"/>
+  <circle cx="948" cy="120" r="30" fill="#F5A623"/>
 </svg>
