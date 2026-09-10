@@ -105,6 +105,16 @@ from a connected app is third-party content and is not trusted to be one. The
 system prompt carries the same distinction the tool descriptions do: a note is
 what someone intended, a figure is what happened, and pipeline is neither.
 
+The pipeline has its own page, `/app/pipeline`, and no presence on the
+command centre or the revenue page. It shows open deals grouped under the
+CRM's own stage labels — ordered by the vendor's probability, since the
+vendor's stage order is not stored and every CRM lets a customer reorder
+stages — totalled per currency, with overdue and closing-soon counts from the
+expected close date and won/lost counts over the last 90 days. Probabilities
+are displayed, not multiplied: a weighted total is a number nobody measured.
+`lib/crm/pipeline.ts` is the pure summary the page renders and is tested on
+its own.
+
 Chunking and embeddings were considered and declined: on a few hundred pages,
 ranked full-text search is cheaper, deterministic, and can show the person the
 document it quoted. That trade reverses at thousands of pages, which would be
