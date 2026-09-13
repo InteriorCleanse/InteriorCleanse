@@ -294,3 +294,89 @@ export type NewsReport = {
   blackouts: Array<{ start: number; end: number; title: string }>
   errors: string[]
 }
+
+// ---------------------------------------------------------------
+// Order flow
+// ---------------------------------------------------------------
+
+/** A cluster of resting orders big enough to matter. */
+export type Wall = {
+  side: 'bid' | 'ask'
+  price: number
+  qty: number
+  usd: number
+  /** How many times the typical bucket this one holds. */
+  multiple: number
+  distancePct: number
+}
+
+export type BookSnapshot = {
+  time: number
+  price: number
+  bestBid: number
+  bestAsk: number
+  spreadPct: number
+  /** Dollars resting within 1% below / above price. */
+  bidUsd1pct: number
+  askUsd1pct: number
+  /** 0.5 = balanced, above = more bids than asks nearby. */
+  imbalance: number
+  walls: Wall[]
+  levelsRead: number
+}
+
+export type BigTrade = { time: number; side: 'buy' | 'sell'; usd: number; price: number; qty: number }
+
+export type TapeSnapshot = {
+  time: number
+  from: number
+  to: number
+  trades: number
+  buys: number
+  sells: number
+  buyUsd: number
+  sellUsd: number
+  /** Buy dollars minus sell dollars. Positive = buyers were more aggressive. */
+  deltaUsd: number
+  /** Share of trades that were buys, 0–1. */
+  buyShare: number
+  tradesPerMinute: number
+  bigTrades: BigTrade[]
+  bigBuys: number
+  bigSells: number
+}
+
+export type FlowReport = {
+  book: BookSnapshot | null
+  tape: TapeSnapshot | null
+  errors: string[]
+  lines: string[]
+}
+
+// ---------------------------------------------------------------
+// Market state
+// ---------------------------------------------------------------
+
+export type MarketState = {
+  trend: 'uptrend' | 'downtrend' | 'range'
+  /** 0–100, how much the evidence agrees. */
+  strength: number
+  continuation: { score: number; label: string; reasons: string[] }
+  volatility: 'quiet' | 'normal' | 'wild'
+  watchOuts: string[]
+  evidence: string[]
+  summary: string
+}
+
+// ---------------------------------------------------------------
+// Alerts raised by the watch loop
+// ---------------------------------------------------------------
+
+export type AppEvent = {
+  id: number
+  time: number
+  kind: 'setup' | 'sweep' | 'killzone' | 'news' | 'trend' | 'flow' | 'tradingview' | 'info'
+  title: string
+  body: string
+  severity: 'info' | 'warn' | 'action'
+}

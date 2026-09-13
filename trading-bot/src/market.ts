@@ -83,6 +83,23 @@ async function fetchOnce(
   }
 }
 
+/** Fetches any JSON path from the first price host that answers. Used by order flow. */
+export async function fetchMarketJson(path: string, params: Record<string, string>): Promise<unknown> {
+  return withSources(async (source) => {
+    const url = new URL(path, new URL(source).origin)
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15_000)
+    try {
+      const res = await fetch(url, { signal: controller.signal })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return await res.json()
+    } finally {
+      clearTimeout(timer)
+    }
+  })
+}
+
 async function withSources<T>(work: (source: string) => Promise<T>): Promise<T> {
   const failures: string[] = []
   for (const source of dataSources) {

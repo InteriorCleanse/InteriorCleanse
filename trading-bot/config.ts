@@ -217,10 +217,70 @@ export const config = {
     } as Record<string, { input: number; output: number }>,
   },
 
-  // ---------- THE LOCAL APP ----------
+  // ---------- THE APP ----------
 
-  /** Which port the dashboard opens on. Change only if 4173 is busy. */
+  /** Which port the app opens on. Change only if 4173 is busy. */
   webPort: 4173,
+
+  app: {
+    /**
+     * Let your phone open Mr. Cash over your home wifi.
+     *   false — this computer only (safest, the default)
+     *   true  — also reachable from other devices on the same network,
+     *           protected by the PIN below
+     */
+    allowPhone: false,
+
+    /** The PIN your phone must enter. Leave '' and Mr. Cash makes a fresh one every start and prints it. */
+    pin: '',
+
+    /** While the app is open, re-read the market this often (minutes) and raise alerts. 5 = every candle. */
+    watchEveryMinutes: 5,
+
+    /** Warn this many minutes before an entry window opens. */
+    killzoneHeadsUpMinutes: 15,
+  },
+
+  // ---------- ORDER FLOW ----------
+
+  orderflow: {
+    /** Read the public order book and recent trades. Free, no key. */
+    enabled: true,
+
+    /** How many price levels of the order book to read on each side (max 5000). */
+    depthLevels: 1000,
+
+    /** Group the book into buckets this wide, as a percent of price. 0.1 = $100 buckets at $100,000. */
+    bucketPercent: 0.1,
+
+    /** A bucket holding at least this many times the typical bucket is a "wall". */
+    wallMultiple: 5,
+
+    /** A single trade bigger than this (in dollars) counts as a big print. */
+    bigTradeUsd: 100_000,
+
+    /** How many recent trades to read. Max 1000. */
+    tradesLimit: 1000,
+  },
+
+  // ---------- TRADINGVIEW ----------
+
+  tradingview: {
+    /** The chart shown inside the app. Any TradingView symbol string. */
+    widgetSymbol: 'BINANCE:BTCUSDT',
+
+    /**
+     * A secret your TradingView alerts must include, so nobody else can
+     * poke the webhook. Leave '' and Mr. Cash makes one and prints it.
+     */
+    webhookSecret: '',
+  },
+}
+
+/** Free, public, read-only order-flow endpoints — same hosts as the prices. */
+export const flowSources = {
+  orderBook: '/api/v3/depth',
+  trades: '/api/v3/aggTrades',
 }
 
 /**
