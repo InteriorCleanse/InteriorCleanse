@@ -42,6 +42,52 @@ workspace. Google Ads, Meta, X, LinkedIn, Search Console and GA4 are then
 capabilities of that one connection. No credential is stored in this
 repository.
 
+## HyperFrames (`/hyperframes`)
+
+The core skill set from [heygen-com/hyperframes](https://github.com/heygen-com/hyperframes)
+(Apache-2.0, `hyperframes/LICENSE`): the `/hyperframes` router plus the
+`hyperframes-*` domain skills and `media-use`, copied from the plugin's
+`core-skills` manifest. The router installs each creation workflow on demand
+with `npx hyperframes skills update <workflow>`. Rendering needs Node 22 and
+FFmpeg on the machine that renders; the skills load without them. One sound
+effect over 300 KB and the skills' own test files were left out.
+
+## context-mode (`/context-mode`, `/ctx-stats`, `/ctx-search`, …)
+
+[mksglu/context-mode](https://github.com/mksglu/context-mode), Elastic
+License 2.0 (`context-mode/LICENSE` — free to use, not to resell as a
+service). Installed the MCP-only way its README documents: `.mcp.json` runs
+`npx -y context-mode`, which gives the eleven `ctx_*` tools and the skills
+here nudge the assistant to route large output through them. The hook-based
+routing, status line and `/ctx-doctor` self-checks need the marketplace
+install on a person's own machine.
+
+## camofox-browser (MCP adapter)
+
+[jo-inc/camofox-browser](https://github.com/jo-inc/camofox-browser), MIT
+(`camofox-LICENSE`): a Firefox-based browser server for agents, exposed as
+MCP tools. `.mcp.json` registers only the thin stdio adapter
+(`@askjo/camofox-browser-mcp`); it talks to a REST server that must already
+be running at `CAMOFOX_BASE_URL`. Start one with `npx @askjo/camofox-browser`
+(downloads a ~300 MB browser on first run) or deploy it with the repo's
+Docker, Fly or Railway files, and set `CAMOFOX_ACCESS_KEY` on anything
+reachable beyond localhost. Until a server is up, the tools return
+connection errors and nothing else happens.
+
+## Not installable here: two standalone applications
+
+- **[cloudflare/agentic-inbox](https://github.com/cloudflare/agentic-inbox)**
+  is a self-hosted email client on Cloudflare Workers (Durable Objects, R2,
+  Workers AI, Email Routing) behind Cloudflare Access. It is deployed to a
+  Cloudflare account with a domain, not copied into a repository. Once
+  deployed it exposes an MCP endpoint at `/mcp` behind the same Access
+  policy, which can be added to `.mcp.json` with an Access service token.
+- **[Anil-matcha/Open-Higgsfield-AI](https://github.com/Anil-matcha/Open-Higgsfield-AI)**
+  (now "Open Generative AI") is a full Next.js and Electron studio for image
+  and video generation over the paid MuAPI service. It runs as its own app
+  with its own API key and three git submodules; it has no plugin or MCP
+  surface to install into a Claude Code project.
+
 Nothing in here touches Aurelis OS's code, data, or tenants. These are
 instructions for the assistant that builds the product, not part of the
 product.

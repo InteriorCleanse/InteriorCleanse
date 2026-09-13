@@ -3,6 +3,17 @@
     "NotFair": {
       "type": "http",
       "url": "https://notfair.co/api/mcp/notfair"
+    },
+    "context-mode": {
+      "command": "npx",
+      "args": ["-y", "context-mode"]
+    },
+    "camofox-browser": {
+      "command": "npx",
+      "args": ["-y", "@askjo/camofox-browser-mcp"],
+      "env": {
+        "CAMOFOX_BASE_URL": "http://localhost:9377"
+      }
     }
   }
 }
