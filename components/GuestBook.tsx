@@ -149,7 +149,7 @@ export function GuestBook({ scene }: { scene?: Scene }) {
           desktopVideo={scene?.desktopVideo ?? undefined}
           mobileVideo={scene?.mobileVideo ?? undefined}
           webmVideo={scene?.webmVideo ?? undefined}
-          posterImage={scene?.posterImage ?? '/images/guestbook-poster.png'}
+          posterImage={scene?.posterImage ?? '/images/guestbook-poster.jpg'}
           posterMotion={scene?.posterMotion ?? 'drift-left'}
         />
         <RealismLayer />

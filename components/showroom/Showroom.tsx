@@ -29,8 +29,8 @@ const SAVED_KEY = 'ic_showroom_saved'
  *
  *   1 — the environment poster. Background only. It contains no products, no
  *       nav, no text, no cards and no controls; every one of those is real HTML
- *       above it. This is why `showroom-poster.png` is used and never
- *       `showroom-browse-poster.png`, which has the interface baked in.
+ *       above it. This is why `showroom-poster.jpg` is used and never
+ *       `showroom-browse-poster.jpg`, which has the interface baked in.
  *   2 — this interface, which never moves or distorts with the background.
  *   3 — StageProduct, the replaceable media on the pedestal.
  *   4 — the product data driving both.
@@ -212,7 +212,7 @@ export function Showroom({
           desktopVideo={scene?.desktopVideo ?? undefined}
           mobileVideo={scene?.mobileVideo ?? undefined}
           webmVideo={scene?.webmVideo ?? undefined}
-          posterImage={scene?.posterImage ?? '/images/showroom-poster.png'}
+          posterImage={scene?.posterImage ?? '/images/showroom-poster.jpg'}
           posterMotion={scene?.posterMotion ?? 'push-in'}
         />
         <RealismLayer />

@@ -19,8 +19,10 @@
  *   costs a little of the clip's length.
  *
  * Grade: slowed to 70% with motion interpolation (minterpolate), a touch of
- * desaturation, fine grain, and a vignette. The site's realism layer adds
- * living grain and its own vignette on top, so the amounts here are restrained.
+ * desaturation, and a vignette. No grain is added here on purpose: the site's
+ * realism layer paints living grain on top, and baked-in noise defeats the
+ * encoder — the first pass with grain produced 28 MB heroes. CRF 26 with no
+ * noise lands a 14-second 1440px loop around 4–6 MB.
  *
  * Needs ffmpeg with libx264 on PATH.
  */
@@ -67,8 +69,7 @@ const probe = (file) =>
 
 const grade =
   `minterpolate=fps=48:mi_mode=mci:mc_mode=aobmc:vsbmc=1,setpts=PTS/0.7,fps=24,` +
-  `scale=${width}:-2:flags=lanczos,eq=saturation=0.92:contrast=1.02,` +
-  `noise=alls=6:allf=t,vignette=PI/5`
+  `scale=${width}:-2:flags=lanczos,eq=saturation=0.92:contrast=1.02,vignette=PI/5`
 
 for (const file of files) {
   const scene = sceneFlag ?? (auto ? guessScene(file) : null)
@@ -108,12 +109,13 @@ for (const file of files) {
   execFileSync(
     'ffmpeg',
     ['-y', '-loglevel', 'error', '-i', file, '-filter_complex', filter, '-map', '[v]', '-an',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out],
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', '26', '-tune', 'film', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out],
     { stdio: 'inherit' }
   )
   if (poster) {
     const posterPath = join(ROOT, 'public', poster)
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', out, '-frames:v', '1', '-c:v', 'png', posterPath], { stdio: 'inherit' })
+    // JPEG, not PNG: a photographic frame as PNG is 2–7 MB and it is the LCP.
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', out, '-frames:v', '1', '-q:v', '2', posterPath], { stdio: 'inherit' })
     console.log(`  ${''.padEnd(24)}   poster refreshed from frame 0 → ${poster}`)
   }
   console.log(`  ${''.padEnd(24)}   ${probe(out).toFixed(1)}s out`)

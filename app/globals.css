@@ -2994,21 +2994,24 @@ textarea {
 }
 
 /* The scrim exists to make bone-white text survive an unpredictable photograph.
-   Measured against the hero: the ramp has to stay strong across the FULL width
-   of the copy block (~52% at desktop), not just the first third, because the
-   last line of the headline reaches furthest right and that is where contrast
-   bottomed out at 3.05:1. */
+   Measured against the real hero photograph (pool caustics and sunlit
+   limestone under the headline): the first tuning bottomed out at 2.35:1 at
+   the right end of the copy block, so the ramp now stays above 0.6 alpha to
+   54% and does not reach zero until 94%. The photograph reads darker on the
+   left; that is the trade, and it is the scrim's job to make it. */
 .residence-scrim {
   position: absolute;
   inset: 0;
   background:
     linear-gradient(
       100deg,
-      rgba(10, 10, 10, 0.86) 0%,
-      rgba(10, 10, 10, 0.72) 22%,
-      rgba(10, 10, 10, 0.5) 40%,
-      rgba(10, 10, 10, 0.24) 58%,
-      rgba(10, 10, 10, 0.06) 76%
+      rgba(10, 10, 10, 0.94) 0%,
+      rgba(10, 10, 10, 0.88) 20%,
+      rgba(10, 10, 10, 0.78) 38%,
+      rgba(10, 10, 10, 0.6) 54%,
+      rgba(10, 10, 10, 0.34) 68%,
+      rgba(10, 10, 10, 0.1) 82%,
+      rgba(10, 10, 10, 0) 94%
     ),
     linear-gradient(rgba(10, 10, 10, 0.4), rgba(10, 10, 10, 0) 30%);
 }
