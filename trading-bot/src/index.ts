@@ -374,7 +374,7 @@ function commandPlanClear(): void {
 }
 
 function commandHelp(): void {
-  ui.heading('WHAT CAN THIS THING DO?')
+  ui.heading('MR. CASH — WHAT CAN I DO?')
   ui.safetyBanner()
   ui.blank()
   ui.table(['Type this', 'And it will'], [

@@ -23,7 +23,7 @@ bot:
 
 **Don't connect AutoHedge to a funded wallet.** It is built to trade real money
 autonomously, and the entry in its `.env` is literally `WALLET_PRIVATE_KEY`.
-Everything this paper bot is designed to protect you from — an agent placing
+Everything Mr. Cash is designed to protect you from — an agent placing
 real orders on your behalf — is AutoHedge's *purpose*. If you want to study it,
 run it with an empty wallet, or just read `autohedge/prompts.py` to see how its
 agents are instructed. With $25 to your name, it is not the right tool.

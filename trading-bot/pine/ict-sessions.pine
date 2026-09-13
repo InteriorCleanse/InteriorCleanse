@@ -1,6 +1,6 @@
 //@version=5
 // =====================================================================
-//  ICT Sessions + Fair Value Gaps — what the paper bot sees, on a chart
+//  Mr. Cash — ICT Sessions + Fair Value Gaps: what the bot sees, on a chart
 //  Pine Script v5 · INDICATOR (draws only; places nothing)
 // =====================================================================
 //
@@ -15,7 +15,7 @@
 //  Keep the session times equal to config.ts. They are New York time.
 // =====================================================================
 
-indicator("ICT Sessions + FVG (paper bot)", "ICT Sessions", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 200)
+indicator("Mr. Cash — ICT Sessions + FVG", "Mr. Cash Sessions", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 200)
 
 // --- inputs ----------------------------------------------------------
 tz         = "America/New_York"

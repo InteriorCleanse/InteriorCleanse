@@ -10,5 +10,6 @@ tsconfig.tsbuildinfo
 # Brand master originals are preserved but not needed by the build
 raw-clips/
 
-# Packaged copy of trading-bot/ for download; duplicates tracked source
+# Packaged copy of trading-bot/ (Mr. Cash) for download; duplicates tracked source
 paper-trading-bot.zip
+mr-cash.zip

@@ -78,7 +78,7 @@ function printPlan(p: DayPlan | null, proposal: Omit<DayPlan, 'armedAt'>): void 
 }
 
 async function main(): Promise<void> {
-  ui.heading('TALK TO THE BOT')
+  ui.heading('TALK TO MR. CASH')
   ui.safetyBanner()
   if (config.strategy !== 'ict') {
     console.log(ui.warn('  Talk mode is built around the ICT model. Set strategy: "ict" in config.ts.'))
@@ -238,7 +238,7 @@ async function main(): Promise<void> {
           console.log(ui.dim('  Type "help" to see what I can do without it.'))
           break
         }
-        process.stdout.write(ui.accent('bot › '))
+        process.stdout.write(ui.accent('Mr. Cash › '))
         try {
           const answer = await askAI(line, contextFor(snap, plan), history, (t) => process.stdout.write(t))
           process.stdout.write('\n')

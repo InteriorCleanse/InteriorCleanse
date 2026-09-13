@@ -246,7 +246,7 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 })
 
 server.listen(config.webPort, '127.0.0.1', () => {
-  ui.heading('YOUR TRADING BOT IS RUNNING')
+  ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good('  ● PAPER MODE — no real money, no exchange account, no orders.'))
   console.log('')

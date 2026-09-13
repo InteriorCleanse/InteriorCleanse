@@ -1,4 +1,4 @@
-# Trading Bot Instructions
+# Mr. Cash — Trading Bot Instructions
 
 The rules this bot was built to. If you ask Claude (or anyone) to change or
 extend the bot, hand over this file first — it is the contract the code keeps.

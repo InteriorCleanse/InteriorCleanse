@@ -21,7 +21,7 @@
 //  exact numbers — fills and sizing differ between the two.
 // =====================================================================
 
-strategy("ICT Sweep + Gap Retest (paper bot)", "ICT Paper", overlay = true,
+strategy("Mr. Cash — ICT Sweep + Gap Retest", "Mr. Cash", overlay = true,
      initial_capital = 25, default_qty_type = strategy.percent_of_equity, default_qty_value = 100,
      commission_type = strategy.commission.percent, commission_value = 0.1, slippage = 2,
      process_orders_on_close = true, calc_on_every_tick = false, max_boxes_count = 200)

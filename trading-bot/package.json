@@ -1,9 +1,9 @@
 {
-  "name": "paper-trading-bot",
+  "name": "mr-cash",
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "A paper-trading bot built on the ICT session model that explains every decision and learns from its own mistakes. No real money, ever.",
+  "description": "Mr. Cash — a paper-trading bot built on the ICT session model that explains every decision and learns from its own mistakes. No real money, ever.",
   "engines": {
     "node": ">=22.18"
   },

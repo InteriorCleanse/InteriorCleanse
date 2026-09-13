@@ -1,8 +1,8 @@
 #!/bin/bash
-# Double-click this file to start your trading bot.
+# Double-click this file to start Mr. Cash.
 cd "$(dirname "$0")" || exit 1
 echo ""
-echo "  Starting your paper trading bot..."
+echo "  Starting Mr. Cash..."
 echo "  (PAPER MODE - no real money, no exchange account)"
 echo ""
 if ! command -v node > /dev/null 2>&1; then

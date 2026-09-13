@@ -57,7 +57,7 @@ async function fetchText(url: string, timeoutMs = 12_000): Promise<string> {
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'user-agent': 'Mozilla/5.0 (paper-trading-bot; +local)', accept: 'application/json, application/rss+xml, text/xml, */*' },
+      headers: { 'user-agent': 'Mozilla/5.0 (mr-cash paper bot; +local)', accept: 'application/json, application/rss+xml, text/xml, */*' },
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return await res.text()

@@ -7,7 +7,7 @@
 // =====================================================================
 
 strategy(
-     title             = "Paper Bot — MA Crossover",
+     title             = "Mr. Cash — MA Crossover",
      shorttitle        = "MA Cross",
      overlay           = true,
      initial_capital   = 25,

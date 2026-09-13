@@ -1,6 +1,6 @@
-# Your Paper Trading Bot
+# Mr. Cash
 
-A trading bot that practises with **pretend money** using the ICT session
+Mr. Cash is a paper-trading bot. It practises with **pretend money** using the ICT session
 model — Asia / London / New York ranges, liquidity sweeps, and inversion fair
 value gaps — explains every decision in plain English, reads the news, proposes
 a plan each day and asks you to agree to it, and refuses to repeat setups that
