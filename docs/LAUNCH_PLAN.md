@@ -266,7 +266,8 @@ thin against a stand-in image.
 
 The tool also reports **NO POSTER** where no photograph is loaded, because a run
 against the painted gradient reads ~17:1 everywhere and would look like
-validation while proving nothing. **Today all seven surfaces report NO POSTER.**
+validation while proving nothing. All seven surfaces now measure against real
+photographs; see "The assets" below.
 
 **Partners, built for links that do not exist yet.** There are zero approved
 affiliate links. Every partner carries `affiliateLink: "PENDING_APPROVAL"`,
@@ -326,25 +327,43 @@ design decision, not a bug, so it has been left alone and written down instead.
 
 ---
 
-## The asset gap — the one thing holding the Residence back
+## The assets — landed and measured
 
-`public/images/` contains **no environment posters** and `public/video/`
-does not exist. Every path in `content/scenes.json` — `hero-poster.png`,
-`library-poster.png`, and the rest — resolves to nothing today.
+Every environment has a photograph and a clip now. Generated 2026-09-10 in
+the owner's Higgsfield account (Cinema Studio Image 2.5 stills, Cinema Studio
+Video clips), recorded in `content/poster-sources.json`, and landed on `main`
+by the **Land environment assets** workflow, which runs on GitHub's machines
+because the CDN is unreachable from the build agent.
 
-This is by design: the build was specified for assets that arrive later, and it
-works without them. But eight environments are currently painted gradients.
+| What | Where | Weight |
+| --- | --- | --- |
+| 10 posters, JPEG from frame 0 of each loop (2752px still for pavilion) | `public/images/*-poster.jpg` | 50–100 KB each; 580 KB for pavilion |
+| 9 clips, 28 s ping-pong loops (13 s crossfade for the cleaning room), 1440px, silent, CRF 26 | `public/video/*-desktop.mp4` | 0.7–2.3 MB each |
+| Everything | | **13.8 MB** total, down from ~200 MB on the first pass |
 
-- Prompts for all ten stills, briefed around where the copy and hotspots sit:
-  `scripts/leonardo-generate.mjs` (`--dry-run`, `--only <scene>`,
-  `--list-models`). It needs `LEONARDO_API_KEY` in the environment; the key is
-  never read from or written to this repository.
-- Posters can equally be uploaded straight to `public/images/` on the branch.
-- **After any poster lands, re-run `npm run check:contrast`.** Until then the
-  scrim tuning is unvalidated against a real photograph.
-- Video is optional everywhere. `SceneBackground` only emits a `<source>` for a
-  file the manifest declares, and `lib/video-director.ts` guarantees that at
-  most one plays regardless of how many arrive.
+**Contrast, measured against the real photographs** (`npm run check:contrast`,
+run 3 of the workflow, all seven surfaces):
+
+| Surface | Mean | Worst | Verdict |
+| --- | --- | --- | --- |
+| homepage hero headline | 13.51:1 | 5.69:1 | PASS |
+| homepage hero CTAs | 13.27:1 | 5.92:1 | PASS |
+| guest book copy | 14.32:1 | 4.60:1 | PASS |
+| library band headline | 13.49:1 | 6.99:1 | PASS |
+| shop band headline | 16.14:1 | 13.62:1 | PASS |
+| partners band headline | 17.13:1 | 12.34:1 | PASS |
+| showroom panel | 15.11:1 | 10.03:1 | PASS |
+
+The first pass failed: hero headline 2.35:1 and CTAs 2.37:1, because the pool
+caustics and sunlit limestone sat under the type; the library band was thin.
+The scrim now holds 0.6 alpha to 54% of the width and reaches zero at 94%. The
+first pass also produced 27–35 MB clips, because film grain was baked into the
+encode and grain is what an encoder cannot compress; grain now comes only from
+the realism layer.
+
+**To replace an asset:** regenerate it, update its URL in
+`content/poster-sources.json`, and dispatch the workflow. It re-fetches,
+re-loops, commits, and re-measures.
 
 ---
 
@@ -387,14 +406,13 @@ only and no real key belongs in this repository.
 
 1. Owner runs the Stripe setup and registers the trailing-slash webhook. Nothing
    can be bought until this happens.
-2. Land the environment posters — generate with `scripts/leonardo-generate.mjs`
-   or upload to `public/images/` directly — then re-run `npm run check:contrast`
-   and re-tune any surface that reports FAIL or THIN.
+2. Review the ten stills and nine clips in the Higgsfield library; name any
+   scene to regenerate and re-dispatch the workflow.
 3. Add `GITHUB_TOKEN` to Vercel so `/admin/products` can save in production,
    then fill the twenty draft shells (see `docs/PRODUCT_PIPELINE.md`).
 4. Paste affiliate links into `content/partners.json` and onto the five
    `partner-*` catalog records as approvals come in.
-5. Optional footage per environment, dropped into `public/video/`; then
-   `npm run posters:extract` so every poster is the clip's first frame.
+5. Pavilion is the one environment with a still and no clip, as briefed; add
+   one the same way if wanted.
 6. Build the AI design studio, then swap in the brief's held-back hero copy and
    its "Design Your Space" CTA.
