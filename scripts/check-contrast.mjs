@@ -177,9 +177,11 @@ async function main() {
     (args.includes('--url') ? args[args.indexOf('--url') + 1] : null) || 'http://localhost:3000'
   const asJson = args.includes('--json')
 
-  const browser = await chromium.launch({
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium',
-  })
+  // A pinned Chromium where one is provided (the build agent), Playwright's own
+  // install everywhere else (a laptop, a CI runner after `playwright install`).
+  const { existsSync } = await import('node:fs')
+  const pinned = process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium'
+  const browser = await chromium.launch(existsSync(pinned) ? { executablePath: pinned } : {})
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   // Keep the modal and popup out of the way of every measurement.
   await page.addInitScript(() => {
