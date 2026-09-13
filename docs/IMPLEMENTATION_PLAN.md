@@ -197,3 +197,39 @@ What remains is on the launch checklist and needs a person, a vendor, or a
 lawyer: a KMS behind the vault, a restore rehearsal, a security review, legal
 sign-off, mail authentication on the sending domain, a monitor pointed at the
 signals endpoint, and a first sync against a real account.
+
+
+## ✅ Knowledge and CRM — after hardening
+
+The assistant answered from figures alone; a business's decisions live in
+Notion, in a vault, in a CRM. This phase connected them without letting a
+note be read as a figure or a deal as revenue.
+
+- [x] Six connectors in the registry: Notion, HubSpot, Slack, Obsidian,
+      Base44, Salesforce (planned). Each credential sealed in the vault, each
+      adapter tested against recorded responses, none yet against a live
+      account.
+- [x] `knowledge_documents` with Postgres full-text search, title weighted
+      above body; `crm_deals` kept structurally apart from `orders`. Both
+      RLS-forced; deals writable by the service role only. Isolation proved
+      in the live-Postgres suite.
+- [x] Obsidian as a snapshot: a Dataview-ready vault bundle out, Markdown
+      notes in. Notion as a destination: each briefing written into a database
+      whose schema is matched, not assumed.
+- [x] Two assistant tools, `search_knowledge` and `query_pipeline`, injected
+      with the caller's own client. Citations name the document and link to
+      it; the prompt says a note is what someone intended, a figure is what
+      happened, and pipeline is neither.
+- [x] A Knowledge page showing exactly what the assistant can cite, and a
+      Pipeline page — the vendor's stage names, per-currency totals, overdue
+      and closing-soon counts, probabilities shown and never multiplied — with
+      no presence on the command centre or the revenue page.
+- [x] Briefings carry the pipeline as a block apart from the figures, on
+      screen, in Obsidian, in Notion and in the scheduled sweep; an overdue
+      deal is raised for a decision, worded as not-revenue.
+- [x] The demo workspace has a CRM and notes of its own, in memory like the
+      rest of the demo dataset, so every one of these surfaces is populated
+      for a prospect.
+- [ ] A first sync against a real Notion, HubSpot or Base44 account, and a
+      first briefing written into a real Notion database — needs credentials.
+- [ ] Salesforce, if a customer on a paid edition asks for it.

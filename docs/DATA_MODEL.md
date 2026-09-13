@@ -87,6 +87,34 @@ the checkpoint that introduces them.
 - `notification_deliveries` has no write policy of any kind. "Did we actually
   send that?" must have an answer nobody can quietly change.
 
+## Implemented — Knowledge and CRM
+
+`0012_knowledge_and_crm.sql`, `0013_notion_delivery_channel.sql`.
+
+| Table | Purpose | Isolation |
+| --- | --- | --- |
+| `knowledge_documents` | Whole documents from Notion, Base44 and uploaded Markdown, with a generated `tsvector` (title weight A, body B) | Members read; members and above write, so a person can upload a note |
+| `crm_deals` | The CRM pipeline mirror: the vendor's stage label verbatim, a normalised `outcome`, the vendor's probability | Members read; **no write policy** — deals arrive only through the sync runner |
+
+### Invariants enforced in the database
+
+- `crm_deals` is a separate table from `orders` on purpose. Pipeline is money
+  that has not happened; a shared table would make "add them up" one join
+  away. Nothing in the schema relates a deal to revenue.
+- `crm_deals.amount_minor` is `bigint`, nullable, non-negative, with `currency`
+  beside it. A deal with no amount is a fact the page must count, not a zero.
+- `crm_deals.probability` is the vendor's own, checked to 0–100, and nothing
+  in the database multiplies it through: a weighted total is a number nobody
+  measured.
+- `knowledge_documents.content` is bounded at 60,000 characters with a
+  `truncated` flag, and `content_hash` lets a re-sync of an unchanged page
+  write nothing. Full-text search runs through the same RLS policy as any
+  other read, which the isolation suite asserts by searching across tenants
+  and finding nothing.
+- `notification_deliveries.channel` admits `slack` and `notion`: a briefing
+  written into a Notion database is a delivery like any other, and every
+  delivery leaves a row saying what happened.
+
 ## Planned
 
 | Checkpoint | Tables |
