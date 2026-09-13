@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
  * Downloads the generated environment stills into public/images under the
- * exact filenames content/scenes.json expects — and any raw clips into
- * raw-clips/ (not public/video: a raw clip still needs `npm run clips:loop`).
+ * exact filenames content/scenes.json expects — re-encoded as JPEG on the way,
+ * because a 2752px photograph as PNG is 2–7 MB and it is the page's LCP — and
+ * any raw clips into raw-clips/ (not public/video: a raw clip still needs
+ * `npm run clips:loop`).
  *
  *   node scripts/fetch-posters.mjs            # every scene with a source URL
  *   node scripts/fetch-posters.mjs --only hero,library
@@ -19,8 +21,10 @@
  *   npm run check:contrast
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import jpeg from 'jpeg-js'
+import { PNG } from 'pngjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -56,7 +60,8 @@ for (const [key, entry] of Object.entries(sources)) {
     continue
   }
   mkdirSync(dirname(dst), { recursive: true })
-  writeFileSync(dst, Buffer.from(await res.arrayBuffer()))
+  const bytes = Buffer.from(await res.arrayBuffer())
+  writeFileSync(dst, extname(dst).toLowerCase() === '.jpg' ? toJpeg(bytes) : bytes)
   done++
 
   if (entry.video?.url) {
@@ -76,4 +81,26 @@ console.log(`\n${done} poster(s) written, ${skipped} skipped.`)
 if (done) {
   console.log('Next: git add public/images && git commit -m "assets: environment posters", then npm run check:contrast against a production build.')
   if (existsSync(join(ROOT, 'raw-clips'))) console.log('Raw clips are in raw-clips/ — run: npm run clips:loop raw-clips/*.mp4 --auto')
+}
+
+/**
+ * PNG in, JPEG out, pure JS so it runs anywhere Node runs. Quality 82 keeps a
+ * 2752×1536 interior around 700 KB–1.2 MB with no visible banding in the
+ * shadows; the realism layer's grain hides what little remains.
+ */
+function toJpeg(pngBytes) {
+  const isPng = pngBytes[0] === 0x89 && pngBytes[1] === 0x50
+  if (!isPng) return pngBytes
+  const decoded = PNG.sync.read(pngBytes)
+  const { width, height } = decoded
+  // Flatten any alpha onto ink, then hand RGBA to the encoder.
+  const rgba = Buffer.alloc(width * height * 4)
+  for (let i = 0; i < width * height; i++) {
+    const a = decoded.data[i * 4 + 3] / 255
+    rgba[i * 4] = Math.round(decoded.data[i * 4] * a + 10 * (1 - a))
+    rgba[i * 4 + 1] = Math.round(decoded.data[i * 4 + 1] * a + 10 * (1 - a))
+    rgba[i * 4 + 2] = Math.round(decoded.data[i * 4 + 2] * a + 10 * (1 - a))
+    rgba[i * 4 + 3] = 255
+  }
+  return jpeg.encode({ data: rgba, width, height }, 82).data
 }

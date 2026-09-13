@@ -82,7 +82,10 @@ const SURFACES = [
     name: 'showroom panel',
     path: '/collection/',
     text: '.showroom-panel',
-    hide: ['.showroom-ui'],
+    // The panel is dark glass and the type sits ON it, so the glass stays and
+    // only the type is hidden — measuring the photograph behind the glass
+    // reported a failure the reader would never see.
+    hide: ['.showroom-panel > *'],
   },
 ]
 
