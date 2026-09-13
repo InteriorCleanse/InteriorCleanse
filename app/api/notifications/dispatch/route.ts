@@ -6,6 +6,8 @@ import { dispatch, localHourIn, type DeliveryRecord, type Recipient } from '@/li
 import { emailTransport } from '@/lib/notifications/email'
 import { slackWebhookTransport, type SlackTransport } from '@/lib/notifications/slack'
 import { createBriefingPage } from '@/lib/knowledge/notion-write'
+import { loadDeals } from '@/lib/crm/load'
+import { closedSince } from '@/lib/crm/pipeline'
 import { openSecret, vaultProvider, type SealedSecret } from '@/lib/vault'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
 import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
@@ -66,6 +68,9 @@ export async function GET(request: Request) {
     try {
       const recipients = await loadRecipients(admin, org.id, org.timezone, now)
       const notion = await notionFor(admin, org.id)
+      // Once per workspace, not per recipient: every due briefing this hour
+      // describes the same pipeline. A demo workspace uses its own fixtures.
+      const deals = org.is_demo ? undefined : await loadDeals(admin, org.id, closedSince(now))
       const context = {
         transport,
         slack: await slackFor(admin, org.id),
@@ -146,6 +151,8 @@ export async function GET(request: Request) {
             kind,
             isDemo: org.is_demo,
             currency: org.base_currency,
+            deals,
+            now,
           })
 
           const created = await insertNotification(admin, {

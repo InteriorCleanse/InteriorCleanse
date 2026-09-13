@@ -57,6 +57,14 @@ export type PipelineSummary = {
 
 export const CLOSING_SOON_DAYS = 30
 
+/** How far back "won recently" and "lost recently" look. */
+export const CLOSED_WINDOW_DAYS = 90
+
+/** The ISO timestamp before which a closed deal is no longer recent. */
+export function closedSince(now: Date): string {
+  return new Date(now.getTime() - CLOSED_WINDOW_DAYS * 86_400_000).toISOString()
+}
+
 /**
  * Summarises deals for display.
  *

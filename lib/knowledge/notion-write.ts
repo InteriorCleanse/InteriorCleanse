@@ -1,4 +1,4 @@
-import type { Briefing } from '@/lib/assistant/briefings'
+import { describePipeline, type Briefing } from '@/lib/assistant/briefings'
 import { requestJson } from '@/lib/integrations/sync/http'
 
 /**
@@ -74,6 +74,11 @@ export function briefingBlocks(briefing: Briefing): Block[] {
   blocks.push(heading('Figures'))
   for (const line of briefing.lines) {
     blocks.push(bullet(`${line.label}: ${line.value}${line.change ? ` (${line.change})` : ''}`))
+  }
+
+  if (briefing.pipeline) {
+    blocks.push(heading('Pipeline (not revenue)'))
+    blocks.push(paragraph(describePipeline(briefing.pipeline)))
   }
 
   if (briefing.attention.length > 0) {

@@ -1,7 +1,10 @@
 import Link from 'next/link'
 import { requireCapability } from '@/lib/session'
+import { supabaseServer } from '@/lib/supabase/server'
 import { BriefingPanel } from '@/components/assistant/BriefingPanel'
 import { BRIEFING_LABELS, type BriefingKind } from '@/lib/assistant/briefings'
+import { loadDeals } from '@/lib/crm/load'
+import { closedSince } from '@/lib/crm/pipeline'
 
 export const metadata = { title: 'Briefings' }
 
@@ -30,6 +33,12 @@ export default async function BriefingsPage({
 
   const kind: BriefingKind = isKind(params.kind) ? params.kind : 'morning'
 
+  // The pipeline block reads the CRM mirror through the person's own client.
+  // A demo workspace has its own fixtures; leaving `deals` undefined selects them.
+  const deals = membership.isDemo
+    ? undefined
+    : await loadDeals(await supabaseServer(), membership.organizationId, closedSince(new Date()))
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -57,7 +66,12 @@ export default async function BriefingsPage({
         ))}
       </nav>
 
-      <BriefingPanel kind={kind} isDemo={membership.isDemo} currency={membership.baseCurrency} />
+      <BriefingPanel
+        kind={kind}
+        isDemo={membership.isDemo}
+        currency={membership.baseCurrency}
+        deals={deals}
+      />
     </div>
   )
 }

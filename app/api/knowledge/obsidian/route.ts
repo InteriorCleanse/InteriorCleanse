@@ -1,4 +1,6 @@
 import { buildBriefing, type BriefingKind } from '@/lib/assistant/briefings'
+import { loadDeals } from '@/lib/crm/load'
+import { closedSince } from '@/lib/crm/pipeline'
 import { can } from '@/lib/authz'
 import {
   briefingNote,
@@ -58,8 +60,18 @@ export async function GET() {
   const supabase = await supabaseServer()
   const notes: VaultNote[] = [vaultReadme(membership.name, now)]
 
+  const deals = membership.isDemo
+    ? undefined
+    : await loadDeals(supabase, membership.organizationId, closedSince(now))
+
   for (const kind of KINDS) {
-    const briefing = buildBriefing({ kind, isDemo: membership.isDemo, currency: membership.baseCurrency })
+    const briefing = buildBriefing({
+      kind,
+      isDemo: membership.isDemo,
+      currency: membership.baseCurrency,
+      deals,
+      now,
+    })
     notes.push(briefingNote(briefing, now, membership.name))
   }
 

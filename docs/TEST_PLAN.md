@@ -31,8 +31,9 @@ npm run verify   # lint → typecheck → test → build
 | `tests/legal.test.ts` | Draft banner held until sign-off; retention and grace period on the legal pages pinned to the code that enforces them | 7 passing |
 | `tests/plan-copy.test.ts` | Overrides reach name and copy only; a smuggled price or entitlement never reaches the page; blank restores the default | 10 passing |
 | `tests/knowledge.test.ts` | Notion blocks → Markdown, adapter cursors against recorded responses, HubSpot money and stage mapping, Base44 records, search terms and snippets | 41 passing |
-| `tests/knowledge-transport.test.ts` | Store-only zip against the CRC-32 vector, Obsidian frontmatter and note parsing, Slack escaping and failure classes | 28 passing |
-| `tests/notion-write.test.ts` | Rich-text chunking at Notion's limit, blocks and properties matched to a database's real schema, request shape, refusals without a request | 13 passing |
+| `tests/knowledge-transport.test.ts` | Store-only zip against the CRC-32 vector, Obsidian frontmatter and note parsing, the pipeline under its own property prefix, Slack escaping and failure classes | 30 passing |
+| `tests/notion-write.test.ts` | Rich-text chunking at Notion's limit, blocks and properties matched to a database's real schema, the pipeline apart from the figures, request shape, refusals without a request | 14 passing |
+| `tests/briefings.test.ts` | Every cadence in the workspace currency, no zero-baseline percentages, honest empty briefings, the pipeline as a block that is never a figure, overdue deals raised as not-revenue | 24 passing |
 | `tests/prompt.test.ts` | The assistant's standing rules pinned: demo marking, notes are not figures, pipeline is not revenue, who can approve, the spoken reply's formatting | 7 passing |
 | `tests/pipeline.test.ts` | Pipeline totalled per currency and never across them, stages in the vendor's labels ordered by the vendor's probability, overdue and closing-soon from the expected date, nothing weighted | 13 passing |
 | `tests/demo-sources.test.ts` | The demo CRM and notes: fixed, one currency, every stage the pipeline page shows has a deal in it, the closed window bites, and a search for a target finds the plan rather than a figure | 11 passing |

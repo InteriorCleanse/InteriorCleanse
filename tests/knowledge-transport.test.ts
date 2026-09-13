@@ -130,6 +130,7 @@ describe('briefingNote', () => {
     attention: ['Ad spend on Product B exceeds its margin.'],
     caveats: ['Stripe last synced 3 hours ago.'],
     followUps: ['Which product drove the increase?'],
+    pipeline: null,
   }
   const note = briefingNote(briefing, new Date('2026-09-10T08:00:00Z'), 'Acme Ltd')
 
@@ -150,6 +151,27 @@ describe('briefingNote', () => {
 
   it('renders decisions as unchecked tasks', () => {
     expect(note.markdown).toContain('- [ ] Ad spend on Product B exceeds its margin.')
+  })
+
+  it('leaves the pipeline out entirely when there is none', () => {
+    expect(note.markdown).not.toContain('pipeline')
+  })
+
+  it('writes the pipeline under its own prefix, so a revenue query never sums a deal', () => {
+    const withPipeline = briefingNote(
+      {
+        ...briefing,
+        pipeline: { open: 3, openValue: '£9,000.00', withoutAmount: 1, closingSoon: 1, overdue: 1, won: 2, lost: 0 },
+      },
+      new Date('2026-09-10T08:00:00Z'),
+      'Acme Ltd',
+    )
+    expect(withPipeline.markdown).toContain('pipeline_open: 3')
+    expect(withPipeline.markdown).toContain('pipeline_overdue: 1')
+    expect(withPipeline.markdown).toContain('## Pipeline (not revenue)')
+    expect(withPipeline.markdown).toContain('3 deals open worth £9,000.00 (1 without an amount)')
+    // Never a figure property: `open_deals` beside `net_revenue` is the trap.
+    expect(withPipeline.markdown).not.toMatch(/^open(_deals)?:/m)
   })
 })
 

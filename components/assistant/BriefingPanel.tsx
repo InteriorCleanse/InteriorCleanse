@@ -1,5 +1,12 @@
+import Link from 'next/link'
 import { Eyebrow, Panel } from '@/components/ui'
-import { BRIEFING_LABELS, buildBriefing, type BriefingKind } from '@/lib/assistant/briefings'
+import {
+  BRIEFING_LABELS,
+  buildBriefing,
+  describePipeline,
+  type BriefingKind,
+} from '@/lib/assistant/briefings'
+import type { PipelineDeal } from '@/lib/crm/pipeline'
 
 /**
  * The briefing surface.
@@ -21,12 +28,15 @@ export function BriefingPanel({
   kind,
   isDemo,
   currency,
+  deals,
 }: {
   kind: BriefingKind
   isDemo: boolean
   currency: string
+  /** The CRM mirror, loaded by the page through the person's own client. */
+  deals?: readonly PipelineDeal[] | null
 }) {
-  const briefing = buildBriefing({ kind, isDemo, currency })
+  const briefing = buildBriefing({ kind, isDemo, currency, deals })
 
   return (
     <Panel>
@@ -70,6 +80,18 @@ export function BriefingPanel({
               ))}
             </tbody>
           </table>
+        </div>
+      ) : null}
+
+      {briefing.pipeline ? (
+        <div className="mt-4 rounded-lg border border-hairline bg-panelRaised p-3">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            Pipeline · not revenue
+          </h3>
+          <p className="mt-1 text-sm text-ink">{describePipeline(briefing.pipeline)}</p>
+          <Link href="/app/pipeline" className="mt-1 inline-block text-xs text-signal hover:underline">
+            Open the pipeline
+          </Link>
         </div>
       ) : null}
 

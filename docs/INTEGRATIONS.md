@@ -115,6 +115,15 @@ are displayed, not multiplied: a weighted total is a number nobody measured.
 `lib/crm/pipeline.ts` is the pure summary the page renders and is tested on
 its own.
 
+Briefings carry the pipeline as a block of their own — "Pipeline · not
+revenue" — under the figures table, never as a row in it, on screen, in the
+Obsidian note (properties prefixed `pipeline_`, so a Dataview query summing
+revenue never sums a deal), in the Notion page and in the scheduled sweep. An
+open deal past its expected close is raised for a decision, worded so nobody
+mistakes it for money. The block is absent entirely in a workspace with no
+CRM; each caller loads the deals with the client it holds, so a page shows
+what the person may see and the sweep filters by workspace itself.
+
 The demonstration workspace has a CRM and notes of its own, in memory like
 the rest of the demo dataset (`lib/demo/sources.ts`): seven open deals in
 HubSpot's default stage names, including one past its close and one with no

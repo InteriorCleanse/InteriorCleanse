@@ -3,8 +3,10 @@ import {
   BRIEFING_LABELS,
   briefingToSpeech,
   buildBriefing,
+  describePipeline,
   type BriefingKind,
 } from '@/lib/assistant/briefings'
+import type { PipelineDeal } from '@/lib/crm/pipeline'
 
 const KINDS: BriefingKind[] = ['morning', 'end_of_day', 'weekly', 'monthly']
 
@@ -103,6 +105,91 @@ describe('buildBriefing', () => {
       const briefing = buildBriefing({ kind, isDemo: true })
       expect(briefing.followUps.length).toBeGreaterThanOrEqual(2)
     }
+  })
+})
+
+describe('pipeline in a briefing', () => {
+  const deal = (over: Partial<PipelineDeal> & { id: string }): PipelineDeal => ({
+    name: over.id,
+    stage: 'Qualified',
+    outcome: 'open',
+    amountMinor: 250_000,
+    currency: 'USD',
+    probability: 40,
+    expectedCloseOn: null,
+    owner: null,
+    source: 'hubspot',
+    updatedAt: '2026-09-01T00:00:00.000Z',
+    ...over,
+  })
+  const NOW = new Date('2026-09-13T08:00:00Z')
+
+  it('is its own block, never a line in the figures', () => {
+    for (const kind of KINDS) {
+      const briefing = buildBriefing({ kind, isDemo: true })
+      expect(briefing.pipeline).not.toBeNull()
+      for (const line of briefing.lines) expect(line.label).not.toMatch(/pipeline|deal/i)
+      expect(briefing.headline).not.toMatch(/pipeline|deal/i)
+    }
+  })
+
+  it('describes the demo pipeline on the demo clock', () => {
+    const p = buildBriefing({ kind: 'morning', isDemo: true, currency: 'USD' }).pipeline!
+    expect(p.open).toBe(7)
+    expect(p.overdue).toBe(1)
+    expect(p.openValue).toContain('$')
+    expect(describePipeline(p)).toMatch(/^7 deals open worth \$[\d,.]+ \(1 without an amount\) · \d+ closing within 30 days · 1 past its expected close · 2 won and 1 lost in the last 90 days$/)
+  })
+
+  it('carries no block at all for a workspace without a CRM', () => {
+    expect(buildBriefing({ kind: 'weekly', isDemo: false }).pipeline).toBeNull()
+    expect(buildBriefing({ kind: 'weekly', isDemo: false, deals: null }).pipeline).toBeNull()
+    expect(buildBriefing({ kind: 'weekly', isDemo: false, deals: [] }).pipeline).toBeNull()
+  })
+
+  it('raises an overdue deal for attention, and says it is not revenue', () => {
+    const briefing = buildBriefing({
+      kind: 'morning',
+      isDemo: false,
+      deals: [deal({ id: 'late', expectedCloseOn: '2026-09-01' }), deal({ id: 'fine', expectedCloseOn: '2026-10-01' })],
+      now: NOW,
+    })
+    expect(briefing.pipeline).toMatchObject({ open: 2, overdue: 1 })
+    expect(briefing.attention).toHaveLength(1)
+    expect(briefing.attention[0]).toMatch(/1 open deal is past its expected close/)
+    expect(briefing.attention[0]).toMatch(/not revenue/)
+    // Even on a day with no sales figures, the block and the decision survive.
+    expect(briefing.lines).toHaveLength(0)
+  })
+
+  it('stays quiet when nothing is overdue', () => {
+    const briefing = buildBriefing({
+      kind: 'morning',
+      isDemo: false,
+      deals: [deal({ id: 'fine', expectedCloseOn: '2026-10-01' })],
+      now: NOW,
+    })
+    expect(briefing.attention).toHaveLength(0)
+    expect(briefing.pipeline?.overdue).toBe(0)
+  })
+
+  it('totals each currency under its own code and never converts', () => {
+    const briefing = buildBriefing({
+      kind: 'monthly',
+      isDemo: false,
+      currency: 'GBP',
+      deals: [deal({ id: 'a', currency: 'USD' }), deal({ id: 'b', currency: 'EUR', amountMinor: 100 })],
+      now: NOW,
+    })
+    expect(briefing.pipeline!.openValue).toBe('$2,500.00 + €1.00')
+    expect(briefing.pipeline!.openValue).not.toContain('£')
+  })
+
+  it('is never spoken as a figure', () => {
+    const spoken = briefingToSpeech(buildBriefing({ kind: 'morning', isDemo: true }))
+    // The headline and the first attention item lead; the demo's pipeline
+    // attention comes after the figure-based items, so it does not.
+    expect(spoken).not.toMatch(/deals? open/)
   })
 })
 

@@ -1,7 +1,15 @@
 import { formatMoney } from '@/lib/money'
 import { changeSentiment, type Change } from '@/lib/periods'
 import { QUADRANT_LABELS, layoutPortfolio } from '@/lib/charts/flow'
-import { changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import {
+  CLOSED_WINDOW_DAYS,
+  CLOSING_SOON_DAYS,
+  closedSince,
+  summarisePipeline,
+  type PipelineDeal,
+} from '@/lib/crm/pipeline'
+import { buildDemoPipeline } from '@/lib/demo/sources'
+import { DEMO_NOW, changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
 
 /**
  * Executive briefings.
@@ -50,6 +58,37 @@ export type Briefing = {
   caveats: string[]
   /** Questions the operator can hand straight back to the assistant. */
   followUps: string[]
+  /**
+   * The CRM pipeline, when one is connected. Its own block, never a line in
+   * the figures table: pipeline is money that has not happened, and a
+   * briefing that listed it beside net revenue would invite adding them up.
+   */
+  pipeline: BriefingPipeline | null
+}
+
+export type BriefingPipeline = {
+  open: number
+  /** Per-currency totals joined for display, or null when no deal has an amount. */
+  openValue: string | null
+  withoutAmount: number
+  closingSoon: number
+  overdue: number
+  won: number
+  lost: number
+}
+
+/** One sentence for every surface that renders the pipeline block. */
+export function describePipeline(p: BriefingPipeline): string {
+  const deals = (n: number) => `${n} ${n === 1 ? 'deal' : 'deals'}`
+  const parts = [
+    `${deals(p.open)} open${p.openValue ? ` worth ${p.openValue}` : ''}${
+      p.withoutAmount > 0 ? ` (${p.withoutAmount} without an amount)` : ''
+    }`,
+    `${p.closingSoon} closing within ${CLOSING_SOON_DAYS} days`,
+    `${p.overdue} past ${p.overdue === 1 ? 'its' : 'their'} expected close`,
+    `${p.won} won and ${p.lost} lost in the last ${CLOSED_WINDOW_DAYS} days`,
+  ]
+  return parts.join(' · ')
 }
 
 const PRESET_FOR: Record<BriefingKind, 'today' | 'last_7' | 'month_to_date'> = {
@@ -73,6 +112,14 @@ export function buildBriefing(options: {
   kind: BriefingKind
   isDemo: boolean
   currency?: string
+  /**
+   * The CRM mirror, loaded by the caller with whatever client it holds. Omit
+   * in a demo workspace to get the demo pipeline; omit, or pass nothing, in
+   * a real one and the briefing carries no pipeline block at all.
+   */
+  deals?: readonly PipelineDeal[] | null
+  /** The clock, for tests. A demo workspace always uses the demo clock. */
+  now?: Date
 }): Briefing {
   const { kind, isDemo } = options
   const analytics = loadWorkspaceAnalytics({
@@ -86,6 +133,13 @@ export function buildBriefing(options: {
   const currency = analytics.currency
   const cash = (minor: number) => formatMoney({ minor, currency })
 
+  const now = isDemo ? DEMO_NOW : (options.now ?? new Date())
+  const deals =
+    options.deals === undefined && isDemo
+      ? buildDemoPipeline({ today: now.toISOString().slice(0, 10), currency })
+      : (options.deals ?? [])
+  const pipeline = pipelineFor(deals, now)
+
   const base: Omit<Briefing, 'headline' | 'lines' | 'attention' | 'followUps'> = {
     kind,
     title: BRIEFING_LABELS[kind],
@@ -94,6 +148,7 @@ export function buildBriefing(options: {
     currency,
     isDemo,
     caveats: [...m.warnings],
+    pipeline,
   }
 
   // An empty workspace gets an honest empty briefing rather than a page of
@@ -106,7 +161,9 @@ export function buildBriefing(options: {
       caveats: [],
       headline: 'No data for this period yet — connect a source or import a file to see figures.',
       lines: [],
-      attention: [],
+      // A CRM can be connected before an order source is; an overdue deal
+      // is still worth a decision on a day with no sales figures.
+      attention: pipelineAttention(pipeline),
       followUps: ['What do I need to connect to get a briefing?'],
     }
   }
@@ -168,9 +225,43 @@ export function buildBriefing(options: {
       profitChange,
       period: analytics.period.label,
     }),
-    attention: attentionFor(analytics, { revenueChange, profitChange, spendChange }),
+    attention: [
+      ...attentionFor(analytics, { revenueChange, profitChange, spendChange }),
+      // After the figures: a divergence in what happened outranks a date
+      // slipping on what has not happened yet.
+      ...pipelineAttention(pipeline),
+    ],
     followUps: followUpsFor(kind),
   }
+}
+
+/** Null when there is nothing to report, so a workspace without a CRM sees no block. */
+function pipelineFor(deals: readonly PipelineDeal[], now: Date): BriefingPipeline | null {
+  if (deals.length === 0) return null
+  const s = summarisePipeline(deals, now.toISOString().slice(0, 10), closedSince(now))
+  // Each currency under its own code; a deal in another currency is never
+  // converted into the workspace's.
+  const openValue =
+    s.open.totals.length === 0
+      ? null
+      : s.open.totals.map((t) => formatMoney({ minor: t.minor, currency: t.currency })).join(' + ')
+  return {
+    open: s.open.count,
+    openValue,
+    withoutAmount: s.open.withoutAmount,
+    closingSoon: s.closingSoon,
+    overdue: s.overdue,
+    won: s.won.count,
+    lost: s.lost.count,
+  }
+}
+
+function pipelineAttention(pipeline: BriefingPipeline | null): string[] {
+  if (!pipeline || pipeline.overdue === 0) return []
+  const n = pipeline.overdue
+  return [
+    `${n} open ${n === 1 ? 'deal is' : 'deals are'} past ${n === 1 ? 'its' : 'their'} expected close in the CRM — pipeline, not revenue, but a date somebody set has slipped.`,
+  ]
 }
 
 function headlineFor(

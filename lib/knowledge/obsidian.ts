@@ -1,4 +1,4 @@
-import type { Briefing } from '@/lib/assistant/briefings'
+import { describePipeline, type Briefing } from '@/lib/assistant/briefings'
 import type { ZipEntry } from '@/lib/zip'
 
 /**
@@ -92,6 +92,13 @@ export function briefingNote(briefing: Briefing, at: Date, workspace: string): V
   }
   // Each line as a property, so Dataview can chart it without parsing prose.
   for (const line of briefing.lines) properties[propertyKey(line.label)] = line.value
+  // Pipeline counts under their own prefix, so a Dataview query summing
+  // revenue properties never picks up a deal by accident.
+  if (briefing.pipeline) {
+    properties.pipeline_open = briefing.pipeline.open
+    properties.pipeline_overdue = briefing.pipeline.overdue
+    properties.pipeline_closing_soon = briefing.pipeline.closingSoon
+  }
 
   const body = [
     `# ${briefing.title} — ${briefing.period}`,
@@ -103,6 +110,9 @@ export function briefingNote(briefing: Briefing, at: Date, workspace: string): V
     ...briefing.lines.map(
       (line) => `- **${line.label}:** ${line.value}${line.change ? ` (${line.change})` : ''}`,
     ),
+    ...(briefing.pipeline
+      ? ['', '## Pipeline (not revenue)', describePipeline(briefing.pipeline)]
+      : []),
     ...(briefing.attention.length
       ? ['', '## Needs a decision', ...briefing.attention.map((a) => `- [ ] ${a}`)]
       : []),

@@ -1,7 +1,10 @@
 import Link from 'next/link'
 import { DemoBadge, Eyebrow, Panel } from '@/components/ui'
+import { loadDeals } from '@/lib/crm/load'
 import {
+  CLOSED_WINDOW_DAYS,
   CLOSING_SOON_DAYS,
+  closedSince as closedSinceFor,
   summarisePipeline,
   type CurrencyTotal,
   type PipelineDeal,
@@ -14,7 +17,6 @@ import { DEMO_NOW } from '@/lib/workspace-analytics'
 
 export const metadata = { title: 'Pipeline' }
 
-const CLOSED_WINDOW_DAYS = 90
 const MAX_DEALS = 500
 
 /**
@@ -36,7 +38,7 @@ export default async function PipelinePage() {
   // deal stays four days overdue in every screenshot ever taken of it.
   const now = membership.isDemo ? DEMO_NOW : new Date()
   const today = now.toISOString().slice(0, 10)
-  const closedSince = new Date(now.getTime() - CLOSED_WINDOW_DAYS * 86_400_000).toISOString()
+  const closedSince = closedSinceFor(now)
 
   const { deals, crm } = membership.isDemo
     ? {
@@ -181,16 +183,8 @@ async function loadPipeline(
   crm: { display_name: string; last_success_at: string | null } | null
 }> {
   const supabase = await supabaseServer()
-  const [{ data: rows }, { data: connections }] = await Promise.all([
-    supabase
-      .from('crm_deals')
-      .select(
-        'id, name, stage, outcome, amount_minor, currency, probability, expected_close_on, owner_name, source, updated_at',
-      )
-      .eq('organization_id', organizationId)
-      .or(`outcome.eq.open,updated_at.gte.${closedSince}`)
-      .order('updated_at', { ascending: false })
-      .limit(MAX_DEALS),
+  const [deals, { data: connections }] = await Promise.all([
+    loadDeals(supabase, organizationId, closedSince, MAX_DEALS),
     supabase
       .from('integration_connections')
       .select('provider, display_name, status, last_success_at')
@@ -198,22 +192,7 @@ async function loadPipeline(
       .in('provider', ['hubspot', 'salesforce']),
   ])
 
-  return {
-    deals: (rows ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      stage: row.stage,
-      outcome: row.outcome as PipelineDeal['outcome'],
-      amountMinor: row.amount_minor,
-      currency: row.currency,
-      probability: row.probability,
-      expectedCloseOn: row.expected_close_on,
-      owner: row.owner_name,
-      source: row.source,
-      updatedAt: row.updated_at,
-    })),
-    crm: (connections ?? [])[0] ?? null,
-  }
+  return { deals, crm: (connections ?? [])[0] ?? null }
 }
 
 function totalsLine(totals: readonly CurrencyTotal[]): string {

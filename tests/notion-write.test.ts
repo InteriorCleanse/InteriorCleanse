@@ -23,6 +23,7 @@ const briefing: Briefing = {
   attention: ['Ad spend on Product B exceeds its margin.'],
   caveats: ['Stripe last synced 3 hours ago.'],
   followUps: ['Which product drove the increase?'],
+  pipeline: null,
 }
 
 describe('richText', () => {
@@ -74,6 +75,20 @@ describe('briefingBlocks', () => {
     const bare = briefingBlocks({ ...briefing, attention: [], caveats: [], followUps: [] })
     expect(JSON.stringify(bare)).not.toContain('Needs a decision')
     expect(JSON.stringify(bare)).not.toContain('Caveats')
+    expect(JSON.stringify(bare)).not.toContain('Pipeline')
+  })
+
+  it('keeps the pipeline under its own heading, apart from the figures', () => {
+    const withPipeline = briefingBlocks({
+      ...briefing,
+      pipeline: { open: 3, openValue: '£9,000.00', withoutAmount: 0, closingSoon: 1, overdue: 1, won: 2, lost: 0 },
+    }) as { type: string; [k: string]: unknown }[]
+    const text = JSON.stringify(withPipeline)
+    expect(text).toContain('Pipeline (not revenue)')
+    expect(text).toContain('3 deals open worth £9,000.00')
+    // Not a figure bullet: the figures list is revenue and its relatives only.
+    const figures = withPipeline.filter((b) => b.type === 'bulleted_list_item').map((b) => JSON.stringify(b))
+    expect(figures.some((f) => f.includes('deals open'))).toBe(false)
   })
 })
 
