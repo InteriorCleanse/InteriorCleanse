@@ -116,7 +116,45 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
 
 ---
 
-## 8. Definition of Done
+## 8. Order Flow, Market State, Alerts
+
+- **Order flow** (`orderflow.ts`) reads the public order book and recent
+  trades. Walls are buckets ≥ `wallMultiple` × the median bucket; the tape
+  separates buyer- from seller-initiated trades and flags prints ≥
+  `bigTradeUsd`. Every reading is logged to `data/orderflow.csv`. The book is
+  always described as intent (can be pulled); the tape as fact.
+- **Market state** (`regime.ts`) is a vote: swing structure, hourly EMAs,
+  3-hour momentum, today's sweeps, and the tape. Trend needs a 2:1 majority
+  with ≥ 3 votes; otherwise "range". Continuation is a 0–100 score with every
+  penalty named; watch-outs list nearby liquidity, walls, stretch, news,
+  volatility and weekends. It is described as "now", never as a forecast.
+- **Alerts** (`watch.ts`) re-read the market every `app.watchEveryMinutes`
+  and raise events (killzone heads-up/open, sweep, setup, news, trend change,
+  big print, TradingView alert). Each is announced once, persisted to
+  `data/events.jsonl`, shown in the app's bell and optionally as a system
+  notification. The watcher never acts.
+
+## 9. The App, Phone Access, TradingView, Journal, Pictures
+
+- **PWA**: `web/manifest.json`, `web/sw.js`, icons. The service worker caches
+  the shell only — never `/api/`.
+- **Phone access** is off by default. When on, the server binds the LAN and
+  every non-loopback request needs the PIN once (HttpOnly cookie for the
+  run). Secrets (PIN, session token, webhook secret) are generated per start
+  unless set in config and are never written to disk.
+- **TradingView**: the app embeds TradingView's free widget and accepts
+  alerts at `POST /api/tv-alert` guarded by the secret; alerts are logged to
+  `data/tv-alerts.csv` and raised as events. Nothing reads TradingView back;
+  the docs say so.
+- **Journal** (`journal.ts`): entries separate outcome from execution (1–5),
+  record plan adherence, emotions and tags; R is computed; the review finds
+  leaks by plan/emotion/session/tag with n ≥ 3, names one thing to fix,
+  tracks goals and a streak. Stored as JSONL; nothing is inferred beyond the
+  data.
+- **Pictures**: a chart screenshot may be sent to the assistant, which must
+  follow a fixed structure and say "I can't read this" rather than guess.
+
+## 10. Definition of Done
 
 These must work: `selftest` (offline, ≥ 45 checks including a hand-built day
 that yields exactly one BUY), `start`, `talk`, `brief`, `news`, `scan`,

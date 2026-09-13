@@ -8,7 +8,7 @@ import { config } from '../config.ts'
 import { toET, describeWindow, nextKillzone } from './sessions.ts'
 import { upcomingEvents } from './news.ts'
 import { describeSweep } from './liquidity.ts'
-import type { IctAnalysis, NewsReport } from './types.ts'
+import type { FlowReport, IctAnalysis, MarketState, NewsReport } from './types.ts'
 import type { DayPlan } from './plan.ts'
 
 export type Brief = {
@@ -25,7 +25,7 @@ function fmtLocal(ms: number): string {
   return new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
-export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPlan | null, now = Date.now()): Brief {
+export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPlan | null, now = Date.now(), state: MarketState | null = null, flow: FlowReport | null = null): Brief {
   const L: string[] = []
   const et = toET(now)
   const p = (n: number) => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 })
@@ -66,6 +66,26 @@ export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPla
   const ifvgs = a.fvgs.filter((f) => f.state === 'inverted')
   if (ifvgs.length) L.push(`  ${ifvgs.length} inverted gap(s) on the board: ` + ifvgs.slice(-3).map((f) => `${p(f.bottom)}–${p(f.top)} (${f.direction === 'bearish' ? 'support' : 'resistance'})`).join(', '))
   L.push('')
+
+  // Market state
+  if (state) {
+    L.push(`MARKET STATE: ${state.trend.toUpperCase()} — strength ${state.strength}/100 — ${state.continuation.label} (${state.continuation.score}/100). Volatility ${state.volatility}.`)
+    for (const e of state.evidence) L.push(`  • ${e}`)
+    if (state.continuation.reasons.length) L.push('  ' + state.continuation.reasons.join(' '))
+    if (state.watchOuts.length) {
+      L.push('  Watch out for:')
+      for (const w of state.watchOuts) L.push(`  ! ${w}`)
+    }
+    L.push('')
+  }
+
+  // Order flow
+  if (flow) {
+    L.push('ORDER FLOW')
+    for (const l of flow.lines) L.push(`  ${l}`)
+    if (flow.errors.length) L.push(`  (${flow.errors.join('; ')})`)
+    L.push('')
+  }
 
   // Bias
   L.push(`BIAS: ${a.bias.direction.toUpperCase()}`)

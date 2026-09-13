@@ -12,6 +12,7 @@ import type { ReplayResult } from './replay.ts'
 import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { buildBrief } from './brief.ts'
 import { getNews, summarizeNews, upcomingEvents } from './news.ts'
+import { getFlow } from './orderflow.ts'
 import { clearPlan, readPlan } from './plan.ts'
 import { describeKey } from './adaptiveFilter.ts'
 import * as ui from './ui.ts'
@@ -129,7 +130,7 @@ async function commandBrief(): Promise<void> {
   }
   ui.step('Downloading prices and news...')
   const snap = await analyzeNow()
-  const brief = buildBrief(snap.analysis!, snap.news, readPlan())
+  const brief = buildBrief(snap.analysis!, snap.news, readPlan(), Date.now(), snap.state, snap.flow)
   ui.blank()
   for (const l of brief.lines) console.log(l ? `  ${l}` : '')
   ui.plainEnglish([
@@ -174,6 +175,49 @@ async function commandNews(): Promise<void> {
     `within ${config.ict.newsBlackoutMinutes} minutes of one. Headlines tell you what the crowd is`,
     'watching so a sudden move makes sense instead of feeling like chaos.',
   ])
+  ui.blank()
+}
+
+async function commandFlow(): Promise<void> {
+  ui.heading('ORDER FLOW — where the orders are')
+  ui.step('Reading the order book and the tape...')
+  const flow = await getFlow()
+  ui.blank()
+  for (const l of flow.lines) console.log(`  ${ui.wrap(l, 74).replace(/\n/g, '\n  ')}`)
+  for (const e of flow.errors) console.log(ui.warn('  ! ') + e)
+  if (flow.book?.walls.length) {
+    ui.sub('WALLS')
+    ui.table(['Side', 'Price', 'Size', 'Dollars', 'vs typical', 'Distance'], flow.book.walls.map((w) => [
+      w.side === 'bid' ? ui.good('BID') : ui.bad('ASK'), ui.price(w.price), w.qty.toFixed(3), ui.money(w.usd, 0), `${w.multiple.toFixed(0)}×`, `${Math.abs(w.distancePct).toFixed(2)}% ${w.distancePct < 0 ? 'below' : 'above'}`,
+    ]))
+  }
+  if (flow.tape?.bigTrades.length) {
+    ui.sub('BIG PRINTS')
+    ui.table(['When', 'Side', 'Size', 'Price', 'Dollars'], flow.tape.bigTrades.slice(0, 10).map((t) => [
+      ui.formatTime(t.time), t.side === 'buy' ? ui.good('BUY') : ui.bad('SELL'), t.qty.toFixed(3), ui.price(t.price), ui.money(t.usd, 0),
+    ]))
+  }
+  ui.plainEnglish(['The book shows intent — orders that can be pulled. The tape shows', 'what actually traded. Every reading is logged to data/orderflow.csv', 'so you can watch the pressure change through the day.'])
+  ui.blank()
+}
+
+async function commandState(): Promise<void> {
+  ui.heading('MARKET STATE')
+  ui.step('Reading prices, news and order flow...')
+  const snap = await analyzeNow()
+  const s = snap.state
+  if (!s) { console.log(ui.warn('  No state available.')); return }
+  ui.blank()
+  const trend = s.trend === 'uptrend' ? ui.good('UPTREND') : s.trend === 'downtrend' ? ui.bad('DOWNTREND') : ui.warn('RANGE')
+  console.log(`  ${trend}  strength ${ui.bold(String(s.strength))}/100  ·  ${ui.bold(s.continuation.label)} (${s.continuation.score}/100)  ·  volatility ${s.volatility}`)
+  ui.sub('WHY')
+  for (const e of s.evidence) console.log(`  • ${ui.wrap(e, 72).replace(/\n/g, '\n    ')}`)
+  if (s.continuation.reasons.length) { ui.blank(); for (const r of s.continuation.reasons) console.log(ui.dim(`  ${r}`)) }
+  if (s.watchOuts.length) {
+    ui.sub('WATCH OUT FOR')
+    for (const w of s.watchOuts) console.log(`  ${ui.warn('!')} ${ui.wrap(w, 72).replace(/\n/g, '\n    ')}`)
+  }
+  ui.plainEnglish(['This is a description of now, not a forecast. Each reading gets a', 'vote; the state is what most of them agree on, and the dissenters are', 'listed so you can see the argument.'])
   ui.blank()
 }
 
@@ -382,6 +426,11 @@ function commandHelp(): void {
     ['npm run talk', 'chat with the bot: brief, plan, questions, what-ifs'],
     ['npm run brief', "print today's brief — ranges, levels, bias, news, plan"],
     ['npm run news', 'show what is on the calendar and what stands out'],
+    ['npm run state', 'uptrend / downtrend / range, and what to watch out for'],
+    ['npm run flow', 'where the big orders are and what is trading'],
+    ['npm run watch', 'stay on and raise alerts every candle'],
+    ['npm run doctor', 'check every connection'],
+    ['npm run picture -- chart.png', 'analyze a chart screenshot (needs the AI key)'],
     ['npm run scan', 'check the market right now and explain its decision'],
     ['npm run replay:raw', 'test the strategy on real past prices'],
     ['npm run replay:memory', 'do the same, but let it use what it learned'],
@@ -413,6 +462,8 @@ async function main(): Promise<void> {
       case 'scan:memory': await commandScan(true); break
       case 'brief': await commandBrief(); break
       case 'news': await commandNews(); break
+      case 'flow': await commandFlow(); break
+      case 'state': await commandState(); break
       case 'replay:raw': await commandReplayRaw(); break
       case 'replay:memory': await commandReplayMemory(); break
       case 'compare': await commandCompare(); break

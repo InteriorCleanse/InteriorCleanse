@@ -1,49 +1,82 @@
 /**
  * The app.
  *
- * A tiny web server that runs on your own computer and serves a
- * dashboard to your browser. It only listens on 127.0.0.1 — "this
- * machine only" — so nothing is exposed, not even to your own wifi.
- * Built on Node's built-in modules, so there is nothing to install.
+ * A small web server, built on Node's own modules, that serves the
+ * dashboard, keeps the watch loop running, and answers the app's API.
+ *
+ * Who can reach it:
+ *   - By default it listens on 127.0.0.1 — this computer only.
+ *   - With app.allowPhone on, it listens on your home network too and
+ *     asks any other device for a PIN once. Nothing is exposed to the
+ *     internet either way.
+ *
+ * Market data is never cached by the app shell; every reading is fresh.
  */
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync, appendFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { config } from '../config.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import type { Snapshot } from './bot.ts'
 import { runReplay, scoreSkippedTrades } from './replay.ts'
-import { lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
+import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 import { getNews, summarizeNews, upcomingEvents } from './news.ts'
 import { buildBrief } from './brief.ts'
 import { readPlan, writePlan, clearPlan } from './plan.ts'
 import type { DayPlan } from './plan.ts'
-import { aiStatus, askAI, explainAiError } from './ai.ts'
+import { aiStatus, askAI, explainAiError, PICTURE_QUESTION } from './ai.ts'
+import type { AiImage } from './ai.ts'
 import { toET } from './sessions.ts'
 import { ifvgRole } from './fvg.ts'
+import { getFlow, readFlowLog } from './orderflow.ts'
+import { startWatch, eventLog } from './watch.ts'
+import { runDoctor, lanUrls } from './doctor.ts'
+import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
+import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = join(HERE, '..', 'web')
+const TV_LOG = join(DATA_DIR, 'tv-alerts.csv')
+
+// Secrets for this run. Printed once at startup, never written to disk.
+const PIN = config.app.pin || String(100000 + Math.floor(Math.random() * 900000))
+const WEBHOOK_SECRET = config.tradingview.webhookSecret || randomBytes(12).toString('hex')
+const SESSION_TOKEN = randomBytes(24).toString('hex')
+let pinAttempts = 0
+
+const STATIC: Record<string, { file: string; type: string }> = {
+  '/manifest.json': { file: 'manifest.json', type: 'application/manifest+json' },
+  '/sw.js': { file: 'sw.js', type: 'application/javascript' },
+  '/icon-192.png': { file: 'icon-192.png', type: 'image/png' },
+  '/icon-512.png': { file: 'icon-512.png', type: 'image/png' },
+  '/icon-180.png': { file: 'icon-180.png', type: 'image/png' },
+  '/favicon.ico': { file: 'icon-192.png', type: 'image/png' },
+}
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
   res.end(JSON.stringify(body))
 }
 
-async function readBody(req: IncomingMessage): Promise<string> {
+async function readBody(req: IncomingMessage, maxBytes = 12 * 1024 * 1024): Promise<string> {
   const chunks: Buffer[] = []
-  for await (const c of req) chunks.push(c as Buffer)
+  let size = 0
+  for await (const c of req) {
+    size += (c as Buffer).length
+    if (size > maxBytes) throw new Error('request too large')
+    chunks.push(c as Buffer)
+  }
   return Buffer.concat(chunks).toString('utf8')
 }
 
-/** Runs a job and turns a data outage into a readable message. */
 async function safely<T>(fn: () => Promise<T>): Promise<{ ok: true; data: T } | { ok: false; error: string; kind: string }> {
   try {
     return { ok: true, data: await fn() }
@@ -53,110 +86,222 @@ async function safely<T>(fn: () => Promise<T>): Promise<{ ok: true; data: T } | 
   }
 }
 
-// The dashboard asks for the analysis on every tab; one download a minute is plenty.
+// ---------------------------------------------------------------
+// Who is asking
+// ---------------------------------------------------------------
+
+function isLocal(req: IncomingMessage): boolean {
+  const ip = req.socket.remoteAddress ?? ''
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1'
+}
+
+function hasSession(req: IncomingMessage): boolean {
+  const cookie = req.headers.cookie ?? ''
+  return cookie.split(';').some((c) => c.trim() === `mrcash=${SESSION_TOKEN}`)
+}
+
+function authed(req: IncomingMessage): boolean {
+  return isLocal(req) || hasSession(req)
+}
+
+const LOGIN_PAGE = (msg = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mr. Cash</title>
+<link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/icon-180.png"><meta name="theme-color" content="#0d1117">
+<style>body{margin:0;background:#0d1117;color:#e6edf3;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
+form{background:#161b22;border:1px solid #26303d;border-radius:14px;padding:28px;width:min(92vw,360px);text-align:center}h1{font-size:22px;margin:0 0 6px}p{color:#8b98a5;margin:0 0 18px;font-size:14px}
+input{width:100%;box-sizing:border-box;font-size:28px;letter-spacing:.3em;text-align:center;padding:12px;border-radius:10px;border:1px solid #26303d;background:#0d1117;color:#e6edf3}
+button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:#58a6ff;color:#04111f;font-weight:700;font-size:16px}.err{color:#f85149;font-size:14px;margin-top:10px}</style></head>
+<body><form method="post" action="/login"><h1>Mr. Cash</h1><p>Enter the PIN shown in the terminal on your computer.</p><input name="pin" inputmode="numeric" autocomplete="one-time-code" autofocus maxlength="12"><button>Open</button>${msg ? `<div class="err">${msg}</div>` : ''}</form></body></html>`
+
+// ---------------------------------------------------------------
+// The market snapshot the app reads from
+// ---------------------------------------------------------------
+
 let snapCache: { at: number; snap: Snapshot } | null = null
 async function snapshot(force = false): Promise<Snapshot> {
+  const fromWatch = watcher.current()
+  if (!force && fromWatch && Date.now() - fromWatch.at < 90_000) return fromWatch.snap
   if (!force && snapCache && Date.now() - snapCache.at < 60_000) return snapCache.snap
   const snap = await analyzeNow()
   snapCache = { at: Date.now(), snap }
   return snap
 }
 
-/** Everything the Chart and Today tabs need, in one payload. */
 function analysisPayload(snap: Snapshot, candleCount: number) {
   const a = snap.analysis
   const candles = snap.candles.slice(-candleCount).map((c) => ({ ...c, et: toET(c.openTime).clock, day: toET(c.openTime).dateKey }))
   const firstTime = candles[0]?.openTime ?? 0
   const engine = snap.engine
-  const sessions = engine ? [...engine.sessions.days.values()].flatMap((d) => Object.values(d.sessions)).filter((s) => s.endTime >= firstTime) : []
-  const sweeps = engine ? [...engine.sessions.days.keys()].flatMap((k) => engine.sweepsFor(k)).filter((s) => s.time >= firstTime) : []
-  const fvgs = engine ? engine.fvgs.fvgs.filter((f) => f.createdTime >= firstTime && (f.state !== 'expired' || f.retestIndex !== undefined)).map((f) => ({ ...f, role: ifvgRole(f) })) : []
-  const shifts = engine ? engine.structure.shifts.filter((s) => s.time >= firstTime) : []
   const plan = readPlan()
-  const brief = a ? buildBrief(a, snap.news, plan) : null
+  const brief = a ? buildBrief(a, snap.news, plan, Date.now(), snap.state, snap.flow) : null
   return {
     strategy: config.strategy,
     candles,
     analysis: a ? { ...a, sessions: undefined } : null,
     signal: snap.signal,
-    sessions,
-    sweeps,
-    fvgs,
-    shifts,
+    sessions: engine ? [...engine.sessions.days.values()].flatMap((d) => Object.values(d.sessions)).filter((s) => s.endTime >= firstTime) : [],
+    sweeps: engine ? [...engine.sessions.days.keys()].flatMap((k) => engine.sweepsFor(k)).filter((s) => s.time >= firstTime) : [],
+    fvgs: engine ? engine.fvgs.fvgs.filter((f) => f.createdTime >= firstTime && (f.state !== 'expired' || f.retestIndex !== undefined)).map((f) => ({ ...f, role: ifvgRole(f) })) : [],
+    shifts: engine ? engine.structure.shifts.filter((s) => s.time >= firstTime) : [],
     plan,
     brief: brief ? { lines: brief.lines, proposal: brief.proposal, levels: brief.levels } : null,
     news: snap.news ? { ...snap.news, upcoming: upcomingEvents(snap.news), summary: summarizeNews(snap.news) } : null,
+    state: snap.state,
+    flow: snap.flow,
     generatedAt: Date.now(),
   }
 }
 
-function contextFor(snap: Snapshot): string {
+function contextFor(snap: Snapshot, withJournal = false): string {
   const a = snap.analysis
-  if (!a) return `Strategy: crossover. Latest: ${snap.signal.reason}`
-  const brief = buildBrief(a, snap.news, readPlan())
-  return [
-    brief.lines.join('\n'),
-    '',
-    'CHECKLIST RIGHT NOW:',
-    ...a.signal.evidence.map((e) => `  [${e.passed ? 'ok' : 'NO'}] ${e.step}: ${e.detail}`),
-    `Decision: ${a.signal.action} — ${a.signal.reason}`,
-    '',
-    'GAPS: ' + a.fvgs.slice(-8).map((f) => `${f.direction} $${f.bottom.toFixed(0)}–$${f.top.toFixed(0)} ${f.state}${ifvgRole(f) ? ` now ${ifvgRole(f)}` : ''}`).join('; '),
-    'SETTINGS: ' + JSON.stringify({ symbol: config.symbol, interval: config.interval, account: config.accountSizeUsd, riskPct: config.riskPerTradePercent, minRR: config.ict.minRR, killzones: config.ict.killzones, requireInversion: config.ict.requireInversion }),
-    'NEWS: ' + (snap.news ? summarizeNews(snap.news) : 'not available'),
-  ].join('\n').slice(0, 12_000)
+  const parts: string[] = []
+  if (!a) parts.push(`Strategy: crossover. Latest: ${snap.signal.reason}`)
+  else {
+    const brief = buildBrief(a, snap.news, readPlan(), Date.now(), snap.state, snap.flow)
+    parts.push(brief.lines.join('\n'), '', 'CHECKLIST RIGHT NOW:', ...a.signal.evidence.map((e) => `  [${e.passed ? 'ok' : 'NO'}] ${e.step}: ${e.detail}`), `Decision: ${a.signal.action} — ${a.signal.reason}`, '',
+      'GAPS: ' + a.fvgs.slice(-8).map((f) => `${f.direction} $${f.bottom.toFixed(0)}–$${f.top.toFixed(0)} ${f.state}${ifvgRole(f) ? ` now ${ifvgRole(f)}` : ''}`).join('; '),
+      'SETTINGS: ' + JSON.stringify({ symbol: config.symbol, interval: config.interval, account: config.accountSizeUsd, riskPct: config.riskPerTradePercent, minRR: config.ict.minRR, killzones: config.ict.killzones, requireInversion: config.ict.requireInversion }),
+      'NEWS: ' + (snap.news ? summarizeNews(snap.news) : 'not available'))
+  }
+  if (withJournal) parts.push('', journalSummaryForAI(readJournal()))
+  return parts.join('\n').slice(0, 16_000)
 }
+
+async function streamAnswer(res: ServerResponse, question: string, context: string, history: Anthropic.MessageParam[], image?: AiImage): Promise<void> {
+  const status = await aiStatus()
+  res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
+  try {
+    const answer = await askAI(question, context, history, (t) => res.write(t), image)
+    res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
+  } catch (err) {
+    res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
+  }
+}
+
+// ---------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${config.webPort}`)
   const path = url.pathname
   try {
-    if (path === '/' || path === '/index.html') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(readFileSync(join(WEB_DIR, 'index.html'), 'utf8'))
+    // Files every device may fetch before logging in
+    const st = STATIC[path]
+    if (st) {
+      const full = join(WEB_DIR, st.file)
+      if (!existsSync(full)) { res.writeHead(404); res.end(); return }
+      res.writeHead(200, { 'content-type': st.type, 'cache-control': 'public, max-age=3600' })
+      res.end(readFileSync(full))
       return
     }
 
-    if (path === '/favicon.ico') {
-      res.writeHead(204)
+    // TradingView alerts carry their own secret
+    if (path === '/api/tv-alert' && req.method === 'POST') {
+      const raw = await readBody(req, 64 * 1024)
+      let body: Record<string, unknown> = {}
+      try { body = JSON.parse(raw) } catch { body = { message: raw } }
+      const secret = String(body.secret ?? req.headers['x-mrcash-secret'] ?? url.searchParams.get('secret') ?? '')
+      if (secret !== WEBHOOK_SECRET) { json(res, 403, { ok: false, error: 'bad secret' }); return }
+      const event = String(body.event ?? body.message ?? 'alert').slice(0, 120)
+      const symbol = String(body.symbol ?? '').slice(0, 30)
+      const price = Number(body.price)
+      ensureDataDir()
+      if (!existsSync(TV_LOG)) writeFileSync(TV_LOG, 'timestamp,event,symbol,price\n')
+      appendFileSync(TV_LOG, `${new Date().toISOString()},${JSON.stringify(event)},${symbol},${Number.isFinite(price) ? price : ''}\n`)
+      eventLog.push('tradingview', `TradingView: ${event}${symbol ? ` on ${symbol}` : ''}`, Number.isFinite(price) ? `Price $${price.toFixed(2)}. Check the chart tab — Mr. Cash will confirm or disagree on the next candle.` : 'Check the chart tab.', 'warn')
+      json(res, 200, { ok: true })
+      return
+    }
+
+    // The PIN gate for other devices
+    if (path === '/login') {
+      if (req.method === 'POST') {
+        const form = new URLSearchParams(await readBody(req, 4096))
+        if (pinAttempts >= 20) { res.writeHead(429, { 'content-type': 'text/html' }); res.end(LOGIN_PAGE('Too many tries. Restart Mr. Cash to get a new PIN.')); return }
+        if ((form.get('pin') ?? '').trim() === PIN) {
+          pinAttempts = 0
+          res.writeHead(302, { 'set-cookie': `mrcash=${SESSION_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`, location: '/' })
+          res.end()
+        } else {
+          pinAttempts++
+          res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
+          res.end(LOGIN_PAGE('Wrong PIN.'))
+        }
+        return
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      res.end(LOGIN_PAGE())
+      return
+    }
+    if (!authed(req)) {
+      if (path.startsWith('/api/')) { json(res, 401, { ok: false, error: 'PIN required' }); return }
+      res.writeHead(302, { location: '/login' })
       res.end()
       return
     }
 
+    if (path === '/' || path === '/index.html') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
+      res.end(readFileSync(join(WEB_DIR, 'index.html'), 'utf8'))
+      return
+    }
+
     if (path === '/api/config') {
+      const local = isLocal(req)
+      const lan = lanUrls()
       json(res, 200, {
         symbol: config.symbol, interval: config.interval, strategy: config.strategy, accountSizeUsd: config.accountSizeUsd,
         riskPerTradePercent: config.riskPerTradePercent, feePercent: config.feePercent, ict: config.ict, replay: config.replay, memory: config.memory,
+        orderflow: config.orderflow, tradingview: { widgetSymbol: config.tradingview.widgetSymbol },
         memoryEmpty: memoryIsEmpty(), ledgerRows: readLedger().length, lessons: lessonLines(), plan: readPlan(), ai: await aiStatus(),
+        app: {
+          allowPhone: config.app.allowPhone, watchEveryMinutes: config.app.watchEveryMinutes, isLocal: local,
+          lanUrls: local ? lan : [],
+          webhook: local ? { url: `${lan[0] ?? `http://127.0.0.1:${config.webPort}`}/api/tv-alert`, secret: WEBHOOK_SECRET } : null,
+        },
+        journal: { emotions: EMOTIONS, tags: TAGS },
       })
       return
     }
 
     if (path === '/api/analysis') {
       const count = Math.min(2000, Math.max(50, Number(url.searchParams.get('candles') ?? 400)))
-      const force = url.searchParams.get('refresh') === '1'
-      const r = await safely(async () => analysisPayload(await snapshot(force), count))
-      json(res, 200, r)
+      json(res, 200, await safely(async () => analysisPayload(await snapshot(url.searchParams.get('refresh') === '1'), count)))
       return
     }
-
     if (path === '/api/scan') {
       const r = await safely(() => runScan(url.searchParams.get('memory') === '1'))
       snapCache = null
       json(res, 200, r.ok ? { ok: true, data: { ...r.data, candles: undefined, engine: undefined } } : r)
       return
     }
-
     if (path === '/api/replay/raw' || path === '/api/replay/memory') {
       const useMemory = path.endsWith('memory')
       const r = await safely(() => runReplay({ useMemory, writeMemory: !useMemory }))
       json(res, 200, r.ok ? { ...r, score: useMemory ? scoreSkippedTrades(r.data) : null } : r)
       return
     }
-
     if (path === '/api/news') {
       const news = await getNews(url.searchParams.get('force') === '1')
       json(res, 200, { ok: true, data: { ...news, upcoming: upcomingEvents(news) } })
+      return
+    }
+    if (path === '/api/flow') {
+      const flow = url.searchParams.get('fresh') === '1' ? await getFlow() : (await snapshot()).flow ?? (await getFlow())
+      json(res, 200, { ok: true, data: { ...flow, history: readFlowLog(288) } })
+      return
+    }
+    if (path === '/api/state') {
+      json(res, 200, await safely(async () => (await snapshot()).state))
+      return
+    }
+    if (path === '/api/events') {
+      const since = Number(url.searchParams.get('since') ?? 0)
+      json(res, 200, { ok: true, data: { events: since > 0 ? eventLog.since(since) : eventLog.latest(40), latestId: eventLog.events[eventLog.events.length - 1]?.id ?? 0 } })
+      return
+    }
+    if (path === '/api/doctor') {
+      json(res, 200, { ok: true, data: await runDoctor() })
       return
     }
 
@@ -171,19 +316,16 @@ const server = createServer(async (req, res) => {
     }
 
     if (path === '/api/plan' && req.method === 'POST') {
-      const body = JSON.parse(await readBody(req) || '{}') as Partial<DayPlan>
+      const body = JSON.parse((await readBody(req, 64 * 1024)) || '{}') as Partial<DayPlan>
       const snap = await snapshot()
       const dayKey = snap.analysis?.dayKey ?? toET(Date.now()).dateKey
-      const proposal = snap.analysis ? buildBrief(snap.analysis, snap.news, null).proposal : null
+      const proposal = snap.analysis ? buildBrief(snap.analysis, snap.news, null, Date.now(), snap.state, snap.flow).proposal : null
       const allow = (['long', 'short', 'both', 'none'] as const).includes(body.allow as never) ? (body.allow as DayPlan['allow']) : proposal?.allow ?? 'both'
       const plan: DayPlan = {
-        dayKey,
-        armedAt: Date.now(),
-        allow,
+        dayKey, armedAt: Date.now(), allow,
         riskPerTradePercent: Number(body.riskPerTradePercent) > 0 ? Number(body.riskPerTradePercent) : config.riskPerTradePercent,
         maxTrades: Number.isFinite(Number(body.maxTrades)) ? Number(body.maxTrades) : config.ict.maxTradesPerDay,
-        notes: String(body.notes ?? '').slice(0, 500),
-        proposal: proposal?.proposal ?? '',
+        notes: String(body.notes ?? '').slice(0, 500), proposal: proposal?.proposal ?? '',
       }
       writePlan(plan)
       snapCache = null
@@ -197,20 +339,53 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // ---- journal ----
+    if (path === '/api/journal' && req.method === 'GET') {
+      const entries = readJournal()
+      const goals = readGoals()
+      json(res, 200, { ok: true, data: { entries: entries.slice(-200).reverse(), stats: computeStats(entries), review: buildReview(entries, goals), goals } })
+      return
+    }
+    if (path === '/api/journal' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 256 * 1024)) || '{}') as Partial<JournalEntry>
+      json(res, 200, { ok: true, data: upsertEntry(body) })
+      return
+    }
+    if (path === '/api/journal/delete' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 4096)) || '{}') as { id?: string }
+      json(res, 200, { ok: deleteEntry(String(body.id ?? '')) })
+      return
+    }
+    if (path === '/api/journal/prefill') {
+      json(res, 200, await safely(async () => entryFromSnapshot(await snapshot())))
+      return
+    }
+    if (path === '/api/journal/goals' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 64 * 1024)) || '{}') as { goals?: Goal[] }
+      if (Array.isArray(body.goals)) saveGoals(body.goals.map((g) => ({ id: String(g.id || `g${Date.now().toString(36)}`), title: String(g.title ?? '').slice(0, 200), kind: g.kind === 'auto' ? 'auto' : 'manual', metric: g.metric, target: g.target, done: !!g.done })))
+      json(res, 200, { ok: true, data: readGoals() })
+      return
+    }
+
+    // ---- the assistant ----
     if (path === '/api/chat' && req.method === 'POST') {
       const status = await aiStatus()
       if (!status.available) { json(res, 200, { ok: false, error: status.reason }); return }
-      const body = JSON.parse(await readBody(req) || '{}') as { question?: string; history?: Anthropic.MessageParam[] }
+      const body = JSON.parse((await readBody(req, 256 * 1024)) || '{}') as { question?: string; history?: Anthropic.MessageParam[]; journal?: boolean }
       const question = String(body.question ?? '').trim().slice(0, 4000)
       if (!question) { json(res, 200, { ok: false, error: 'Ask something first.' }); return }
-      const snap = await snapshot()
-      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
-      try {
-        const answer = await askAI(question, contextFor(snap), Array.isArray(body.history) ? body.history.slice(-20) : [], (t) => res.write(t))
-        res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
-      } catch (err) {
-        res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
-      }
+      await streamAnswer(res, question, contextFor(await snapshot(), !!body.journal), Array.isArray(body.history) ? body.history.slice(-20) : [])
+      return
+    }
+    if (path === '/api/picture' && req.method === 'POST') {
+      const status = await aiStatus()
+      if (!status.available) { json(res, 200, { ok: false, error: status.reason }); return }
+      const body = JSON.parse((await readBody(req)) || '{}') as { image?: string; question?: string }
+      const m = /^data:(image\/(?:png|jpeg|gif|webp));base64,(.+)$/.exec(String(body.image ?? ''))
+      if (!m) { json(res, 200, { ok: false, error: 'Attach a PNG, JPEG, GIF or WebP picture.' }); return }
+      let context = 'Live market data was not available when this picture was analyzed. Work from the picture only.'
+      try { context = contextFor(await snapshot()) } catch { /* picture-only is fine */ }
+      await streamAnswer(res, String(body.question ?? '').trim() || PICTURE_QUESTION, context, [], { mediaType: m[1] as AiImage['mediaType'], data: m[2] })
       return
     }
 
@@ -228,11 +403,12 @@ function openBrowser(target: string): void {
     child.on('error', () => {})
     child.unref()
   } catch {
-    // Not being able to open a browser is not a failure worth crashing over.
+    // Not being able to open a browser is not worth crashing over.
   }
 }
 
 const address = `http://127.0.0.1:${config.webPort}`
+const host = config.app.allowPhone ? '0.0.0.0' : '127.0.0.1'
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
@@ -245,16 +421,31 @@ server.on('error', (err: NodeJS.ErrnoException) => {
   throw err
 })
 
-server.listen(config.webPort, '127.0.0.1', () => {
+// The watch loop keeps the snapshot fresh and raises alerts. Declared
+// before listen() so the routes can read it.
+const watcher = startWatch(config.app.watchEveryMinutes, (e) => {
+  const mark = e.severity === 'action' ? ui.good('●') : e.severity === 'warn' ? ui.warn('●') : ui.dim('●')
+  console.log(`${ui.dim(new Date(e.time).toLocaleTimeString())}  ${mark} ${ui.bold(e.title)} ${ui.dim('— ' + e.body.slice(0, 110))}`)
+})
+
+server.listen(config.webPort, host, () => {
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good('  ● PAPER MODE — no real money, no exchange account, no orders.'))
   console.log('')
-  console.log(`  Open this in your browser:  ${ui.bold(address)}`)
+  console.log(`  On this computer:  ${ui.bold(address)}`)
+  if (config.app.allowPhone) {
+    const lan = lanUrls()
+    console.log(`  On your phone:     ${ui.bold(lan.join('  or  ') || '(no network address found)')}`)
+    console.log(`  Phone PIN:         ${ui.bold(PIN)}`)
+    console.log(ui.dim('  Same wifi only. Open the address, enter the PIN once, then Share → Add to Home Screen.'))
+  } else {
+    console.log(ui.dim('  Phone access is off. Set app.allowPhone: true in config.ts to turn it on.'))
+  }
+  console.log(`  TradingView webhook secret: ${ui.dim(WEBHOOK_SECRET)}  ${ui.dim('(the TradingView tab explains where it goes)')}`)
   console.log('')
-  console.log(ui.dim('  I tried to open it for you automatically. This page is on your'))
-  console.log(ui.dim('  computer only — nothing is uploaded, and nobody else can reach it.'))
-  console.log(ui.dim('  To stop the app: press Ctrl+C in this window.'))
+  console.log(ui.dim(`  Watching the market every ${config.app.watchEveryMinutes} minutes; alerts show here and in the app's bell.`))
+  console.log(ui.dim('  To stop: press Ctrl+C in this window.'))
   console.log('')
   if (process.env.NO_BROWSER !== '1') openBrowser(address)
 })

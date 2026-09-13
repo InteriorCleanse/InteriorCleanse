@@ -108,6 +108,116 @@ assistant — see *The AI assistant* below.
 
 ---
 
+### The Flow tab (and `npm run flow`)
+
+Where the big orders are. The order book within 1% of price on each side,
+the biggest **walls** (clusters of resting orders, with how many times the
+typical size they are and how far from price), and the **tape** — the last
+thousand trades: how many per minute, what share were buyer-initiated, the net
+dollar pressure, and every print over $100k. Every reading is logged to
+`data/orderflow.csv`, so the tab also shows how pressure changed through the
+day. Honest caveat, printed every time: the book is intent and gets pulled;
+the tape already happened.
+
+### Market state (and `npm run state`)
+
+Uptrend, downtrend or range — with a strength score, a "likely to continue"
+score, and every reading that voted: swing structure, the hourly averages,
+three-hour momentum, today's sweeps, and the tape. Then **things to watch out
+for**: liquidity close ahead, walls, stretched price, high-impact news, quiet
+or wild volatility, weekends. It's a description of now, not a forecast, and it
+shows its dissenters.
+
+### The Journal tab
+
+A trading journal built to make *you* better. Each entry separates the
+**outcome** from your **execution score** (1–5, "did I do what I said I'd
+do?"), asks whether you followed the plan, and lets you tag emotions and
+habits with one tap. "From current setup" pre-fills what Mr. Cash saw so you
+only add how you felt. R is computed for you from entry / stop / exit.
+
+The review finds your **leaks** — emotions, sessions, and habits that cost
+money — names **the one thing to fix**, tracks goals (journal daily, follow
+the plan 90%, zero revenge trades, execution ≥ 4) with progress, keeps a
+streak, and gives you a reflection prompt each day. "Ask Mr. Cash about my
+journal" hands the stats to the assistant for a straight conversation.
+
+### The TradingView tab
+
+A live TradingView chart inside the app, and the webhook that lets your
+TradingView alerts land in Mr. Cash's bell. See *Connecting TradingView* below
+for exactly what is and isn't possible.
+
+### Alerts (the bell)
+
+While the app is open, Mr. Cash re-reads the market every candle and taps
+you on the shoulder: an entry window opening in 15 minutes, a level swept, a
+full setup (with entry/stop/target), high-impact news about to land, the
+trend flipping, a very large trade. Click **Alerts** in the header to get them
+as system notifications too. `npm run watch` does the same in a terminal.
+
+### The picture analyzer (Ask tab)
+
+Paste or attach a screenshot of any chart. With the assistant on, Mr. Cash
+breaks it down in a fixed order: what it can see, levels and liquidity, gaps,
+an entry zone / stop / target with the reasoning, what would invalidate it,
+and news to check. It says "I can't read this" rather than guess a price.
+Also `npm run picture -- chart.png "your question"`.
+
+---
+
+## Install it as an app — Dell, Mac, iPhone
+
+Mr. Cash is a **progressive web app**: one icon, opens full-screen, no browser
+chrome. Nothing to buy and nothing to submit to an app store.
+
+| Device | How |
+| --- | --- |
+| **Windows (your Dell)** | Start Mr. Cash, open it in Chrome or Edge, click **Install** in the header (or the install icon in the address bar). |
+| **Mac** | Same in Chrome/Edge; in Safari: File → *Add to Dock*. |
+| **iPhone** | Turn on phone access (below), open the address on the phone in Safari, enter the PIN once, tap Share → **Add to Home Screen**. |
+
+### Phone access — just for you
+
+In `config.ts` set `app.allowPhone: true`. When Mr. Cash starts it prints a
+wifi address and a **PIN**. Your phone (same wifi) opens that address, enters
+the PIN once, and it's in. Nobody else on your network gets past the PIN, and
+nothing is exposed to the internet.
+
+Honest limits on the phone: the engine runs on your computer, so the computer
+has to be on. Over plain home wifi the phone shows alerts in the bell but not
+as system notifications (browsers need https for those). If you want it from
+anywhere, with notifications, install **Tailscale** (free) on both devices —
+it gives you a private https address without opening any ports.
+
+### Connecting TradingView
+
+What's possible: TradingView **sends** to Mr. Cash. The Pine indicator's
+alerts are written as JSON; create an alert on it with the webhook URL and
+secret from the TradingView tab, and it lands in the bell with the price. Two
+honest requirements: webhook alerts need a paid TradingView plan (Essential
+or above), and TradingView's servers must be able to reach your computer — a
+free tunnel (Tailscale Funnel, cloudflared) gives your webhook URL a public
+https address.
+
+What's not possible: nothing can read your TradingView charts or layouts
+back. That API doesn't exist. The chart in the TradingView tab is
+TradingView's own free widget, live, with your symbol and timeframe.
+
+### Is everything connected?
+
+```bash
+npm run doctor
+```
+
+Checks Node, the data folder, prices, the order book, the tape, every news
+feed, the AI key (with a free ping), TradingView alerts received, phone
+access, today's plan and memory — and says exactly what to do about anything
+that's off. It also says, plainly, that the three external repos are not part
+of Mr. Cash.
+
+---
+
 ## The strategy, in plain English
 
 Every day tells roughly the same story:
@@ -343,6 +453,11 @@ npm start               # the dashboard
 npm run talk            # chat: brief, plan, questions, what-ifs
 npm run brief           # today's brief in the terminal
 npm run news            # calendar + headlines
+npm run state           # uptrend / downtrend / range, and what to watch for
+npm run flow            # where the big orders are and what is trading
+npm run watch           # stay on and raise alerts every candle
+npm run doctor          # check every connection
+npm run picture -- chart.png "question"   # analyze a chart screenshot
 npm run scan            # one real decision, logged
 npm run replay:raw      # the honest look-back test
 npm run replay:memory   # the same, with memory allowed to refuse

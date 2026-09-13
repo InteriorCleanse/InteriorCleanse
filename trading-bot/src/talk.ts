@@ -39,6 +39,8 @@ const HELP: Array<[string, string]> = [
   ['sweeps', 'what has been raided today'],
   ['gaps', 'the fair value gaps on the board'],
   ['news', 'the calendar and headlines'],
+  ['state', 'uptrend / downtrend / range and what to watch for'],
+  ['flow', 'where the big orders are and what is trading'],
   ['whatif 105000', 'what would it mean if price went to 105,000'],
   ['scan', 'take a real decision now and log it'],
   ['refresh', 're-download prices and news'],
@@ -49,7 +51,7 @@ const HELP: Array<[string, string]> = [
 function contextFor(snap: Snapshot, plan: DayPlan | null): string {
   const a = snap.analysis
   if (!a) return `Strategy: crossover. Latest signal: ${snap.signal.reason}`
-  const brief = buildBrief(a, snap.news, plan)
+  const brief = buildBrief(a, snap.news, plan, Date.now(), snap.state, snap.flow)
   const parts = [
     brief.lines.join('\n'),
     '',
@@ -103,7 +105,7 @@ async function main(): Promise<void> {
   }
 
   let plan = readPlan()
-  let brief = buildBrief(snap.analysis!, snap.news, plan)
+  let brief = buildBrief(snap.analysis!, snap.news, plan, Date.now(), snap.state, snap.flow)
   ui.blank()
   for (const l of brief.lines) console.log(l ? `  ${l}` : '')
   ui.blank()
@@ -202,6 +204,17 @@ async function main(): Promise<void> {
       case 'news':
         console.log('  ' + (snap.news ? summarizeNews(snap.news) : 'News not available.').replace(/\n/g, '\n  '))
         break
+      case 'state':
+        if (!snap.state) { console.log('  No market state available.'); break }
+        console.log(`  ${snap.state.trend.toUpperCase()} — strength ${snap.state.strength}/100 — ${snap.state.continuation.label}`)
+        for (const e of snap.state.evidence) console.log(`  • ${e}`)
+        for (const w of snap.state.watchOuts) console.log(`  ! ${w}`)
+        break
+      case 'flow':
+        if (!snap.flow) { console.log('  Order flow not available.'); break }
+        for (const l of snap.flow.lines) console.log(`  ${l}`)
+        for (const e of snap.flow.errors) console.log(`  ! ${e}`)
+        break
       case 'whatif': {
         const price = Number(arg.replace(/[$,]/g, ''))
         if (!(price > 0)) { console.log(ui.warn('  Give a price, e.g. "whatif 105000".')); break }
@@ -229,7 +242,7 @@ async function main(): Promise<void> {
         ui.step('Re-downloading...')
         snap = await analyzeNow()
         plan = readPlan()
-        brief = buildBrief(snap.analysis!, snap.news, plan)
+        brief = buildBrief(snap.analysis!, snap.news, plan, Date.now(), snap.state, snap.flow)
         console.log(`  ${config.symbol} ${p(snap.analysis!.price)} · ${snap.analysis!.etClock} ET · bias ${snap.analysis!.bias.direction}. Type "brief" for the full picture.`)
         break
       default: {

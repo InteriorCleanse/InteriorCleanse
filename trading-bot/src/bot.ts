@@ -13,9 +13,11 @@ import { simulatePaperOrder, describeOrder } from './execution.ts'
 import { consultMemory } from './adaptiveFilter.ts'
 import { appendLedgerRow, memoryIsEmpty, readLedger } from './memory.ts'
 import { getNews } from './news.ts'
+import { getFlow } from './orderflow.ts'
+import { assessMarket } from './regime.ts'
 import { planFor } from './plan.ts'
 import { tradingDayKey } from './sessions.ts'
-import type { Candle, IctAnalysis, NewsReport, PaperOrder, RiskDecision, Signal } from './types.ts'
+import type { Candle, FlowReport, IctAnalysis, MarketState, NewsReport, PaperOrder, RiskDecision, Signal } from './types.ts'
 import type { MemoryVerdict } from './adaptiveFilter.ts'
 import type { DayPlan } from './plan.ts'
 
@@ -27,6 +29,10 @@ export type Snapshot = {
   plan: DayPlan | null
   /** The engine that produced the analysis, so the dashboard can draw every day it saw. */
   engine: IctEngine | null
+  /** The order book and the tape, when they could be read. */
+  flow: FlowReport | null
+  /** Trend, strength, continuation, and what to watch out for. */
+  state: MarketState | null
 }
 
 /** How many candles the ICT model needs to have yesterday's range and a full Asia session. */
@@ -43,18 +49,20 @@ function todaysStats(dayKey: string): { trades: number; lossesR: number } {
 }
 
 /** Fetch data, run the engine, read news and plan. No side effects — safe to call as often as you like. */
-export async function analyzeNow(opts: { withNews?: boolean } = {}): Promise<Snapshot> {
+export async function analyzeNow(opts: { withNews?: boolean; withFlow?: boolean } = {}): Promise<Snapshot> {
   const withNews = opts.withNews ?? true
+  const withFlow = opts.withFlow ?? config.orderflow.enabled
 
   if (config.strategy === 'crossover') {
     const needed = Math.max(config.crossover.slowMA + 5, 60)
     const candles = await getCandles(config.symbol, config.interval, needed)
-    return { candles, analysis: null, signal: getCrossoverSignal(candles, candles.length - 1), news: null, plan: null, engine: null }
+    return { candles, analysis: null, signal: getCrossoverSignal(candles, candles.length - 1), news: null, plan: null, engine: null, flow: null, state: null }
   }
 
-  const [candles, news] = await Promise.all([
+  const [candles, news, flow] = await Promise.all([
     getCandles(config.symbol, config.interval, warmupCandles()),
     withNews ? getNews().catch(() => null) : Promise.resolve(null),
+    withFlow ? getFlow().catch(() => null) : Promise.resolve(null),
   ])
   const engine = new IctEngine(candles)
   engine.news = news
@@ -67,7 +75,8 @@ export async function analyzeNow(opts: { withNews?: boolean } = {}): Promise<Sna
     }
     analysis = engine.step(i)
   }
-  return { candles, analysis, signal: analysis!.signal, news, plan: engine.plan, engine }
+  const state = assessMarket(candles, analysis, flow, news)
+  return { candles, analysis, signal: analysis!.signal, news, plan: engine.plan, engine, flow, state }
 }
 
 export type ScanResult = Snapshot & {

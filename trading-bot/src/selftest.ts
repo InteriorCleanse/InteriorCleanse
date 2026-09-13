@@ -25,6 +25,10 @@ import { checkRisk } from './risk.ts'
 import { parseCalendar, parseRss, scoreHeadline, buildReport, isBlackout } from './news.ts'
 import { IctEngine } from './ictStrategy.ts'
 import { sma } from './strategy.ts'
+import { analyzeBook, analyzeTape } from './orderflow.ts'
+import { assessMarket } from './regime.ts'
+import { computeR, computeStats, buildReview } from './journal.ts'
+import type { JournalEntry } from './journal.ts'
 import type { Candle, Level, Signal } from './types.ts'
 import * as ui from './ui.ts'
 
@@ -226,6 +230,78 @@ console.log(ui.bold('  The full setup, start to finish'))
   check('the retest candle produces a BUY', atRetest.action === 'BUY', `${atRetest.action} (stuck at ${atRetest.firstFail})`)
   check('exactly one BUY for the whole day — a sweep is used once', buys.length === 1, String(buys.length))
   check('the trading day never produced a SELL', !signals.some((s) => s.action === 'SELL'))
+}
+
+// --- order flow ------------------------------------------------------
+console.log('')
+console.log(ui.bold('  Order flow'))
+{
+  const book = analyzeBook(
+    [['100', '1'], ['99.5', '50'], ['99', '1']],
+    [['100.5', '1'], ['101', '1'], ['101.2', '40']],
+  )
+  check('mid price sits between best bid and best ask', Math.abs(book.price - 100.25) < 1e-9, String(book.price))
+  check('dollars within 1% are summed on each side', Math.abs(book.bidUsd1pct - 5075) < 1e-6 && Math.abs(book.askUsd1pct - 4249.5) < 1e-6, `${book.bidUsd1pct} / ${book.askUsd1pct}`)
+  check('the two big clusters are found as walls, biggest first', book.walls.length === 2 && book.walls[0].side === 'bid' && Math.abs(book.walls[0].price - 99.5) < 0.15, JSON.stringify(book.walls))
+  check('a wall below price has a negative distance', book.walls[0].distancePct < 0)
+
+  const tape = analyzeTape([
+    { a: 1, p: '100', q: '1', T: 1000, m: false },
+    { a: 2, p: '100', q: '1', T: 2000, m: false },
+    { a: 3, p: '100', q: '1', T: 3000, m: false },
+    { a: 4, p: '100', q: '0.5', T: 4000, m: true },
+    { a: 5, p: '100', q: '0.5', T: 5000, m: true },
+    { a: 6, p: '100', q: '2000', T: 6000, m: false },
+  ])
+  check('buyer-initiated vs seller-initiated trades are told apart', tape.buys === 4 && tape.sells === 2, `${tape.buys}/${tape.sells}`)
+  check('a $200k print is flagged as a big buy', tape.bigTrades.length === 1 && tape.bigTrades[0].side === 'buy' && tape.bigBuys === 1)
+  check('net pressure is buy dollars minus sell dollars', Math.abs(tape.deltaUsd - 200200) < 1e-6, String(tape.deltaUsd))
+}
+
+// --- market state ----------------------------------------------------
+console.log('')
+console.log(ui.bold('  Market state'))
+{
+  // 800 candles with a steady drift and a small zigzag, so swings exist.
+  const build = (drift: number) =>
+    Array.from({ length: 800 }, (_, i) => {
+      const base = 100 + i * drift + Math.sin(i / 3) * 0.2
+      return mk(i * STEP, base, base + 0.15, base - 0.15, base + 0.05)
+    })
+  const up = assessMarket(build(0.05), null, null, null, Date.UTC(2026, 0, 14, 15, 0))
+  const down = assessMarket(build(-0.05), null, null, null, Date.UTC(2026, 0, 14, 15, 0))
+  const flat = assessMarket(build(0), null, null, null, Date.UTC(2026, 0, 14, 15, 0))
+  check('a steadily rising series is called an uptrend', up.trend === 'uptrend', `${up.trend} ${JSON.stringify(up.evidence)}`)
+  check('a steadily falling series is called a downtrend', down.trend === 'downtrend', down.trend)
+  check('a flat series is called a range', flat.trend === 'range', flat.trend)
+  check('the uptrend explains itself with evidence lines', up.evidence.length >= 3)
+  check('a range says there is no trend to continue', flat.continuation.label.includes('no trend'), flat.continuation.label)
+}
+
+// --- journal ---------------------------------------------------------
+console.log('')
+console.log(ui.bold('  Journal'))
+{
+  const r = computeR('long', 100, 99, 102)
+  check('a long from 100, stop 99, exit 102 is about +1.8R after fees', r !== null && Math.abs(r - 1.8) < 1e-9, String(r))
+  check('a short from 100, stop 101, exit 98 is about +1.8R too', Math.abs((computeR('short', 100, 101, 98) ?? 0) - 1.8) < 1e-9)
+  check('no R without an exit', computeR('long', 100, 99, null) === null)
+
+  const now = Date.now()
+  const mkE = (id: string, followed: boolean, rr: number, emotions: string[]): JournalEntry => ({
+    id, createdAt: now, updatedAt: now, tradeTime: now - 3_600_000, symbol: 'BTCUSDT', direction: 'long', session: 'London', setupKey: '',
+    entry: 100, stop: 99, target: 102, exit: 100 + rr, rMultiple: rr, outcome: rr > 0 ? 'win' : 'loss', execution: followed ? 5 : 2, followedPlan: followed,
+    emotions, tags: [], wentWell: '', improve: '', lesson: '', notes: '',
+  })
+  const entries = [mkE('a', true, 1, ['calm']), mkE('b', true, 1.5, ['calm']), mkE('c', false, -1, ['revenge']), mkE('d', false, -1, ['fomo'])]
+  const s = computeStats(entries, now)
+  check('process score counts the share of trades that followed the plan', s.processScore === 50, String(s.processScore))
+  check('followed-plan trades score better than broken-plan trades', (s.byPlan.followed.avgR ?? 0) > 0 && (s.byPlan.broke.avgR ?? 0) < 0)
+  check('a day with an entry counts toward the streak', s.streakDays >= 1, String(s.streakDays))
+  const rv = buildReview(entries, [], now)
+  check('the review names improvising as the thing to fix', /improvis|obey/i.test(rv.oneThing), rv.oneThing)
+  const empty = buildReview([], [], now)
+  check('an empty journal gets a kind first step, not a lecture', empty.oneThing.toLowerCase().includes('write one entry'))
 }
 
 // --- the safety lock -----------------------------------------------

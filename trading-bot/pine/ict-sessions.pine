@@ -135,5 +135,9 @@ if array.size(fvgBox) > 0
                     label.new(bar_index, d == 1 ? top : bot, "IFVG", style = d == 1 ? label.style_label_down : label.style_label_up, color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny)
 
 // --- alerts ------------------------------------------------------------
-alertcondition(sweptAsiaLow or sweptLonLow or sweptPdl,   "Low swept",  "A session low was swept on {{ticker}} {{interval}}")
-alertcondition(sweptAsiaHigh or sweptLonHigh or sweptPdh, "High swept", "A session high was swept on {{ticker}} {{interval}}")
+// The messages are JSON so Mr. Cash's webhook can read them. When you
+// create the alert in TradingView, paste your webhook secret over
+// PASTE_SECRET_HERE (the app's TradingView tab shows it), and put the
+// webhook URL from the same tab in the alert's "Webhook URL" box.
+alertcondition(sweptAsiaLow or sweptLonLow or sweptPdl,   "Low swept",  '{"secret":"PASTE_SECRET_HERE","event":"low swept","symbol":"{{ticker}}","interval":"{{interval}}","price":{{close}},"time":"{{time}}"}')
+alertcondition(sweptAsiaHigh or sweptLonHigh or sweptPdh, "High swept", '{"secret":"PASTE_SECRET_HERE","event":"high swept","symbol":"{{ticker}}","interval":"{{interval}}","price":{{close}},"time":"{{time}}"}')

@@ -72,6 +72,19 @@ Rules you never break:
 - You cannot place orders or change settings. If asked, tell the user which config.ts setting or command does that.
 - Keep answers focused. A few short paragraphs or a list, not an essay, unless the user asks for depth.`
 
+export const PICTURE_QUESTION = 'Break this chart down for me: what is happening, where the levels are, and where an entry, stop and target would sit — and why.'
+
+const PICTURE_RULES = `
+
+The user has attached a PICTURE of a chart. Analyze it in this order, with a short heading for each:
+1. What I can see — symbol/timeframe if visible, the trend and structure (higher highs? lower lows?), any session ranges or labelled levels, and whether the picture is clear enough to read prices. If a number is not legible, say "I can't read this" — never guess a price.
+2. Levels and liquidity — obvious highs/lows where stops are resting, equal highs/lows, anything already swept.
+3. Gaps — fair value gaps you can see, and whether any has been closed through (inverted).
+4. A plan — the entry ZONE (not a single tick), the stop, the target, the approximate reward-to-risk, and the reasoning, using the same sweep → displacement → gap → retest logic the bot uses. If no clean plan exists, say so; "no trade" is a valid answer.
+5. What would invalidate it — the specific thing that, if it happens, means the idea is wrong.
+6. News to check — from the CONTEXT if it contains any, otherwise say to check the calendar.
+Remind the user at the end, in one line, that this is a picture-based read on paper, not advice.`
+
 export type AiAnswer = {
   text: string
   refused: boolean
@@ -83,18 +96,27 @@ export type AiAnswer = {
  * Ask a question with the bot's current analysis as context. Streams
  * the answer through `onText` as it arrives.
  */
+export type AiImage = { mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'; data: string }
+
 export async function askAI(
   question: string,
   context: string,
   history: Anthropic.MessageParam[],
   onText: (delta: string) => void,
+  image?: AiImage,
 ): Promise<AiAnswer> {
   loadEnv()
   const Sdk = await loadSdk()
   if (!Sdk) throw new Error('Anthropic SDK not installed')
   const client = new Sdk()
 
-  const messages: Anthropic.MessageParam[] = [...history, { role: 'user', content: question }]
+  const userContent: Anthropic.MessageParam['content'] = image
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } },
+        { type: 'text', text: question },
+      ]
+    : question
+  const messages: Anthropic.MessageParam[] = [...history, { role: 'user', content: userContent }]
 
   // The stable rules go first with a cache marker; the per-scan context
   // goes after it so the rules stay cached across questions.
@@ -107,7 +129,7 @@ export async function askAI(
     output_config: { effort: config.ai.effort },
     system: [
       { type: 'text', text: SYSTEM_RULES, cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: `CONTEXT — the bot's current analysis (this is the only market information you have):\n\n${context}` },
+      { type: 'text', text: `CONTEXT — the bot's current analysis (this is the only market information you have):\n\n${context}${image ? PICTURE_RULES : ''}` },
     ],
     messages,
   }
@@ -130,6 +152,20 @@ export async function askAI(
   const price = config.ai.prices[final.model] ?? config.ai.prices[config.ai.model] ?? { input: 5, output: 25 }
   const costUsd = (usage.input * price.input + usage.cacheRead * price.input * 0.1 + usage.output * price.output) / 1_000_000
   return { text, refused, usage, costUsd }
+}
+
+/** A free call that proves the key works, for `npm run doctor`. */
+export async function pingAI(): Promise<{ ok: boolean; detail: string }> {
+  loadEnv()
+  const Sdk = await loadSdk()
+  if (!Sdk) return { ok: false, detail: 'SDK not installed' }
+  try {
+    const client = new Sdk()
+    const page = await client.models.list({ limit: 1 })
+    return { ok: true, detail: `models endpoint answered (${page.data.length} model listed)` }
+  } catch (err) {
+    return { ok: false, detail: await explainAiError(err) }
+  }
 }
 
 /** Explains a typed SDK error in words a beginner can act on. */

@@ -230,6 +230,26 @@ export async function getNews(force = false): Promise<NewsReport> {
   return report
 }
 
+/** Tries every feed and reports each one, for `npm run doctor`. */
+export async function probeNews(): Promise<Array<{ name: string; ok: boolean; detail: string }>> {
+  const out: Array<{ name: string; ok: boolean; detail: string }> = []
+  try {
+    const n = parseCalendar(await fetchText(newsSources.calendar)).length
+    out.push({ name: 'calendar', ok: true, detail: `${n} events this week` })
+  } catch (err) {
+    out.push({ name: 'calendar', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+  for (const feed of newsSources.headlines) {
+    try {
+      const n = parseRss(await fetchText(feed.url), feed.name).length
+      out.push({ name: feed.name, ok: true, detail: `${n} headlines` })
+    } catch (err) {
+      out.push({ name: feed.name, ok: false, detail: err instanceof Error ? err.message : String(err) })
+    }
+  }
+  return out
+}
+
 /** Is this instant inside a high-impact blackout window? */
 export function isBlackout(time: number, report: NewsReport): { title: string } | null {
   for (const b of report.blackouts) if (time >= b.start && time <= b.end) return { title: b.title }
