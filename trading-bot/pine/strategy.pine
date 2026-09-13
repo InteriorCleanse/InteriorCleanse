@@ -1,0 +1,52 @@
+//@version=5
+// =====================================================================
+//  Moving-Average Crossover — the bot's SIMPLE teaching strategy
+//  Pine Script v5 · backtest only · places nothing
+// =====================================================================
+//  Matches config.crossover in config.ts. Keep the inputs equal.
+// =====================================================================
+
+strategy(
+     title             = "Paper Bot — MA Crossover",
+     shorttitle        = "MA Cross",
+     overlay           = true,
+     initial_capital   = 25,
+     default_qty_type  = strategy.percent_of_equity,
+     default_qty_value = 100,
+     commission_type   = strategy.commission.percent,
+     commission_value  = 0.1,
+     slippage          = 2,
+     process_orders_on_close = true,
+     calc_on_every_tick      = false)
+
+fastLength  = input.int(9,  "Fast average (candles)", minval = 1, tooltip = "Must match crossover.fastMA in config.ts")
+slowLength  = input.int(21, "Slow average (candles)", minval = 2, tooltip = "Must match crossover.slowMA in config.ts")
+allowShorts = input.bool(true, "Also trade the downside (short)")
+holdCandles = input.int(12, "Exit after this many candles", minval = 0, tooltip = "0 = stay in until the opposite crossover. Matches crossover.holdCandles")
+
+fastMA = ta.sma(close, fastLength)
+slowMA = ta.sma(close, slowLength)
+goLong  = ta.crossover(fastMA, slowMA)
+goShort = ta.crossunder(fastMA, slowMA)
+
+if goLong
+    strategy.entry("Long", strategy.long)
+if goShort
+    if allowShorts
+        strategy.entry("Short", strategy.short)
+    else
+        strategy.close("Long", comment = "Cross down")
+
+if holdCandles > 0
+    if strategy.position_size > 0 and (bar_index - strategy.opentrades.entry_bar_index(0)) >= holdCandles
+        strategy.close("Long", comment = "Held long enough")
+    if strategy.position_size < 0 and (bar_index - strategy.opentrades.entry_bar_index(0)) >= holdCandles
+        strategy.close("Short", comment = "Held long enough")
+
+plot(fastMA, "Fast average", color = color.new(color.aqua, 0), linewidth = 2)
+plot(slowMA, "Slow average", color = color.new(color.orange, 0), linewidth = 2)
+bgcolor(fastMA > slowMA ? color.new(color.green, 92) : color.new(color.red, 92))
+plotshape(goLong,  title = "Buy signal",  location = location.belowbar, style = shape.triangleup,   size = size.small, color = color.new(color.green, 0))
+plotshape(goShort, title = "Sell signal", location = location.abovebar, style = shape.triangledown, size = size.small, color = color.new(color.red, 0))
+alertcondition(goLong,  title = "BUY crossover",  message = "Fast MA crossed ABOVE slow MA on {{ticker}} {{interval}}")
+alertcondition(goShort, title = "SELL crossover", message = "Fast MA crossed BELOW slow MA on {{ticker}} {{interval}}")

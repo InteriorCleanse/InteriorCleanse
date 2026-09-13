@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paper Trading Bot</title>
+<style>
+  :root {
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#26303d; --text:#e6edf3; --dim:#8b98a5;
+    --green:#3fb950; --red:#f85149; --amber:#d29922; --blue:#58a6ff; --purple:#bc8cff; --radius:12px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; padding-bottom:60px; }
+  header { border-bottom:1px solid var(--line); padding:14px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:var(--panel); position:sticky; top:0; z-index:10; }
+  h1 { font-size:18px; margin:0; font-weight:650; }
+  .muted { color:var(--dim); }
+  .safe { margin-left:auto; color:var(--green); font-size:12.5px; font-weight:600; border:1px solid var(--green); border-radius:999px; padding:4px 12px; }
+  nav { display:flex; gap:4px; padding:10px 22px 0; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:57px; z-index:9; flex-wrap:wrap; }
+  nav button { background:transparent; color:var(--dim); border:0; border-bottom:2px solid transparent; padding:10px 14px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+  nav button.active { color:var(--text); border-bottom-color:var(--blue); }
+  main { max-width:1100px; margin:0 auto; padding:22px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin-bottom:16px; }
+  .card h2 { font-size:14px; margin:0 0 12px; font-weight:650; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  button.btn { background:var(--blue); color:#04111f; border:0; border-radius:8px; padding:10px 16px; font-size:14px; font-weight:650; cursor:pointer; font-family:inherit; }
+  button.btn:hover:not(:disabled) { filter:brightness(1.12); }
+  button:disabled { opacity:.45; cursor:wait; }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  button.danger { background:transparent; color:var(--red); border:1px solid var(--red); }
+  button.ok { background:var(--green); }
+  select, input, textarea { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:14px; font-family:inherit; }
+  textarea { width:100%; min-height:60px; resize:vertical; }
+  pre.brief { white-space:pre-wrap; font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; margin:0; color:var(--text); }
+  .decision { font-size:32px; font-weight:750; margin:4px 0 6px; letter-spacing:-.02em; }
+  .BUY{color:var(--green)} .SELL{color:var(--red)} .SKIP{color:var(--amber)} .HOLD{color:var(--dim)}
+  .plain { border-left:3px solid var(--blue); padding:10px 14px; margin-top:12px; background:#0d1a2b; border-radius:0 8px 8px 0; color:var(--dim); font-size:13.5px; }
+  .err { border-left:3px solid var(--red); background:#1f1416; padding:12px 14px; border-radius:0 8px 8px 0; white-space:pre-wrap; font-size:13.5px; }
+  .warnbox { border-left:3px solid var(--amber); background:#1f1a10; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13.5px; color:var(--dim); margin-top:10px; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { text-align:left; padding:8px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--dim); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .win{color:var(--green)} .loss{color:var(--red)} .skip{color:var(--amber)}
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; }
+  .stat .k { color:var(--dim); font-size:12px; } .stat .v { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .scroll { overflow-x:auto; }
+  .ev { list-style:none; padding:0; margin:0; }
+  .ev li { padding:8px 0; border-bottom:1px solid var(--line); display:grid; grid-template-columns:24px 1fr; gap:8px; }
+  .ev .mark { font-weight:700; } .ev .pass .mark{color:var(--green)} .ev .fail .mark{color:var(--amber)}
+  .ev .step { font-weight:650; } .ev .detail { color:var(--dim); font-size:13.5px; }
+  .spin { display:inline-block; animation:sp 1s linear infinite; } @keyframes sp{to{transform:rotate(360deg)}}
+  .hidden { display:none !important; }
+  code { background:var(--bg); padding:2px 6px; border-radius:4px; font-size:13px; }
+  canvas { width:100%; height:520px; display:block; background:#0b0f14; border-radius:8px; border:1px solid var(--line); cursor:crosshair; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--dim); margin-top:8px; }
+  .legend span::before { content:""; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-2px; }
+  .lg-asia::before{background:rgba(88,166,255,.35)} .lg-london::before{background:rgba(255,166,0,.35)} .lg-ny::before{background:rgba(63,185,80,.35)}
+  .lg-fvgb::before{background:rgba(63,185,80,.5)} .lg-fvgs::before{background:rgba(248,81,73,.5)} .lg-ifvg::before{background:rgba(180,180,180,.5)} .lg-sweep::before{background:var(--amber)}
+  .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12.5px; z-index:20; white-space:pre; display:none; }
+  .chat { display:flex; flex-direction:column; gap:10px; max-height:520px; overflow-y:auto; padding-right:6px; }
+  .msg { padding:10px 14px; border-radius:10px; max-width:88%; white-space:pre-wrap; font-size:14px; }
+  .msg.you { align-self:flex-end; background:#1d2c44; } .msg.bot { align-self:flex-start; background:var(--panel2); }
+  .msg .cost { display:block; color:var(--dim); font-size:11.5px; margin-top:6px; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .chips button { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .tag { display:inline-block; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:1px 7px; font-size:11.5px; color:var(--dim); margin-right:4px; }
+  .badge { display:inline-block; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:650; }
+  .badge.high{background:#3a1416;color:var(--red)} .badge.medium{background:#2f2410;color:var(--amber)} .badge.low{background:var(--panel2);color:var(--dim)}
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-size:14px; } .kv .k { color:var(--dim); }
+  @media (max-width:640px){ canvas{height:380px} .decision{font-size:26px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Paper Trading Bot</h1>
+  <span class="muted" id="market">loading…</span>
+  <span class="muted" id="clock"></span>
+  <span class="safe">PAPER MODE · no real money</span>
+</header>
+<nav>
+  <button data-tab="today" class="active">Today</button>
+  <button data-tab="chart">Chart</button>
+  <button data-tab="news">News</button>
+  <button data-tab="test">Test</button>
+  <button data-tab="memory">Memory</button>
+  <button data-tab="ask">Ask</button>
+</nav>
+<main>
+  <section id="tab-today">
+    <div class="row">
+      <button class="btn" id="btn-refresh">Refresh</button>
+      <button class="btn ghost" id="btn-scan">Check the market now</button>
+      <span class="muted" id="today-status"></span>
+    </div>
+    <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market and the news…</div></div>
+  </section>
+
+  <section id="tab-chart" class="hidden">
+    <div class="row">
+      <label class="muted">Show <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select> candles</label>
+      <label class="muted"><input type="checkbox" id="show-fvg" checked> gaps</label>
+      <label class="muted"><input type="checkbox" id="show-sessions" checked> sessions</label>
+      <label class="muted"><input type="checkbox" id="show-levels" checked> levels</label>
+      <span class="muted" id="chart-status"></span>
+    </div>
+    <div class="card" style="padding:10px">
+      <canvas id="chart"></canvas>
+      <div class="legend">
+        <span class="lg-asia">Asia</span><span class="lg-london">London</span><span class="lg-ny">New York</span>
+        <span class="lg-fvgb">bullish gap</span><span class="lg-fvgs">bearish gap</span><span class="lg-ifvg">inverted gap</span><span class="lg-sweep">sweep</span>
+      </div>
+    </div>
+    <div class="plain">Hover for prices and New York time. Session boxes span each session's high and low. A gap turns grey when price closes through it — that's an inversion, and the retest of a grey box is the entry the bot waits for. Triangles mark sweeps.</div>
+  </section>
+
+  <section id="tab-news" class="hidden">
+    <div class="row"><button class="btn" id="btn-news">Reload news</button><span class="muted" id="news-status"></span></div>
+    <div id="news-out"></div>
+  </section>
+
+  <section id="tab-test" class="hidden">
+    <div class="row">
+      <button class="btn" id="btn-raw">Test on past prices</button>
+      <button class="btn ghost" id="btn-mem">Test with memory</button>
+      <span class="muted" id="test-status"></span>
+    </div>
+    <div id="test-out"><div class="plain">The look-back test replays the last <span id="lb-days">30</span> days of real candles and takes every setup that passes the full checklist, scoring each one in R (units of risk). Nothing is tuned, nothing is cherry-picked, and a candle that hits both the stop and the target counts as a loss.</div></div>
+  </section>
+
+  <section id="tab-memory" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-memshow">Reload</button><button class="btn danger" id="btn-reset">Wipe memory</button></div>
+    <div id="memory-out"></div>
+  </section>
+
+  <section id="tab-ask" class="hidden">
+    <div class="card">
+      <div id="ai-status" class="muted" style="margin-bottom:10px">…</div>
+      <div class="chips" id="chips"></div>
+      <div class="chat" id="chat"></div>
+      <div class="row" style="margin-top:12px;margin-bottom:0">
+        <input id="q" placeholder="Ask about today's setup, a level, the plan…" style="flex:1;min-width:200px">
+        <button class="btn" id="btn-ask">Ask</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+const $ = (id) => document.getElementById(id)
+let cfg = null, data = null, busy = false, chatHistory = []
+
+const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
+const px = (n) => n >= 1000 ? '$' + Math.round(n).toLocaleString('en-US') : '$' + n.toFixed(2)
+const pct = (n) => (n>=0?'+':'') + n.toFixed(2) + '%'
+const R = (n) => (n>=0?'+':'') + n.toFixed(2) + 'R'
+const when = (ms) => new Date(ms).toLocaleString(undefined, {month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+const et = (ms) => new Date(ms).toLocaleString('en-US', {timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}) + ' ET'
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
+const setBusy = (b) => { busy = b; document.querySelectorAll('button.btn').forEach(x => x.disabled = b) }
+async function call(path, opts) { const r = await fetch(path, opts); return r.json() }
+const errBox = (e) => `<div class="card"><h2>Stopped</h2><div class="err">${esc(e)}</div></div>`
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x === b))
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hidden', s.id !== 'tab-' + b.dataset.tab))
+  if (b.dataset.tab === 'chart') drawChart()
+  if (b.dataset.tab === 'news' && !$('news-out').innerHTML) loadNews()
+  if (b.dataset.tab === 'memory' && !$('memory-out').innerHTML) loadMemory()
+})
+setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false}) + ' New York' }, 1000)
+
+// ---------- config + today ----------
+async function loadConfig() {
+  cfg = await call('/api/config')
+  $('market').textContent = `${cfg.symbol} · ${cfg.interval} · ${cfg.strategy === 'ict' ? 'ICT session model' : 'MA crossover'}`
+  const lb = $('lb-days'); if (lb) lb.textContent = cfg.replay.lookbackDays
+  const ai = cfg.ai
+  $('ai-status').innerHTML = ai.available
+    ? `Assistant ready: <code>${esc(ai.model)}</code>. Each answer shows what it cost.`
+    : `Assistant is off — ${esc(ai.reason)}<div class="warnbox">Typed questions below still get a short rule-based answer where I can manage one.</div>`
+}
+
+function evidenceList(ev) {
+  return `<ul class="ev">${ev.map(e => `<li class="${e.passed?'pass':'fail'}"><span class="mark">${e.passed?'✓':'✗'}</span><div><div class="step">${esc(e.step)}</div><div class="detail">${esc(e.detail)}</div></div></li>`).join('')}</ul>`
+}
+
+async function loadToday(force) {
+  $('today-status').innerHTML = '<span class="spin">◐</span> downloading…'
+  const r = await call('/api/analysis?candles=' + $('candle-count').value + (force ? '&refresh=1' : ''))
+  $('today-status').textContent = ''
+  if (!r.ok) { $('today-out').innerHTML = errBox(r.error); return }
+  data = r.data
+  renderToday()
+  if (!$('tab-chart').classList.contains('hidden')) drawChart()
+}
+
+function renderToday() {
+  const a = data.analysis, s = data.signal, b = data.brief, plan = data.plan
+  if (!a) {
+    $('today-out').innerHTML = `<div class="card"><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div><div class="plain">You're on the simple crossover strategy. Set <code>strategy: 'ict'</code> in config.ts for sessions, sweeps and the daily plan.</div></div>`
+    return
+  }
+  const bias = a.bias.direction
+  const planCard = `
+    <div class="card"><h2>Today's plan</h2>
+      ${plan ? `<div><span class="badge ${plan.allow==='none'?'high':'low'}">ARMED</span> &nbsp; <b>${esc(plan.allow.toUpperCase())}</b> · ${plan.riskPerTradePercent}% risk · max ${plan.maxTrades} trade(s)${plan.notes?` · <i>${esc(plan.notes)}</i>`:''}</div>`
+             : `<div><span class="badge medium">PROPOSED</span> &nbsp; <b>${esc(b.proposal.allow.toUpperCase())}</b> · ${b.proposal.riskPerTradePercent}% risk · max ${b.proposal.maxTrades} trade(s)</div><div class="muted" style="margin-top:6px">${esc(b.proposal.proposal)}</div>`}
+      <div class="row" style="margin:12px 0 0">
+        <select id="plan-allow"><option value="both">Both directions</option><option value="long">Longs only</option><option value="short">Shorts only</option><option value="none">No trades today</option></select>
+        <label class="muted">risk % <input id="plan-risk" type="number" step="0.1" min="0.1" max="5" style="width:80px" value="${plan?plan.riskPerTradePercent:b.proposal.riskPerTradePercent}"></label>
+        <label class="muted">max trades <input id="plan-max" type="number" min="0" max="10" style="width:70px" value="${plan?plan.maxTrades:b.proposal.maxTrades}"></label>
+      </div>
+      <textarea id="plan-notes" placeholder="Notes to yourself (optional)">${plan?esc(plan.notes):''}</textarea>
+      <div class="row" style="margin:10px 0 0"><button class="btn ok" id="btn-arm">${plan?'Update plan':'Arm this plan'}</button>${plan?'<button class="btn ghost" id="btn-plan-clear">Clear plan</button>':''}</div>
+      <div class="plain">This is the collaboration: the bot proposes, you decide, every scan obeys. Arming a plan doesn't place anything — it only narrows what the bot is allowed to do on paper today.</div>
+    </div>`
+  $('today-out').innerHTML = `
+    <div class="card">
+      <div class="kv">
+        <span class="k">Now</span><span>${esc(a.weekday)} ${esc(a.etClock)} ET · ${a.session ? esc(cfg.ict.sessions[a.session].label) : 'between sessions'} ${a.inKillzone ? '<span class="badge low" style="color:var(--green)">killzone open</span>' : a.nextKillzone ? `· next window ${esc(a.nextKillzone.label)} in ${Math.round(a.nextKillzone.startsIn/60000)} min` : ''}</span>
+        <span class="k">Price</span><span><b>${px(a.price)}</b> · one candle moves about ${px(a.atr)}</span>
+        <span class="k">Bias</span><span><b class="${bias==='bullish'?'win':bias==='bearish'?'loss':'muted'}">${bias.toUpperCase()}</b> — ${esc(a.bias.reason)}</span>
+      </div>
+    </div>
+    <div class="card"><h2>Decision right now</h2>
+      <div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div>
+      ${s.plan ? `<div class="stats" style="margin-top:14px"><div class="stat"><div class="k">Entry</div><div class="v">${px(s.plan.entry)}</div></div><div class="stat"><div class="k">Stop</div><div class="v loss">${px(s.plan.stop)}</div></div><div class="stat"><div class="k">Target</div><div class="v win">${px(s.plan.takeProfit)}</div></div><div class="stat"><div class="k">Reward:risk</div><div class="v">${s.plan.rr.toFixed(1)}:1</div></div><div class="stat"><div class="k">Quality</div><div class="v">${s.quality}/100</div></div></div>` : ''}
+    </div>
+    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}
+      <div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what the bot is waiting for. A day with no entry is a day the story didn't play out — that's the model working, not failing.</div></div>
+    ${planCard}
+    <div class="card"><h2>The brief</h2><pre class="brief">${esc(b.lines.join('\n'))}</pre></div>
+    ${data.news && data.news.errors.length ? `<div class="warnbox">News feed problems: ${esc(data.news.errors.join(' | '))}</div>` : ''}`
+  $('plan-allow').value = plan ? plan.allow : b.proposal.allow
+  $('btn-arm').onclick = async () => {
+    setBusy(true)
+    await call('/api/plan', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({allow:$('plan-allow').value, riskPerTradePercent:$('plan-risk').value, maxTrades:$('plan-max').value, notes:$('plan-notes').value})})
+    setBusy(false); loadToday(false)
+  }
+  const pc = $('btn-plan-clear'); if (pc) pc.onclick = async () => { setBusy(true); await call('/api/plan/clear', {method:'POST'}); setBusy(false); loadToday(false) }
+}
+
+$('btn-refresh').onclick = () => loadToday(true)
+$('btn-scan').onclick = async () => {
+  if (busy) return
+  setBusy(true); $('today-status').innerHTML = '<span class="spin">◐</span> deciding…'
+  const r = await call('/api/scan?memory=1')
+  setBusy(false); $('today-status').textContent = ''
+  if (!r.ok) { $('today-out').insertAdjacentHTML('afterbegin', errBox(r.error)); return }
+  const d = r.data
+  const explain = {BUY:'Bought on paper. Nothing was sent anywhere; the decision is in data/ledger.csv.', SELL:'Sold on paper. Nothing was sent anywhere; the decision is in data/ledger.csv.', HOLD:'Nothing to do. The first ✗ in the checklist says what it is waiting for.', SKIP:'A full setup appeared and the bot refused it — your limits, your plan, or memory said no.'}[d.finalAction]
+  $('today-out').insertAdjacentHTML('afterbegin', `<div class="card"><h2>Scan result — logged</h2><div class="decision ${d.finalAction}">${d.finalAction}</div><div>${esc(d.finalReason)}</div>
+    <table style="margin-top:10px"><tr><th>Risk</th><td>${esc(d.risk.reason)}</td></tr>${d.memory?`<tr><th>Memory</th><td>${esc(d.memory.reason)}</td></tr>`:''}</table><div class="plain">${explain}</div></div>`)
+}
+
+// ---------- chart ----------
+const canvas = $('chart'), tip = $('tip')
+let view = null
+function drawChart() {
+  if (!data || !data.candles.length) return
+  const ctx = canvas.getContext('2d')
+  const dpr = window.devicePixelRatio || 1
+  const W = canvas.clientWidth, H = canvas.clientHeight
+  canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0)
+  ctx.clearRect(0,0,W,H)
+  const cs = data.candles, n = cs.length
+  const padL = 8, padR = 70, padT = 14, padB = 28
+  const plotW = W - padL - padR, plotH = H - padT - padB
+  const showF = $('show-fvg').checked, showS = $('show-sessions').checked, showL = $('show-levels').checked
+  let lo = Infinity, hi = -Infinity
+  for (const c of cs) { lo = Math.min(lo, c.low); hi = Math.max(hi, c.high) }
+  if (showL && data.analysis) for (const l of data.analysis.levels) { if (l.price > lo*0.985 && l.price < hi*1.015) { lo = Math.min(lo, l.price); hi = Math.max(hi, l.price) } }
+  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad
+  const x = (i) => padL + (i + 0.5) * plotW / n
+  const y = (p) => padT + (hi - p) / (hi - lo) * plotH
+  const cw = Math.max(1, plotW / n * 0.65)
+  const idxAt = (t) => { let a=0,b=n-1; while(a<b){const m=(a+b)>>1; if(cs[m].openTime<t)a=m+1; else b=m} return a }
+  view = { x, y, lo, hi, n, padL, padT, plotW, plotH }
+
+  // sessions
+  if (showS) for (const s of data.sessions) {
+    const i0 = idxAt(s.startTime), i1 = Math.min(n-1, idxAt(s.endTime))
+    if (i1 < 0 || i0 > n-1) continue
+    const col = s.name==='asia' ? '88,166,255' : s.name==='london' ? '255,166,0' : s.name==='newYork' ? '63,185,80' : '160,160,160'
+    ctx.fillStyle = `rgba(${col},0.10)`; ctx.fillRect(x(i0)-cw/2, y(s.high), x(i1)-x(i0)+cw, y(s.low)-y(s.high))
+    ctx.strokeStyle = `rgba(${col},0.55)`; ctx.setLineDash([4,3]); ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(x(i0)-cw/2, y(s.high)); ctx.lineTo(W-padR, y(s.high)); ctx.moveTo(x(i0)-cw/2, y(s.low)); ctx.lineTo(W-padR, y(s.low)); ctx.stroke(); ctx.setLineDash([])
+    ctx.fillStyle = `rgba(${col},0.9)`; ctx.font = '11px sans-serif'; ctx.fillText(s.label, x(i0)+2, y(s.high)-3)
+  }
+  // fvgs
+  if (showF) for (const f of data.fvgs) {
+    const i0 = idxAt(f.createdTime); if (i0 > n-1) continue
+    const iEnd = f.state === 'expired' ? Math.min(n-1, i0 + 60) : n-1
+    const inv = f.state === 'inverted' || f.role
+    const col = inv ? '180,180,180' : f.direction === 'bullish' ? '63,185,80' : '248,81,73'
+    // Live gaps are drawn faintly; inverted ones (the entry zones) stand out.
+    ctx.fillStyle = `rgba(${col},${inv?0.22:0.10})`; ctx.fillRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top))
+    if (inv) { ctx.strokeStyle = `rgba(${col},0.8)`; ctx.lineWidth = 1; ctx.strokeRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top)) }
+    if (f.retestIndex !== undefined) { const ri = idxAt(cs[0].openTime) ; void ri }
+  }
+  // levels (today's, extended full width). Labels sit at the left edge,
+  // just above the line, so they never fight the price axis on the right.
+  if (showL && data.analysis) for (const l of data.analysis.levels) {
+    if (l.price < lo || l.price > hi) continue
+    const swept = l.sweptAt || l.brokenAt
+    ctx.strokeStyle = swept ? 'rgba(139,152,165,0.45)' : (l.kind==='pdh'||l.kind==='pdl') ? 'rgba(188,140,255,0.8)' : 'rgba(230,237,243,0.5)'
+    ctx.setLineDash(swept ? [2,4] : [6,4]); ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(padL, y(l.price)); ctx.lineTo(W-padR, y(l.price)); ctx.stroke(); ctx.setLineDash([])
+    const label = `${l.label} ${px(l.price)}${l.sweptAt ? ' · swept' : l.brokenAt ? ' · broken' : ''}`
+    ctx.font = '11px sans-serif'
+    const tw = ctx.measureText(label).width
+    ctx.fillStyle = 'rgba(11,15,20,0.85)'; ctx.fillRect(padL + 4, y(l.price) - 14, tw + 8, 13)
+    ctx.fillStyle = swept ? 'rgba(139,152,165,0.9)' : '#e6edf3'
+    ctx.fillText(label, padL + 8, y(l.price) - 4)
+  }
+  // candles
+  for (let i = 0; i < n; i++) {
+    const c = cs[i], up = c.close >= c.open
+    ctx.strokeStyle = ctx.fillStyle = up ? '#3fb950' : '#f85149'
+    ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(x(i), y(c.high)); ctx.lineTo(x(i), y(c.low)); ctx.stroke()
+    const top = y(Math.max(c.open,c.close)), h = Math.max(1, Math.abs(y(c.open)-y(c.close)))
+    ctx.fillRect(x(i)-cw/2, top, cw, h)
+  }
+  // sweeps
+  for (const s of data.sweeps) {
+    const i = idxAt(s.time); if (i > n-1) continue
+    ctx.fillStyle = '#d29922'
+    ctx.beginPath()
+    if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) }
+    else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
+    ctx.closePath(); ctx.fill()
+  }
+  // structure shifts — only the most recent few, or the chart drowns in labels
+  for (const s of data.shifts.slice(-6)) {
+    const i = idxAt(s.time); if (i > n-1) continue
+    ctx.fillStyle = s.direction === 'bullish' ? 'rgba(63,185,80,0.9)' : 'rgba(248,81,73,0.9)'
+    ctx.font = 'bold 10px sans-serif'; ctx.fillText('MSS', x(i)-9, s.direction === 'bullish' ? y(cs[i].low)+14 : y(cs[i].high)-6)
+  }
+  // signal
+  const sig = data.signal
+  if (sig && sig.plan) {
+    const i = n-1
+    for (const [p, col, label] of [[sig.plan.entry,'#58a6ff','entry'],[sig.plan.stop,'#f85149','stop'],[sig.plan.takeProfit,'#3fb950','target']]) {
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,i-40)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke()
+      ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,i-40)), y(p)-3)
+    }
+  }
+  // axes
+  ctx.fillStyle = '#8b98a5'; ctx.font = '11px sans-serif'
+  for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+4, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
+  const every = Math.max(1, Math.round(n/8))
+  for (let i = 0; i < n; i += every) ctx.fillText(cs[i].et + ' ET', x(i)-18, H-8)
+  $('chart-status').textContent = `${cs[0].day} → ${cs[n-1].day} (${n} candles)`
+}
+canvas.addEventListener('mousemove', (e) => {
+  if (!view || !data) return
+  const rect = canvas.getBoundingClientRect()
+  const i = Math.max(0, Math.min(view.n-1, Math.floor((e.clientX - rect.left - view.padL) / view.plotW * view.n)))
+  const c = data.candles[i]; if (!c) return
+  const p = view.hi - (e.clientY - rect.top - view.padT) / view.plotH * (view.hi - view.lo)
+  tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 14) + 'px'
+  tip.textContent = `${c.day} ${c.et} ET\nO ${px(c.open)}  H ${px(c.high)}\nL ${px(c.low)}  C ${px(c.close)}\ncursor ${px(p)}`
+})
+canvas.addEventListener('mouseleave', () => tip.style.display = 'none')
+$('candle-count').onchange = () => loadToday(false)
+;['show-fvg','show-sessions','show-levels'].forEach(id => $(id).onchange = drawChart)
+window.addEventListener('resize', () => { if (!$('tab-chart').classList.contains('hidden')) drawChart() })
+
+// ---------- news ----------
+async function loadNews(force) {
+  $('news-status').innerHTML = '<span class="spin">◐</span>'
+  const r = await call('/api/news' + (force ? '?force=1' : ''))
+  $('news-status').textContent = ''
+  const d = r.data
+  const cal = d.upcoming || []
+  $('news-out').innerHTML = `
+    ${d.errors.length ? `<div class="warnbox">${d.fromCache ? 'Showing cached news. ' : ''}Feed problems: ${esc(d.errors.join(' | '))}</div>` : ''}
+    <div class="card"><h2>Scheduled — the ones with a known time</h2>
+      ${cal.length ? `<div class="scroll"><table><tr><th>When</th><th>Impact</th><th>Event</th><th>Forecast</th><th>Previous</th></tr>${cal.slice(0,20).map(e=>`<tr><td>${et(e.time)}</td><td><span class="badge ${e.impact.toLowerCase()}">${esc(e.impact)}</span></td><td>${esc(e.country)} ${esc(e.title)}</td><td>${esc(e.forecast||'—')}</td><td>${esc(e.previous||'—')}</td></tr>`).join('')}</table></div>` : '<div class="muted">Nothing in the next 36 hours.</div>'}
+      <div class="plain">High-impact events are stand-aside windows: the bot refuses to enter within ${cfg?cfg.ict.newsBlackoutMinutes:15} minutes of one. It doesn't guess the direction — it just knows the tape gets random.</div></div>
+    <div class="card"><h2>Headlines — ranked by what they touch</h2>
+      ${d.headlines.length ? d.headlines.slice(0,15).map(h=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${h.score>=3?'<b style="color:var(--purple)">●</b> ':'<span class="muted">○</span> '}<a href="${esc(h.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(h.title)}</a></div><div class="muted" style="font-size:12.5px;margin-top:3px">${esc(h.source)} · ${when(h.time)} · ${h.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')||'general'}</div>${h.score>=3?`<div class="muted" style="font-size:13px;margin-top:3px">${esc(h.whyItMatters)}</div>`:''}</div>`).join('') : '<div class="muted">No headlines available.</div>'}
+    </div>`
+}
+$('btn-news').onclick = () => loadNews(true)
+
+// ---------- test ----------
+function scoreboard(title, s, notes) {
+  const st = (k,v,c='') => `<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`
+  const hasR = s.expectancyR !== null
+  return `<div class="card"><h2>${esc(title)}</h2><div class="stats">
+    ${st('Setups', s.totalSetups)}${st('Trades', s.taken)}${s.skipped?st('Refused',s.skipped,'skip'):''}${st('Wins',s.wins,'win')}${st('Losses',s.losses,'loss')}
+    ${st('Win rate', s.winRate===null?'—':(s.winRate*100).toFixed(0)+'%')}
+    ${hasR ? st('Expectancy', R(s.expectancyR), s.expectancyR>=0?'win':'loss') + st('Total', R(s.totalR), s.totalR>=0?'win':'loss') + (s.maxDrawdownR!==null?st('Worst run', R(-s.maxDrawdownR),'loss'):'')
+           : st('Average', s.avgPnlPercent===null?'—':pct(s.avgPnlPercent), s.avgPnlPercent>=0?'win':'loss') + st('Total', money(s.totalPnlUsd), s.totalPnlUsd>=0?'win':'loss')}
+    ${st('Losing streak', s.longestLosingStreak)}
+  </div>${notes.map(n=>`<div class="plain">${esc(n)}</div>`).join('')}</div>`
+}
+function breakdowns(bs) {
+  return bs.filter(b=>b.rows.length>1).map(b=>`<div class="card"><h2>${esc(b.title)}</h2><div class="scroll"><table><tr><th></th><th>Trades</th><th>Wins</th><th>Win rate</th><th>Total R</th><th>Avg R</th></tr>${b.rows.map(r=>`<tr><td>${esc(r.label)}</td><td class="num">${r.trades}</td><td class="num">${r.wins}</td><td class="num">${r.winRate===null?'—':(r.winRate*100).toFixed(0)+'%'}</td><td class="num ${r.totalR>=0?'win':'loss'}">${R(r.totalR)}</td><td class="num">${r.avgR===null?'—':R(r.avgR)}</td></tr>`).join('')}</table></div></div>`).join('')
+}
+function tradesTable(trades) {
+  if (!trades.length) return '<div class="card"><div class="muted">No completed setups in this window. This model is picky — that is expected.</div></div>'
+  return `<div class="card"><h2>Every trade</h2><div class="scroll"><table><tr><th>When</th><th>Side</th><th>In</th><th>Out</th><th>Exit</th><th>Result</th><th>Quality</th></tr>${trades.slice(-40).reverse().map(t=>`<tr><td>${when(t.time)}</td><td>${t.action}</td><td class="num">${px(t.entryPrice)}</td><td class="num">${px(t.exitPrice)}</td><td>${esc(t.exitReason)}</td><td class="num ${t.blockedByMemory?'skip':t.outcome==='WIN'?'win':t.outcome==='LOSS'?'loss':''}">${t.blockedByMemory?'refused':t.rMultiple!==null?R(t.rMultiple):pct(t.pnlPercent)}</td><td class="num">${t.quality??'—'}</td></tr>`).join('')}</table></div><div class="muted" style="margin-top:8px">Newest first${trades.length>40?`, showing 40 of ${trades.length}`:''}.</div></div>`
+}
+async function runTest(kind) {
+  if (busy) return
+  setBusy(true); $('test-status').innerHTML = '<span class="spin">◐</span> downloading a month of candles and replaying… (30–60 s)'
+  const r = await call('/api/replay/' + kind)
+  setBusy(false); $('test-status').textContent = ''
+  if (!r.ok) { $('test-out').innerHTML = errBox(r.error); return }
+  const d = r.data
+  let html = scoreboard(kind==='raw' ? 'The model on its own — no memory' : 'With memory switched on', d.summary, [
+    kind==='raw' ? 'This is the honest baseline: real candles, fees taken out, the pessimistic reading when a candle hits both stop and target. Most setups you see here happened at 3–5am or 8:30–11am New York time — because that is the only time the bot is allowed to act.' : '',
+    ...d.notes].filter(Boolean))
+  if (r.score && r.score.count > 0) {
+    const s = r.score
+    html += `<div class="card"><h2>Was refusing those trades worth it?</h2><div class="stats"><div class="stat"><div class="k">Refused</div><div class="v">${s.count}</div></div><div class="stat"><div class="k">Losses dodged</div><div class="v win">${money(s.avoidedLoss,3)}</div></div><div class="stat"><div class="k">Profits missed</div><div class="v loss">${money(s.missedProfit,3)}</div></div><div class="stat"><div class="k">Net effect</div><div class="v ${s.netUsd>=0?'win':'loss'}">${money(s.netUsd,3)}</div></div></div><div class="plain">Memory is not automatically an improvement. If the net effect is negative the rules are too strict — raise <code>skipAfterLosses</code> in config.ts.</div></div>`
+  }
+  $('test-out').innerHTML = html + breakdowns(d.breakdowns) + tradesTable(d.trades)
+  loadConfig()
+}
+$('btn-raw').onclick = () => runTest('raw')
+$('btn-mem').onclick = () => runTest('memory')
+
+// ---------- memory ----------
+async function loadMemory() {
+  const r = await call('/api/memory'); const d = r.data
+  $('memory-out').innerHTML = `
+    <div class="card"><h2>Lessons it has written</h2>${d.lessons.length ? '<ul>'+d.lessons.map(l=>`<li>${esc(l)}</li>`).join('')+'</ul>' : '<div class="muted">Nothing yet. It has not seen a setup lose repeatedly, and nothing was invented to fill the gap.</div>'}</div>
+    <div class="card"><h2>Decision log (${d.rows.length} most recent)</h2>${d.rows.length ? `<div class="scroll"><table><tr><th>When</th><th>Action</th><th>Price</th><th>Mode</th><th>Result</th><th>P/L</th></tr>${d.rows.slice().reverse().map(x=>`<tr><td>${esc(x.timestamp.slice(0,16).replace('T',' '))}</td><td>${esc(x.action)}</td><td class="num">${px(x.price)}</td><td>${esc(x.mode)}</td><td class="${x.outcome==='WIN'?'win':x.outcome==='LOSS'?'loss':'skip'}">${esc(x.outcome)}</td><td class="num">${x.pnl?pct(x.pnl):'—'}</td></tr>`).join('')}</table></div>` : '<div class="muted">Empty. Run a look-back test to fill it.</div>'}
+      <div class="plain">This lives in <code>data/ledger.csv</code> — a plain text file you can open in Excel or Google Sheets.</div></div>`
+}
+$('btn-memshow').onclick = loadMemory
+$('btn-reset').onclick = async () => { if (!confirm('Wipe everything the bot has learned?\n\nYour settings are not affected.')) return; await call('/api/memory/reset',{method:'POST'}); loadMemory(); loadConfig() }
+
+// ---------- ask ----------
+const CHIPS = ['Why is the bot holding right now?', 'Explain the Asia range and why it matters', 'What is an inversion fair value gap?', 'Should I arm longs only today?', 'What would make you skip a trade even if the checklist passes?', 'Which news today could hurt this plan?']
+$('chips').innerHTML = CHIPS.map(c=>`<button>${esc(c)}</button>`).join('')
+$('chips').querySelectorAll('button').forEach(b => b.onclick = () => { $('q').value = b.textContent; ask() })
+function addMsg(cls, text) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; $('chat').appendChild(d); $('chat').scrollTop = 1e9; return d }
+function ruleAnswer(q) {
+  const a = data && data.analysis; const s = q.toLowerCase()
+  if (!a) return 'Load the Today tab first.'
+  if (/why.*(hold|wait|not trad)/.test(s)) { const f = a.signal.evidence.find(e=>!e.passed); return f ? `Waiting on "${f.step}": ${f.detail}` : a.signal.reason }
+  if (/level|asia|london|range/.test(s)) return data.brief.levels.map(l=>`${l.label}: ${px(l.price)} — ${l.status}`).join('\n')
+  if (/bias/.test(s)) return `${a.bias.direction.toUpperCase()}: ${a.bias.reason}`
+  if (/plan/.test(s)) return data.plan ? `Armed: ${data.plan.allow}, ${data.plan.riskPerTradePercent}% risk, max ${data.plan.maxTrades}.` : data.brief.proposal.proposal
+  if (/news/.test(s)) return data.news ? data.news.summary : 'News not available.'
+  return null
+}
+async function ask() {
+  const q = $('q').value.trim(); if (!q || busy) return
+  $('q').value = ''; addMsg('you', q)
+  if (!cfg.ai.available) { const r = ruleAnswer(q); addMsg('bot', r || `I can't answer that without the assistant. ${cfg.ai.reason}`); return }
+  setBusy(true)
+  const el = addMsg('bot', '')
+  try {
+    const res = await fetch('/api/chat', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({question:q, history:chatHistory})})
+    if (res.headers.get('content-type').includes('json')) { const j = await res.json(); el.textContent = j.error; setBusy(false); return }
+    const reader = res.body.getReader(), dec = new TextDecoder(); let text = ''
+    for (;;) { const {done, value} = await reader.read(); if (done) break; text += dec.decode(value, {stream:true}); el.textContent = text.replace(/\n\[\[(META|ERROR):[\s\S]*$/, ''); $('chat').scrollTop = 1e9 }
+    const meta = /\[\[META:([\s\S]*)\]\]$/.exec(text), err = /\[\[ERROR:([\s\S]*)\]\]$/.exec(text)
+    const answer = text.replace(/\n\[\[(META|ERROR):[\s\S]*$/, '')
+    el.textContent = answer
+    if (err) el.textContent = err[1]
+    if (meta) { const m = JSON.parse(meta[1]); const c = document.createElement('span'); c.className='cost'; c.textContent = `${m.model} · $${m.costUsd.toFixed(4)}${m.refused?' · declined':''}`; el.appendChild(c); chatHistory.push({role:'user',content:q},{role:'assistant',content:answer}); if (chatHistory.length>20) chatHistory.splice(0,2) }
+  } catch (e) { el.textContent = 'Could not reach the assistant: ' + e.message }
+  setBusy(false)
+}
+$('btn-ask').onclick = ask
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask() })
+
+loadConfig().then(() => loadToday(false))
+</script>
+</body>
+</html>

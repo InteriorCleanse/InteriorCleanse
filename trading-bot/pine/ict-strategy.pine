@@ -1,0 +1,213 @@
+//@version=5
+// =====================================================================
+//  ICT Sweep → Displacement → Gap → Retest — backtestable STRATEGY
+//  Pine Script v5 · paper only · places nothing anywhere
+// =====================================================================
+//
+//  A chart-sized version of the bot's model:
+//    1. inside a killzone (London or New York AM, New York time)
+//    2. the Asia low (or high, or yesterday's) gets SWEPT — wick past,
+//       close back inside
+//    3. within N bars, a DISPLACEMENT candle leaves a fair value gap in
+//       the reversal direction
+//    4. price comes back and RETESTS that gap (or, with "require
+//       inversion" on, an older gap that just got closed through)
+//    5. entry on the retest close, stop past the sweep wick, target at
+//       the opposite side of the Asia range or a fixed R multiple
+//
+//  It is deliberately simpler than the bot (no memory, no news
+//  blackout, no daily limits) so you can SEE the raw idea on a chart.
+//  Keep the inputs equal to config.ts and compare the STORY, not the
+//  exact numbers — fills and sizing differ between the two.
+// =====================================================================
+
+strategy("ICT Sweep + Gap Retest (paper bot)", "ICT Paper", overlay = true,
+     initial_capital = 25, default_qty_type = strategy.percent_of_equity, default_qty_value = 100,
+     commission_type = strategy.commission.percent, commission_value = 0.1, slippage = 2,
+     process_orders_on_close = true, calc_on_every_tick = false, max_boxes_count = 200)
+
+// --- inputs ----------------------------------------------------------
+tz          = "America/New_York"
+asiaSess    = input.session("2000-0000", "Asia session (ET)")
+londonSess  = input.session("0200-0500", "London killzone (ET)")
+nySess      = input.session("0830-1100", "New York AM killzone (ET)")
+dispAtr     = input.float(1.0,  "Displacement body (ATR)", step = 0.1)
+fvgMinAtr   = input.float(0.15, "Minimum gap size (ATR)", step = 0.05)
+sweepDepth  = input.float(0.05, "Sweep depth beyond level (ATR)", step = 0.05)
+windowBars  = input.int(24,     "Bars after sweep to complete the setup", minval = 3)
+requireInv  = input.bool(true,  "Require an INVERSION gap for the entry")
+stopBuf     = input.float(0.15, "Stop buffer past sweep wick (ATR)", step = 0.05)
+minRR       = input.float(2.0,  "Minimum reward:risk", step = 0.5)
+useLiqTgt   = input.bool(true,  "Target the opposite Asia level (else fixed RR)")
+fixedRR     = input.float(2.0,  "Fixed RR when no liquidity target", step = 0.5)
+maxHold     = input.int(96,     "Time stop (bars)", minval = 5)
+skipWknd    = input.bool(true,  "Skip weekends")
+
+atr = ta.atr(14)
+
+// --- sessions --------------------------------------------------------
+asiaIn = not na(time(timeframe.period, asiaSess, tz))
+lonIn  = not na(time(timeframe.period, londonSess, tz))
+nyIn   = not na(time(timeframe.period, nySess, tz))
+inKz   = lonIn or nyIn
+dow    = dayofweek(time, tz)
+weekend = dow == dayofweek.saturday or dow == dayofweek.sunday
+
+var float asiaH = na
+var float asiaL = na
+var bool  asiaDone = false
+if asiaIn and not asiaIn[1]
+    asiaH := high
+    asiaL := low
+    asiaDone := false
+else if asiaIn
+    asiaH := math.max(asiaH, high)
+    asiaL := math.min(asiaL, low)
+if not asiaIn and asiaIn[1]
+    asiaDone := true
+
+pdh = request.security(syminfo.tickerid, "D", high[1], lookahead = barmerge.lookahead_on)
+pdl = request.security(syminfo.tickerid, "D", low[1],  lookahead = barmerge.lookahead_on)
+
+// --- sweeps (each level once per day) --------------------------------
+var bool usedAsiaL = false
+var bool usedAsiaH = false
+var bool usedPdl   = false
+var bool usedPdh   = false
+if asiaIn and not asiaIn[1]
+    usedAsiaL := false
+    usedAsiaH := false
+    usedPdl   := false
+    usedPdh   := false
+
+sweepLow  = asiaDone and not usedAsiaL and low  <= asiaL - atr * sweepDepth and close > asiaL
+sweepHigh = asiaDone and not usedAsiaH and high >= asiaH + atr * sweepDepth and close < asiaH
+sweepPdl  = not usedPdl and low  <= pdl - atr * sweepDepth and close > pdl
+sweepPdh  = not usedPdh and high >= pdh + atr * sweepDepth and close < pdh
+if sweepLow
+    usedAsiaL := true
+if sweepHigh
+    usedAsiaH := true
+if sweepPdl
+    usedPdl := true
+if sweepPdh
+    usedPdh := true
+
+// --- setup state -----------------------------------------------------
+// dir: 1 = looking long after a low sweep, -1 = looking short after a high sweep
+var int   dir      = 0
+var int   sweepBar = na
+var float sweepWick = na
+var float zoneTop  = na
+var float zoneBot  = na
+var bool  haveZone = false
+// the most recent OPPOSITE gap, which the reversal may invert
+var float oppTop = na
+var float oppBot = na
+var bool  oppLive = false
+
+bodyPrev  = math.abs(close[1] - open[1])
+displaced = bodyPrev >= atr * dispAtr
+bullGap   = low > high[2] and (low - high[2]) >= atr * fvgMinAtr
+bearGap   = high < low[2] and (low[2] - high) >= atr * fvgMinAtr
+
+// remember the latest gap of each direction as a candidate to invert
+if bearGap
+    oppTop := low[2]
+    oppBot := high
+    oppLive := true
+if bullGap and dir == -1
+    oppTop := low
+    oppBot := high[2]
+    oppLive := true
+
+// a new sweep resets the search
+if (sweepLow or sweepPdl) and strategy.position_size == 0
+    dir := 1
+    sweepBar := bar_index
+    sweepWick := low
+    haveZone := false
+if (sweepHigh or sweepPdh) and strategy.position_size == 0
+    dir := -1
+    sweepBar := bar_index
+    sweepWick := high
+    haveZone := false
+
+// find the entry zone after the sweep
+if dir != 0 and not haveZone and bar_index > sweepBar and bar_index - sweepBar <= windowBars
+    if dir == 1 and bullGap and displaced
+        if requireInv
+            // the reversal must have CLOSED above an older bearish gap
+            if oppLive and close > oppTop
+                zoneTop := oppTop
+                zoneBot := oppBot
+                haveZone := true
+        else
+            zoneTop := low
+            zoneBot := high[2]
+            haveZone := true
+    if dir == -1 and bearGap and displaced
+        if requireInv
+            if oppLive and close < oppBot
+                zoneTop := oppTop
+                zoneBot := oppBot
+                haveZone := true
+        else
+            zoneTop := low[2]
+            zoneBot := high
+            haveZone := true
+
+// give up if the window passes
+if dir != 0 and bar_index - sweepBar > windowBars * 2
+    dir := 0
+    haveZone := false
+
+// --- the retest entry ------------------------------------------------
+retestLong  = dir == 1  and haveZone and low  <= zoneTop and close >= zoneBot and close > zoneBot
+retestShort = dir == -1 and haveZone and high >= zoneBot and close <= zoneTop and close < zoneTop
+canTrade    = inKz and strategy.position_size == 0 and not (skipWknd and weekend)
+
+var float stopPx = na
+var float tgtPx  = na
+var int   entryBar = na
+
+if canTrade and retestLong
+    stopPx := sweepWick - atr * stopBuf
+    riskD  = close - stopPx
+    liqTgt = asiaH
+    rrLiq  = (liqTgt - close) / riskD
+    tgtPx := useLiqTgt and rrLiq >= minRR ? liqTgt : close + riskD * fixedRR
+    if (tgtPx - close) / riskD >= minRR and riskD > 0 and riskD / close < 0.03
+        strategy.entry("Long", strategy.long)
+        strategy.exit("Long exit", "Long", stop = stopPx, limit = tgtPx)
+        entryBar := bar_index
+    dir := 0
+    haveZone := false
+
+if canTrade and retestShort
+    stopPx := sweepWick + atr * stopBuf
+    riskD  = stopPx - close
+    liqTgt = asiaL
+    rrLiq  = (close - liqTgt) / riskD
+    tgtPx := useLiqTgt and rrLiq >= minRR ? liqTgt : close - riskD * fixedRR
+    if (close - tgtPx) / riskD >= minRR and riskD > 0 and riskD / close < 0.03
+        strategy.entry("Short", strategy.short)
+        strategy.exit("Short exit", "Short", stop = stopPx, limit = tgtPx)
+        entryBar := bar_index
+    dir := 0
+    haveZone := false
+
+// time stop
+if strategy.position_size != 0 and bar_index - entryBar >= maxHold
+    strategy.close_all(comment = "time stop")
+
+// --- drawing ---------------------------------------------------------
+plot(asiaDone ? asiaH : na, "Asia high", color.new(color.blue, 30), style = plot.style_linebr)
+plot(asiaDone ? asiaL : na, "Asia low",  color.new(color.blue, 30), style = plot.style_linebr)
+plot(pdh, "Yesterday's high", color.new(color.purple, 40), style = plot.style_linebr)
+plot(pdl, "Yesterday's low",  color.new(color.purple, 40), style = plot.style_linebr)
+bgcolor(inKz ? color.new(color.orange, 94) : na)
+plotshape(sweepLow or sweepPdl,   "Low swept",  shape.triangleup,   location.belowbar, color.new(color.orange, 0), size = size.tiny)
+plotshape(sweepHigh or sweepPdh,  "High swept", shape.triangledown, location.abovebar, color.new(color.orange, 0), size = size.tiny)
+plot(strategy.position_size != 0 ? stopPx : na, "Stop",   color.new(color.red, 0),   style = plot.style_linebr, linewidth = 2)
+plot(strategy.position_size != 0 ? tgtPx  : na, "Target", color.new(color.green, 0), style = plot.style_linebr, linewidth = 2)

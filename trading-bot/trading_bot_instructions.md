@@ -1,0 +1,129 @@
+# Trading Bot Instructions
+
+The rules this bot was built to. If you ask Claude (or anyone) to change or
+extend the bot, hand over this file first — it is the contract the code keeps.
+
+---
+
+## 1. Project Goal
+
+A paper-trading bot for a beginner with a $25 account, built on the ICT
+session model: it marks the Asia, London and New York session highs and lows,
+waits for a liquidity sweep of one of them inside a killzone, requires
+displacement and an inversion fair value gap, and enters on the retest with a
+defined stop and target. It reads the economic calendar and headlines, writes
+a daily brief, proposes a plan, and only acts within the plan the owner arms.
+
+- **Market:** BTCUSDT · **Timeframe:** 5m · **Clock:** New York time
+- **Every decision explains itself.** A list of evidence steps, each with a
+  pass/fail and a plain-English detail, so "why?" and "why not?" are always
+  answerable.
+- Paper mode comes first because the point is to learn how a strategy is tested
+  honestly before real money is ever involved.
+
+---
+
+## 2. Safety Rules
+
+- **Paper only. There is no live-trading code path.** Not disabled — absent.
+  `LIVE_TRADING_ENABLED` is `false` in `config.ts` and `execution.ts` throws if
+  it is ever otherwise.
+- **No secrets in source.** The only optional secret is `ANTHROPIC_API_KEY`,
+  read from a gitignored `.env`. No exchange keys exist or are asked for.
+- **The dashboard binds to 127.0.0.1 only** and serves no secrets.
+- **The AI assistant is boxed in:** it receives the analysis text only, cannot
+  call tools, place orders or change settings, and is instructed never to
+  claim profitability or give real-money advice.
+- **No action unless risk passes.** Every signal goes through `risk.ts`;
+  failures become SKIP with a readable reason.
+
+---
+
+## 3. Strategy Rules (the checklist, in order)
+
+1. **Trading day** — skip weekends (configurable).
+2. **Killzone** — only London 02:00–05:00 or New York 08:30–11:00 ET (configurable).
+3. **Asia range** — must be complete and at least `minAsiaRangeAtr` ATRs tall.
+4. **Liquidity sweep** — within the last `setupWindowCandles`, a wick past a
+   finished session high/low, yesterday's high/low, or equal highs/lows, with
+   the close back inside. A close *through* is a break, not a sweep. Each sweep
+   can produce at most one entry.
+5. **Displacement** — after the sweep, a candle in the reversal direction with
+   a body ≥ `displacementBodyAtr` ATRs that leaves a fair value gap ≥
+   `fvgMinSizeAtr` ATRs.
+6. **Inversion FVG** (when `requireInversion`) — an opposite-direction gap
+   closed through after the sweep, now acting as support/resistance.
+7. **Retest** — the current candle trades into the zone and closes on the
+   correct side of it. Entry at that close. No chasing.
+8. **Stop & target** — stop `stopBufferAtr` ATRs beyond the sweep wick; target
+   the nearest intact opposing liquidity giving ≥ `minRR`, else a fixed R.
+9. **News** — no entry within `newsBlackoutMinutes` of a high-impact event.
+10. **Daily limits** — `maxTradesPerDay` and `dailyLossLimitR`.
+11. **The armed plan** — direction and trade cap the owner agreed to.
+
+Quality score (informational): +MSS, +sweep depth, +bias alignment,
++inversion entry, +gap size.
+
+**Never act on an unclosed candle.** **Never look ahead** — swings are confirmed
+`swingLookback` candles later and used only after that.
+
+---
+
+## 4. Risk Rules
+
+- Size from the stop: `quantity = riskUsd / |entry − stop|`, capped by
+  `maxPositionValueUsd` and the account; when the cap binds, say so and state
+  the real risk.
+- Refuse stops wider than 3% of price and reward:risk below `minRR`.
+- Fees are charged on both sides in every result, including R-multiples.
+- In replay, a candle that hits both stop and target counts as the stop.
+
+---
+
+## 5. Broker / MCP Rules
+
+- **No broker adapter exists.** Prices come from free public read-only
+  endpoints. If an adapter is ever added it must be paper/testnet only, verified
+  (account, balances, positions, orders, market data) before any build step
+  relies on it, and never submit, preview or cancel an order during a check.
+
+---
+
+## 6. Memory Rules
+
+- `data/ledger.csv` (header
+  `timestamp,symbol,action,price,quantity,reason,mode,outcome,pnl`) and
+  `data/learnings.md`, both human-readable.
+- The setup key is precise: `symbol|interval|ICT|session|direction|level|entryType`.
+  Memory refuses a setup only when that exact key has lost ≥ `skipAfterLosses`
+  times AND wins < `skipIfWinRateBelow`.
+- **Only real measured outcomes** are written. No seeding, no invented candles,
+  no forced failures. Empty memory means "run the look-back test first", never
+  an invented reason to skip.
+- Refused trades are still measured, so the "was skipping worth it" table can
+  report honestly when memory *hurt*.
+- An existing lesson is reported as already-known, never as nothing-to-learn.
+
+---
+
+## 7. News Rules
+
+- Calendar from the public ForexFactory weekly JSON; headlines from public RSS
+  feeds. Scored by topic weight and freshness. Ranks attention, never direction.
+- Blackouts derive from High-impact events for the configured currencies.
+- If a feed fails, say which; if all fail, use the cache and label it stale;
+  if there's no cache, run without a blackout and say so in the evidence.
+
+---
+
+## 8. Definition of Done
+
+These must work: `selftest` (offline, ≥ 45 checks including a hand-built day
+that yields exactly one BUY), `start`, `talk`, `brief`, `news`, `scan`,
+`replay:raw`, `replay:memory`, `compare`, `memory:show`, `memory:reset`,
+`plan:clear`, `tradingview`.
+
+Every run prints the settings in force, the data used, and each decision with
+its evidence. If prices cannot be fetched the bot stops and says so; it never
+substitutes generated data. Performance numbers come only from real candles;
+the self-test checks logic and never reports a win rate or a profit figure.

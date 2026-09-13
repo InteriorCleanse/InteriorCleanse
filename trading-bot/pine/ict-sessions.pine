@@ -1,0 +1,139 @@
+//@version=5
+// =====================================================================
+//  ICT Sessions + Fair Value Gaps — what the paper bot sees, on a chart
+//  Pine Script v5 · INDICATOR (draws only; places nothing)
+// =====================================================================
+//
+//  Draws the same things the bot in trading-bot/ reasons about:
+//    • Asia / London / New York session boxes with their high and low
+//    • Yesterday's high and low
+//    • Fair value gaps (green up, red down) that turn GREY when price
+//      closes through them — an inversion
+//    • Triangles where a session high or low was swept
+//    • Killzone shading
+//
+//  Keep the session times equal to config.ts. They are New York time.
+// =====================================================================
+
+indicator("ICT Sessions + FVG (paper bot)", "ICT Sessions", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 200)
+
+// --- inputs ----------------------------------------------------------
+tz         = "America/New_York"
+asiaSess   = input.session("2000-0000", "Asia session (ET)")
+londonSess = input.session("0200-0500", "London killzone (ET)")
+nySess     = input.session("0830-1100", "New York AM killzone (ET)")
+nyPmSess   = input.session("1330-1600", "New York PM (ET)")
+showFvg    = input.bool(true,  "Draw fair value gaps")
+fvgMinAtr  = input.float(0.15, "Minimum gap size (ATR)", step = 0.05)
+dispAtr    = input.float(1.0,  "Displacement body (ATR)", step = 0.1)
+fvgMaxAge  = input.int(288,    "Forget a gap after (bars)", minval = 20)
+showSweeps = input.bool(true,  "Mark sweeps")
+showKz     = input.bool(true,  "Shade killzones")
+
+atr = ta.atr(14)
+
+// --- one session tracker, reused four times --------------------------
+// Returns [high, low, isNewSession, sessionActive, startBar]
+trackSession(sess, colr, name) =>
+    inS   = not na(time(timeframe.period, sess, tz))
+    newS  = inS and not inS[1]
+    var float sHigh = na
+    var float sLow  = na
+    var int   sBar  = na
+    var box   b     = na
+    var line  lH    = na
+    var line  lL    = na
+    if newS
+        sHigh := high
+        sLow  := low
+        sBar  := bar_index
+        b     := box.new(bar_index, high, bar_index, low, border_color = color.new(colr, 60), bgcolor = color.new(colr, 88))
+        lH    := line.new(bar_index, high, bar_index + 1, high, color = color.new(colr, 30), style = line.style_dashed, extend = extend.right)
+        lL    := line.new(bar_index, low,  bar_index + 1, low,  color = color.new(colr, 30), style = line.style_dashed, extend = extend.right)
+        label.new(bar_index, high, name, style = label.style_label_down, color = color.new(colr, 70), textcolor = color.white, size = size.tiny)
+    if inS and not newS
+        sHigh := math.max(sHigh, high)
+        sLow  := math.min(sLow, low)
+        box.set_right(b, bar_index)
+        box.set_top(b, sHigh)
+        box.set_bottom(b, sLow)
+        line.set_y1(lH, sHigh), line.set_y2(lH, sHigh)
+        line.set_y1(lL, sLow),  line.set_y2(lL, sLow)
+    [sHigh, sLow, newS, inS]
+
+[asiaH, asiaL, asiaNew, asiaIn]   = trackSession(asiaSess,   color.rgb(88, 166, 255), "Asia")
+[lonH,  lonL,  lonNew,  lonIn]    = trackSession(londonSess, color.rgb(255, 166, 0),  "London")
+[nyH,   nyL,   nyNew,   nyIn]     = trackSession(nySess,     color.rgb(63, 185, 80),  "NY AM")
+[pmH,   pmL,   pmNew,   pmIn]     = trackSession(nyPmSess,   color.rgb(160, 160, 160), "NY PM")
+
+// --- killzone shading ------------------------------------------------
+bgcolor(showKz and lonIn ? color.new(color.orange, 94) : showKz and nyIn ? color.new(color.green, 94) : na)
+
+// --- yesterday's high and low ----------------------------------------
+pdh = request.security(syminfo.tickerid, "D", high[1], lookahead = barmerge.lookahead_on)
+pdl = request.security(syminfo.tickerid, "D", low[1],  lookahead = barmerge.lookahead_on)
+plot(pdh, "Yesterday's high", color = color.new(color.purple, 20), style = plot.style_linebr, linewidth = 1)
+plot(pdl, "Yesterday's low",  color = color.new(color.purple, 20), style = plot.style_linebr, linewidth = 1)
+
+// --- sweeps of finished session levels -------------------------------
+// A sweep: the wick goes past the level, the close comes back inside.
+sweptAsiaLow  = showSweeps and not asiaIn and low  < asiaL and close > asiaL and not (low[1] < asiaL)
+sweptAsiaHigh = showSweeps and not asiaIn and high > asiaH and close < asiaH and not (high[1] > asiaH)
+sweptLonLow   = showSweeps and not lonIn  and low  < lonL  and close > lonL  and not (low[1] < lonL)
+sweptLonHigh  = showSweeps and not lonIn  and high > lonH  and close < lonH  and not (high[1] > lonH)
+sweptPdl      = showSweeps and low  < pdl and close > pdl and not (low[1] < pdl)
+sweptPdh      = showSweeps and high > pdh and close < pdh and not (high[1] > pdh)
+
+plotshape(sweptAsiaLow or sweptLonLow or sweptPdl,   "Low swept",  shape.triangleup,   location.belowbar, color.new(color.orange, 0), size = size.tiny, text = "sweep")
+plotshape(sweptAsiaHigh or sweptLonHigh or sweptPdh, "High swept", shape.triangledown, location.abovebar, color.new(color.orange, 0), size = size.tiny, text = "sweep")
+
+// --- fair value gaps with inversion ----------------------------------
+// A bullish gap: this bar's low is above the high two bars ago.
+// A bearish gap: this bar's high is below the low two bars ago.
+// Inversion: a CLOSE through the far side. The box turns grey and is
+// now expected to act the other way round (support ↔ resistance).
+var box[]   fvgBox  = array.new_box()
+var int[]   fvgDir  = array.new_int()     // 1 bullish, -1 bearish
+var bool[]  fvgInv  = array.new_bool()
+var int[]   fvgBorn = array.new_int()
+
+bodyPrev  = math.abs(close[1] - open[1])
+displaced = bodyPrev >= atr * dispAtr
+bullGap   = showFvg and low > high[2] and (low - high[2]) >= atr * fvgMinAtr
+bearGap   = showFvg and high < low[2] and (low[2] - high) >= atr * fvgMinAtr
+
+if bullGap
+    array.push(fvgBox, box.new(bar_index - 2, low, bar_index, high[2], border_color = color.new(color.green, displaced ? 40 : 75), bgcolor = color.new(color.green, displaced ? 78 : 88)))
+    array.push(fvgDir, 1), array.push(fvgInv, false), array.push(fvgBorn, bar_index)
+if bearGap
+    array.push(fvgBox, box.new(bar_index - 2, low[2], bar_index, high, border_color = color.new(color.red, displaced ? 40 : 75), bgcolor = color.new(color.red, displaced ? 78 : 88)))
+    array.push(fvgDir, -1), array.push(fvgInv, false), array.push(fvgBorn, bar_index)
+
+// Walk every live gap: extend it, invert it, or retire it.
+if array.size(fvgBox) > 0
+    for i = array.size(fvgBox) - 1 to 0
+        b    = array.get(fvgBox, i)
+        d    = array.get(fvgDir, i)
+        inv  = array.get(fvgInv, i)
+        born = array.get(fvgBorn, i)
+        top  = box.get_top(b)
+        bot  = box.get_bottom(b)
+        tooOld = bar_index - born > fvgMaxAge
+        // second failure after inversion, or simply too old → retire
+        failedAgain = inv and ((d == -1 and close < bot) or (d == 1 and close > top))
+        if tooOld or failedAgain
+            box.delete(b)
+            array.remove(fvgBox, i), array.remove(fvgDir, i), array.remove(fvgInv, i), array.remove(fvgBorn, i)
+        else
+            box.set_right(b, bar_index)
+            if not inv and bar_index > born
+                closedThrough = d == 1 ? close < bot : close > top
+                if closedThrough
+                    array.set(fvgInv, i, true)
+                    box.set_bgcolor(b, color.new(color.gray, 70))
+                    box.set_border_color(b, color.new(color.gray, 20))
+                    label.new(bar_index, d == 1 ? top : bot, "IFVG", style = d == 1 ? label.style_label_down : label.style_label_up, color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny)
+
+// --- alerts ------------------------------------------------------------
+alertcondition(sweptAsiaLow or sweptLonLow or sweptPdl,   "Low swept",  "A session low was swept on {{ticker}} {{interval}}")
+alertcondition(sweptAsiaHigh or sweptLonHigh or sweptPdh, "High swept", "A session high was swept on {{ticker}} {{interval}}")

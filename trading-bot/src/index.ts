@@ -1,0 +1,439 @@
+/**
+ * The command line. Every `npm run ...` command lands here.
+ * Its whole job is to run the right thing and then explain what
+ * happened in language a person can actually read.
+ */
+
+import { config } from '../config.ts'
+import { MarketDataError, explainMarketDataError } from './market.ts'
+import { analyzeNow, runScan } from './bot.ts'
+import { runReplay, scoreSkippedTrades } from './replay.ts'
+import type { ReplayResult } from './replay.ts'
+import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
+import { buildBrief } from './brief.ts'
+import { getNews, summarizeNews, upcomingEvents } from './news.ts'
+import { clearPlan, readPlan } from './plan.ts'
+import { describeKey } from './adaptiveFilter.ts'
+import * as ui from './ui.ts'
+
+/** Older versions of Node can't run TypeScript directly. Say so kindly. */
+function checkNodeVersion(): void {
+  const [major, minor] = process.versions.node.split('.').map(Number)
+  if (major > 22 || (major === 22 && minor >= 18)) return
+  console.log('')
+  console.log(ui.bad('  This bot needs a newer version of Node.'))
+  console.log('')
+  console.log(`  You have:  Node ${process.versions.node}`)
+  console.log('  You need:  Node 22.18 or newer (Node 24 is great too)')
+  console.log('')
+  console.log('  Download the "LTS" version — it is free — from https://nodejs.org')
+  console.log('  Install it, close this window, open a new one, and try again.')
+  console.log('')
+  process.exit(1)
+}
+
+function showSettings(): void {
+  console.log('')
+  const rows: string[][] = [
+    ['Market', config.symbol, 'the coin pair being watched'],
+    ['Candle size', config.interval, 'how much time each bar covers'],
+    ['Brain', config.strategy === 'ict' ? 'ICT session model' : `${config.crossover.fastMA}/${config.crossover.slowMA} crossover`, config.strategy === 'ict' ? 'sweeps, displacement, inversion gaps' : 'fast average vs slow average'],
+    ['Account', ui.money(config.accountSizeUsd), 'your pretend balance'],
+  ]
+  if (config.strategy === 'ict') {
+    rows.push(
+      ['Risk per trade', `${config.riskPerTradePercent}% (${ui.money(config.accountSizeUsd * config.riskPerTradePercent / 100)})`, 'what one stop-out costs'],
+      ['Entry windows', config.ict.killzones.map((k) => config.ict.sessions[k].label).join(', '), 'the only times it trades'],
+      ['Minimum RR', `${config.ict.minRR}:1`, 'reward it insists on per unit of risk'],
+      ['Needs inversion', config.ict.requireInversion ? 'yes' : 'no', 'waits for a gap to flip before entering'],
+    )
+  }
+  rows.push(['Fees counted', `${config.feePercent}% per side`, 'so results stay realistic'])
+  ui.table(['Setting', 'Value', 'What it means'], rows)
+}
+
+// ---------------------------------------------------------------
+// scan
+// ---------------------------------------------------------------
+
+async function commandScan(useMemory: boolean): Promise<void> {
+  ui.heading(useMemory ? 'CHECKING THE MARKET (with memory)' : 'CHECKING THE MARKET')
+  ui.safetyBanner()
+  showSettings()
+  ui.blank()
+  ui.step(`Downloading real ${config.symbol} prices${config.strategy === 'ict' ? ' and news' : ''}...`)
+
+  const r = await runScan(useMemory)
+  const a = r.analysis
+
+  ui.step(`Got ${r.candles.length} real candles. Latest price: ${ui.bold(ui.price(r.signal.price))}`)
+  if (a) {
+    ui.step(`${a.weekday} ${a.etClock} ET — ${a.session ? `${config.ict.sessions[a.session].label} session` : 'between sessions'}${a.inKillzone ? ui.good(' (killzone open)') : ''}`)
+    ui.step(`Bias: ${ui.bold(a.bias.direction.toUpperCase())}`)
+    ui.note(ui.wrap(a.bias.reason, 70).replace(/\n/g, '\n         '))
+    if (r.news?.errors.length) ui.note(ui.warn('News: ') + r.news.errors[0])
+    ui.blank()
+    console.log(ui.bold('  THE CHECKLIST'))
+    ui.blank()
+    ui.evidence(r.signal.evidence)
+  } else {
+    ui.step(`Fast average: ${r.signal.fastMA?.toFixed(2)}  Slow average: ${r.signal.slowMA?.toFixed(2)}`)
+    ui.step(`Strategy says: ${ui.actionLabel(r.signal.action)}`)
+    ui.note(r.signal.reason)
+  }
+
+  if (r.signal.action !== 'HOLD') {
+    ui.blank()
+    ui.step(`Risk check: ${r.risk.approved ? ui.good('PASSED') : ui.warn('BLOCKED')}`)
+    ui.note(ui.wrap(r.risk.reason, 70).replace(/\n/g, '\n         '))
+  }
+  if (r.memory) {
+    ui.step(`Memory check: ${r.memory.block ? ui.warn('REFUSED') : ui.good('no objection')}`)
+    ui.note(ui.wrap(r.memory.reason, 70).replace(/\n/g, '\n         '))
+  }
+
+  ui.blank()
+  console.log(`  FINAL DECISION: ${ui.actionLabel(r.finalAction)}`)
+  ui.note(ui.wrap(r.finalReason, 70).replace(/\n/g, '\n         '))
+  if (r.signal.plan && r.finalAction !== 'HOLD') {
+    const p = r.signal.plan
+    ui.blank()
+    ui.table(['', '', ''], [
+      ['Entry', ui.price(p.entry), p.entryLabel],
+      ['Stop', ui.price(p.stop), p.stopLabel],
+      ['Target', ui.price(p.takeProfit), p.targetLabel],
+      ['Reward:risk', `${p.rr.toFixed(1)}:1`, `quality ${r.signal.quality}/100`],
+    ])
+  }
+
+  const explain: Record<string, string[]> = {
+    BUY: ['The bot would have bought here — on paper only.', 'Nothing was sent to any exchange. No money moved.', 'The decision is in data/ledger.csv for later review.'],
+    SELL: ['The bot would have sold here — on paper only.', 'Nothing was sent to any exchange. No money moved.', 'The decision is in data/ledger.csv for later review.'],
+    HOLD: ['Nothing happened, and that is normal — the first ✗ above says why.', 'This model waits for a specific story to play out: a sweep, then', 'displacement, then a gap that flips, then a retest, inside a killzone.', 'Most candles fail that test. Patience is the edge, not a bug.'],
+    SKIP: ['The bot saw a full setup and refused it.', 'That came from your safety limits, your plan, or memory of a setup', 'that lost before. Being refused is the system working.'],
+  }
+  ui.plainEnglish(explain[r.finalAction] ?? ['Decision recorded.'])
+  ui.blank()
+}
+
+// ---------------------------------------------------------------
+// brief / news
+// ---------------------------------------------------------------
+
+async function commandBrief(): Promise<void> {
+  ui.heading("TODAY'S BRIEF")
+  ui.safetyBanner()
+  if (config.strategy !== 'ict') {
+    console.log(ui.warn('  The brief is part of the ICT model. Set strategy: "ict" in config.ts.'))
+    return
+  }
+  ui.step('Downloading prices and news...')
+  const snap = await analyzeNow()
+  const brief = buildBrief(snap.analysis!, snap.news, readPlan())
+  ui.blank()
+  for (const l of brief.lines) console.log(l ? `  ${l}` : '')
+  ui.plainEnglish([
+    'To agree to this plan, tighten it, or tell me to sit out, run:',
+    '  npm run talk',
+    'Once a plan is armed, every scan checks itself against it first.',
+  ])
+  ui.blank()
+}
+
+async function commandNews(): Promise<void> {
+  ui.heading("WHAT'S MOVING THE MARKET")
+  ui.step('Downloading the economic calendar and headlines...')
+  const news = await getNews(true)
+  ui.blank()
+  if (news.errors.length) {
+    for (const e of news.errors) console.log(ui.warn('  ! ') + e)
+    ui.blank()
+  }
+  const soon = upcomingEvents(news)
+  ui.sub('SCHEDULED — the ones with a known time')
+  if (!soon.length) console.log(ui.dim('  Nothing in the next 36 hours.'))
+  else ui.table(['When (ET)', 'Impact', 'Event', 'Forecast', 'Previous'], soon.slice(0, 15).map((e) => [
+    new Date(e.time).toLocaleString('en-US', { timeZone: config.ict.timezone, weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }),
+    e.impact === 'High' ? ui.bad('HIGH') : e.impact === 'Medium' ? ui.warn('medium') : ui.dim(e.impact.toLowerCase()),
+    `${e.country} ${e.title}`, e.forecast || '—', e.previous || '—',
+  ]))
+  ui.sub('HEADLINES — ranked by what they touch')
+  if (!news.headlines.length) console.log(ui.dim('  No headlines available.'))
+  for (const h of news.headlines.slice(0, 12)) {
+    console.log(`  ${h.score >= 3 ? ui.accent('●') : ui.dim('○')} ${h.title}`)
+    console.log(ui.dim(`    ${h.source} · ${ui.formatTime(h.time)} · ${h.tags.join(', ') || 'general'}`))
+    if (h.score >= 3) console.log(ui.dim(`    ${h.whyItMatters}`))
+  }
+  if (news.blackouts.length) {
+    ui.sub('STAND ASIDE WINDOWS')
+    for (const b of news.blackouts.filter((x) => x.end > Date.now()).slice(0, 8)) console.log(`  ${ui.formatET(b.start, true)} → ${ui.formatET(b.end)}  ${b.title}`)
+  }
+  ui.plainEnglish([
+    'This ranks attention, not direction. A high-impact event means',
+    '"the tape gets random for a while" — the bot refuses to enter',
+    `within ${config.ict.newsBlackoutMinutes} minutes of one. Headlines tell you what the crowd is`,
+    'watching so a sudden move makes sense instead of feeling like chaos.',
+  ])
+  ui.blank()
+}
+
+// ---------------------------------------------------------------
+// replay
+// ---------------------------------------------------------------
+
+function printTrades(result: ReplayResult): void {
+  const rows = result.trades.slice(-25).map((t) => {
+    const outcome = t.blockedByMemory ? ui.warn('SKIPPED') : t.outcome === 'WIN' ? ui.good('WIN') : t.outcome === 'LOSS' ? ui.bad('LOSS') : ui.dim('FLAT')
+    return [
+      ui.formatTime(t.time),
+      t.action,
+      ui.price(t.entryPrice),
+      ui.price(t.exitPrice),
+      t.blockedByMemory ? ui.dim('—') : t.rMultiple !== null ? ui.r(t.rMultiple) : ui.pct(t.pnlPercent),
+      t.exitReason,
+      outcome,
+    ]
+  })
+  if (!rows.length) {
+    ui.blank()
+    console.log(ui.warn('  No completed trades in this window. Nothing to show.'))
+    return
+  }
+  ui.blank()
+  if (result.trades.length > 25) console.log(ui.dim(`  (showing the most recent 25 of ${result.trades.length})`))
+  ui.table(['When', 'Side', 'In at', 'Out at', 'Result', 'Exit', ''], rows)
+}
+
+function printSummary(result: ReplayResult): void {
+  const s = result.summary
+  ui.sub('THE SCOREBOARD')
+  const rows: string[][] = [
+    ['Setups found', String(s.totalSetups), 'times the full checklist passed'],
+    ['Trades measured', String(s.taken), 'with a known outcome'],
+  ]
+  if (s.skipped > 0) rows.push(['Refused by memory', String(s.skipped), 'setups it had lost on before'])
+  rows.push(['Wins', ui.good(String(s.wins)), 'hit the target (or exited up)'], ['Losses', ui.bad(String(s.losses)), 'hit the stop (or exited down)'])
+  if (s.flat > 0) rows.push(['Flat', String(s.flat), 'went nowhere'])
+  rows.push(['Win rate', s.winRate === null ? '—' : `${(s.winRate * 100).toFixed(1)}%`, 'how often it was right'])
+  if (s.expectancyR !== null) {
+    rows.push(['Expectancy', ui.r(s.expectancyR), 'average result per trade, in units of risk'])
+    rows.push(['Total', ui.r(s.totalR), `= ${ui.money(s.totalPnlUsd, 3)} at your size`])
+    if (s.maxDrawdownR !== null) rows.push(['Worst run', ui.r(-s.maxDrawdownR), 'biggest drop from a high point'])
+  } else {
+    rows.push(['Average result', s.avgPnlPercent === null ? '—' : ui.pct(s.avgPnlPercent), 'per trade, fees included'])
+    rows.push(['Total', ui.money(s.totalPnlUsd), ''])
+    if (s.maxDrawdownPercent !== null) rows.push(['Worst run', ui.pct(-s.maxDrawdownPercent), 'biggest drop from a high point'])
+  }
+  if (s.profitFactor !== null) rows.push(['Profit factor', s.profitFactor === Infinity ? '∞' : s.profitFactor.toFixed(2), 'wins ÷ losses in dollars; above 1 is positive'])
+  rows.push(['Longest losing streak', String(s.longestLosingStreak), 'in a row — expect this to happen again'])
+  if (s.bestTrade) rows.push(['Best trade', ui.good(s.bestTrade.rMultiple !== null ? ui.r(s.bestTrade.rMultiple) : ui.pct(s.bestTrade.pnlPercent)), ui.formatTime(s.bestTrade.time)])
+  if (s.worstTrade) rows.push(['Worst trade', ui.bad(s.worstTrade.rMultiple !== null ? ui.r(s.worstTrade.rMultiple) : ui.pct(s.worstTrade.pnlPercent)), ui.formatTime(s.worstTrade.time)])
+  ui.table(['', '', ''], rows)
+
+  for (const b of result.breakdowns) {
+    if (b.rows.length < 2) continue
+    ui.sub(b.title.toUpperCase())
+    ui.table(['', 'Trades', 'Wins', 'Win rate', 'Total R', 'Avg R'], b.rows.map((row) => [
+      row.label, String(row.trades), String(row.wins), row.winRate === null ? '—' : `${(row.winRate * 100).toFixed(0)}%`,
+      row.totalR >= 0 ? ui.good(ui.r(row.totalR)) : ui.bad(ui.r(row.totalR)), row.avgR === null ? '—' : ui.r(row.avgR),
+    ]))
+  }
+  for (const n of result.notes) {
+    ui.blank()
+    console.log(ui.warn('  ! ') + ui.dim(ui.wrap(n, 70).replace(/\n/g, '\n    ')))
+  }
+}
+
+async function commandReplayRaw(): Promise<void> {
+  ui.heading('LOOK-BACK TEST — the strategy on its own')
+  ui.safetyBanner()
+  showSettings()
+  ui.blank()
+  ui.step(`Downloading ${config.strategy === 'ict' ? `${config.replay.lookbackDays} days` : 'history'} of real ${config.symbol} candles...`)
+  const result = await runReplay({ useMemory: false, writeMemory: true })
+  ui.step(`Studied ${result.candlesUsed} candles (${result.days} days), ${ui.formatTime(result.from)} → ${ui.formatTime(result.to)}.`)
+  printTrades(result)
+  printSummary(result)
+  ui.plainEnglish([
+    'This is the strategy with NO memory — the honest baseline.',
+    'Whatever it shows is what really happened on real prices, with',
+    'fees taken out and the pessimistic reading whenever a candle hit',
+    'both the stop and the target.',
+    '',
+    'If the numbers are unimpressive, that is information, not failure.',
+    'The real outcomes are now in memory. Next: npm run replay:memory',
+  ])
+  ui.blank()
+}
+
+async function commandReplayMemory(): Promise<void> {
+  ui.heading('LOOK-BACK TEST — with memory switched on')
+  ui.safetyBanner()
+  if (memoryIsEmpty()) {
+    ui.blank()
+    console.log(ui.warn('  Memory is completely empty, so there is nothing to compare.'))
+    ui.plainEnglish(['This is not an error. The bot has never seen a result yet.', '', 'Run this first:  npm run replay:raw', 'Then come back and run this command again.'])
+    ui.blank()
+    return
+  }
+  ui.step('Downloading real candles...')
+  const result = await runReplay({ useMemory: true, writeMemory: false })
+  ui.step(`Read ${readLedger().length} past decision(s) and ${lessonLines().length} lesson(s) from memory.`)
+  for (const l of lessonLines().slice(0, 3)) ui.note(`• ${l}`)
+  printTrades(result)
+  printSummary(result)
+  const score = scoreSkippedTrades(result)
+  if (score.count > 0) {
+    ui.sub('WAS SKIPPING WORTH IT?')
+    ui.table(['', '', ''], [
+      ['Trades refused', String(score.count), 'memory said no'],
+      ['Losses dodged', ui.good(ui.money(score.avoidedLoss, 3)), 'money it saved you'],
+      ['Profits missed', ui.bad(ui.money(score.missedProfit, 3)), 'money it cost you'],
+      ['Net effect', score.netUsd >= 0 ? ui.good(ui.money(score.netUsd, 3)) : ui.bad(ui.money(score.netUsd, 3)), score.netUsd >= 0 ? 'memory helped' : 'memory hurt'],
+    ])
+    ui.plainEnglish(['Memory is not automatically an improvement, and this table keeps it', 'honest. If "Net effect" is negative, the rules are too strict — raise', 'skipAfterLosses in config.ts.'])
+  }
+  ui.blank()
+  console.log(ui.dim(`  Every decision is logged in: ${LEDGER_PATH}`))
+  console.log(ui.dim(`  Lessons are written in:      ${LEARNINGS_PATH}`))
+  ui.blank()
+}
+
+async function commandCompare(): Promise<void> {
+  ui.heading('SIDE BY SIDE — with and without memory')
+  ui.safetyBanner()
+  ui.step('Run 1 of 2: the raw strategy, no memory...')
+  const raw = await runReplay({ useMemory: false, writeMemory: true })
+  ui.step('Run 2 of 2: the same history, memory switched on...')
+  const mem = await runReplay({ useMemory: true, writeMemory: false })
+  const fmt = (v: number | null, f: (n: number) => string) => (v === null ? '—' : f(v))
+  ui.blank()
+  ui.table(['', 'Without memory', 'With memory'], [
+    ['Setups', String(raw.summary.totalSetups), String(mem.summary.totalSetups)],
+    ['Trades taken', String(raw.summary.taken), String(mem.summary.taken)],
+    ['Refused', String(raw.summary.skipped), String(mem.summary.skipped)],
+    ['Wins', String(raw.summary.wins), String(mem.summary.wins)],
+    ['Losses', String(raw.summary.losses), String(mem.summary.losses)],
+    ['Win rate', fmt(raw.summary.winRate, (n) => `${(n * 100).toFixed(1)}%`), fmt(mem.summary.winRate, (n) => `${(n * 100).toFixed(1)}%`)],
+    ['Expectancy', fmt(raw.summary.expectancyR, ui.r), fmt(mem.summary.expectancyR, ui.r)],
+    ['Total', raw.summary.expectancyR !== null ? ui.r(raw.summary.totalR) : ui.money(raw.summary.totalPnlUsd), mem.summary.expectancyR !== null ? ui.r(mem.summary.totalR) : ui.money(mem.summary.totalPnlUsd)],
+  ])
+  const diff = mem.summary.totalPnlUsd - raw.summary.totalPnlUsd
+  ui.blank()
+  if (mem.summary.skipped === 0) console.log(ui.dim('  Memory refused nothing, so the two runs are identical. That happens when no setup has lost often enough yet.'))
+  else if (diff > 0) console.log(ui.good(`  Memory improved the result by ${ui.money(diff, 3)}.`))
+  else if (diff < 0) console.log(ui.bad(`  Memory made the result worse by ${ui.money(Math.abs(diff), 3)}. Worth knowing — loosen the rules in config.ts.`))
+  else console.log(ui.dim('  No measurable difference between the two runs.'))
+  ui.blank()
+}
+
+// ---------------------------------------------------------------
+// memory / plan / help
+// ---------------------------------------------------------------
+
+function commandMemoryReset(): void {
+  ui.heading('CLEARING MEMORY')
+  const before = readLedger().length
+  resetMemory()
+  ui.blank()
+  console.log(`  Deleted ${before} recorded decision(s) and every written lesson.`)
+  ui.plainEnglish(['The bot knows nothing again — a clean slate. Do this whenever you', 'change the strategy or the market; lessons about one setup do not', 'apply to another. Your settings in config.ts are untouched.'])
+  ui.blank()
+}
+
+function commandMemoryShow(): void {
+  ui.heading('WHAT THE BOT REMEMBERS')
+  const rows = readLedger()
+  const lessons = lessonLines()
+  ui.blank()
+  console.log(`  Decisions recorded: ${ui.bold(String(rows.length))}`)
+  console.log(`  Lessons written:    ${ui.bold(String(lessons.length))}`)
+  if (rows.length) {
+    ui.sub('The last 10 decisions')
+    ui.table(['When', 'Action', 'Price', 'Setup', 'Result', 'P/L'], rows.slice(-10).map((r) => [
+      r.timestamp.slice(0, 16).replace('T', ' '), r.action, ui.price(r.price), describeKey(r.reason.split(' — ')[0]).slice(0, 48), r.outcome, r.pnl ? ui.pct(r.pnl) : '—',
+    ]))
+  }
+  if (lessons.length) {
+    ui.sub('Lessons')
+    for (const l of lessons) console.log(`  • ${ui.wrap(l, 70).replace(/\n/g, '\n    ')}`)
+  } else {
+    ui.blank()
+    console.log(ui.dim('  No lessons yet. The bot has not seen a setup lose repeatedly, and nothing was invented to fill the gap.'))
+  }
+  ui.blank()
+}
+
+function commandPlanClear(): void {
+  const p = readPlan()
+  clearPlan()
+  ui.heading('PLAN CLEARED')
+  console.log(p ? `  Removed the plan for ${p.dayKey} (${p.allow}).` : '  There was no plan armed.')
+  console.log(ui.dim('  Scans now use the defaults in config.ts.'))
+  ui.blank()
+}
+
+function commandHelp(): void {
+  ui.heading('WHAT CAN THIS THING DO?')
+  ui.safetyBanner()
+  ui.blank()
+  ui.table(['Type this', 'And it will'], [
+    ['npm start', 'open the dashboard in your browser (easiest)'],
+    ['npm run talk', 'chat with the bot: brief, plan, questions, what-ifs'],
+    ['npm run brief', "print today's brief — ranges, levels, bias, news, plan"],
+    ['npm run news', 'show what is on the calendar and what stands out'],
+    ['npm run scan', 'check the market right now and explain its decision'],
+    ['npm run replay:raw', 'test the strategy on real past prices'],
+    ['npm run replay:memory', 'do the same, but let it use what it learned'],
+    ['npm run compare', 'run both and show them side by side'],
+    ['npm run memory:show', 'print what it currently remembers'],
+    ['npm run memory:reset', 'wipe its memory clean'],
+    ['npm run plan:clear', "forget today's armed plan"],
+    ['npm run selftest', 'check the logic is working (no internet needed)'],
+    ['npm run tradingview', 'print the TradingView chart setup steps'],
+  ])
+  ui.plainEnglish([
+    'New here? Do this, in order:',
+    '  1. npm run selftest       (proves the install works)',
+    '  2. npm run brief          (see what the bot thinks about today)',
+    '  3. npm run replay:raw     (see how the model did over the last month)',
+    '  4. npm run talk           (agree a plan, ask questions)',
+    '',
+    'Nothing you type can lose money. There is no live trading in here.',
+  ])
+  ui.blank()
+}
+
+async function main(): Promise<void> {
+  checkNodeVersion()
+  const command = process.argv[2] ?? 'help'
+  try {
+    switch (command) {
+      case 'scan': await commandScan(false); break
+      case 'scan:memory': await commandScan(true); break
+      case 'brief': await commandBrief(); break
+      case 'news': await commandNews(); break
+      case 'replay:raw': await commandReplayRaw(); break
+      case 'replay:memory': await commandReplayMemory(); break
+      case 'compare': await commandCompare(); break
+      case 'memory:reset': commandMemoryReset(); break
+      case 'memory:show': commandMemoryShow(); break
+      case 'plan:clear': commandPlanClear(); break
+      default: commandHelp()
+    }
+  } catch (err) {
+    if (err instanceof MarketDataError) {
+      ui.blank()
+      console.log(ui.bad('  ─────────────────────────────────────────────'))
+      console.log(ui.bad('   STOPPED — no real prices available'))
+      console.log(ui.bad('  ─────────────────────────────────────────────'))
+      ui.blank()
+      for (const line of explainMarketDataError(err).split('\n')) console.log(`  ${line}`)
+      ui.blank()
+      process.exit(2)
+    }
+    throw err
+  }
+}
+
+main()
