@@ -12,6 +12,10 @@ nothing under `.claude/` is built, served, or linted.
 | motion-design | github.com/lottiefiles/motion-design-skill | f9a8a04 | MIT |
 | cast, paint, genjutsu/_jutsu/* | github.com/AThevon/genjutsu | 94a260a | MIT |
 | watch | github.com/bradautomates/claude-video (`skills/watch`) | 83da59f | MIT |
+| caveman | github.com/JuliusBrussee/caveman (`skills/caveman`) | 15581d1 | MIT (the skill; that repo's engine and Go binaries are BSL-1.1 and are not included) |
+| ui-ux-pro-max, design, design-system, brand, banner-design, slides | github.com/nextlevelbuilder/ui-ux-pro-max-skill (`.claude/skills/*`) | 7f69fed | MIT |
+| last30days | github.com/mvanhorn/last30days-skill (`skills/last30days`) | ac0ed3b | MIT |
+| agency-agents (roster) + 32 project agents in `.claude/agents/` | github.com/msitarzewski/agency-agents | ad9264e | MIT |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -22,6 +26,35 @@ and only used to transcribe videos that have no captions. The upstream plugin
 also ships a SessionStart hook that prints setup status; it is not installed
 here, since `/watch` runs the same check itself. Its dev-only
 `build-skill.sh` was left out.
+
+`/caveman` switches Claude to a terse output style for the session (`/caveman
+off` restores normal). Only the skill itself is vendored; the upstream repo's
+compression engine, proxy, browser extension, and agent packs are separate
+products and were not copied.
+
+`ui-ux-pro-max` is a searchable design database (styles, palettes, font
+pairings, UX rules, per-stack guidance) driven by a Python script that needs
+only Python 3. Its SKILL.md was patched in one place so the script path
+resolves from the project root when the plugin-root variable is unset
+(`${CLAUDE_PLUGIN_ROOT:-.}`). The sibling `ui-styling` skill was left out: it
+is shadcn/Tailwind guidance plus 5.5 MB of canvas fonts, and this site uses
+neither.
+
+`/last30days <topic>` researches what people said about a topic in the last 30
+days across Reddit, X, YouTube, Hacker News, and the web. Its engine needs
+Python 3.12 or newer on the machine (its setup can provision one through uv).
+Reddit, Hacker News, and GitHub work with no keys; other sources are unlocked
+by its setup wizard, which writes to `~/.config/last30days/`, never to this
+repository. The upstream `assets/` folder (14 MB of demo media) and its
+SessionStart hook were left out.
+
+Agency Agents: the whole roster (300+ persona files) lives under
+`.claude/skills/agency-agents/roster/`, with a small SKILL.md explaining how to
+use or promote one. Thirty-two personas relevant to this storefront (all of
+design, paid-media, and product, plus ten marketing roles) are installed as
+project subagents in `.claude/agents/`. Everything in `.claude/agents/` is
+loaded into every session, so add more from the roster deliberately rather
+than copying all of them.
 
 Genjutsu's `cast` and `paint` orchestrators load their sub-skills from
 `genjutsu/_jutsu`, which is where its resolver probes for a skills-directory
