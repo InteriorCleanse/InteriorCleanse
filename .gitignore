@@ -9,3 +9,7 @@ tsconfig.tsbuildinfo
 
 # Brand master originals are preserved but not needed by the build
 raw-clips/
+
+# Python bytecode from vendored skills
+__pycache__/
+*.pyc
