@@ -11,7 +11,8 @@
     "seed:catalog": "node scripts/seed-catalog.mjs",
     "posters:extract": "node scripts/extract-posters.mjs",
     "posters:fetch": "node scripts/fetch-posters.mjs",
-    "clips:loop": "node scripts/loop-clips.mjs"
+    "clips:loop": "node scripts/loop-clips.mjs",
+    "build:grain": "node scripts/build-grain.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
