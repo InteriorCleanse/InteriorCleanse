@@ -24,7 +24,7 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - name: Type check
-        run: npx tsc --noEmit -p .
+        run: npm run typecheck
       - name: Self-test (offline logic)
         run: npm run selftest
       - name: Test suite
