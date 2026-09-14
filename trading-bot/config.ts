@@ -295,27 +295,31 @@ export const flowSources = {
  * Where market data comes from. Free, public, read-only. No account,
  * no key, no sign-up. The bot tries them in order.
  */
-export const dataSources = [
-  'https://data-api.binance.vision/api/v3/klines',
-  'https://api.binance.com/api/v3/klines',
-  'https://api.binance.us/api/v3/klines',
-]
+export const dataSources = process.env.MRCASH_MARKET_URL
+  ? [`${process.env.MRCASH_MARKET_URL.replace(/\/$/, '')}/api/v3/klines`] // tests point this at a local stand-in feed
+  : [
+      'https://data-api.binance.vision/api/v3/klines',
+      'https://api.binance.com/api/v3/klines',
+      'https://api.binance.us/api/v3/klines',
+    ]
 
 /**
  * Where news comes from. All free, all public. If one is down the bot
  * says so and carries on with the others.
  */
-export const newsSources = {
-  /** This week's economic calendar, with impact ratings. */
-  calendar: 'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+export const newsSources = process.env.MRCASH_NEWS_URL
+  ? { calendar: `${process.env.MRCASH_NEWS_URL.replace(/\/$/, '')}/calendar.json`, headlines: [{ name: 'Test feed', url: `${process.env.MRCASH_NEWS_URL.replace(/\/$/, '')}/rss` }] } // tests only
+  : {
+      /** This week's economic calendar, with impact ratings. */
+      calendar: 'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
 
-  /** Headline feeds (RSS). */
-  headlines: [
-    { name: 'CoinDesk',      url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
-    { name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss' },
-    { name: 'Google News',   url: 'https://news.google.com/rss/search?q=bitcoin+OR+crypto+OR+%22federal+reserve%22&hl=en-US&gl=US&ceid=US:en' },
-  ],
-}
+      /** Headline feeds (RSS). */
+      headlines: [
+        { name: 'CoinDesk',      url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
+        { name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss' },
+        { name: 'Google News',   url: 'https://news.google.com/rss/search?q=bitcoin+OR+crypto+OR+%22federal+reserve%22&hl=en-US&gl=US&ceid=US:en' },
+      ],
+    }
 
 /**
  * HARD SAFETY LOCK.

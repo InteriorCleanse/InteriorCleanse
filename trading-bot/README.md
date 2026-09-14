@@ -453,6 +453,31 @@ working, not a bug — and it's why professionals size from the stop.
 
 ---
 
+## Testing
+
+Three gates, and they run on every push in GitHub Actions
+(`.github/workflows/bot.yml`):
+
+```
+npx tsc --noEmit -p .    # the type check
+npm run selftest         # 72 offline checks on hand-written candles
+npm test                 # the test suite: node --test, no internet needed
+npm run check            # all three, in order
+```
+
+The test suite starts the real server on a random port with a throwaway data
+folder and a local **stand-in feed** (`test/helpers.ts`) that answers like the
+exchange and the news sites with deterministic synthetic numbers. Every API
+route, the guard, the kill switch, the replay, memory, the journal, the paper
+trader, the watch loop, the news module, the engine on fixture days, and the
+MCP server are covered. The synthetic feed exists so the code paths can be
+exercised; its prices mean nothing and no performance number ever comes from
+it.
+
+A test marked `todo` is a known limitation recorded on purpose, not a broken
+test — the message says which phase of `docs/TITAN_IMPLEMENTATION_PLAN.md`
+removes it.
+
 ## The safety switches
 
 Three things stand between you and an accident, and all three are tested

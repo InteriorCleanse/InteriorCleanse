@@ -1,51 +1,54 @@
 /**
- * Starts the real server on a random port with a temporary data folder
- * and proves the request guard and the kill switch over HTTP.
- * No internet is needed: the watch loop's feed failures are caught by
- * the server and do not affect these routes.
+ * The real server on a random port, a temporary data folder, and the
+ * local stand-in feeds. Every route gets a status and a shape check;
+ * the guard and the kill switch get behaviour checks.
  */
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
-import type { ChildProcess } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { startMockFeeds, startBot, tempDataDir } from './helpers.ts'
+import type { MockFeeds, RunningBot } from './helpers.ts'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const dir = mkdtempSync(join(tmpdir(), 'mrcash-server-'))
-const port = 4300 + Math.floor(Math.random() * 500)
-const base = `http://127.0.0.1:${port}`
-let child: ChildProcess
-
-async function waitForHealth(): Promise<void> {
-  for (let i = 0; i < 100; i++) {
-    try {
-      const r = await fetch(`${base}/api/health`)
-      if (r.ok) return
-    } catch { /* not up yet */ }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error('server did not start')
-}
+let feeds: MockFeeds
+let bot: RunningBot
+const tmp = tempDataDir('mrcash-server-')
 
 before(async () => {
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, 'ledger.csv'), 'timestamp,symbol,action,price,quantity,reason,mode,outcome,pnl\n2026-01-15T13:30:00.000Z,BTCUSDT,BUY,100,1,test row,replay-raw,WIN,1\n')
-  child = spawn(process.execPath, ['src/server.ts'], { cwd: ROOT, env: { ...process.env, MRCASH_PORT: String(port), MRCASH_DATA_DIR: dir, NO_BROWSER: '1', NO_COLOR: '1' }, stdio: ['ignore', 'ignore', 'ignore'] })
-  await waitForHealth()
+  mkdirSync(tmp.dir, { recursive: true })
+  writeFileSync(join(tmp.dir, 'ledger.csv'), 'timestamp,symbol,action,price,quantity,reason,mode,outcome,pnl\n2026-01-15T13:30:00.000Z,BTCUSDT,BUY,100,1,test row,replay-raw,WIN,1\n')
+  feeds = await startMockFeeds()
+  bot = await startBot(feeds, { dir: tmp.dir })
 })
 
-after(() => {
-  child.kill('SIGTERM')
-  rmSync(dir, { recursive: true, force: true })
+after(async () => {
+  bot.stop()
+  await feeds.close()
+  tmp.cleanup()
 })
 
-const ledgerRows = () => readFileSync(join(dir, 'ledger.csv'), 'utf8').trim().split('\n').length - 1
+const get = async (path: string) => fetch(`${bot.base}${path}`)
+const getJson = async <T>(path: string): Promise<T> => (await get(path)).json() as Promise<T>
+const ledgerRows = () => readFileSync(join(tmp.dir, 'ledger.csv'), 'utf8').trim().split('\n').length - 1
+
+test('/ serves the dashboard and /login serves the PIN page', async () => {
+  const home = await get('/')
+  assert.equal(home.status, 200)
+  assert.match(await home.text(), /<title>Mr\. Cash<\/title>/)
+  const login = await get('/login')
+  assert.equal(login.status, 200)
+  assert.match(await login.text(), /Enter the PIN/)
+})
+
+test('static PWA files are served and unknown paths are 404', async () => {
+  assert.equal((await get('/manifest.json')).status, 200)
+  assert.equal((await get('/sw.js')).status, 200)
+  assert.equal((await get('/icon-192.png')).status, 200)
+  assert.equal((await get('/nope')).status, 404)
+})
 
 test('/api/health reports paper mode, the kill switch and a writable data folder', async () => {
-  const r = await (await fetch(`${base}/api/health`)).json() as { ok: boolean; data: { mode: string; stop: { stopped: boolean }; dataDirWritable: boolean; version: string } }
+  const r = await getJson<{ ok: boolean; data: { mode: string; stop: { stopped: boolean }; dataDirWritable: boolean; version: string } }>('/api/health')
   assert.equal(r.ok, true)
   assert.equal(r.data.mode, 'paper')
   assert.equal(r.data.stop.stopped, false)
@@ -53,45 +56,141 @@ test('/api/health reports paper mode, the kill switch and a writable data folder
   assert.match(r.data.version, /^\d+\.\d+\.\d+$/)
 })
 
-test('/api/config hands the page a token', async () => {
-  const cfg = await (await fetch(`${base}/api/config`)).json() as { csrf: string; mode: string }
+test('/api/config hands the page a token and describes the setup', async () => {
+  const cfg = await getJson<{ csrf: string; mode: string; symbol: string; skills: unknown[]; ai: { available: boolean }; journal: { emotions: string[] } }>('/api/config')
   assert.match(cfg.csrf, /^[0-9a-f]{48}$/)
   assert.equal(cfg.mode, 'paper')
+  assert.equal(typeof cfg.symbol, 'string')
+  assert.ok(cfg.skills.length >= 5)
+  assert.equal(cfg.ai.available, false, 'no key in the test environment')
+  assert.ok(cfg.journal.emotions.length > 0)
+})
+
+test('/api/analysis returns candles, an analysis, a brief and the paper account from the stand-in feed', async () => {
+  const r = await getJson<{ ok: boolean; data: { candles: unknown[]; analysis: { signal: { action: string; evidence: unknown[] } } | null; brief: { lines: string[] } | null; paper: { equityUsd: number }; state: unknown } }>('/api/analysis?candles=120')
+  assert.equal(r.ok, true)
+  assert.equal(r.data.candles.length, 120)
+  assert.ok(r.data.analysis, 'ICT analysis present')
+  assert.ok(['BUY', 'SELL', 'HOLD', 'SKIP'].includes(r.data.analysis!.signal.action))
+  assert.ok(r.data.analysis!.signal.evidence.length >= 1)
+  assert.ok(r.data.brief!.lines.length > 5)
+  assert.equal(typeof r.data.paper.equityUsd, 'number')
+})
+
+test('/api/news, /api/flow, /api/state, /api/events, /api/paper, /api/memory answer with the expected shapes', async () => {
+  const news = await getJson<{ ok: boolean; data: { calendar: unknown[]; headlines: unknown[]; upcoming: unknown[] } }>('/api/news')
+  assert.equal(news.ok, true)
+  assert.equal(news.data.calendar.length, 2)
+  assert.equal(news.data.headlines.length, 2)
+  const flow = await getJson<{ ok: boolean; data: { book: { walls: unknown[] } | null; tape: { trades: number } | null } }>('/api/flow?fresh=1')
+  assert.ok(flow.data.book && flow.data.book.walls.length >= 1)
+  assert.equal(flow.data.tape?.trades, 1000)
+  const state = await getJson<{ ok: boolean; data: { trend: string } }>('/api/state')
+  assert.ok(['uptrend', 'downtrend', 'range'].includes(state.data.trend))
+  const events = await getJson<{ ok: boolean; data: { events: unknown[]; latestId: number } }>('/api/events')
+  assert.ok(Array.isArray(events.data.events))
+  const paper = await getJson<{ ok: boolean; data: { startUsd: number; open: unknown[]; closed: unknown[] } }>('/api/paper')
+  assert.equal(paper.data.open.length, 0)
+  const mem = await getJson<{ ok: boolean; data: { rows: unknown[]; lessons: string[] } }>('/api/memory')
+  assert.equal(mem.data.rows.length, 1)
+})
+
+test('/api/doctor runs every check against the stand-in feeds', async () => {
+  const r = await getJson<{ ok: boolean; data: Array<{ name: string; ok: boolean | null }> }>('/api/doctor')
+  const byName = Object.fromEntries(r.data.map((c) => [c.name, c.ok]))
+  assert.equal(byName['Prices'], true)
+  assert.equal(byName['Order book'], true)
+  assert.equal(byName['Trade tape'], true)
+  assert.equal(byName['News: calendar'], true)
+  assert.equal(byName['AI assistant'], null, 'optional, off')
 })
 
 test('a forged cross-origin POST to /api/memory/reset is refused and memory is untouched', async () => {
   assert.equal(ledgerRows(), 1)
-  const r = await fetch(`${base}/api/memory/reset`, { method: 'POST', headers: { origin: 'http://evil.test', 'sec-fetch-site': 'cross-site' } })
-  assert.equal(r.status, 403)
-  assert.equal(ledgerRows(), 1, 'the ledger row is still there')
-})
-
-test('a POST without the token is refused even from localhost', async () => {
-  const r = await fetch(`${base}/api/plan`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ allow: 'none' }) })
-  assert.equal(r.status, 403)
-})
-
-test('the token from another origin is refused', async () => {
-  const cfg = await (await fetch(`${base}/api/config`)).json() as { csrf: string }
-  const r = await fetch(`${base}/api/memory/reset`, { method: 'POST', headers: { 'x-mrcash-csrf': cfg.csrf, origin: 'http://evil.test' } })
+  const r = await fetch(`${bot.base}/api/memory/reset`, { method: 'POST', headers: { origin: 'http://evil.test', 'sec-fetch-site': 'cross-site' } })
   assert.equal(r.status, 403)
   assert.equal(ledgerRows(), 1)
 })
 
-test('the same-origin token is accepted: the kill switch engages and releases over HTTP', async () => {
-  const cfg = await (await fetch(`${base}/api/config`)).json() as { csrf: string }
-  const headers = { 'x-mrcash-csrf': cfg.csrf, origin: base, 'sec-fetch-site': 'same-origin', 'content-type': 'application/json' }
-  const on = await (await fetch(`${base}/api/stop`, { method: 'POST', headers, body: JSON.stringify({ reason: 'http test' }) })).json() as { ok: boolean; data: { stopped: boolean } }
-  assert.equal(on.ok, true)
+test('a POST without the token is refused; the token with a foreign Origin is refused', async () => {
+  const noToken = await fetch(`${bot.base}/api/plan`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ allow: 'none' }) })
+  assert.equal(noToken.status, 403)
+  const foreign = await bot.post('/api/memory/reset', undefined, { origin: 'http://evil.test' })
+  assert.equal(foreign.status, 403)
+  assert.equal(ledgerRows(), 1)
+})
+
+test('the plan can be armed, read back and cleared through the API', async () => {
+  const armed = await (await bot.post('/api/plan', { allow: 'short', riskPerTradePercent: 0.5, maxTrades: 1, notes: 'test' })).json() as { ok: boolean; data: { allow: string; riskPerTradePercent: number; maxTrades: number } }
+  assert.equal(armed.ok, true)
+  assert.equal(armed.data.allow, 'short')
+  assert.equal(armed.data.riskPerTradePercent, 0.5)
+  const cfg = await getJson<{ plan: { allow: string } | null }>('/api/config')
+  assert.equal(cfg.plan?.allow, 'short')
+  const cleared = await (await bot.post('/api/plan/clear')).json() as { ok: boolean }
+  assert.equal(cleared.ok, true)
+  assert.equal((await getJson<{ plan: unknown }>('/api/config')).plan, null)
+})
+
+test('journal entries round-trip through the API', async () => {
+  const created = await (await bot.post('/api/journal', { direction: 'long', entry: 100, stop: 99, exit: 102, session: 'London', emotions: ['calm'], lesson: 'wait for the retest' })).json() as { ok: boolean; data: { id: string; rMultiple: number; outcome: string } }
+  assert.equal(created.ok, true)
+  assert.ok(Math.abs(created.data.rMultiple - 1.8) < 1e-9)
+  assert.equal(created.data.outcome, 'win')
+  const list = await getJson<{ data: { entries: Array<{ id: string }>; stats: { total: number }; review: { oneThing: string } } }>('/api/journal')
+  assert.equal(list.data.entries.length, 1)
+  assert.equal(list.data.stats.total, 1)
+  assert.ok(list.data.review.oneThing.length > 10)
+  const prefill = await getJson<{ ok: boolean; data: { botSnapshot: { decision: string } } }>('/api/journal/prefill')
+  assert.equal(prefill.ok, true)
+  assert.ok(prefill.data.botSnapshot.decision)
+  const goals = await (await bot.post('/api/journal/goals', { goals: [{ id: 'g1', title: 'No trades before London', kind: 'manual', done: false }] })).json() as { data: Array<{ id: string }> }
+  assert.equal(goals.data[0].id, 'g1')
+  const del = await (await bot.post('/api/journal/delete', { id: created.data.id })).json() as { ok: boolean }
+  assert.equal(del.ok, true)
+})
+
+test('/api/scan logs a decision and /api/replay/raw runs on the stand-in candles', async () => {
+  const scan = await getJson<{ ok: boolean; data: { finalAction: string; risk: { reason: string } } }>('/api/scan')
+  assert.equal(scan.ok, true)
+  assert.ok(['BUY', 'SELL', 'HOLD', 'SKIP'].includes(scan.data.finalAction))
+  const replay = await getJson<{ ok: boolean; data: { summary: { totalSetups: number; taken: number; wins: number; losses: number; flat: number }; trades: unknown[]; notes: string[] } }>('/api/replay/raw')
+  assert.equal(replay.ok, true)
+  const s = replay.data.summary
+  assert.equal(s.taken, s.wins + s.losses + s.flat)
+  assert.ok(replay.data.notes.some((n) => /news blackout/i.test(n)), 'the replay says the blackout was not applied')
+})
+
+test('the assistant routes say the assistant is off instead of failing', async () => {
+  const chat = await (await bot.post('/api/chat', { question: 'hi' })).json() as { ok: boolean; error: string }
+  assert.equal(chat.ok, false)
+  assert.match(chat.error, /ANTHROPIC_API_KEY/)
+  const pic = await (await bot.post('/api/picture', { image: 'data:text/plain;base64,AAAA' })).json() as { ok: boolean }
+  assert.equal(pic.ok, false)
+})
+
+test('the kill switch engages and releases over HTTP and shows in health', async () => {
+  const on = await (await bot.post('/api/stop', { reason: 'http test' })).json() as { ok: boolean; data: { stopped: boolean } }
   assert.equal(on.data.stopped, true)
-  const h1 = await (await fetch(`${base}/api/health`)).json() as { data: { stop: { stopped: boolean; reason?: string } } }
-  assert.equal(h1.data.stop.stopped, true)
+  const h1 = await getJson<{ data: { stop: { stopped: boolean; reason?: string } } }>('/api/health')
   assert.equal(h1.data.stop.reason, 'http test')
-  const off = await (await fetch(`${base}/api/resume`, { method: 'POST', headers })).json() as { ok: boolean; data: { stopped: boolean } }
+  const off = await (await bot.post('/api/resume')).json() as { data: { stopped: boolean } }
   assert.equal(off.data.stopped, false)
 })
 
-test('the TradingView webhook still uses its own secret, not the token', async () => {
-  const r = await fetch(`${base}/api/tv-alert`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ secret: 'wrong', event: 'x' }) })
-  assert.equal(r.status, 403)
+test('the TradingView webhook uses its own secret, logs a hit, and raises an event', async () => {
+  const bad = await fetch(`${bot.base}/api/tv-alert`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ secret: 'wrong', event: 'x' }) })
+  assert.equal(bad.status, 403)
+  const cfg = await getJson<{ app: { webhook: { secret: string } } }>('/api/config')
+  const ok = await fetch(`${bot.base}/api/tv-alert`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ secret: cfg.app.webhook.secret, event: 'low swept', symbol: 'BTCUSDT', price: 100 }) })
+  assert.equal(ok.status, 200)
+  const events = await getJson<{ data: { events: Array<{ kind: string }> } }>('/api/events')
+  assert.ok(events.data.events.some((e) => e.kind === 'tradingview'))
+  assert.match(readFileSync(join(tmp.dir, 'tv-alerts.csv'), 'utf8'), /low swept/)
+})
+
+test('memory reset works with the token and empties the ledger', async () => {
+  const r = await (await bot.post('/api/memory/reset')).json() as { ok: boolean }
+  assert.equal(r.ok, true)
+  assert.equal(ledgerRows(), 0)
 })
