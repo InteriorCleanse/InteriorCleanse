@@ -50,6 +50,13 @@ a daily brief, proposes a plan, and only acts within the plan the owner arms.
 - **The AI assistant is boxed in:** it receives the analysis text only, cannot
   call tools, place orders or change settings, and is instructed never to
   claim profitability or give real-money advice.
+- **Fills are simulated, never assumed.** `src/sim/fills.ts` is the only
+  fill model: next-candle-open entries with spread and slippage, stops filled
+  worse than the stop (at the open on a gap), targets only when traded
+  through, taker/maker fees, a drift limit that turns a chased entry into a
+  MISSED one. `src/sim/trades.ts` is the only R/fee/P&L maths. Replay and the
+  paper trader both use them; nothing may fill at the signal price except the
+  `ideal` comparison model, which is labelled as such.
 - **No action unless risk passes.** Every signal goes through `risk.ts`;
   failures become SKIP with a readable reason.
 

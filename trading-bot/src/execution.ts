@@ -24,7 +24,7 @@ function assertPaperOnly(): void {
 export function simulatePaperOrder(signal: Signal, risk: RiskDecision): PaperOrder {
   assertPaperOnly()
   const notionalUsd = risk.quantity * signal.price
-  const feeUsd = notionalUsd * (config.feePercent / 100)
+  const feeUsd = notionalUsd * (config.execution.takerFeePercent / 100)
   return {
     symbol: config.symbol,
     action: risk.finalAction,
@@ -44,9 +44,10 @@ export function describeOrder(order: PaperOrder): string {
     order.stop && order.takeProfit
       ? ` Stop $${order.stop.toFixed(2)}, target $${order.takeProfit.toFixed(2)}.`
       : ''
+  const costBps = config.execution.spreadBps / 2 + config.execution.slippageBps
   return (
-    `PRETEND ORDER: ${order.action} ${order.quantity} ${order.symbol} at ` +
+    `PRETEND ORDER: ${order.action} ${order.quantity} ${order.symbol} near ` +
     `$${order.price.toFixed(2)} — worth $${order.notionalUsd.toFixed(2)}, fee ` +
-    `$${order.feeUsd.toFixed(4)}.${bracket} No real money moved. Nothing was sent anywhere.`
+    `$${order.feeUsd.toFixed(4)}. A real order would fill at the next candle's open, about ${costBps} bp worse.${bracket} No real money moved. Nothing was sent anywhere.`
   )
 }

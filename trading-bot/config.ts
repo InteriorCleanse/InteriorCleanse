@@ -53,6 +53,37 @@ export const config = {
    */
   feePercent: 0.1,
 
+  // ---------- HOW ORDERS REALLY FILL ----------
+
+  /**
+   * The bot no longer pretends an order fills at the exact price it
+   * wanted. These are the costs it charges itself on paper and in the
+   * look-back test, so the numbers stay honest. Set them from what your
+   * exchange actually shows you; the defaults are ordinary for BTC spot.
+   */
+  execution: {
+    /** Full bid/ask spread, in basis points (1 bp = 0.01 %). You pay half on each side. */
+    spreadBps: 1,
+
+    /** How far a market order moves the price against you, in basis points. */
+    slippageBps: 2,
+
+    /** A take-profit only counts as filled when price trades THROUGH it by this much (bp). A touch is not a fill. */
+    targetTouchBps: 1,
+
+    /** Candles between the signal and the order. 1 = enter at the next candle's open (the honest minimum). */
+    latencyCandles: 1,
+
+    /** If the next candle opens further than this from the intended entry (in ATRs), the trade is missed, not chased. */
+    maxEntryDriftAtr: 0.5,
+
+    /** Fee for market orders — entries, stops, time exits — percent per side. */
+    takerFeePercent: 0.1,
+
+    /** Fee for resting limit orders — the take-profit — percent per side. */
+    makerFeePercent: 0.1,
+  },
+
   // ---------- THE ICT SESSION MODEL ----------
 
   ict: {

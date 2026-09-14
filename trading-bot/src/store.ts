@@ -121,8 +121,8 @@ export class Store {
     this.db.prepare('INSERT INTO positions(id, status, opened_at, closed_at, json) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status = excluded.status, closed_at = excluded.closed_at, json = excluded.json')
       .run(pos.id, pos.status, pos.openedAt, pos.closedAt ?? null, JSON.stringify(pos))
   }
-  positions<T>(status: 'open' | 'closed'): T[] {
-    const rows = this.db.prepare(`SELECT json FROM positions WHERE status = ? ORDER BY ${status === 'open' ? 'opened_at' : 'closed_at'}`).all(status) as Array<{ json: string }>
+  positions<T>(status: 'pending' | 'open' | 'closed'): T[] {
+    const rows = this.db.prepare(`SELECT json FROM positions WHERE status = ? ORDER BY ${status === 'closed' ? 'closed_at' : 'opened_at'}`).all(status) as Array<{ json: string }>
     return rows.map((r) => JSON.parse(r.json) as T)
   }
 

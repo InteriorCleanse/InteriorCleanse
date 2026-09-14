@@ -315,7 +315,7 @@ const server = createServer(async (req, res) => {
       json(res, 200, {
         csrf: CSRF_TOKEN, mode: runtimeMode(), stop: stopState(), version: VERSION,
         symbol: config.symbol, interval: config.interval, strategy: config.strategy, accountSizeUsd: config.accountSizeUsd,
-        riskPerTradePercent: config.riskPerTradePercent, feePercent: config.feePercent, ict: config.ict, replay: config.replay, memory: config.memory,
+        riskPerTradePercent: config.riskPerTradePercent, feePercent: config.feePercent, execution: config.execution, ict: config.ict, replay: config.replay, memory: config.memory,
         orderflow: config.orderflow, tradingview: { widgetSymbol: config.tradingview.widgetSymbol },
         memoryEmpty: memoryIsEmpty(), ledgerRows: readLedger().length, lessons: lessonLines(), plan: readPlan(), ai: await aiStatus(),
         app: {
@@ -343,7 +343,9 @@ const server = createServer(async (req, res) => {
     if (path === '/api/replay/raw' || path === '/api/replay/memory') {
       const useMemory = path.endsWith('memory')
       const r = await safely(() => runReplay({ useMemory, writeMemory: !useMemory }))
-      json(res, 200, r.ok ? { ...r, score: useMemory ? scoreSkippedTrades(r.data) : null } : r)
+      // The old optimistic model, run on the same candles, so the cost of honesty is visible.
+      const ideal = r.ok ? await safely(() => runReplay({ useMemory, writeMemory: false, fillModel: 'ideal' })) : null
+      json(res, 200, r.ok ? { ...r, score: useMemory ? scoreSkippedTrades(r.data) : null, ideal: ideal && ideal.ok ? { summary: ideal.data.summary } : null } : r)
       return
     }
     if (path === '/api/news') {

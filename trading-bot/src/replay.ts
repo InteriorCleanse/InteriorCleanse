@@ -9,23 +9,36 @@
  *   memory  — same walk, but memory may refuse setups that lost before.
  *
  * No peeking at the future, no invented candles, no nudged results.
- * Entries happen at the close of the signal candle; exits are judged on
- * the candles after it. If a candle hits both the stop and the target,
- * the bot assumes the stop — the pessimistic reading.
+ * Orders fill the way the simulator in sim/fills.ts says they would:
+ * the entry at the NEXT candle's open plus spread and slippage, stops a
+ * little worse than the stop price, targets only when price trades
+ * through them, fees on both sides. When a candle hits both the stop
+ * and the target, the stop wins. A setup whose next candle opens too far
+ * from the intended price is counted as MISSED, not chased.
+ *
+ * `fillModel: 'ideal'` reproduces the old optimistic model (fill at the
+ * signal close, exits at exact prices) so the two can be compared.
  */
 
 import { config } from '../config.ts'
 import { getCandles, getCandlesSince, INTERVAL_MS } from './market.ts'
 import { IctEngine } from './ictStrategy.ts'
 import { getCrossoverSignal } from './strategy.ts'
-import { checkRisk } from './risk.ts'
+import { checkRisk, sizeForStop } from './risk.ts'
 import { consultMemory, describeKey } from './adaptiveFilter.ts'
 import { addLesson, appendLedgerRow } from './memory.ts'
 import { toET } from './sessions.ts'
+import { defaultAssumptions, IDEAL_ASSUMPTIONS, simulateEntry, exitOnCandle, simulateExit } from './sim/fills.ts'
+import type { ExecutionAssumptions, EntryFill, Intent } from './sim/fills.ts'
+import { tradeMetrics } from './sim/trades.ts'
 import type { Breakdown, Candle, ReplaySummary, ReplayTrade, Signal, TradePlan } from './types.ts'
+
+export type FillModel = 'realistic' | 'ideal'
 
 export type ReplayResult = {
   strategy: 'ict' | 'crossover'
+  fillModel: FillModel
+  assumptions: ExecutionAssumptions
   trades: ReplayTrade[]
   summary: ReplaySummary
   breakdowns: Breakdown[]
@@ -36,13 +49,17 @@ export type ReplayResult = {
   notes: string[]
 }
 
-type Options = { useMemory: boolean; writeMemory: boolean }
+type Options = { useMemory: boolean; writeMemory: boolean; fillModel?: FillModel }
+
+function assumptionsFor(model: FillModel): ExecutionAssumptions {
+  return model === 'ideal' ? IDEAL_ASSUMPTIONS : defaultAssumptions()
+}
 
 // ---------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------
 
-function summarise(trades: ReplayTrade[], totalSetups: number, skipped: number): ReplaySummary {
+function summarise(trades: ReplayTrade[], totalSetups: number, skipped: number, missed: number): ReplaySummary {
   const taken = trades.filter((t) => !t.blockedByMemory)
   const wins = taken.filter((t) => t.outcome === 'WIN').length
   const losses = taken.filter((t) => t.outcome === 'LOSS').length
@@ -75,6 +92,8 @@ function summarise(trades: ReplayTrade[], totalSetups: number, skipped: number):
     totalSetups,
     taken: taken.length,
     skipped,
+    missed,
+    costsUsd: taken.reduce((s, t) => s + t.costsUsd, 0),
     wins,
     losses,
     flat,
@@ -140,47 +159,60 @@ function recordLessons(trades: ReplayTrade[], notes: string[]): void {
 // Trade management (shared)
 // ---------------------------------------------------------------
 
-type OpenTrade = { index: number; signal: Signal; plan: TradePlan; riskUsd: number; quantity: number; session: ReplayTrade['session'] }
+/** A signal waiting for its entry candle, or an entered trade waiting for its exit. */
+type OpenTrade = {
+  signalIndex: number
+  signal: Signal
+  plan: TradePlan
+  intent: Intent
+  session: ReplayTrade['session']
+  fill?: EntryFill
+  quantity: number
+  held: number
+}
 
-/** Given an open trade and the candle after entry, did it end? */
-function manage(open: OpenTrade, candles: Candle[], i: number): ReplayTrade | null {
-  const c = candles[i]
-  const { plan } = open
-  const long = plan.direction === 'long'
-  let exit: { price: number; reason: ReplayTrade['exitReason'] } | null = null
-
-  const hitStop = long ? c.low <= plan.stop : c.high >= plan.stop
-  const hitTarget = long ? c.high >= plan.takeProfit : c.low <= plan.takeProfit
-  if (hitStop) exit = { price: plan.stop, reason: 'stop' } // pessimistic when both hit
-  else if (hitTarget) exit = { price: plan.takeProfit, reason: 'target' }
-  else if (i - open.index >= config.ict.maxHoldCandles) exit = { price: c.close, reason: 'time' }
-  if (!exit) return null
-
-  const dir = long ? 1 : -1
-  const grossPct = ((exit.price - plan.entry) / plan.entry) * 100 * dir
-  const pnlPercent = grossPct - config.feePercent * 2
-  const pnlUsd = (pnlPercent / 100) * open.quantity * plan.entry
-  const stopDistance = Math.abs(plan.entry - plan.stop)
-  const feeR = ((config.feePercent * 2) / 100 * plan.entry) / stopDistance
-  const rMultiple = ((exit.price - plan.entry) * dir) / stopDistance - feeR
-
+function finishTrade(open: OpenTrade, exit: { price: number; time: number; reason: ReplayTrade['exitReason'] }, candles: Candle[], a: ExecutionAssumptions): ReplayTrade {
+  const fill = open.fill!
+  const m = tradeMetrics({ direction: open.plan.direction, fill: fill.price, stop: open.plan.stop, exit: exit.price, exitReason: exit.reason === 'hold-period' ? 'time' : exit.reason, quantity: open.quantity }, a)
+  const slippageUsd = fill.costPerUnit * open.quantity + (exit.reason === 'stop' || exit.reason === 'time' ? Math.abs(exit.price - (exit.reason === 'stop' ? open.plan.stop : exit.price)) * open.quantity : 0)
   return {
-    index: open.index,
-    time: candles[open.index].closeTime,
-    action: long ? 'BUY' : 'SELL',
-    entryPrice: plan.entry,
+    index: open.signalIndex,
+    time: candles[open.signalIndex].closeTime,
+    action: open.plan.direction === 'long' ? 'BUY' : 'SELL',
+    intendedEntry: open.intent.intendedEntry,
+    entryPrice: fill.price,
+    entryTime: fill.time,
     exitPrice: exit.price,
-    exitTime: c.closeTime,
+    exitTime: exit.time,
     exitReason: exit.reason,
-    pnlPercent,
-    pnlUsd,
-    rMultiple,
-    outcome: pnlPercent > 0.001 ? 'WIN' : pnlPercent < -0.001 ? 'LOSS' : 'FLAT',
+    costsUsd: m.feesUsd + slippageUsd,
+    pnlPercent: m.pnlPercent,
+    pnlUsd: m.pnlUsd,
+    rMultiple: m.rMultiple,
+    outcome: m.outcome,
     setupKey: open.signal.setupKey,
     session: open.session,
     quality: open.signal.quality,
-    plan,
+    plan: open.plan,
   }
+}
+
+/** Given a trade and candle `i`: fill it if it is the entry candle, else see whether the trade ends here. */
+function step(open: OpenTrade, candles: Candle[], i: number, a: ExecutionAssumptions): { done: ReplayTrade } | { missed: string } | null {
+  if (!open.fill) {
+    if (i < open.signalIndex + a.latencyCandles) return null
+    const entry = simulateEntry(open.intent, candles, open.signalIndex, a)
+    if (!entry.filled) return { missed: entry.detail }
+    open.fill = entry.fill
+    // Size from the fill, and refuse if the drift ate the reward-to-risk.
+    const sized = sizeForStop(entry.fill.price, open.plan.stop)
+    const risk = checkRisk(open.signal, { entry: entry.fill.price })
+    if (!risk.approved) return { missed: `Filled at $${entry.fill.price.toFixed(2)} but the risk check refused it: ${risk.reason}` }
+    open.quantity = sized.quantity
+  }
+  open.held++
+  const e = exitOnCandle(open.intent, candles[i], open.held, a)
+  return e ? { done: finishTrade(open, e, candles, a) } : null
 }
 
 function ledgerRowFor(t: ReplayTrade, mode: string): void {
@@ -202,6 +234,8 @@ function ledgerRowFor(t: ReplayTrade, mode: string): void {
 // ---------------------------------------------------------------
 
 export async function runIctReplay(opts: Options): Promise<ReplayResult> {
+  const fillModel: FillModel = opts.fillModel ?? 'realistic'
+  const a = assumptionsFor(fillModel)
   const stepMs = INTERVAL_MS[config.interval] ?? 300_000
   const warmupDays = 2
   const start = Date.now() - (config.replay.lookbackDays + warmupDays) * 86_400_000
@@ -213,30 +247,35 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
   const notes: string[] = []
   let totalSetups = 0
   let skipped = 0
+  let missed = 0
   let open: OpenTrade | null = null
   let sawEvidence = false
   const mode = opts.useMemory ? 'replay-memory' : 'replay-raw'
 
   for (let i = 0; i < candles.length; i++) {
-    const a = engine.step(i)
+    const analysis = engine.step(i)
 
     if (open) {
-      const done = manage(open, candles, i)
-      if (done) {
-        trades.push(done)
-        engine.recordTrade(a.dayKey, done.rMultiple)
-        if (opts.writeMemory) ledgerRowFor(done, mode)
+      const r = step(open, candles, i, a)
+      if (r && 'done' in r) {
+        trades.push(r.done)
+        engine.recordTrade(analysis.dayKey, r.done.rMultiple)
+        if (opts.writeMemory) ledgerRowFor(r.done, mode)
+        open = null
+      } else if (r && 'missed' in r) {
+        missed++
         open = null
       }
       continue
     }
     if (candles[i].openTime < testFrom) continue // warm-up only
 
-    const signal = a.signal
+    const signal = analysis.signal
     if (signal.action !== 'BUY' && signal.action !== 'SELL' || !signal.plan) continue
     totalSetups++
     const risk = checkRisk(signal)
     if (!risk.approved) continue
+    const intent: Intent = { direction: signal.plan.direction, intendedEntry: signal.plan.entry, stop: signal.plan.stop, target: signal.plan.takeProfit, atr: analysis.atr }
 
     if (opts.useMemory) {
       const verdict = consultMemory(signal)
@@ -244,10 +283,14 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
       if (verdict.block) {
         skipped++
         // Still measure what WOULD have happened, so we can score the refusal honestly.
-        const ghost: OpenTrade = { index: i, signal, plan: signal.plan, riskUsd: risk.riskUsd, quantity: risk.quantity, session: a.session }
-        let result: ReplayTrade | null = null
-        for (let j = i + 1; j < candles.length && !result; j++) result = manage(ghost, candles, j)
-        if (result) trades.push({ ...result, blockedByMemory: true, blockReason: verdict.reason })
+        const entry = simulateEntry(intent, candles, i, a)
+        if (entry.filled) {
+          const exit = simulateExit(intent, entry.fill, candles, a)
+          if (exit) {
+            const ghost: OpenTrade = { signalIndex: i, signal, plan: signal.plan, intent, session: analysis.session, fill: entry.fill, quantity: sizeForStop(entry.fill.price, signal.plan.stop).quantity, held: exit.candlesHeld }
+            trades.push({ ...finishTrade(ghost, exit, candles, a), blockedByMemory: true, blockReason: verdict.reason })
+          }
+        }
         appendLedgerRow({
           timestamp: new Date(candles[i].closeTime).toISOString(), symbol: config.symbol, action: 'SKIP', price: signal.price, quantity: 0,
           reason: `${signal.setupKey} — ${verdict.reason}`, mode, outcome: 'SKIPPED', pnl: 0,
@@ -255,15 +298,25 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
         continue
       }
     }
-    open = { index: i, signal, plan: signal.plan, riskUsd: risk.riskUsd, quantity: risk.quantity, session: a.session }
+    open = { signalIndex: i, signal, plan: signal.plan, intent, session: analysis.session, quantity: risk.quantity, held: 0 }
+    if (a.latencyCandles <= 0) {
+      // The idealised model fills on the signal candle itself; nothing else happens on that candle.
+      open.fill = { price: signal.plan.entry, time: candles[i].closeTime, index: i, costPerUnit: 0 }
+    }
   }
-  if (open) notes.push('One trade was still open when the data ran out; it is not counted.')
+  if (open) notes.push(open.fill ? 'One trade was still open when the data ran out; it is not counted.' : 'One setup was still waiting for its entry candle when the data ran out; it is not counted.')
 
-  const summary = summarise(trades, totalSetups, skipped)
+  const summary = summarise(trades, totalSetups, skipped, missed)
   if (opts.writeMemory && !opts.useMemory) recordLessons(trades, notes)
   if (opts.useMemory && !sawEvidence) notes.push('Memory had nothing to say about any of these setups, so this run is identical to the raw one. That is correct behaviour — run `npm run replay:raw` first to record real outcomes.')
   if (opts.useMemory && skipped > 0) notes.push(`Memory refused ${skipped} trade(s) the raw strategy would have taken. Each refusal is in data/ledger.csv with its reason.`)
   if (!summary.enoughData) notes.push(`Only ${totalSetups} setup(s) in ${config.replay.lookbackDays} days — fewer than the ${config.replay.minSetupsForConfidence} I'd want before trusting any number here. This model is picky by design; raise lookbackDays in config.ts for a bigger sample.`)
+  if (fillModel === 'realistic') {
+    notes.push(`Fills are simulated honestly: entry at the next candle's open plus ${a.spreadBps / 2 + a.slippageBps} bp, stops ${a.spreadBps / 2 + a.slippageBps} bp worse than the stop, targets only when price trades ${a.targetTouchBps} bp through them, ${a.takerFeePercent}% taker / ${a.makerFeePercent}% maker fees. Costs came to $${summary.costsUsd.toFixed(3)} across ${summary.taken} trade(s).`)
+    if (missed > 0) notes.push(`${missed} setup(s) were missed because the next candle opened more than ${a.maxEntryDriftAtr} ATR from the intended entry. Not chasing is part of the model.`)
+  } else {
+    notes.push('IDEAL fill model: entries at the signal close, exits at exact prices, no spread or slippage. This is the old optimistic model, shown for comparison only.')
+  }
   notes.push('The look-back test has no historical news feed, so the news blackout was not applied. Live scans do apply it.')
 
   const sessionLabel = (s: ReplayTrade['session']) => (s ? config.ict.sessions[s].label : 'outside sessions')
@@ -278,6 +331,8 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
 
   return {
     strategy: 'ict',
+    fillModel,
+    assumptions: a,
     trades,
     summary,
     breakdowns,
@@ -294,6 +349,8 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
 // ---------------------------------------------------------------
 
 export async function runCrossoverReplay(opts: Options): Promise<ReplayResult> {
+  const fillModel: FillModel = opts.fillModel ?? 'realistic'
+  const a = assumptionsFor(fillModel)
   const lookback = Math.min(5000, config.replay.lookbackDays * Math.round(86_400_000 / (INTERVAL_MS[config.interval] ?? 300_000)))
   const candles = await getCandles(config.symbol, config.interval, lookback)
   const trades: ReplayTrade[] = []
@@ -303,21 +360,28 @@ export async function runCrossoverReplay(opts: Options): Promise<ReplayResult> {
   let sawEvidence = false
   const mode = opts.useMemory ? 'replay-memory' : 'replay-raw'
   const hold = config.crossover.holdCandles
+  const lag = Math.max(0, a.latencyCandles)
 
-  for (let i = config.crossover.slowMA; i < candles.length - hold; i++) {
+  for (let i = config.crossover.slowMA; i < candles.length - hold - lag; i++) {
     const signal = getCrossoverSignal(candles, i)
     if (signal.action !== 'BUY' && signal.action !== 'SELL') continue
     totalSetups++
     const risk = checkRisk(signal)
     if (!risk.approved) continue
 
-    const entry = candles[i].close
-    const exit = candles[i + hold].close
     const dir = signal.action === 'BUY' ? 1 : -1
-    const pnlPercent = ((exit - entry) / entry) * 100 * dir - config.feePercent * 2
+    const entryCandle = candles[i + lag]
+    const cost = (p: number) => p * (a.spreadBps / 2 + a.slippageBps) / 10_000
+    const entry = lag > 0 ? entryCandle.open + dir * cost(entryCandle.open) : candles[i].close
+    const exitCandle = candles[i + lag + hold]
+    const exit = lag > 0 ? exitCandle.close - dir * cost(exitCandle.close) : exitCandle.close
+    const feePct = a.takerFeePercent * 2
+    const pnlPercent = ((exit - entry) / entry) * 100 * dir - feePct
+    const notional = risk.quantity * entry
     const trade: ReplayTrade = {
-      index: i, time: candles[i].closeTime, action: signal.action, entryPrice: entry, exitPrice: exit, exitTime: candles[i + hold].closeTime,
-      exitReason: 'hold-period', pnlPercent, pnlUsd: (pnlPercent / 100) * risk.quantity * entry, rMultiple: null,
+      index: i, time: candles[i].closeTime, action: signal.action, intendedEntry: candles[i].close, entryPrice: entry, entryTime: entryCandle.openTime, exitPrice: exit, exitTime: exitCandle.closeTime,
+      exitReason: 'hold-period', costsUsd: (feePct / 100) * notional + (lag > 0 ? (cost(entryCandle.open) + cost(exitCandle.close)) * risk.quantity : 0),
+      pnlPercent, pnlUsd: (pnlPercent / 100) * notional, rMultiple: null,
       outcome: pnlPercent > 0.001 ? 'WIN' : pnlPercent < -0.001 ? 'LOSS' : 'FLAT', setupKey: signal.setupKey, session: null,
     }
 
@@ -335,13 +399,16 @@ export async function runCrossoverReplay(opts: Options): Promise<ReplayResult> {
     if (opts.writeMemory) ledgerRowFor(trade, mode)
   }
 
-  const summary = summarise(trades, totalSetups, skipped)
+  const summary = summarise(trades, totalSetups, skipped, 0)
   if (opts.writeMemory && !opts.useMemory) recordLessons(trades, notes)
   if (opts.useMemory && !sawEvidence) notes.push('Memory had nothing to say about any of these signals, so this run is identical to the raw one. Run `npm run replay:raw` first.')
   if (!summary.enoughData) notes.push(`Only ${totalSetups} signal(s) in this window — treat the numbers as a demonstration, not evidence.`)
+  notes.push(fillModel === 'realistic' ? 'Fills simulated: entry at the next candle open and exit at the close after the hold, each with spread and slippage; taker fees both sides.' : 'IDEAL fill model, for comparison only.')
 
   return {
     strategy: 'crossover',
+    fillModel,
+    assumptions: a,
     trades,
     summary,
     breakdowns: [breakdown('By direction', trades, (t) => (t.action === 'BUY' ? 'Longs' : 'Shorts')), breakdown('By weekday', trades, (t) => toET(t.time).weekdayName)],

@@ -73,11 +73,12 @@ test('the risk module sizes from the stop and never exceeds the caps', () => {
   assert.equal(checkRisk(sig(100, 96, 110)).approved, false, 'stop wider than 3 %')
 })
 
-test('a candle that hits both stop and target counts as a stop (pessimistic)', () => {
-  const pos: PaperPosition = { id: 't', openedAt: 1, dayKey: '', session: '', setupKey: 'T', direction: 'long', entry: 100, stop: 99, target: 102, quantity: 1, riskUsd: 1, quality: 0, reason: '', status: 'open' }
-  const e = evaluateExit(pos, [bothHitCandle()])
+test('a candle that hits both stop and target counts as a stop (pessimistic), filled a little worse than the stop', () => {
+  const t = Date.UTC(2026, 0, 15, 14, 0)
+  const pos: PaperPosition = { id: 't', openedAt: t - 1, dayKey: '', session: '', setupKey: 'T', direction: 'long', intendedEntry: 100, entry: 100, stop: 99, target: 102, quantity: 1, riskUsd: 1, quality: 0, reason: '', atr: 1, status: 'open', filledAt: t }
+  const e = evaluateExit(pos, [bothHitCandle(t)])
   assert.equal(e?.reason, 'stop')
-  assert.equal(e?.exit, 99)
+  assert.ok((e?.exit ?? 100) <= 99)
 })
 
 test('the session clock survives the November fall-back and the day rolls at 18:00 ET', () => {

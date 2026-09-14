@@ -92,11 +92,20 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
   const a = snap.analysis
   const now = Date.now()
 
-  // Babysit open paper positions first — a close today counts toward today's limits.
+  // Babysit paper orders first — a fill, a miss or a close today all matter for today's limits.
   for (const p of managePositions(snap.candles)) {
+    if (p.status === 'open') {
+      eventLog.push('setup', `Paper ${p.direction} FILLED at $${p.entry.toFixed(2)}`,
+        `Wanted $${p.intendedEntry.toFixed(2)}; filled at the next candle's open plus spread and slippage ($${(p.entryCostUsd ?? 0).toFixed(3)} of costs). Size ${p.quantity.toFixed(6)}, risk $${p.riskUsd.toFixed(3)}. Stop $${p.stop.toFixed(0)}, target $${p.target.toFixed(0)}.`, 'action')
+      continue
+    }
+    if (p.exitReason === 'missed') {
+      eventLog.push('info', `Paper ${p.direction} MISSED`, `${p.note ?? 'The entry candle opened too far from the intended price.'} No position was opened.`, 'warn')
+      continue
+    }
     const r = p.rMultiple ?? 0
     eventLog.push('setup', `Paper ${p.direction} closed at ${r >= 0 ? '+' : ''}${r.toFixed(2)}R (${p.exitReason})`,
-      `Entered ${p.entry.toFixed(2)}, out ${p.exit?.toFixed(2)} after ${p.candlesHeld} candle(s). ${r >= 0 ? 'Made' : 'Lost'} $${Math.abs(p.pnlUsd ?? 0).toFixed(3)}. Memory has recorded it; a journal entry is waiting for how you felt.`, r >= 0 ? 'action' : 'warn')
+      `Filled ${p.entry.toFixed(2)}, out ${p.exit?.toFixed(2)} after ${p.candlesHeld} candle(s). ${r >= 0 ? 'Made' : 'Lost'} $${Math.abs(p.pnlUsd ?? 0).toFixed(3)} after $${(p.feesUsd ?? 0).toFixed(3)} of fees. Memory has recorded it; a journal entry is waiting for how you felt.`, r >= 0 ? 'action' : 'warn')
   }
 
   if (a) {
@@ -136,9 +145,9 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
           appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: a.signal.price, quantity: 0, reason: `${a.signal.setupKey} — ${verdict.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
           eventLog.push('info', 'Paper trade refused by memory', verdict.reason, 'warn')
         } else {
-          const pos = openPosition(a.signal, risk, a.session ? sessionLabel(a.session) : '')
-          eventLog.push('setup', `Paper ${pos.direction} OPENED at $${pos.entry.toFixed(0)}`,
-            `Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}, size ${pos.quantity.toFixed(6)} (risk $${pos.riskUsd.toFixed(3)}). Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
+          const pos = openPosition(a.signal, risk, a.session ? sessionLabel(a.session) : '', a.atr)
+          eventLog.push('setup', `Paper ${pos.direction} QUEUED near $${pos.intendedEntry.toFixed(0)}`,
+            `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
         }
       }
     }

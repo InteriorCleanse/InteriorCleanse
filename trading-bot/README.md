@@ -554,9 +554,23 @@ part of trading you fully control.
 ## The honest part: will it make money?
 
 Nobody can promise that, and anyone who does is selling something. What this
-bot *can* do is show you, with real candles and fees taken out, exactly what
-the model would have done over the last month — and it will show you that
-honestly whether the answer is flattering or not.
+bot *can* do is show you, with real candles and real costs, what the model
+would have done over the last month — and it will show you that honestly
+whether the answer is flattering or not.
+
+**How orders fill.** Earlier versions filled every order at the price the
+signal wanted and every exit at the exact stop or target. That was too kind,
+and the Test tab now shows you by how much: the "cost of honesty" table runs
+the old perfect-fill model next to the real one on the same candles. The real
+one enters at the **next candle's open**, pays half the spread and some
+slippage on every market order, fills a stop a little **worse** than the stop
+price (and at the open if the market gaps past it), fills a take-profit only
+when price trades **through** it, charges taker and maker fees separately,
+and gives up on an entry when price has run more than half an ATR away — a
+**missed** trade, not a chased one. The paper trader lives by the same rules:
+a signal queues an order, and the order fills (or is missed) on the next
+candle. Every assumption is a number in `config.ts` under `execution`; set
+them from what your exchange actually shows you.
 
 The ICT session model is popular because the story is real: sessions do set
 ranges, stops do get run, and reversals do leave gaps. Whether the *edge* is

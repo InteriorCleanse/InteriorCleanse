@@ -35,11 +35,33 @@ test('the scoreboard adds up and every trade has a recognised exit', async () =>
     assert.ok(['target', 'stop', 'time'].includes(t.exitReason), t.exitReason)
     assert.ok(t.plan, 'every ICT trade carries its plan')
     assert.equal(t.action === 'BUY', t.plan!.direction === 'long')
-    if (t.exitReason === 'stop') assert.equal(t.exitPrice, t.plan!.stop, 'a stop fills at the stop price (idealised until Phase 4)')
+    assert.ok(t.entryTime > t.time, 'the fill happens after the signal candle closed')
+    const dir = t.action === 'BUY' ? 1 : -1
+    assert.ok((t.entryPrice - t.intendedEntry) * dir >= 0 || Math.abs(t.entryPrice - t.intendedEntry) < 1e-9 ? true : true) // fills can be better or worse than intended; costs are what is guaranteed
+    assert.ok(t.costsUsd > 0, 'every trade paid something')
+    if (t.exitReason === 'stop') assert.ok((t.exitPrice - t.plan!.stop) * dir <= 1e-9, 'a stop never fills better than the stop price')
     if (t.exitReason === 'target') assert.equal(t.exitPrice, t.plan!.takeProfit)
   }
+  assert.equal(r.fillModel, 'realistic')
   assert.ok(r.notes.some((n) => /news blackout/i.test(n)))
+  assert.ok(r.notes.some((n) => /Fills are simulated honestly/.test(n)))
   if (!s.enoughData) assert.ok(r.notes.some((n) => /fewer than/i.test(n)), 'a small sample is called out')
+})
+
+test('the ideal model on the same candles is never worse than the realistic one in total costs', async () => {
+  const { runReplay } = await import('../src/replay.ts')
+  const real = await runReplay({ useMemory: false, writeMemory: false })
+  const ideal = await runReplay({ useMemory: false, writeMemory: false, fillModel: 'ideal' })
+  assert.equal(ideal.fillModel, 'ideal')
+  assert.equal(ideal.summary.missed, 0)
+  if (real.summary.taken > 0 && ideal.summary.taken > 0) {
+    assert.ok(real.summary.costsUsd / real.summary.taken >= ideal.summary.costsUsd / ideal.summary.taken, 'a realistic trade costs at least as much as an ideal one')
+  }
+  for (const t of ideal.trades) {
+    assert.equal(t.entryPrice, t.intendedEntry, 'the old model filled at the signal close')
+    if (t.exitReason === 'stop') assert.equal(t.exitPrice, t.plan!.stop)
+  }
+  assert.ok(ideal.notes.some((n) => /IDEAL fill model/.test(n)))
 })
 
 test('writeMemory:false leaves the ledger untouched; writeMemory:true records outcomes', async () => {

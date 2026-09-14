@@ -54,7 +54,7 @@ function showSettings(): void {
       ['Needs inversion', config.ict.requireInversion ? 'yes' : 'no', 'waits for a gap to flip before entering'],
     )
   }
-  rows.push(['Fees counted', `${config.feePercent}% per side`, 'so results stay realistic'])
+  rows.push(['Fills', `next open +${config.execution.spreadBps / 2 + config.execution.slippageBps} bp, ${config.execution.takerFeePercent}% fees`, 'orders fill the way a real exchange fills them'])
   ui.table(['Setting', 'Value', 'What it means'], rows)
 }
 
@@ -242,8 +242,9 @@ async function commandPaper(): Promise<void> {
   ])
   if (p.open.length) {
     ui.sub('OPEN')
-    ui.table(['Opened', 'Side', 'Entry', 'Stop', 'Target', 'Now'], p.open.map((o) => [ui.formatTime(o.openedAt), o.direction, ui.price(o.entry), ui.price(o.stop), ui.price(o.target), o.unrealized ? ui.r(o.unrealized.rMultiple) : '—']))
+    ui.table(['Queued', 'Side', 'Status', 'Entry', 'Stop', 'Target', 'Now'], p.open.map((o) => [ui.formatTime(o.openedAt), o.direction, o.status === 'pending' ? ui.warn('fills next candle') : 'filled', ui.price(o.entry), ui.price(o.stop), ui.price(o.target), o.status === 'open' && o.unrealized ? ui.r(o.unrealized.rMultiple) : '—']))
   }
+  if (p.missed) console.log(ui.dim(`  ${p.missed} order(s) were missed — price ran away before the next candle opened. Costs so far: ${ui.money(p.costsUsd, 3)}.`))
   if (p.closed.length) {
     ui.sub('RECENT CLOSED')
     ui.table(['Closed', 'Side', 'Exit', 'Result', 'Setup'], p.closed.slice(0, 12).map((c) => [ui.formatTime(c.closedAt ?? 0), c.direction, c.exitReason ?? '', (c.rMultiple ?? 0) >= 0 ? ui.good(ui.r(c.rMultiple ?? 0)) : ui.bad(ui.r(c.rMultiple ?? 0)), c.setupKey.split('|').slice(3).join(' ')]))

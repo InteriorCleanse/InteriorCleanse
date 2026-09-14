@@ -30,6 +30,9 @@ import { assessMarket } from './regime.ts'
 import { computeR, computeStats, buildReview } from './journal.ts'
 import type { JournalEntry } from './journal.ts'
 import { evaluateExit, closeMetrics } from './paperTrader.ts'
+import { simulateEntry, simulateExit, IDEAL_ASSUMPTIONS } from './sim/fills.ts'
+import type { ExecutionAssumptions, EntryFill } from './sim/fills.ts'
+import { tradeMetrics } from './sim/trades.ts'
 import type { PaperPosition } from './paperTrader.ts'
 import type { Candle, Level, Signal } from './types.ts'
 import * as ui from './ui.ts'
@@ -306,30 +309,48 @@ console.log(ui.bold('  Journal'))
   check('an empty journal gets a kind first step, not a lecture', empty.oneThing.toLowerCase().includes('write one entry'))
 }
 
-// --- the paper trader ------------------------------------------------
+// --- the fill simulator and the paper trader --------------------------
 console.log('')
-console.log(ui.bold('  Paper trader'))
+console.log(ui.bold('  Fills and the paper trader'))
 {
-  const pos = (direction: 'long' | 'short', entry: number, stop: number, target: number): PaperPosition => ({
-    id: 't', openedAt: 1000, dayKey: '', session: '', setupKey: 'T', direction, entry, stop, target, quantity: 1, riskUsd: 1, quality: 0, reason: '', status: 'open',
-  })
-  const long = pos('long', 100, 99, 102)
-  const before = mk(0, 100, 100, 100, 100) // before the entry — must be ignored
-  const quiet = mk(2000, 100, 101, 99.5, 100.5)
-  const toTarget = mk(3000, 100.5, 102.5, 100.2, 102)
-  const hit = evaluateExit(long, [before, quiet, toTarget])
-  check('a long exits at the target on the candle that reaches it', hit?.reason === 'target' && hit.exit === 102 && hit.candlesHeld === 2, JSON.stringify(hit))
-  check('candles before the entry are ignored', evaluateExit(long, [mk(0, 100, 103, 97, 100)]) === null)
-  const both = evaluateExit(long, [mk(2000, 100, 102.5, 98.5, 100)])
-  check('when one candle hits both stop and target, the stop wins (pessimistic)', both?.reason === 'stop' && both.exit === 99)
-  const short = evaluateExit(pos('short', 100, 101, 98), [mk(2000, 100, 101.2, 99.8, 100.4)])
-  check('a short is stopped when price trades above its stop', short?.reason === 'stop' && short.exit === 101)
-  const many = Array.from({ length: config.ict.maxHoldCandles + 2 }, (_, i) => mk(2000 + i * STEP, 100, 100.4, 99.6, 100.1))
-  const timed = evaluateExit(long, many)
-  check(`a trade going nowhere is closed by the time stop after ${config.ict.maxHoldCandles} candles`, timed?.reason === 'time' && timed.candlesHeld === config.ict.maxHoldCandles, JSON.stringify(timed))
-  const m = closeMetrics(long, 102)
-  check('a +2R exit is about +1.8R after fees on both sides', Math.abs(m.rMultiple - 1.8) < 1e-9, String(m.rMultiple))
+  const A: ExecutionAssumptions = { spreadBps: 2, slippageBps: 2, targetTouchBps: 1, latencyCandles: 1, maxEntryDriftAtr: 0.5, takerFeePercent: 0.1, makerFeePercent: 0.1 }
+  const intent = { direction: 'long' as const, intendedEntry: 100, stop: 99, target: 102, atr: 1 }
+  const signal = mk(0, 99.5, 100.2, 99.4, 100)
+  const next = mk(STEP, 100.1, 100.6, 99.9, 100.4)
+  const e = simulateEntry(intent, [signal, next], 0, A)
+  check('an entry fills on the NEXT candle at its open plus half-spread and slippage', e.filled && Math.abs(e.fill.price - (100.1 + 100.1 * 0.0003)) < 1e-9 && e.fill.index === 1, JSON.stringify(e))
+  const far = simulateEntry(intent, [signal, mk(STEP, 100.8, 101, 100.7, 100.9)], 0, A)
+  check('an entry is MISSED when the next candle opens more than the drift limit away', !far.filled && far.reason === 'missed')
+  check('with zero latency the idealised model fills at the signal close for free', (() => { const r = simulateEntry(intent, [signal], 0, IDEAL_ASSUMPTIONS); return r.filled && r.fill.price === 100 && r.fill.costPerUnit === 0 })())
+  const fill = (e as { fill: EntryFill }).fill
+  const stopHit = simulateExit(intent, fill, [signal, next, mk(2 * STEP, 100.3, 100.5, 98.9, 99.2)], A)
+  check('a stop fills WORSE than the stop price, never better', stopHit?.reason === 'stop' && stopHit.price < 99 && Math.abs(stopHit.price - (99 - 100.3 * 0.0003)) < 1e-9, JSON.stringify(stopHit))
+  const gap = simulateExit(intent, fill, [signal, next, mk(2 * STEP, 98.5, 98.8, 98.2, 98.6)], A)
+  check('a gap through the stop fills at the open, not at the stop', gap?.reason === 'stop' && gap.price < 98.5, JSON.stringify(gap))
+  const touch = simulateExit(intent, fill, [signal, next, mk(2 * STEP, 100.4, 102.005, 100.3, 101.8)], A)
+  check('a target that is only touched does not fill', touch === null || touch.reason !== 'target')
+  const through = simulateExit(intent, fill, [signal, next, mk(2 * STEP, 100.4, 102.5, 100.3, 101.8)], A)
+  check('a target fills at the target price once price trades through it', through?.reason === 'target' && through.price === 102 && through.candlesHeld === 2, JSON.stringify(through))
+  const both = simulateExit(intent, fill, [signal, mk(STEP, 100.1, 102.5, 98.5, 100)], A)
+  check('when one candle hits both stop and target, the stop wins (pessimistic)', both?.reason === 'stop')
+  const many = [signal, ...Array.from({ length: config.ict.maxHoldCandles + 2 }, (_, i) => mk(STEP + i * STEP, 100, 100.4, 99.6, 100.1))]
+  const timed = simulateExit(intent, fill, many, A)
+  check(`a trade going nowhere is closed by the time stop after ${config.ict.maxHoldCandles} candles, a little worse than the close`, timed?.reason === 'time' && timed.candlesHeld === config.ict.maxHoldCandles && timed.price < 100.1, JSON.stringify(timed))
+
+  const m = tradeMetrics({ direction: 'long', fill: 100, stop: 99, exit: 102, exitReason: 'target', quantity: 1 }, IDEAL_ASSUMPTIONS)
+  check('a +2R exit is about +1.8R after 0.1% fees on both sides', Math.abs(m.rMultiple - 1.8) < 1e-9, String(m.rMultiple))
   check('dollars follow the quantity', Math.abs(m.pnlUsd - (2 - 0.2)) < 1e-9, String(m.pnlUsd))
+  const short = tradeMetrics({ direction: 'short', fill: 100, stop: 101, exit: 98, exitReason: 'target', quantity: 2 }, IDEAL_ASSUMPTIONS)
+  check('a short from 100 to 98 with a 1-point stop is also about +1.8R', Math.abs(short.rMultiple - 1.8) < 1e-9 && short.outcome === 'WIN')
+  const pos = (direction: 'long' | 'short', entry: number, stop: number, target: number): PaperPosition => ({
+    id: 't', openedAt: signal.closeTime, dayKey: '', session: '', setupKey: 'T', direction, intendedEntry: entry, entry, stop, target, quantity: 1, riskUsd: 1, quality: 0, reason: '', atr: 1, status: 'open', filledAt: STEP,
+  })
+  const open = pos('long', 100, 99, 102)
+  const hit = evaluateExit(open, [signal, next, mk(2 * STEP, 100.4, 102.5, 100.3, 101.8)], A)
+  check('an open paper position exits at the target on the candle that trades through it', hit?.reason === 'target' && hit.exit === 102, JSON.stringify(hit))
+  check('candles before the fill are ignored', evaluateExit(open, [mk(0, 100, 103, 97, 100)], A) === null)
+  const cm = closeMetrics(open, 102, 'target', IDEAL_ASSUMPTIONS)
+  check('closing a paper position uses the same maths as the replay', Math.abs(cm.rMultiple - 1.8) < 1e-9)
 }
 
 // --- the safety lock -----------------------------------------------

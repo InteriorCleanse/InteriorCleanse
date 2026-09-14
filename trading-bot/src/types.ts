@@ -203,10 +203,17 @@ export type ReplayTrade = {
   index: number
   time: number
   action: 'BUY' | 'SELL'
+  /** The price the signal wanted. */
+  intendedEntry: number
+  /** The price the simulated order actually filled at (next candle open + costs). */
   entryPrice: number
+  /** When the fill happened. */
+  entryTime: number
   exitPrice: number
   exitTime: number
   exitReason: 'target' | 'stop' | 'time' | 'hold-period'
+  /** Spread, slippage and fees, in dollars, for the whole trade. */
+  costsUsd: number
   /** Profit or loss as a percent of entry, after fees. */
   pnlPercent: number
   pnlUsd: number
@@ -225,6 +232,10 @@ export type ReplaySummary = {
   totalSetups: number
   taken: number
   skipped: number
+  /** Setups the order could not fill: the next candle opened too far from the intended price. */
+  missed: number
+  /** Everything the simulated fills cost, in dollars, across the taken trades. */
+  costsUsd: number
   wins: number
   losses: number
   flat: number

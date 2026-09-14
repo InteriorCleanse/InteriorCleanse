@@ -18,7 +18,18 @@ function skip(reason: string, quantity = 0, positionValueUsd = 0, riskUsd = 0): 
   return { approved: false, finalAction: 'SKIP', reason, quantity, positionValueUsd, riskUsd }
 }
 
-export function checkRisk(signal: Signal): RiskDecision {
+/**
+ * `opts.entry` lets the caller size from the price the order actually
+ * filled at, instead of the signal price. Replay and the paper trader
+ * pass the simulated fill; a scan passes nothing.
+ */
+export function checkRisk(signal: Signal, opts: { entry?: number } = {}): RiskDecision {
+  if (opts.entry !== undefined && signal.plan) {
+    const plan = { ...signal.plan, entry: opts.entry }
+    const risk = Math.abs(plan.entry - plan.stop)
+    plan.rr = risk > 0 ? Math.abs(plan.takeProfit - plan.entry) / risk : 0
+    signal = { ...signal, price: opts.entry, plan }
+  }
   if (signal.action === 'HOLD' || signal.action === 'SKIP') {
     return {
       approved: false,
@@ -65,6 +76,29 @@ function checkFixedSizeRisk(signal: Signal): RiskDecision {
   }
 }
 
+/**
+ * The sizing rule on its own: risk a fixed share of the account per
+ * trade, with the stop deciding the size, capped by position value and
+ * account size. Used at signal time AND again at fill time, because the
+ * fill price is rarely the signal price.
+ */
+export function sizeForStop(entry: number, stop: number): { quantity: number; positionValueUsd: number; riskUsd: number; capped: boolean; wantedRiskUsd: number } {
+  const account = config.accountSizeUsd
+  const wantedRiskUsd = account * (config.riskPerTradePercent / 100)
+  const stopDistance = Math.abs(entry - stop)
+  if (!(stopDistance > 0)) return { quantity: 0, positionValueUsd: 0, riskUsd: 0, capped: false, wantedRiskUsd }
+  let quantity = wantedRiskUsd / stopDistance
+  let positionValueUsd = quantity * entry
+  let capped = false
+  const cap = Math.min(config.maxPositionValueUsd > 0 ? config.maxPositionValueUsd : Infinity, account)
+  if (positionValueUsd > cap) {
+    quantity = cap / entry
+    positionValueUsd = cap
+    capped = true
+  }
+  return { quantity, positionValueUsd, riskUsd: quantity * stopDistance, capped, wantedRiskUsd }
+}
+
 /** ICT trades: size from the stop distance, then check every cap. */
 function checkIctRisk(signal: Signal): RiskDecision {
   const plan = signal.plan!
@@ -87,22 +121,13 @@ function checkIctRisk(signal: Signal): RiskDecision {
     )
   }
 
-  // Size so that hitting the stop costs exactly the wanted risk...
-  let quantity = wantedRiskUsd / stopDistance
-  let positionValueUsd = quantity * plan.entry
-  let note = ''
-
-  // ...unless that position is bigger than the caps allow.
+  // Size so that hitting the stop costs exactly the wanted risk — unless the caps bind.
+  const sized = sizeForStop(plan.entry, plan.stop)
+  const { quantity, positionValueUsd, riskUsd } = sized
   const cap = Math.min(config.maxPositionValueUsd > 0 ? config.maxPositionValueUsd : Infinity, account)
-  if (positionValueUsd > cap) {
-    quantity = cap / plan.entry
-    positionValueUsd = cap
-    const actualRisk = quantity * stopDistance
-    note =
-      ` Note: risking a full ${config.riskPerTradePercent}% ($${wantedRiskUsd.toFixed(2)}) would need a $${(wantedRiskUsd / stopDistance * plan.entry).toFixed(0)} position, but your cap is $${cap.toFixed(2)}, so the position is smaller and the real risk is $${actualRisk.toFixed(3)}. With a small account and no leverage, that's normal.`
-  }
-
-  const riskUsd = quantity * stopDistance
+  const note = sized.capped
+    ? ` Note: risking a full ${config.riskPerTradePercent}% ($${wantedRiskUsd.toFixed(2)}) would need a $${(wantedRiskUsd / stopDistance * plan.entry).toFixed(0)} position, but your cap is $${cap.toFixed(2)}, so the position is smaller and the real risk is $${riskUsd.toFixed(3)}. With a small account and no leverage, that's normal.`
+    : ''
   const rewardUsd = riskUsd * plan.rr
 
   return {
