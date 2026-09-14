@@ -194,3 +194,32 @@ test('memory reset works with the token and empties the ledger', async () => {
   assert.equal(r.ok, true)
   assert.equal(ledgerRows(), 0)
 })
+
+test('/api/system answers "what is the state of my system" and /api/settings round-trips', async () => {
+  const sys = await getJson<{ ok: boolean; data: { mode: string; feeds: { candles: { verdict: string } }; data: { integrity: string; counts: { events: number } }; trading: { tradesToday: number }; summary: string } }>('/api/system')
+  assert.equal(sys.ok, true)
+  assert.equal(sys.data.mode, 'paper')
+  assert.equal(sys.data.data.integrity, 'ok')
+  assert.ok(sys.data.data.counts.events >= 1)
+  assert.ok(['fresh', 'stale', 'never'].includes(sys.data.feeds.candles.verdict))
+  assert.ok(sys.data.summary.length > 10)
+  const set = await (await bot.post('/api/settings', { key: 'watchEveryMinutes', value: 3 })).json() as { ok: boolean; data: { watchEveryMinutes: number } }
+  assert.equal(set.data.watchEveryMinutes, 3)
+  const bad = await bot.post('/api/settings', { key: 'watchEveryMinutes', value: 'x' })
+  assert.equal(bad.status, 400)
+  const reset = await (await bot.post('/api/settings', { key: 'watchEveryMinutes', reset: true })).json() as { data: { watchEveryMinutes: number } }
+  assert.notEqual(reset.data.watchEveryMinutes, 3)
+})
+
+test('after a hard kill and restart, the bell still shows what happened and ids keep climbing', async () => {
+  const before = await getJson<{ data: { events: Array<{ id: number; kind: string }>; latestId: number } }>('/api/events')
+  assert.ok(before.data.events.some((e) => e.kind === 'tradingview'))
+  bot.child.kill('SIGKILL')
+  await new Promise((r) => bot.child.once('exit', r))
+  bot = await startBot(feeds, { dir: tmp.dir })
+  const after_ = await getJson<{ data: { events: Array<{ id: number; kind: string }>; latestId: number } }>('/api/events')
+  assert.ok(after_.data.events.some((e) => e.kind === 'tradingview'), 'the TradingView alert survived the crash')
+  assert.ok(after_.data.latestId >= before.data.latestId, 'ids never restart from 1')
+  const h = await getJson<{ data: { store: string } }>('/api/health')
+  assert.equal(h.data.store, 'ok')
+})

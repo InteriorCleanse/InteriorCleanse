@@ -43,6 +43,11 @@ import { SKILLS, skillById } from './skills.ts'
 import { checkStateChange, PinThrottle } from './guard.ts'
 import { describeMode, runtimeMode } from './mode.ts'
 import { stopState, stop as engageStop, resume as releaseStop } from './killswitch.ts'
+import { systemState } from './systemState.ts'
+import { getSettings, setSetting, resetSetting } from './settings.ts'
+import type { Settings } from './settings.ts'
+import { store } from './store.ts'
+import { VERSION } from './version.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -51,7 +56,6 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = join(HERE, '..', 'web')
 const TV_LOG = join(DATA_DIR, 'tv-alerts.csv')
 const PORT = Number(process.env.MRCASH_PORT) || config.webPort
-const VERSION = (JSON.parse(readFileSync(join(HERE, '..', 'package.json'), 'utf8')) as { version: string }).version
 const STARTED_AT = Date.now()
 
 // Secrets for this run. Printed once at startup, never written to disk.
@@ -268,7 +272,27 @@ const server = createServer(async (req, res) => {
     if (path === '/api/health') {
       let dataDirWritable = true
       try { ensureDataDir(); accessSync(DATA_DIR, constants.W_OK) } catch { dataDirWritable = false }
-      json(res, 200, { ok: true, data: { version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt: watcher.current()?.at ?? null } })
+      json(res, 200, { ok: true, data: { version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: store().integrity(), uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt: watcher.current()?.at ?? null } })
+      return
+    }
+    // "What is the current state of my system?" — one document, from disk and the last watch cycle.
+    if (path === '/api/system') {
+      json(res, 200, { ok: true, data: systemState({ lastWatch: watcher.current(), lastError: watcher.lastError(), startedAt: STARTED_AT }) })
+      return
+    }
+    if (path === '/api/settings' && req.method === 'GET') {
+      json(res, 200, { ok: true, data: getSettings() })
+      return
+    }
+    if (path === '/api/settings' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 4096)) || '{}') as { key?: keyof Settings; value?: unknown; reset?: boolean }
+      try {
+        const key = String(body.key ?? '') as keyof Settings
+        const data = body.reset ? resetSetting(key) : setSetting(key, body.value as never)
+        json(res, 200, { ok: true, data })
+      } catch (err) {
+        json(res, 400, { ok: false, error: err instanceof Error ? err.message : String(err) })
+      }
       return
     }
     if (path === '/api/stop' && req.method === 'POST') {

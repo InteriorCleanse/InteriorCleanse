@@ -2,6 +2,6 @@ node_modules
 .env
 .env.local
 .DS_Store
-data/news-cache.json
-data/plan.json
-data/STOP
+# Runtime data: the store and its readable mirrors. Only the placeholder is tracked.
+data/*
+!data/.gitkeep

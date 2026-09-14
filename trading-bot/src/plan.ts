@@ -6,12 +6,13 @@
  * "armed", every scan checks itself against the plan before acting.
  * That is the collaboration: it thinks, you decide, it obeys.
  *
- * Stored as plain JSON in data/plan.json so you can read or delete it.
+ * Kept in the store and mirrored to data/plan.json so you can read it.
  */
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
+import { existsSync, writeFileSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { DATA_DIR, ensureDataDir } from './memory.ts'
+import { store } from './store.ts'
 
 export const PLAN_PATH = join(DATA_DIR, 'plan.json')
 
@@ -28,20 +29,17 @@ export type DayPlan = {
 }
 
 export function readPlan(): DayPlan | null {
-  if (!existsSync(PLAN_PATH)) return null
-  try {
-    return JSON.parse(readFileSync(PLAN_PATH, 'utf8')) as DayPlan
-  } catch {
-    return null
-  }
+  return store().getJson<DayPlan>('plan')
 }
 
 export function writePlan(plan: DayPlan): void {
+  store().setJson('plan', plan)
   ensureDataDir()
   writeFileSync(PLAN_PATH, JSON.stringify(plan, null, 2) + '\n')
 }
 
 export function clearPlan(): void {
+  store().deleteJson('plan')
   if (existsSync(PLAN_PATH)) unlinkSync(PLAN_PATH)
 }
 

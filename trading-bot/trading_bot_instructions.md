@@ -36,6 +36,10 @@ a daily brief, proposes a plan, and only acts within the plan the owner arms.
   position. The TradingView webhook keeps its own secret instead.
 - **PIN guessing is throttled per device** (`PinThrottle`): ten wrong PINs lock
   that device for fifteen minutes; other devices are unaffected.
+- **One source of truth.** Everything the bot remembers lives in
+  `data/mrcash.db` (SQLite via `node:sqlite`, WAL mode, busy timeout). The
+  CSV/JSON/Markdown files next to it are readable exports, written after
+  every change, never read back. Two processes may write at once.
 - **There is a kill switch.** The file `data/STOP` (via `npm run stop`,
   `npm run resume`, the ⏹ button, or `/api/stop`) prevents any new position,
   paper included, until released. Open paper positions are still managed to

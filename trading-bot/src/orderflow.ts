@@ -14,11 +14,12 @@
  * book and the tape changed through the day.
  */
 
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config, flowSources } from '../config.ts'
 import { fetchMarketJson } from './market.ts'
 import { DATA_DIR, ensureDataDir } from './memory.ts'
+import { store } from './store.ts'
 import type { BigTrade, BookSnapshot, FlowReport, TapeSnapshot, Wall } from './types.ts'
 
 export const FLOW_LOG = join(DATA_DIR, 'orderflow.csv')
@@ -127,10 +128,16 @@ export function describeFlow(book: BookSnapshot | null, tape: TapeSnapshot | nul
 
 export function logFlow(book: BookSnapshot | null, tape: TapeSnapshot | null): void {
   if (!book && !tape) return
+  const now = Date.now()
+  store().appendFlow({
+    time: now, price: book?.price ?? null, bidUsd: book?.bidUsd1pct ?? null, askUsd: book?.askUsd1pct ?? null, imbalance: book?.imbalance ?? null,
+    walls: book ? book.walls.map((w) => `${w.side[0]}${w.price.toFixed(0)}:${w.usd.toFixed(0)}`).join('|') : '',
+    trades: tape?.trades ?? null, tpm: tape?.tradesPerMinute ?? null, buyShare: tape?.buyShare ?? null, deltaUsd: tape?.deltaUsd ?? null, bigBuys: tape?.bigBuys ?? null, bigSells: tape?.bigSells ?? null,
+  })
   ensureDataDir()
   if (!existsSync(FLOW_LOG)) writeFileSync(FLOW_LOG, FLOW_HEADER + '\n')
   const row = [
-    new Date().toISOString(),
+    new Date(now).toISOString(),
     book?.price.toFixed(2) ?? '', book?.bidUsd1pct.toFixed(0) ?? '', book?.askUsd1pct.toFixed(0) ?? '', book?.imbalance.toFixed(3) ?? '',
     book ? book.walls.map((w) => `${w.side[0]}${w.price.toFixed(0)}:${w.usd.toFixed(0)}`).join('|') : '',
     tape?.trades ?? '', tape?.tradesPerMinute.toFixed(1) ?? '', tape?.buyShare.toFixed(3) ?? '', tape?.deltaUsd.toFixed(0) ?? '', tape?.bigBuys ?? '', tape?.bigSells ?? '',
@@ -141,12 +148,7 @@ export function logFlow(book: BookSnapshot | null, tape: TapeSnapshot | null): v
 export type FlowLogRow = { time: number; price: number; imbalance: number; deltaUsd: number; tradesPerMinute: number; bigBuys: number; bigSells: number }
 
 export function readFlowLog(limit = 288): FlowLogRow[] {
-  if (!existsSync(FLOW_LOG)) return []
-  const lines = readFileSync(FLOW_LOG, 'utf8').split('\n').filter((l) => l.trim()).slice(1)
-  return lines.slice(-limit).map((l) => {
-    const f = l.split(',')
-    return { time: new Date(f[0]).getTime(), price: Number(f[1]), imbalance: Number(f[4]), deltaUsd: Number(f[9]), tradesPerMinute: Number(f[7]), bigBuys: Number(f[10]), bigSells: Number(f[11]) }
-  }).filter((r) => Number.isFinite(r.time))
+  return store().flowLog(limit)
 }
 
 /** Reads both feeds, survives either failing, logs what it got. */

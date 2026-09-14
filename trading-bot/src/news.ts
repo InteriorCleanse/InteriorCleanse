@@ -13,13 +13,12 @@
  * up as fresh.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { config, newsSources } from '../config.ts'
-import { DATA_DIR, ensureDataDir } from './memory.ts'
+import { store } from './store.ts'
 import type { CalendarEvent, Headline, NewsReport } from './types.ts'
 
-const CACHE_PATH = join(DATA_DIR, 'news-cache.json')
+/** The store key the last good report is cached under. */
+const CACHE_KEY = 'news-cache'
 
 /** What to look for in a headline, how much it matters, and why. */
 const TOPICS: Array<{ tag: string; weight: number; pattern: RegExp; why: string }> = [
@@ -177,12 +176,7 @@ export function buildReport(
 // ---------------------------------------------------------------
 
 function readCache(): NewsReport | null {
-  if (!existsSync(CACHE_PATH)) return null
-  try {
-    return JSON.parse(readFileSync(CACHE_PATH, 'utf8')) as NewsReport
-  } catch {
-    return null
-  }
+  return store().getJson<NewsReport>(CACHE_KEY)
 }
 
 export async function getNews(force = false): Promise<NewsReport> {
@@ -222,8 +216,7 @@ export async function getNews(force = false): Promise<NewsReport> {
 
   const report = buildReport(calendar, raw, errors)
   try {
-    ensureDataDir()
-    writeFileSync(CACHE_PATH, JSON.stringify(report))
+    store().setJson(CACHE_KEY, report)
   } catch {
     // A cache write failing is not worth stopping for.
   }

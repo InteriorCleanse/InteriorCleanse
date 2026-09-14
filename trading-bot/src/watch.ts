@@ -17,6 +17,7 @@ import { config } from '../config.ts'
 import { analyzeNow } from './bot.ts'
 import type { Snapshot } from './bot.ts'
 import { DATA_DIR, ensureDataDir } from './memory.ts'
+import { store } from './store.ts'
 import { describeSweep } from './liquidity.ts'
 import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
@@ -30,20 +31,29 @@ import * as ui from './ui.ts'
 
 const EVENTS_PATH = join(DATA_DIR, 'events.jsonl')
 
+/**
+ * The bell. Events are numbered by the store, so ids keep climbing across
+ * restarts and the last 300 are back in the bell the moment the app
+ * starts again. Each event is also appended to data/events.jsonl.
+ */
 export class EventLog {
-  readonly events: AppEvent[] = []
+  readonly events: AppEvent[]
   readonly listeners: Array<(e: AppEvent) => void> = []
-  private nextId = 1
+
+  constructor() {
+    this.events = store().recentEvents(300)
+  }
 
   push(kind: AppEvent['kind'], title: string, body: string, severity: AppEvent['severity'] = 'info'): AppEvent {
-    const e: AppEvent = { id: this.nextId++, time: Date.now(), kind, title, body, severity }
+    const base = { time: Date.now(), kind, title, body, severity }
+    const e: AppEvent = { id: store().appendEvent(base), ...base }
     this.events.push(e)
     if (this.events.length > 300) this.events.shift()
     try {
       ensureDataDir()
       appendFileSync(EVENTS_PATH, JSON.stringify(e) + '\n')
     } catch {
-      // Not being able to persist an alert is not worth crashing over.
+      // Not being able to mirror an alert is not worth crashing over.
     }
     for (const l of this.listeners) l(e)
     return e
@@ -63,12 +73,15 @@ export const eventLog = new EventLog()
 export type WatchState = { snap: Snapshot; at: number }
 
 const announced = new Set<string>()
-/** True the first time a key is seen, so the same thing is never announced twice. */
-function once(key: string): boolean {
+/**
+ * True the first time a key is seen — in this process AND in the store, so
+ * a restart does not re-announce the same sweep or setup.
+ */
+export function once(key: string): boolean {
   if (announced.has(key)) return false
   announced.add(key)
   if (announced.size > 5000) announced.clear()
-  return true
+  return store().announceOnce(key)
 }
 
 const fmtUsd = (n: number) => '$' + (Math.abs(n) >= 1_000_000 ? (n / 1_000_000).toFixed(2) + 'M' : (n / 1000).toFixed(0) + 'k')
@@ -154,10 +167,11 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
   return { snap, at: now }
 }
 
-export type Watcher = { stop(): void; current(): WatchState | null }
+export type Watcher = { stop(): void; current(): WatchState | null; lastError(): { time: number; message: string } | null }
 
 export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e: AppEvent) => void): Watcher {
   let state: WatchState | null = null
+  let lastError: { time: number; message: string } | null = null
   let running = false
   if (onEvent) eventLog.listeners.push(onEvent)
 
@@ -166,16 +180,18 @@ export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e:
     running = true
     try {
       state = await watchOnce(state)
+      lastError = null
     } catch (err) {
       const msg = err instanceof MarketDataError ? 'Could not download prices this cycle — will try again next candle.' : err instanceof Error ? err.message : String(err)
-      if (once(`err-${msg}`)) eventLog.push('info', 'Watch skipped a cycle', msg, 'info')
+      lastError = { time: Date.now(), message: msg }
+      if (once(`err-${msg}-${Math.floor(Date.now() / 3_600_000)}`)) eventLog.push('info', 'Watch skipped a cycle', msg, 'info')
     } finally {
       running = false
     }
   }
   void tick()
   const timer = setInterval(() => void tick(), Math.max(1, minutes) * 60_000)
-  return { stop: () => clearInterval(timer), current: () => state }
+  return { stop: () => clearInterval(timer), current: () => state, lastError: () => lastError }
 }
 
 // `npm run watch` — the loop in a terminal, no browser needed.

@@ -29,7 +29,7 @@ import { paperStats } from './paperTrader.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const VERSION = '2.2.0'
+import { VERSION } from './version.ts'
 
 type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (args: Record<string, unknown>) => Promise<string> }
 

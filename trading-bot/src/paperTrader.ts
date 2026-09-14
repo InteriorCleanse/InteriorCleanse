@@ -10,14 +10,15 @@
  *   3. a journal entry is created with what the bot saw, so you only
  *      add how you felt.
  *
- * Nothing here talks to an exchange. A "position" is a record in
- * data/positions.json and a line in data/equity.csv.
+ * Nothing here talks to an exchange. A "position" is a row in the store,
+ * mirrored to data/positions.json and data/equity.csv for reading.
  */
 
-import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs'
+import { existsSync, writeFileSync, appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from '../config.ts'
 import { DATA_DIR, ensureDataDir, appendLedgerRow, readLedger, addLesson } from './memory.ts'
+import { store } from './store.ts'
 import { tradingDayKey } from './sessions.ts'
 import { describeKey } from './adaptiveFilter.ts'
 import { upsertEntry } from './journal.ts'
@@ -52,16 +53,13 @@ export type PaperPosition = {
 type Store = { open: PaperPosition[]; closed: PaperPosition[] }
 
 export function readPositions(): Store {
-  if (!existsSync(POSITIONS_PATH)) return { open: [], closed: [] }
-  try {
-    const s = JSON.parse(readFileSync(POSITIONS_PATH, 'utf8')) as Store
-    return { open: s.open ?? [], closed: s.closed ?? [] }
-  } catch {
-    return { open: [], closed: [] }
-  }
+  return { open: store().positions<PaperPosition>('open'), closed: store().positions<PaperPosition>('closed') }
 }
 
-function writePositions(s: Store): void {
+/** Saves one position to the store and refreshes the readable mirror. */
+function savePosition(pos: PaperPosition): void {
+  store().savePosition(pos)
+  const s = readPositions()
   ensureDataDir()
   writeFileSync(POSITIONS_PATH, JSON.stringify({ open: s.open, closed: s.closed.slice(-500) }, null, 2) + '\n')
 }
@@ -108,7 +106,6 @@ export function unrealized(pos: PaperPosition, price: number): { rMultiple: numb
 
 export function openPosition(signal: Signal, risk: RiskDecision, session: string): PaperPosition {
   const plan = signal.plan as TradePlan
-  const store = readPositions()
   const pos: PaperPosition = {
     id: `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     openedAt: signal.time,
@@ -125,17 +122,14 @@ export function openPosition(signal: Signal, risk: RiskDecision, session: string
     reason: signal.reason,
     status: 'open',
   }
-  store.open.push(pos)
-  writePositions(store)
+  savePosition(pos)
   return pos
 }
 
-function finalize(store: Store, pos: PaperPosition, exit: number, reason: PaperPosition['exitReason'], time: number, candlesHeld: number): PaperPosition {
+function finalize(pos: PaperPosition, exit: number, reason: PaperPosition['exitReason'], time: number, candlesHeld: number): PaperPosition {
   const m = closeMetrics(pos, exit)
   const closed: PaperPosition = { ...pos, status: 'closed', closedAt: time, exit, exitReason: reason, rMultiple: m.rMultiple, pnlUsd: m.pnlUsd, candlesHeld }
-  store.open = store.open.filter((p) => p.id !== pos.id)
-  store.closed.push(closed)
-  writePositions(store)
+  savePosition(closed)
 
   const outcome = m.pnlPercent > 0.001 ? 'WIN' : m.pnlPercent < -0.001 ? 'LOSS' : 'FLAT'
   appendLedgerRow({
@@ -149,9 +143,11 @@ function finalize(store: Store, pos: PaperPosition, exit: number, reason: PaperP
     outcome,
     pnl: Number(m.pnlPercent.toFixed(4)),
   })
+  const eq = equity()
+  store().appendEquity({ timestamp: new Date(time).toISOString(), equity: Number(eq.toFixed(4)), r: Number(m.rMultiple.toFixed(3)), setupKey: pos.setupKey })
   ensureDataDir()
   if (!existsSync(EQUITY_PATH)) writeFileSync(EQUITY_PATH, 'timestamp,equity,rMultiple,setupKey\n')
-  appendFileSync(EQUITY_PATH, `${new Date(time).toISOString()},${equity().toFixed(4)},${m.rMultiple.toFixed(3)},${pos.setupKey}\n`)
+  appendFileSync(EQUITY_PATH, `${new Date(time).toISOString()},${eq.toFixed(4)},${m.rMultiple.toFixed(3)},${pos.setupKey}\n`)
   learnFromLedger(pos.setupKey)
 
   upsertEntry({
@@ -176,21 +172,19 @@ function finalize(store: Store, pos: PaperPosition, exit: number, reason: PaperP
 
 /** Checks every open position against the latest candles. Returns the ones that just closed. */
 export function managePositions(candles: Candle[]): PaperPosition[] {
-  const store = readPositions()
   const closed: PaperPosition[] = []
-  for (const pos of [...store.open]) {
+  for (const pos of readPositions().open) {
     const e = evaluateExit(pos, candles)
-    if (e) closed.push(finalize(store, pos, e.exit, e.reason, e.time, e.candlesHeld))
+    if (e) closed.push(finalize(pos, e.exit, e.reason, e.time, e.candlesHeld))
   }
   return closed
 }
 
 /** You can flatten a paper position by hand from the app. */
 export function closeManually(id: string, price: number): PaperPosition | null {
-  const store = readPositions()
-  const pos = store.open.find((p) => p.id === id)
+  const pos = readPositions().open.find((p) => p.id === id)
   if (!pos) return null
-  return finalize(store, pos, price, 'manual', Date.now(), 0)
+  return finalize(pos, price, 'manual', Date.now(), 0)
 }
 
 // ---------------------------------------------------------------

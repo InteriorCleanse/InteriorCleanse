@@ -498,9 +498,11 @@ Three things stand between you and an accident, and all three are tested
   version has exactly one: **paper**. The names testnet, shadow and live exist
   so future code has one place to ask, but none of them can be reached.
 
-`npm run status` prints the mode, the kill switch, the armed plan and what
-memory holds. The app's `/api/health` answers the same for anything that
-monitors it.
+`npm run status` prints the mode, the kill switch, the store's own
+consistency check, today's limits and what memory holds. While the app is
+running, `/api/system` answers "what is the current state of my system?" in
+one document — including how old the last candle, news reading and
+order-flow reading are, each marked fresh, stale or never.
 
 ## Is this safe?
 
@@ -627,7 +629,8 @@ npm test                # the test suite: guard, kill switch, server routes
 npm run check           # type check + self-test + test suite
 npm run stop            # KILL SWITCH — no new positions until you resume
 npm run resume          # release the kill switch
-npm run status          # mode, kill switch, plan, memory at a glance
+npm run status          # mode, kill switch, store, today's limits at a glance
+npm run migrate         # what the store imported from the old flat files
 npm run tradingview     # TradingView setup steps
 ```
 
@@ -653,7 +656,13 @@ src/
   ai.ts                  the optional assistant (boxed in)
   risk.ts                sizing from the stop; the part that says no
   execution.ts           pretend orders. No network. No exchange. Ever.
-  memory.ts              the two memory files
+  store.ts               the database everything is kept in (SQLite, built into Node)
+  memory.ts              the decision ledger and the lessons, with readable exports
+  settings.ts            the few settings you can change while it runs
+  systemState.ts         "what is the current state of my system?" in one document
+  guard.ts               proof that a request came from the app itself
+  mode.ts                paper / testnet / shadow / live — only paper is reachable
+  killswitch.ts          the big red button (data/STOP)
   adaptiveFilter.ts      decides whether memory should refuse a setup
   replay.ts              the look-back tests
   strategy.ts            the simple crossover strategy
@@ -668,7 +677,23 @@ pine/ict-strategy.pine   TradingView strategy
 pine/strategy.pine       TradingView crossover strategy
 
 data/
-  ledger.csv             every decision. Opens in Excel.
-  learnings.md           lessons, in plain English
-  plan.json              today's armed plan (created when you arm one)
+  mrcash.db              THE source of truth: every decision, lesson, paper
+                         trade, alert, journal entry, goal, plan and setting
+  ledger.csv             every decision — a readable copy. Opens in Excel.
+  learnings.md           lessons, in plain English — a readable copy
+  positions.json         paper positions — a readable copy
+  equity.csv             the paper equity curve — a readable copy
+  events.jsonl           every alert the bell has shown — a readable copy
+  journal.jsonl          your journal — a readable copy
+  goals.json, plan.json  your goals and today's armed plan — readable copies
+  orderflow.csv          order-flow readings — a readable copy
+  STOP                   exists only while the kill switch is on
 ```
+
+The bot reads from `mrcash.db` and writes the readable copies next to it
+after every change. If you had these files before the database existed,
+they were imported once, automatically, the first time the new version
+started (`npm run migrate` shows what came across); the originals were not
+touched. Two copies of the bot — the app and a look-back test, say — can
+write at the same time without corrupting anything, and a crash leaves the
+database in a consistent state.

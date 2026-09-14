@@ -17,6 +17,7 @@ import { probeNews } from './news.ts'
 import { aiStatus, pingAI } from './ai.ts'
 import { DATA_DIR, ensureDataDir, readLedger, lessonLines } from './memory.ts'
 import { readPlan } from './plan.ts'
+import { store, DB_PATH } from './store.ts'
 import * as ui from './ui.ts'
 
 export type Check = { name: string; ok: boolean | null; detail: string; fix?: string }
@@ -40,6 +41,14 @@ export async function runDoctor(): Promise<Check[]> {
     checks.push({ name: 'Data folder', ok: true, detail: DATA_DIR })
   } catch {
     checks.push({ name: 'Data folder', ok: false, detail: DATA_DIR, fix: 'The folder is not writable. Move the bot somewhere you own, like your home folder.' })
+  }
+  try {
+    const s = store()
+    const integrity = s.integrity()
+    const c = s.counts()
+    checks.push({ name: 'Store', ok: integrity === 'ok', detail: `${DB_PATH} — ${integrity}; ${c.ledger} decisions, ${c.positionsOpen + c.positionsClosed} paper positions, ${c.events} events, ${c.journal} journal entries${s.migration() ? `; flat files imported ${s.migration()!.at.slice(0, 10)}` : ''}`, fix: 'The database failed its own consistency check. Stop the bot, copy data/mrcash.db somewhere safe, and run npm run doctor again.' })
+  } catch (err) {
+    checks.push({ name: 'Store', ok: false, detail: err instanceof Error ? err.message : String(err), fix: 'The database could not be opened. Check the data folder is writable and not on a network drive.' })
   }
 
   try {

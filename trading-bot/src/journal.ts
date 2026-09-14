@@ -12,10 +12,11 @@
  * any text editor. Goals live in data/goals.json.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from '../config.ts'
 import { DATA_DIR, ensureDataDir } from './memory.ts'
+import { store } from './store.ts'
 import { toET, tradingDayKey } from './sessions.ts'
 import type { Snapshot } from './bot.ts'
 
@@ -89,18 +90,12 @@ const PROMPTS = [
 // ---------------------------------------------------------------
 
 export function readJournal(): JournalEntry[] {
-  if (!existsSync(JOURNAL_PATH)) return []
-  return readFileSync(JOURNAL_PATH, 'utf8')
-    .split('\n')
-    .filter((l) => l.trim())
-    .map((l) => {
-      try { return JSON.parse(l) as JournalEntry } catch { return null }
-    })
-    .filter((e): e is JournalEntry => !!e)
-    .sort((a, b) => a.tradeTime - b.tradeTime)
+  return store().journalAll<JournalEntry>().sort((a, b) => a.tradeTime - b.tradeTime)
 }
 
+/** Writes the store, then mirrors to data/journal.jsonl so the file stays readable. */
 function writeJournal(entries: JournalEntry[]): void {
+  store().journalReplaceAll(entries)
   ensureDataDir()
   writeFileSync(JOURNAL_PATH, entries.map((e) => JSON.stringify(e)).join('\n') + (entries.length ? '\n' : ''))
 }
@@ -165,18 +160,15 @@ export function deleteEntry(id: string): boolean {
 }
 
 export function readGoals(): Goal[] {
-  if (!existsSync(GOALS_PATH)) return DEFAULT_GOALS
-  try {
-    const g = JSON.parse(readFileSync(GOALS_PATH, 'utf8')) as Goal[]
-    return Array.isArray(g) && g.length ? g : DEFAULT_GOALS
-  } catch {
-    return DEFAULT_GOALS
-  }
+  const g = store().getJson<Goal[]>('goals')
+  return Array.isArray(g) && g.length ? g : DEFAULT_GOALS
 }
 
 export function saveGoals(goals: Goal[]): void {
+  const list = goals.slice(0, 20)
+  store().setJson('goals', list)
   ensureDataDir()
-  writeFileSync(GOALS_PATH, JSON.stringify(goals.slice(0, 20), null, 2) + '\n')
+  writeFileSync(GOALS_PATH, JSON.stringify(list, null, 2) + '\n')
 }
 
 // ---------------------------------------------------------------

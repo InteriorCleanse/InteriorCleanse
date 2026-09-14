@@ -36,6 +36,7 @@
     "stop": "node src/index.ts stop",
     "resume": "node src/index.ts resume",
     "status": "node src/index.ts status",
+    "migrate": "node src/index.ts migrate",
     "tradingview": "node src/tradingview.ts",
     "help": "node src/index.ts help"
   },

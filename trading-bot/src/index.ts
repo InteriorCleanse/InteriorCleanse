@@ -18,6 +18,8 @@ import { clearPlan, readPlan } from './plan.ts'
 import { describeKey } from './adaptiveFilter.ts'
 import { stop, resume, stopState, STOP_PATH } from './killswitch.ts'
 import { describeMode } from './mode.ts'
+import { systemState } from './systemState.ts'
+import { store } from './store.ts'
 import * as ui from './ui.ts'
 
 /** Older versions of Node can't run TypeScript directly. Say so kindly. */
@@ -471,13 +473,31 @@ function commandResume(): void {
 
 function commandStatus(): void {
   ui.heading('SYSTEM STATUS')
-  const s = stopState()
+  const st = systemState({ lastWatch: null, lastError: null, startedAt: Date.now() })
+  const s = st.killSwitch
   ui.table(['', ''], [
+    ['Version', st.version],
     ['Mode', describeMode()],
     ['Kill switch', s.stopped ? ui.warn(`ON since ${s.since} — ${s.reason}`) : ui.good('off — entries allowed')],
-    ['Plan armed', readPlan() ? `${readPlan()!.allow}, ${readPlan()!.riskPerTradePercent}% risk` : 'none'],
-    ['Memory', `${readLedger().length} decisions, ${lessonLines().length} lessons`],
+    ['Store', `${st.data.dbPath} — ${st.data.integrity === 'ok' ? ui.good('ok') : ui.bad(st.data.integrity)}, ${(st.data.dbSizeBytes / 1024).toFixed(0)} KB${st.data.migratedAt ? `, flat files imported ${st.data.migratedAt.slice(0, 10)}` : ''}`],
+    ['Records', `${st.data.counts.ledger} decisions, ${st.data.counts.lessons} lessons, ${st.data.counts.positionsClosed} closed paper trades, ${st.data.counts.journal} journal entries, ${st.data.counts.events} events`],
+    ['Today', `${st.trading.tradesToday} of ${st.trading.maxTradesPerDay} trades, ${st.trading.lossesTodayR.toFixed(1)}R of ${st.trading.dailyLossLimitR}R losses, ${st.trading.openPaperPositions} open paper position(s)`],
+    ['Plan armed', st.trading.plan ? `${st.trading.plan.allow}, ${st.trading.plan.riskPerTradePercent}% risk` : 'none'],
+    ['Settings', Object.keys(st.settingsOverrides).length ? `overrides: ${JSON.stringify(st.settingsOverrides)}` : 'all from config.ts'],
   ])
+  ui.plainEnglish(['Feed freshness is only known while the app is running — the same', 'document with live feed ages is at http://127.0.0.1:4173/api/system.'])
+  ui.blank()
+}
+
+function commandMigrate(): void {
+  ui.heading('IMPORTING THE OLD FILES INTO THE STORE')
+  const s = store()
+  const m = s.migration()
+  if (!m) { console.log('  Nothing to report — the store was created without any flat files to import.'); ui.blank(); return }
+  console.log(`  Imported on ${m.at}:`)
+  for (const [file, n] of Object.entries(m.imported)) console.log(`    ${file.padEnd(18)} ${n} record(s)`)
+  if (m.skipped.length) console.log(ui.dim(`  Not present or empty: ${m.skipped.join(', ')}`))
+  ui.plainEnglish(['The import runs once, the first time the store is created. Your original', 'files were left exactly as they were; the bot now reads from data/mrcash.db', 'and keeps writing the readable copies next to it.'])
   ui.blank()
 }
 
@@ -489,7 +509,8 @@ function commandHelp(): void {
     ['npm start', 'open the dashboard in your browser (easiest)'],
     ['npm run stop', 'KILL SWITCH: open no new positions until you resume'],
     ['npm run resume', 'release the kill switch'],
-    ['npm run status', 'mode, kill switch, plan, memory — at a glance'],
+    ['npm run status', 'mode, kill switch, store, today\'s limits — at a glance'],
+    ['npm run migrate', 'show what the store imported from the old flat files'],
     ['npm run talk', 'chat with the bot: brief, plan, questions, what-ifs'],
     ['npm run brief', "print today's brief — ranges, levels, bias, news, plan"],
     ['npm run news', 'show what is on the calendar and what stands out'],
@@ -543,6 +564,7 @@ async function main(): Promise<void> {
       case 'stop': commandStop(); break
       case 'resume': commandResume(); break
       case 'status': commandStatus(); break
+      case 'migrate': commandMigrate(); break
       default: commandHelp()
     }
   } catch (err) {
