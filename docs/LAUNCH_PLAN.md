@@ -327,6 +327,42 @@ design decision, not a bug, so it has been left alone and written down instead.
 
 ---
 
+## Scroll performance — measured and fixed
+
+The owner reported the site "super laggy when scrolling". Measured on the
+production build with the real posters and clips, Chromium 1440×900, forty
+wheel steps down the homepage:
+
+| Variant | Median frame | Long tasks during the scroll |
+| --- | --- | --- |
+| As shipped | **567 ms** | 91, totalling 55 s of a 57 s scroll |
+| Grain layer removed | 617 ms | 99 — not the cause |
+| Lenis removed (native scroll) | 650 ms | 88 — not the cause |
+| WebGL disabled | **16.7 ms** | 0 |
+| After the fix, normal CPU | **16.7 ms** | 0 |
+| After the fix, 4× CPU throttle | 16.7 ms | 1 (77 ms) |
+
+The cause was the homepage's Three.js scroll gallery: a five-and-a-half-screen
+pinned section rendering procedural stand-in shapes with shadow maps, contact
+shadows, bloom, and a vignette through a post-processing chain at up to 1.75×
+device pixels, every frame, for the whole time the visitor scrolled through it
+— for products that moved to image-based presentation long ago. It is replaced
+by `components/ProductReel.tsx`: the same section, counter, copy, dots, and
+links, with the products' own photographs, CSS transitions, and one passive
+scroll handler that writes a CSS variable. No Three.js chunk loads on the
+homepage any more. The headless measurement exaggerates WebGL cost (no GPU),
+but the direction and the fix hold on real hardware: nothing rasterises per
+frame now.
+
+While here, the grain layer was moved off a live `feTurbulence` filter onto a
+pre-rendered 256px tile stepped by transform (`npm run build:grain`). It was
+not the scroll cost, but a filter re-rasterised twelve times a second per hero
+is work with no reason to exist.
+
+The product 3D viewers on product pages are untouched.
+
+---
+
 ## The assets — landed and measured
 
 Every environment has a photograph and a clip now. Generated 2026-09-10 in

@@ -2933,15 +2933,38 @@ textarea {
 .scene-video[data-ready='true'] { opacity: 1; }
 
 /* ── REALISM LAYER ──────────────────────────────────────────────────
-   Living grain and a vignette, between the footage and the scrim. */
+   Living grain and a vignette, between the footage and the scrim.
+
+   The grain is a pre-rendered tile moved in steps, never a live filter: the
+   SVG feTurbulence version re-rasterised a noise field twelve times a second
+   per hero and cost 65 s of main-thread long tasks in a 67 s scroll. The
+   layer is over-sized by one tile so no step ever exposes an edge, and the
+   eight offsets are odd numbers below 256 so consecutive fields never line up. */
 .scene-grain {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.025;
+  inset: -256px;
+  background: url('/images/grain.png') repeat 0 0 / 256px 256px;
+  opacity: 0.045;
   mix-blend-mode: overlay;
   pointer-events: none;
+  will-change: transform;
+  animation: grain-step 0.64s steps(1, end) infinite;
+}
+
+@keyframes grain-step {
+  0%     { transform: translate3d(0, 0, 0); }
+  12.5%  { transform: translate3d(-97px, 53px, 0); }
+  25%    { transform: translate3d(41px, -131px, 0); }
+  37.5%  { transform: translate3d(-171px, -29px, 0); }
+  50%    { transform: translate3d(113px, 89px, 0); }
+  62.5%  { transform: translate3d(-59px, -197px, 0); }
+  75%    { transform: translate3d(149px, -71px, 0); }
+  87.5%  { transform: translate3d(-23px, 167px, 0); }
+  100%   { transform: translate3d(0, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-grain { animation: none; will-change: auto; }
 }
 
 .scene-vignette {
@@ -4439,3 +4462,54 @@ textarea {
 .related-grid img, .related-empty { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: #111; }
 .related-name { font-size: 14px; }
 .related-price { font-size: 12px; color: var(--taupe); }
+
+/* ── PRODUCT REEL (replaces the WebGL scroll gallery) ─────────────── */
+.reel-stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(70% 60% at 50% 55%, #1b1713 0%, #0e0c0a 55%, #080806 100%);
+  /* --reel-p is -0.5..0.5, the fractional scroll position around the active item. */
+  --reel-p: 0;
+}
+
+.reel-image {
+  position: absolute;
+  inset: 12% 14%;
+  width: 72%;
+  height: 76%;
+  object-fit: contain;
+  opacity: 0;
+  transform: translate3d(calc(var(--reel-p) * -6%), 0, 0) scale(0.92);
+  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+  filter: drop-shadow(0 40px 60px rgba(0, 0, 0, 0.55));
+}
+
+.reel-image[data-active='true'] {
+  opacity: 1;
+  transform: translate3d(calc(var(--reel-p) * -6%), 0, 0) scale(1);
+}
+
+/* Neighbours park just off to their side so the hand-off reads as a slide. */
+.reel-image[data-side='before'] { transform: translate3d(-18%, 0, 0) scale(0.86); }
+.reel-image[data-side='after'] { transform: translate3d(18%, 0, 0) scale(0.86); }
+
+.reel-shadow {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 9%;
+  height: 6%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%);
+  filter: blur(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-image { transition: opacity 0.3s ease; transform: none !important; }
+}
+
+@media (max-width: 767px) {
+  .reel-image { inset: 8%; width: 84%; height: 84%; }
+}
