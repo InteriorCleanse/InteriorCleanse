@@ -98,6 +98,26 @@
   .goal { display:flex; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
   .goal .bar { flex:1; }
   .streak { font-size:26px; font-weight:800; }
+  /* skills */
+  .skills { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .skills button { background:var(--panel2); color:var(--dim); border:1px solid var(--line); border-radius:10px; padding:6px 10px; font-size:12.5px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:flex-start; gap:1px; min-width:110px; }
+  .skills button b { color:var(--text); font-size:13px; } .skills button.on { border-color:var(--blue); background:#12233a; }
+  .mic { background:transparent; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:15px; cursor:pointer; font-family:inherit; }
+  .mic.on { border-color:var(--red); color:var(--red); animation:pulse 1s ease-in-out infinite; } @keyframes pulse { 50% { opacity:.5 } }
+  /* command palette + tour */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; display:flex; align-items:flex-start; justify-content:center; padding:10vh 16px 16px; backdrop-filter:blur(3px); }
+  .palette { width:min(92vw,560px); background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden; }
+  .palette input { width:100%; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; padding:14px 16px; font-size:16px; outline:none; }
+  .palette .items { max-height:50vh; overflow-y:auto; }
+  .palette .item { display:flex; gap:12px; align-items:center; padding:10px 16px; cursor:pointer; font-size:14px; }
+  .palette .item.sel, .palette .item:hover { background:#12233a; }
+  .palette .item .k { margin-left:auto; color:var(--dim); font-size:11.5px; font-family:ui-monospace,monospace; }
+  .palette .item .g { color:var(--dim); font-size:12px; }
+  .tour { width:min(92vw,620px); background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px 26px; box-shadow:0 20px 60px rgba(0,0,0,.6); margin-top:4vh; }
+  .tour h2 { font-size:22px; margin:0 0 6px; text-transform:none; letter-spacing:0; color:var(--text); }
+  .tour .map { display:grid; grid-template-columns:1fr 1fr; gap:6px 18px; margin:14px 0; font-size:14px; }
+  .tour .map div b { color:var(--text); } .tour .map div { color:var(--dim); }
+  @media (max-width:640px){ .tour .map { grid-template-columns:1fr } }
   .bottomnav { display:none; }
   @media (max-width:720px){
     header { padding:8px 12px; padding-top:calc(8px + env(safe-area-inset-top)); flex-wrap:nowrap; overflow:hidden; }
@@ -122,6 +142,8 @@
   <span class="muted" id="market">loading…</span>
   <span class="muted" id="clock"></span>
   <span class="spacer"></span>
+  <button class="hbtn" id="btn-palette" title="Jump anywhere (Ctrl/⌘ K)">⌘K</button>
+  <button class="hbtn" id="btn-voice" title="Mr. Cash speaks alerts and answers aloud">Voice</button>
   <button class="hbtn" id="btn-install" title="Install as an app">Install</button>
   <button class="hbtn" id="btn-notify" title="Get alerts as notifications">Alerts</button>
   <button class="hbtn" id="btn-bell" title="What happened">🔔<span class="n hidden" id="bell-n">0</span></button>
@@ -137,6 +159,7 @@
       <button class="btn ghost" id="btn-scan">Check the market now</button>
       <button class="btn ghost" id="btn-journal-now">Journal this moment</button>
       <button class="btn ghost" id="btn-card">Share card</button>
+      <button class="btn ghost" id="btn-read" title="Mr. Cash reads the brief aloud">🔊 Read it to me</button>
       <span class="muted" id="today-status"></span>
     </div>
     <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market, the news and the order book…</div></div>
@@ -196,9 +219,12 @@
   <section id="tab-ask" class="hidden">
     <div class="card">
       <div id="ai-status" class="muted" style="margin-bottom:10px">…</div>
+      <div class="muted" style="font-size:12px;margin-bottom:6px">Pick a hat — same brain, different focus</div>
+      <div class="skills" id="skills"></div>
       <div class="chips" id="chips"></div>
       <div class="chat" id="chat"></div>
       <div class="row" style="margin:12px 0 0">
+        <button class="mic" id="btn-mic" title="Hold a conversation: press, speak, release">🎙</button>
         <input id="q" placeholder="Ask about today's setup, a level, the plan… or paste a chart screenshot" style="flex:1;min-width:180px">
         <input type="file" id="pic" accept="image/*" class="hidden">
         <button class="btn ghost" id="btn-pic">📷 Picture</button>
@@ -210,6 +236,24 @@
   </section>
 </main>
 <div class="tip" id="tip"></div>
+<div class="overlay hidden" id="palette-wrap"><div class="palette"><input id="palette-q" placeholder="Type to jump anywhere or do anything…  (Esc to close)"><div class="items" id="palette-items"></div></div></div>
+<div class="overlay hidden" id="tour-wrap"><div class="tour">
+  <h2>Welcome. This is Mr. Cash.</h2>
+  <div class="muted">A paper-trading partner that explains everything, prompts you when something matters, and learns as it trades. No real money, ever.</div>
+  <div class="map">
+    <div><b>Today</b> — the brief, the checklist, your plan, the paper account</div>
+    <div><b>Chart</b> — what he sees: sessions, levels, gaps, sweeps</div>
+    <div><b>Flow</b> — where the big orders are</div>
+    <div><b>News</b> — what could move price, and when he'll stand aside</div>
+    <div><b>Journal</b> — your habits, your leaks, your growth</div>
+    <div><b>TradingView</b> — the live chart and your alerts</div>
+    <div><b>Test</b> — the honest look-back over 30 days</div>
+    <div><b>Memory</b> — what he's learned, the track record</div>
+    <div><b>Ask</b> — talk to him; pick a hat; paste a chart; use your voice</div>
+  </div>
+  <div class="muted" style="font-size:13.5px">Three shortcuts worth knowing: <b>⌘K</b> (or Ctrl K) jumps anywhere and runs anything · <b>1–9</b> switch tabs · the <b>🔔</b> is where he taps you on the shoulder.</div>
+  <div class="row" style="margin:16px 0 0"><button class="btn ok" id="tour-ok">Got it</button><button class="btn ghost" id="tour-voice">Turn on his voice</button></div>
+</div></div>
 
 <script>
 const $ = (id) => document.getElementById(id)
@@ -250,7 +294,7 @@ document.addEventListener('keydown', (e) => {
   const i = Number(e.key) - 1
   if (i >= 0 && i < TABS.length) showTab(TABS[i][0])
   if (e.key === 'r') loadToday(true)
-  if (e.key === '?') alert('Keys: 1–9 switch tabs · r refresh · ? this help')
+  if (e.key === '?') openTour()
 })
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false}) + ' NY' }, 1000)
 
@@ -283,6 +327,7 @@ async function pollEvents() {
       const n = Number($('bell-n').textContent || 0) + evs.length
       $('bell-n').textContent = n; $('bell-n').classList.remove('hidden')
       if ('Notification' in window && Notification.permission === 'granted') for (const e of evs) if (e.severity !== 'info') new Notification('Mr. Cash — ' + e.title, { body: e.body.slice(0, 180), icon: '/icon-192.png', tag: 'mrcash-' + e.id })
+      if (voiceOn) { const important = evs.filter(e => e.severity !== 'info'); if (important.length) speak(important.map(e => `${e.title}. ${e.body}`).join(' Next: ').slice(0, 900)) }
       if (evs.some(e => e.kind === 'setup' || e.kind === 'sweep' || e.kind === 'tradingview')) loadToday(false)
     }
   } catch {}
@@ -698,8 +743,15 @@ $('btn-doctor').onclick = async () => {
 
 // ---------- ask + picture ----------
 const CHIPS = ['Why is Mr. Cash holding right now?', 'Are we in an uptrend or a downtrend, and will it continue?', 'Where are the big orders sitting?', 'What is an inversion fair value gap?', 'Should I arm longs only today?', 'Which news today could hurt this plan?']
-$('chips').innerHTML = CHIPS.map(c=>`<button>${esc(c)}</button>`).join('')
-$('chips').querySelectorAll('button').forEach(b => b.onclick = () => { $('q').value = b.textContent; ask() })
+let skill = (()=>{ try { return localStorage.getItem('mrcash-skill') || '' } catch { return '' } })()
+function renderSkills() {
+  if (!cfg) return
+  $('skills').innerHTML = `<button class="${!skill?'on':''}" data-skill=""><b>💬 Mr. Cash</b><span>plain, no hat</span></button>` + cfg.skills.map(s=>`<button class="${skill===s.id?'on':''}" data-skill="${esc(s.id)}"><b>${esc(s.icon)} ${esc(s.name)}</b><span>${esc(s.tagline)}</span></button>`).join('')
+  $('skills').querySelectorAll('button').forEach(b => b.onclick = () => { skill = b.dataset.skill; try { localStorage.setItem('mrcash-skill', skill) } catch {}; renderSkills() })
+  const prompts = skill ? (cfg.skills.find(s=>s.id===skill)||{}).prompts || CHIPS : CHIPS
+  $('chips').innerHTML = prompts.map(c=>`<button>${esc(c)}</button>`).join('')
+  $('chips').querySelectorAll('button').forEach(b => b.onclick = () => { $('q').value = b.textContent; ask() })
+}
 function addMsg(cls, text, img) { const d = document.createElement('div'); d.className = 'msg ' + cls; if (img) { const i = document.createElement('img'); i.src = img; d.appendChild(i) } d.appendChild(document.createTextNode(text)); $('chat').appendChild(d); $('chat').scrollTop = 1e9; return d }
 function ruleAnswer(q) {
   const a = data && data.analysis; const s = q.toLowerCase()
@@ -725,20 +777,100 @@ async function ask(withJournal=false) {
   if (!cfg.ai.available) { const r = ruleAnswer(q); addMsg('bot', r || `I can't answer that without the assistant. ${cfg.ai.reason}`); return }
   setBusy(true); const el = addMsg('bot', '')
   try {
-    const res = await fetch(pic ? '/api/picture' : '/api/chat', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(pic ? {image: pic, question: q} : {question:q, history:chatHistory, journal: withJournal})})
+    const res = await fetch(pic ? '/api/picture' : '/api/chat', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(pic ? {image: pic, question: q} : {question:q, history:chatHistory, journal: withJournal, skill})})
     if ((res.headers.get('content-type')||'').includes('json')) { const j = await res.json(); el.textContent = j.error; setBusy(false); return }
     const reader = res.body.getReader(), dec = new TextDecoder(); let text = ''
     for (;;) { const {done, value} = await reader.read(); if (done) break; text += dec.decode(value, {stream:true}); el.textContent = text.replace(/\n\[\[(META|ERROR):[\s\S]*$/, ''); $('chat').scrollTop = 1e9 }
     const meta = /\[\[META:([\s\S]*)\]\]$/.exec(text), err = /\[\[ERROR:([\s\S]*)\]\]$/.exec(text), answer = text.replace(/\n\[\[(META|ERROR):[\s\S]*$/, '')
     el.textContent = err ? err[1] : answer
-    if (meta) { const m = JSON.parse(meta[1]); const c = document.createElement('span'); c.className='cost'; c.textContent = `${m.model} · $${m.costUsd.toFixed(4)}${m.refused?' · declined':''}`; el.appendChild(c); if (!pic) { chatHistory.push({role:'user',content:q},{role:'assistant',content:answer}); if (chatHistory.length>20) chatHistory.splice(0,2) } }
+    if (meta) { const m = JSON.parse(meta[1]); const c = document.createElement('span'); c.className='cost'; c.textContent = `${m.model}${skill?' · '+skill:''} · $${m.costUsd.toFixed(4)}${m.refused?' · declined':''}`; el.appendChild(c); if (!pic) { chatHistory.push({role:'user',content:q},{role:'assistant',content:answer}); if (chatHistory.length>20) chatHistory.splice(0,2) } }
+    if (!err && voiceOn) speak(answer)
   } catch (e) { el.textContent = 'Could not reach the assistant: ' + e.message }
   setBusy(false)
 }
+
+// ---------- Jarvis: voice out, voice in ----------
+let voiceOn = (()=>{ try { return localStorage.getItem('mrcash-voice') === '1' } catch { return false } })()
+function voiceUI() { $('btn-voice').textContent = voiceOn ? 'Voice on' : 'Voice'; $('btn-voice').style.borderColor = voiceOn ? 'var(--green)' : '' }
+function pickVoice() { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_](US|GB)/i.test(v.lang) && /Daniel|Google UK English Male|Alex|Samantha|Aaron|Microsoft (Guy|Ryan|George)/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || vs[0] }
+function speak(text) {
+  if (!('speechSynthesis' in window) || !text) return
+  speechSynthesis.cancel()
+  const clean = String(text).replace(/[*_#`>]/g, '').replace(/\$([\d,]+)/g, '$1 dollars').replace(/\bR\b/g, 'R').replace(/\s+/g, ' ').trim().slice(0, 1500)
+  const u = new SpeechSynthesisUtterance(clean); const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02; u.pitch = 0.95
+  speechSynthesis.speak(u)
+}
+$('btn-voice').onclick = () => { voiceOn = !voiceOn; try { localStorage.setItem('mrcash-voice', voiceOn ? '1' : '0') } catch {}; voiceUI(); if (voiceOn) speak("Voice on. I'll read alerts and answers out loud. Press the microphone to talk to me.") ; else speechSynthesis.cancel() }
+voiceUI()
+$('btn-read').onclick = () => {
+  if (!data || !data.analysis) return
+  const a = data.analysis, s = data.state, b = data.brief
+  const text = [`${a.weekday}, ${a.etClock} New York time. ${cfg.symbol} is at ${px(a.price)}.`, s ? `Market state: ${s.trend}, strength ${s.strength} out of 100, ${s.continuation.label}.` : '', `Bias ${a.bias.direction}. ${a.bias.reason}`, a.inKillzone ? 'An entry window is open right now.' : a.nextKillzone ? `Next entry window, ${a.nextKillzone.label}, in ${Math.round(a.nextKillzone.startsIn/60000)} minutes.` : '', `Decision: ${data.signal.action}. ${data.signal.reason}`, s && s.watchOuts.length ? `Watch out for: ${s.watchOuts[0]}` : '', `My plan: ${data.plan ? `${data.plan.allow}, ${data.plan.riskPerTradePercent} percent risk, at most ${data.plan.maxTrades} trades.` : b.proposal.proposal}`].filter(Boolean).join(' ')
+  speak(text)
+}
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+let rec = null, listening = false
+$('btn-mic').onclick = () => {
+  if (!SR) { alert('Voice input needs Chrome, Edge or Safari. Firefox does not support it yet — typing still works.'); return }
+  if (listening) { rec && rec.stop(); return }
+  rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.maxAlternatives = 1
+  listening = true; $('btn-mic').classList.add('on'); $('q').placeholder = 'Listening… speak, then pause'
+  let finalText = ''
+  rec.onresult = (e) => { let t = ''; for (const r of e.results) t += r[0].transcript; $('q').value = t; if (e.results[e.results.length-1].isFinal) finalText = t }
+  rec.onerror = (e) => { $('q').placeholder = e.error === 'not-allowed' ? 'Microphone blocked — allow it in the address bar' : 'Could not hear that — try again' }
+  rec.onend = () => { listening = false; $('btn-mic').classList.remove('on'); if (finalText.trim() || $('q').value.trim()) { showTab('ask'); ask() } ; setTimeout(() => $('q').placeholder = "Ask about today's setup, a level, the plan… or paste a chart screenshot", 1500) }
+  try { rec.start() } catch { listening = false; $('btn-mic').classList.remove('on') }
+}
+
+// ---------- command palette ----------
+const ACTIONS = () => [
+  ...TABS.map(([id,label,icon],i) => ({ label:`Go to ${label}`, icon, group:'Navigate', key:String(i+1), run:()=>showTab(id) })),
+  { label:'Refresh the market', icon:'🔄', group:'Do', key:'r', run:()=>{ showTab('today'); loadToday(true) } },
+  { label:'Check the market now (scan and log)', icon:'🧭', group:'Do', run:()=>{ showTab('today'); $('btn-scan').click() } },
+  { label:'Read the brief to me', icon:'🔊', group:'Do', run:()=>{ showTab('today'); $('btn-read').click() } },
+  { label:'Talk to Mr. Cash (microphone)', icon:'🎙', group:'Do', run:()=>{ showTab('ask'); $('btn-mic').click() } },
+  { label:'Journal this moment', icon:'📓', group:'Do', run:()=>{ showTab('journal'); openJournalForm(true) } },
+  { label:'Share card (Instagram)', icon:'🖼', group:'Do', run:()=>shareCard() },
+  { label:'Run the look-back test', icon:'🧪', group:'Do', run:()=>{ showTab('test'); runTest('raw') } },
+  { label:'Run doctor (is everything connected?)', icon:'🩺', group:'Do', run:()=>{ showTab('memory'); $('btn-doctor').click() } },
+  { label:'Sit out today (arm: no trades)', icon:'🛑', group:'Plan', run:async()=>{ await call('/api/plan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({allow:'none'})}); showTab('today'); loadToday(false) } },
+  { label:'Longs only today', icon:'📈', group:'Plan', run:async()=>{ await call('/api/plan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({allow:'long'})}); showTab('today'); loadToday(false) } },
+  { label:'Shorts only today', icon:'📉', group:'Plan', run:async()=>{ await call('/api/plan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({allow:'short'})}); showTab('today'); loadToday(false) } },
+  { label: voiceOn ? 'Turn voice off' : 'Turn voice on', icon:'🗣', group:'Settings', run:()=>$('btn-voice').click() },
+  { label:'Enable notifications', icon:'🔔', group:'Settings', run:()=>$('btn-notify').click() },
+  { label:'Install as an app', icon:'⬇️', group:'Settings', run:()=>$('btn-install').click() },
+  { label:'Show the welcome tour', icon:'👋', group:'Help', key:'?', run:()=>openTour() },
+  ...(cfg ? cfg.skills.map(s => ({ label:`Ask as ${s.name} — ${s.tagline}`, icon:s.icon, group:'Skills', run:()=>{ skill = s.id; try { localStorage.setItem('mrcash-skill', skill) } catch {}; renderSkills(); showTab('ask'); $('q').focus() } })) : []),
+]
+let pal = { items: [], sel: 0 }
+function openPalette() { $('palette-wrap').classList.remove('hidden'); $('palette-q').value = ''; renderPalette(''); $('palette-q').focus() }
+function closePalette() { $('palette-wrap').classList.add('hidden') }
+function renderPalette(q) {
+  const all = ACTIONS(); const words = q.toLowerCase().split(/\s+/).filter(Boolean)
+  pal.items = all.filter(a => words.every(w => (a.label + ' ' + a.group).toLowerCase().includes(w))); pal.sel = 0
+  $('palette-items').innerHTML = pal.items.map((a,i)=>`<div class="item ${i===0?'sel':''}" data-i="${i}"><span>${a.icon}</span><span>${esc(a.label)}</span><span class="g">${esc(a.group)}</span>${a.key?`<span class="k">${esc(a.key)}</span>`:''}</div>`).join('') || '<div class="item muted">Nothing matches.</div>'
+  $('palette-items').querySelectorAll('.item[data-i]').forEach(el => el.onclick = () => { closePalette(); pal.items[Number(el.dataset.i)].run() })
+}
+$('palette-q').addEventListener('input', () => renderPalette($('palette-q').value))
+$('palette-q').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closePalette()
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); pal.sel = (pal.sel + (e.key === 'ArrowDown' ? 1 : -1) + pal.items.length) % Math.max(1, pal.items.length); $('palette-items').querySelectorAll('.item').forEach((el,i)=>el.classList.toggle('sel', i===pal.sel)); $('palette-items').querySelector('.sel')?.scrollIntoView({block:'nearest'}) }
+  if (e.key === 'Enter' && pal.items[pal.sel]) { closePalette(); pal.items[pal.sel].run() }
+})
+$('palette-wrap').addEventListener('click', (e) => { if (e.target === $('palette-wrap')) closePalette() })
+$('btn-palette').onclick = openPalette
+document.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('palette-wrap').classList.contains('hidden') ? openPalette() : closePalette() } if (e.key === 'Escape') { closePalette(); closeTour() } })
+
+// ---------- welcome tour ----------
+function openTour() { $('tour-wrap').classList.remove('hidden') }
+function closeTour() { $('tour-wrap').classList.add('hidden'); try { localStorage.setItem('mrcash-toured', '1') } catch {} }
+$('tour-ok').onclick = closeTour
+$('tour-voice').onclick = () => { closeTour(); if (!voiceOn) $('btn-voice').click() }
+$('tour-wrap').addEventListener('click', (e) => { if (e.target === $('tour-wrap')) closeTour() })
 $('btn-ask').onclick = () => ask(); $('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask() })
 
 // ---------- boot ----------
-loadConfig().then(() => { loadToday(false); pollEvents(); const saved = location.hash.slice(1) || (()=>{ try { return localStorage.getItem('mrcash-tab') } catch { return null } })(); if (saved && TABS.some(t=>t[0]===saved) && saved !== 'today') showTab(saved, false) })
+loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const saved = location.hash.slice(1) || (()=>{ try { return localStorage.getItem('mrcash-tab') } catch { return null } })(); if (saved && TABS.some(t=>t[0]===saved) && saved !== 'today') showTab(saved, false); let toured = false; try { toured = localStorage.getItem('mrcash-toured') === '1' } catch {}; if (!toured) openTour() })
 </script>
 </body>
 </html>

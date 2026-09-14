@@ -104,6 +104,7 @@ export async function askAI(
   history: Anthropic.MessageParam[],
   onText: (delta: string) => void,
   image?: AiImage,
+  skill?: { name: string; system: string } | null,
 ): Promise<AiAnswer> {
   loadEnv()
   const Sdk = await loadSdk()
@@ -129,7 +130,7 @@ export async function askAI(
     output_config: { effort: config.ai.effort },
     system: [
       { type: 'text', text: SYSTEM_RULES, cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: `CONTEXT — the bot's current analysis (this is the only market information you have):\n\n${context}${image ? PICTURE_RULES : ''}` },
+      { type: 'text', text: `CONTEXT — the bot's current analysis (this is the only market information you have):\n\n${context}${image ? PICTURE_RULES : ''}${skill ? `\n\n${skill.system}` : ''}` },
     ],
     messages,
   }

@@ -39,6 +39,7 @@ import { startWatch, eventLog } from './watch.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually } from './paperTrader.ts'
+import { SKILLS, skillById } from './skills.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -168,11 +169,11 @@ function contextFor(snap: Snapshot, withJournal = false): string {
   return parts.join('\n').slice(0, 16_000)
 }
 
-async function streamAnswer(res: ServerResponse, question: string, context: string, history: Anthropic.MessageParam[], image?: AiImage): Promise<void> {
+async function streamAnswer(res: ServerResponse, question: string, context: string, history: Anthropic.MessageParam[], image?: AiImage, skillId?: string): Promise<void> {
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context, history, (t) => res.write(t), image)
+    const answer = await askAI(question, context, history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -262,6 +263,7 @@ const server = createServer(async (req, res) => {
           webhook: local ? { url: `${lan[0] ?? `http://127.0.0.1:${config.webPort}`}/api/tv-alert`, secret: WEBHOOK_SECRET } : null,
         },
         journal: { emotions: EMOTIONS, tags: TAGS },
+        skills: SKILLS.map(({ id, name, icon, tagline, prompts }) => ({ id, name, icon, tagline, prompts })),
       })
       return
     }
@@ -389,10 +391,11 @@ const server = createServer(async (req, res) => {
     if (path === '/api/chat' && req.method === 'POST') {
       const status = await aiStatus()
       if (!status.available) { json(res, 200, { ok: false, error: status.reason }); return }
-      const body = JSON.parse((await readBody(req, 256 * 1024)) || '{}') as { question?: string; history?: Anthropic.MessageParam[]; journal?: boolean }
+      const body = JSON.parse((await readBody(req, 256 * 1024)) || '{}') as { question?: string; history?: Anthropic.MessageParam[]; journal?: boolean; skill?: string }
       const question = String(body.question ?? '').trim().slice(0, 4000)
       if (!question) { json(res, 200, { ok: false, error: 'Ask something first.' }); return }
-      await streamAnswer(res, question, contextFor(await snapshot(), !!body.journal), Array.isArray(body.history) ? body.history.slice(-20) : [])
+      const withJournal = !!body.journal || body.skill === 'coach'
+      await streamAnswer(res, question, contextFor(await snapshot(), withJournal), Array.isArray(body.history) ? body.history.slice(-20) : [], undefined, body.skill)
       return
     }
     if (path === '/api/picture' && req.method === 'POST') {

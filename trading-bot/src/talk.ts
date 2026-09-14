@@ -19,6 +19,8 @@ import { summarizeNews } from './news.ts'
 import { readPlan, writePlan, clearPlan } from './plan.ts'
 import type { DayPlan } from './plan.ts'
 import { aiStatus, askAI, explainAiError } from './ai.ts'
+import { SKILLS, skillById } from './skills.ts'
+import type { Skill } from './skills.ts'
 import { describeSweep } from './liquidity.ts'
 import { ifvgRole } from './fvg.ts'
 import { toET } from './sessions.ts'
@@ -42,6 +44,7 @@ const HELP: Array<[string, string]> = [
   ['state', 'uptrend / downtrend / range and what to watch for'],
   ['flow', 'where the big orders are and what is trading'],
   ['whatif 105000', 'what would it mean if price went to 105,000'],
+  ['skill risk', 'put on a hat: analyst, risk, coach, news, execution, teacher'],
   ['scan', 'take a real decision now and log it'],
   ['refresh', 're-download prices and news'],
   ['quit', 'leave'],
@@ -118,6 +121,7 @@ async function main(): Promise<void> {
   const rl = createInterface({ input: stdin, output: stdout, terminal: stdout.isTTY })
   const history: Anthropic.MessageParam[] = []
   let spentUsd = 0
+  let skill: Skill | null = null
   const goodbye = () => {
     if (spentUsd > 0) console.log(ui.dim(`  Assistant spend this session: $${spentUsd.toFixed(4)}`))
   }
@@ -204,6 +208,15 @@ async function main(): Promise<void> {
       case 'news':
         console.log('  ' + (snap.news ? summarizeNews(snap.news) : 'News not available.').replace(/\n/g, '\n  '))
         break
+      case 'skill': {
+        const s = skillById(arg.toLowerCase())
+        if (!arg) { for (const k of SKILLS) console.log(`  ${k.icon} ${k.id.padEnd(10)} ${k.tagline}`); console.log(ui.dim(`  Current: ${skill ? skill.name : 'none (plain Mr. Cash)'}. "skill off" removes the hat.`)); break }
+        if (arg.toLowerCase() === 'off') { skill = null; console.log('  Hat off. Plain Mr. Cash.'); break }
+        if (!s) { console.log(ui.warn(`  No skill called "${arg}". Try: ${SKILLS.map((k) => k.id).join(', ')}`)); break }
+        skill = s
+        console.log(`  ${s.icon} ${ui.bold(s.name)} — ${s.tagline}. Try: ${ui.dim(s.prompts[0])}`)
+        break
+      }
       case 'state':
         if (!snap.state) { console.log('  No market state available.'); break }
         console.log(`  ${snap.state.trend.toUpperCase()} — strength ${snap.state.strength}/100 — ${snap.state.continuation.label}`)
@@ -251,9 +264,9 @@ async function main(): Promise<void> {
           console.log(ui.dim('  Type "help" to see what I can do without it.'))
           break
         }
-        process.stdout.write(ui.accent('Mr. Cash › '))
+        process.stdout.write(ui.accent(`Mr. Cash${skill ? ` (${skill.name})` : ''} › `))
         try {
-          const answer = await askAI(line, contextFor(snap, plan), history, (t) => process.stdout.write(t))
+          const answer = await askAI(line, contextFor(snap, plan), history, (t) => process.stdout.write(t), undefined, skill)
           process.stdout.write('\n')
           if (answer.refused) console.log(ui.warn('  (The assistant declined to answer that one.)'))
           history.push({ role: 'user', content: line }, { role: 'assistant', content: answer.text })

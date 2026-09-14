@@ -237,6 +237,44 @@ or run the doctor — and can arm today's plan. Nine tools, all read-only
 except `arm_plan`, none of which can place an order. Zero dependencies: Mr.
 Cash speaks the protocol itself.
 
+### Jarvis mode — his voice, and yours
+
+Click **Voice** in the header and Mr. Cash speaks: alerts as they arrive
+("London low swept — watching for displacement up"), answers in the Ask tab,
+and **Read it to me** on Today reads the whole brief aloud. Press the **🎙**
+in the Ask tab, ask out loud, and he answers out loud. Uses the browser's own
+speech engines — free, nothing installed, nothing uploaded. (Voice input
+needs Chrome, Edge or Safari; Firefox can still speak but not listen.)
+
+### Skills — the hats he wears
+
+In the Ask tab (or `skill risk` in `npm run talk`), pick a hat:
+
+| Skill | What changes |
+| --- | --- |
+| 🔍 **Analyst** | Reads the market in order: state → levels → sweeps → gaps → flow → what has to happen for a trade |
+| 🛡 **Risk Manager** | Every answer includes size from the stop, worst case in $ and R, limits used, and a yes/no under the plan |
+| 🧭 **Coach** | Works from your journal; separates process from outcome; names one habit |
+| 📰 **News Desk** | Ranks the calendar and headlines; says when he'll stand aside |
+| 🎯 **Execution** | Turns a setup into a numbered plan: enter, abort, manage, journal |
+| 🎓 **Teacher** | One concept at a time, with an example from today |
+
+Same brain, same rules, same context; each skill just changes what he pays
+attention to. None can place an order.
+
+The repo also ships **Claude Code skills** in `trading-bot/.claude/skills/`
+— `/mr-cash-brief`, `/mr-cash-trade-review`, `/mr-cash-journal-coach`,
+`/mr-cash-tune`, `/mr-cash-chart-read` — so when you open this folder in
+Claude Code, Claude already knows how to run and reason about Mr. Cash.
+
+### Navigation — ⌘K
+
+Press **⌘K** (Ctrl K on Windows) anywhere: type a few letters to jump to any
+tab or run any action — refresh, scan, read the brief aloud, talk, journal,
+share card, run the test, doctor, arm "longs only" / "sit out", switch skill,
+turn voice on. **1–9** switch tabs, **r** refreshes, **?** brings back the
+welcome tour.
+
 ### The share card
 
 **Share card** on the Today tab renders today's brief as a 1080×1350 image —
