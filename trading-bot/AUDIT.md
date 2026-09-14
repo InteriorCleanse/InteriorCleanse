@@ -289,6 +289,46 @@ In the order that reduces risk fastest:
 
 ---
 
+## Readiness against the 16-phase roadmap
+
+Mapped from the code, not from the docs. "Available" means the code already produces it from real data; "not available" means the current data pipeline cannot produce it honestly and it must not be approximated from candles.
+
+| Phase | What exists today | What is missing | Hard blockers |
+| --- | --- | --- | --- |
+| 3 Foundation | Explicit error paths for data failures; PIN gate; paper-only lock; self-test | Tests for server/replay/persistence, CI, origin check, per-client throttle, file locking, event persistence across restarts, logging levels, runtime settings | None — all buildable now |
+| 4 Market data | See tiers below | Streaming (WebSocket), a normalisation layer that stamps every reading with source, age and completeness, a feature engine separate from the strategy | Continuous trade stream needed for the order-flow tier |
+| 5 Intelligence | Swings, structure shifts (unlabelled), EQH/EQL, session levels, sweeps, delta/tape speed/big trades/imbalance from snapshots, a 7-vote regime | VWAP, volume profile, BOS/CHoCH labels, cumulative delta, absorption, footprint, breakout/transition regime states | Footprint and absorption need per-trade data at the price level, continuously |
+| 6 Strategy engine | One engine, one story, evidence-list contract | Registry, per-strategy signals, signal fusion with a confidence score | None |
+| 7 Risk engine | Per-trade risk, position cap, 3 % max stop, min RR, daily trade/loss limits, plan veto, news blackout | Max exposure/correlation/leverage, drawdown cap, stale-data protection, spread protection, execution protection, emergency shutdown, a kill switch | None — but it must exist before Phase 15 |
+| 8 Backtester | 30-day replay with fees, pessimistic both-hit, R metrics, breakdowns | Spread, slippage, latency, next-open fills, partial fills, per-strategy runs on the same data, long histories (needs paging beyond 200 pages or local candle storage) | None |
+| 9 Walk-forward | Nothing | Train/validate/out-of-sample splits, walk-forward, Monte-Carlo, a research log | Needs a local candle store (months of 5m data) |
+| 10 AI copilot | Assistant with market context, skills, vision, streaming | The structured "market read / confirms / invalidates / decision / why not yet" format is not enforced; the assistant cannot read live feature values beyond the brief text | None |
+| 11 UI | Working 9-tab dashboard, PWA, voice, palette | Command-center layout, modular code, chart interactivity, structure/OB annotations | None |
+| 12 Replay player | Replay engine runs candle by candle already (`IctEngine.step`) | A UI that steps through it with the evidence list at each candle | None — the engine design makes this cheap |
+| 13 Paper trade | 24/7 paper trader with ledger, equity, lessons, journal | Records of hypothetical fills vs actual spread, slippage, missed/false signals, latency | Needs the market-data layer (Phase 4) for real spreads |
+| 14 Shadow mode | Nothing distinct from paper | A mode that logs the exact order it *would* send, with the exchange's actual book at that moment | Needs the exchange adapter (read-only) |
+| 15 Live | Nothing; no exchange write path | Exchange adapter, OCO, reconciliation, gates, kill switch, doctor checks | Everything above |
+| 16 Improvement loop | Memory + lessons + "was refusing worth it" | Per-strategy performance tracking, a research engine | None |
+
+**Data tiers (Phase 4), as the code stands:**
+
+| Tier | Item | Available from real data today? | How |
+| --- | --- | --- | --- |
+| Basic | OHLC, volume | Yes | REST klines |
+| Basic | Trades | Yes, last ~1000 aggregated trades per poll | REST aggTrades |
+| Better | Bid, ask, spread | Yes, as a snapshot every poll | REST depth (best levels) |
+| Better | Trade size | Yes | aggTrades quantity × price |
+| Advanced | Level 2 / order book / depth / bid-ask volume | Partly — aggregated price levels up to 5000 per side, snapshot only, no deltas | REST depth |
+| Advanced | Individual trades | No — aggTrades merges fills at the same price/time | Would need the raw `trades` stream |
+| Order flow | Delta, imbalance, tape speed, large trades | Yes, over the polled window only | computed in `orderflow.ts` from aggTrades and depth |
+| Order flow | Cumulative delta | **No** — gaps between polls make it wrong | needs a continuous WebSocket trade stream |
+| Order flow | Footprint | **No** | needs per-trade data bucketed by price and candle, continuously |
+| Order flow | Absorption | **No** | needs footprint + book deltas |
+
+Nothing in the current code fakes the bottom rows from candles. The risk is that a future change does; the normalisation layer in Phase 4 should carry an explicit `available: false` for them until a streaming source exists.
+
+---
+
 ## Verification log
 
 | Check | Result |
