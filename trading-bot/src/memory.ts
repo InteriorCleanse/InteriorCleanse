@@ -13,12 +13,13 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { LedgerRow } from './types.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-export const DATA_DIR = join(HERE, '..', 'data')
+/** Where every data file lives. Tests point this somewhere temporary with MRCASH_DATA_DIR. */
+export const DATA_DIR = process.env.MRCASH_DATA_DIR ? resolve(process.env.MRCASH_DATA_DIR) : join(HERE, '..', 'data')
 export const LEDGER_PATH = join(DATA_DIR, 'ledger.csv')
 export const LEARNINGS_PATH = join(DATA_DIR, 'learnings.md')
 

@@ -1,6 +1,6 @@
 {
   "name": "mr-cash",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "private": true,
   "type": "module",
   "description": "Mr. Cash — a paper-trading bot built on the ICT session model that explains every decision and learns from its own mistakes. No real money, ever.",
@@ -30,6 +30,11 @@
     "memory:reset": "node src/index.ts memory:reset",
     "plan:clear": "node src/index.ts plan:clear",
     "selftest": "node src/selftest.ts",
+    "test": "node --test test/*.test.ts",
+    "check": "npx tsc --noEmit -p . && node src/selftest.ts && node --test test/*.test.ts",
+    "stop": "node src/index.ts stop",
+    "resume": "node src/index.ts resume",
+    "status": "node src/index.ts status",
     "tradingview": "node src/tradingview.ts",
     "help": "node src/index.ts help"
   },

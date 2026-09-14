@@ -22,6 +22,7 @@
   .safe { color:var(--green); font-size:11.5px; font-weight:700; border:1px solid var(--green); border-radius:999px; padding:3px 10px; white-space:nowrap; }
   .hbtn { background:transparent; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; cursor:pointer; font-family:inherit; position:relative; }
   .hbtn .n { position:absolute; top:-7px; right:-7px; background:var(--red); color:#fff; border-radius:999px; font-size:10.5px; padding:1px 6px; font-weight:700; }
+  .hbtn.stopbtn { border-color:var(--red); color:var(--red); font-weight:700; }
   .spacer { flex:1; }
   nav { display:flex; gap:2px; padding:6px 10px 0; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:53px; z-index:19; overflow-x:auto; scrollbar-width:none; }
   nav::-webkit-scrollbar { display:none; }
@@ -147,6 +148,7 @@
   <button class="hbtn" id="btn-install" title="Install as an app">Install</button>
   <button class="hbtn" id="btn-notify" title="Get alerts as notifications">Alerts</button>
   <button class="hbtn" id="btn-bell" title="What happened">🔔<span class="n hidden" id="bell-n">0</span></button>
+  <button class="hbtn stopbtn hidden" id="btn-stopped" title="Kill switch is on — no new positions. Click to release.">⏹ STOPPED</button>
   <span class="safe">PAPER · no real money</span>
 </header>
 <nav id="tabs"></nav>
@@ -160,6 +162,7 @@
       <button class="btn ghost" id="btn-journal-now">Journal this moment</button>
       <button class="btn ghost" id="btn-card">Share card</button>
       <button class="btn ghost" id="btn-read" title="Mr. Cash reads the brief aloud">🔊 Read it to me</button>
+      <button class="btn danger" id="btn-kill" title="Kill switch: no new positions until you resume">⏹ Stop</button>
       <span class="muted" id="today-status"></span>
     </div>
     <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market, the news and the order book…</div></div>
@@ -269,7 +272,10 @@ const when = (ms) => new Date(ms).toLocaleString(undefined, {month:'short',day:'
 const et = (ms) => new Date(ms).toLocaleString('en-US', {timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}) + ' ET'
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
 const setBusy = (b) => { busy = b; document.querySelectorAll('button.btn').forEach(x => x.disabled = b) }
-async function call(path, opts) { const r = await fetch(path, opts); if (r.status === 401) { location.href = '/login'; throw new Error('PIN required') } return r.json() }
+// Every state-changing request carries the token the server handed this page, so a
+// forged request from another site is refused (see src/guard.ts).
+function withToken(opts) { if (!opts || opts.method !== 'POST') return opts; return { ...opts, headers: { ...(opts.headers || {}), 'x-mrcash-csrf': cfg ? cfg.csrf : '' } } }
+async function call(path, opts) { const r = await fetch(path, withToken(opts)); if (r.status === 401) { location.href = '/login'; throw new Error('PIN required') } return r.json() }
 const errBox = (e) => `<div class="card"><h2>Stopped</h2><div class="err">${esc(e)}</div></div>`
 
 // ---------- navigation ----------
@@ -345,10 +351,27 @@ setInterval(pollEvents, 30000)
 async function loadConfig() {
   cfg = await call('/api/config')
   $('market').textContent = `${cfg.symbol} · ${cfg.interval}`
+  renderStop()
   const lb = $('lb-days'); if (lb) lb.textContent = cfg.replay.lookbackDays
   const ai = cfg.ai
   $('ai-status').innerHTML = ai.available ? `Mr. Cash is ready to talk: <code>${esc(ai.model)}</code>. Each answer shows what it cost.` : `The assistant is off — ${esc(ai.reason)}<div class="warnbox">Typed questions still get a short rule-based answer where I can manage one.</div>`
 }
+
+// ---------- kill switch ----------
+function renderStop() {
+  const on = !!(cfg && cfg.stop && cfg.stop.stopped)
+  $('btn-stopped').classList.toggle('hidden', !on)
+  $('btn-kill').textContent = on ? '▶ Resume' : '⏹ Stop'
+  $('btn-kill').title = on ? `Kill switch on since ${cfg.stop.since} (${cfg.stop.reason}). Click to allow entries again.` : 'Kill switch: no new positions until you resume'
+}
+async function toggleStop() {
+  const on = !!(cfg && cfg.stop && cfg.stop.stopped)
+  if (!on && !confirm('Engage the kill switch?\n\nMr. Cash will open NO new positions (paper included) until you resume. Open paper positions are still managed to their stop or target.')) return
+  await call(on ? '/api/resume' : '/api/stop', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({reason:'stopped from the app'})})
+  await loadConfig()
+}
+$('btn-kill').onclick = toggleStop
+$('btn-stopped').onclick = toggleStop
 
 // ---------- today ----------
 function evidenceList(ev) { return `<ul class="ev">${ev.map(e => `<li class="${e.passed?'pass':'fail'}"><span class="mark">${e.passed?'✓':'✗'}</span><div><div class="step">${esc(e.step)}</div><div class="detail">${esc(e.detail)}</div></div></li>`).join('')}</ul>` }
@@ -777,7 +800,7 @@ async function ask(withJournal=false) {
   if (!cfg.ai.available) { const r = ruleAnswer(q); addMsg('bot', r || `I can't answer that without the assistant. ${cfg.ai.reason}`); return }
   setBusy(true); const el = addMsg('bot', '')
   try {
-    const res = await fetch(pic ? '/api/picture' : '/api/chat', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(pic ? {image: pic, question: q} : {question:q, history:chatHistory, journal: withJournal, skill})})
+    const res = await fetch(pic ? '/api/picture' : '/api/chat', withToken({method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(pic ? {image: pic, question: q} : {question:q, history:chatHistory, journal: withJournal, skill})}))
     if ((res.headers.get('content-type')||'').includes('json')) { const j = await res.json(); el.textContent = j.error; setBusy(false); return }
     const reader = res.body.getReader(), dec = new TextDecoder(); let text = ''
     for (;;) { const {done, value} = await reader.read(); if (done) break; text += dec.decode(value, {stream:true}); el.textContent = text.replace(/\n\[\[(META|ERROR):[\s\S]*$/, ''); $('chat').scrollTop = 1e9 }
@@ -833,6 +856,7 @@ const ACTIONS = () => [
   { label:'Share card (Instagram)', icon:'🖼', group:'Do', run:()=>shareCard() },
   { label:'Run the look-back test', icon:'🧪', group:'Do', run:()=>{ showTab('test'); runTest('raw') } },
   { label:'Run doctor (is everything connected?)', icon:'🩺', group:'Do', run:()=>{ showTab('memory'); $('btn-doctor').click() } },
+  { label: (cfg && cfg.stop && cfg.stop.stopped) ? 'Release the kill switch (allow entries)' : 'KILL SWITCH — stop all new positions', icon:'⏹', group:'Safety', run:()=>toggleStop() },
   { label:'Sit out today (arm: no trades)', icon:'🛑', group:'Plan', run:async()=>{ await call('/api/plan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({allow:'none'})}); showTab('today'); loadToday(false) } },
   { label:'Longs only today', icon:'📈', group:'Plan', run:async()=>{ await call('/api/plan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({allow:'long'})}); showTab('today'); loadToday(false) } },
   { label:'Shorts only today', icon:'📉', group:'Plan', run:async()=>{ await call('/api/plan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({allow:'short'})}); showTab('today'); loadToday(false) } },

@@ -4,3 +4,4 @@ node_modules
 .DS_Store
 data/news-cache.json
 data/plan.json
+data/STOP

@@ -8,14 +8,15 @@
  */
 
 import { LIVE_TRADING_ENABLED, config } from '../config.ts'
+import { isPaperOnly, runtimeMode } from './mode.ts'
 import type { PaperOrder, RiskDecision, Signal } from './types.ts'
 
 /** Runs before every simulated order. If anyone ever wires up live trading, this throws first. */
 function assertPaperOnly(): void {
-  if (LIVE_TRADING_ENABLED !== false) {
+  if (LIVE_TRADING_ENABLED !== false || !isPaperOnly()) {
     throw new Error(
-      'REFUSING TO CONTINUE: something set LIVE_TRADING_ENABLED to true. ' +
-        'This project is paper-only by design. Set it back to false.',
+      `REFUSING TO CONTINUE: the bot is not in paper mode (mode=${runtimeMode()}, LIVE_TRADING_ENABLED=${String(LIVE_TRADING_ENABLED)}). ` +
+        'This version is paper-only by design.',
     )
   }
 }

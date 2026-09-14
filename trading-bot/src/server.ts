@@ -15,7 +15,7 @@
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readFileSync, existsSync, appendFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, existsSync, appendFileSync, writeFileSync, accessSync, constants } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -40,6 +40,9 @@ import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually } from './paperTrader.ts'
 import { SKILLS, skillById } from './skills.ts'
+import { checkStateChange, PinThrottle } from './guard.ts'
+import { describeMode, runtimeMode } from './mode.ts'
+import { stopState, stop as engageStop, resume as releaseStop } from './killswitch.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -47,12 +50,17 @@ import type Anthropic from '@anthropic-ai/sdk'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = join(HERE, '..', 'web')
 const TV_LOG = join(DATA_DIR, 'tv-alerts.csv')
+const PORT = Number(process.env.MRCASH_PORT) || config.webPort
+const VERSION = (JSON.parse(readFileSync(join(HERE, '..', 'package.json'), 'utf8')) as { version: string }).version
+const STARTED_AT = Date.now()
 
 // Secrets for this run. Printed once at startup, never written to disk.
-const PIN = config.app.pin || String(100000 + Math.floor(Math.random() * 900000))
+const PIN = process.env.MRCASH_PIN || config.app.pin || String(100000 + Math.floor(Math.random() * 900000))
 const WEBHOOK_SECRET = config.tradingview.webhookSecret || randomBytes(12).toString('hex')
 const SESSION_TOKEN = randomBytes(24).toString('hex')
-let pinAttempts = 0
+/** Handed to the app's own page via /api/config; every state-changing request must carry it back. */
+const CSRF_TOKEN = randomBytes(24).toString('hex')
+const pinThrottle = new PinThrottle(10, 15 * 60_000)
 
 const STATIC: Record<string, { file: string; type: string }> = {
   '/manifest.json': { file: 'manifest.json', type: 'application/manifest+json' },
@@ -185,8 +193,9 @@ async function streamAnswer(res: ServerResponse, question: string, context: stri
 // ---------------------------------------------------------------
 
 const server = createServer(async (req, res) => {
-  const url = new URL(req.url ?? '/', `http://localhost:${config.webPort}`)
+  const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
   const path = url.pathname
+  const client = req.socket.remoteAddress ?? 'unknown'
   try {
     // Files every device may fetch before logging in
     const st = STATIC[path]
@@ -220,13 +229,14 @@ const server = createServer(async (req, res) => {
     if (path === '/login') {
       if (req.method === 'POST') {
         const form = new URLSearchParams(await readBody(req, 4096))
-        if (pinAttempts >= 20) { res.writeHead(429, { 'content-type': 'text/html' }); res.end(LOGIN_PAGE('Too many tries. Restart Mr. Cash to get a new PIN.')); return }
+        const allowed = pinThrottle.allowed(client)
+        if (!allowed.ok) { res.writeHead(429, { 'content-type': 'text/html; charset=utf-8' }); res.end(LOGIN_PAGE(`Too many tries from this device. Wait ${Math.ceil(allowed.retryInMs / 60_000)} minute(s).`)); return }
         if ((form.get('pin') ?? '').trim() === PIN) {
-          pinAttempts = 0
+          pinThrottle.succeeded(client)
           res.writeHead(302, { 'set-cookie': `mrcash=${SESSION_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`, location: '/' })
           res.end()
         } else {
-          pinAttempts++
+          pinThrottle.failed(client)
           res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
           res.end(LOGIN_PAGE('Wrong PIN.'))
         }
@@ -249,10 +259,37 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Every state-changing request must prove it came from the app's own page.
+    if (req.method === 'POST' && path.startsWith('/api/')) {
+      const verdict = checkStateChange(req.headers, CSRF_TOKEN, req.headers.host)
+      if (!verdict.ok) { json(res, verdict.status, { ok: false, error: verdict.reason }); return }
+    }
+
+    if (path === '/api/health') {
+      let dataDirWritable = true
+      try { ensureDataDir(); accessSync(DATA_DIR, constants.W_OK) } catch { dataDirWritable = false }
+      json(res, 200, { ok: true, data: { version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt: watcher.current()?.at ?? null } })
+      return
+    }
+    if (path === '/api/stop' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 4096)) || '{}') as { reason?: string }
+      const s = engageStop(String(body.reason ?? 'stopped from the app'))
+      eventLog.push('info', 'KILL SWITCH ON — no new positions', `Since ${s.stopped ? s.since : ''}. Open paper positions are still managed to their stop or target. Press Resume to allow entries again.`, 'warn')
+      json(res, 200, { ok: true, data: s })
+      return
+    }
+    if (path === '/api/resume' && req.method === 'POST') {
+      const s = releaseStop()
+      eventLog.push('info', 'Kill switch released', 'Entries are allowed again.', 'info')
+      json(res, 200, { ok: true, data: s })
+      return
+    }
+
     if (path === '/api/config') {
       const local = isLocal(req)
       const lan = lanUrls()
       json(res, 200, {
+        csrf: CSRF_TOKEN, mode: runtimeMode(), stop: stopState(), version: VERSION,
         symbol: config.symbol, interval: config.interval, strategy: config.strategy, accountSizeUsd: config.accountSizeUsd,
         riskPerTradePercent: config.riskPerTradePercent, feePercent: config.feePercent, ict: config.ict, replay: config.replay, memory: config.memory,
         orderflow: config.orderflow, tradingview: { widgetSymbol: config.tradingview.widgetSymbol },
@@ -260,7 +297,7 @@ const server = createServer(async (req, res) => {
         app: {
           allowPhone: config.app.allowPhone, watchEveryMinutes: config.app.watchEveryMinutes, isLocal: local,
           lanUrls: local ? lan : [],
-          webhook: local ? { url: `${lan[0] ?? `http://127.0.0.1:${config.webPort}`}/api/tv-alert`, secret: WEBHOOK_SECRET } : null,
+          webhook: local ? { url: `${lan[0] ?? `http://127.0.0.1:${PORT}`}/api/tv-alert`, secret: WEBHOOK_SECRET } : null,
         },
         journal: { emotions: EMOTIONS, tags: TAGS },
         skills: SKILLS.map(({ id, name, icon, tagline, prompts }) => ({ id, name, icon, tagline, prompts })),
@@ -428,14 +465,14 @@ function openBrowser(target: string): void {
   }
 }
 
-const address = `http://127.0.0.1:${config.webPort}`
+const address = `http://127.0.0.1:${PORT}`
 const host = config.app.allowPhone ? '0.0.0.0' : '127.0.0.1'
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
     console.log('')
-    console.log(ui.bad(`  Port ${config.webPort} is already being used by something else.`))
-    console.log(`  Close whatever is using it, or change "webPort" in config.ts to ${config.webPort + 1}.`)
+    console.log(ui.bad(`  Port ${PORT} is already being used by something else.`))
+    console.log(`  Close whatever is using it, or change "webPort" in config.ts to ${PORT + 1}.`)
     console.log('')
     process.exit(1)
   }
@@ -449,10 +486,12 @@ const watcher = startWatch(config.app.watchEveryMinutes, (e) => {
   console.log(`${ui.dim(new Date(e.time).toLocaleTimeString())}  ${mark} ${ui.bold(e.title)} ${ui.dim('— ' + e.body.slice(0, 110))}`)
 })
 
-server.listen(config.webPort, host, () => {
+server.listen(PORT, host, () => {
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
-  console.log(ui.good('  ● PAPER MODE — no real money, no exchange account, no orders.'))
+  console.log(ui.good(`  ● ${describeMode()}`))
+  const st = stopState()
+  if (st.stopped) console.log(ui.warn(`  ● KILL SWITCH ON since ${st.since} (${st.reason}) — no new positions. npm run resume to release.`))
   console.log('')
   console.log(`  On this computer:  ${ui.bold(address)}`)
   if (config.app.allowPhone) {

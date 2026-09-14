@@ -453,6 +453,30 @@ working, not a bug — and it's why professionals size from the stop.
 
 ---
 
+## The safety switches
+
+Three things stand between you and an accident, and all three are tested
+(`npm test`):
+
+- **The kill switch.** `npm run stop` (or the ⏹ Stop button on the Today tab,
+  or ⌘K → "KILL SWITCH") writes a file called `data/STOP`. While it exists,
+  Mr. Cash opens **no new positions of any kind**, paper included. Open paper
+  positions are still managed to their stop or target, because abandoning one
+  is worse than closing it properly. `npm run resume` or the ▶ Resume button
+  releases it. It survives restarts, and you can create or delete the file by
+  hand.
+- **The request guard.** Every button in the app that changes something sends
+  a token the server handed only to that page. A request without it, or one
+  coming from another website open in your browser, is refused. Nobody can
+  wipe your memory or arm a plan from outside the app.
+- **The mode ladder.** `src/mode.ts` says which mode the bot is in. This
+  version has exactly one: **paper**. The names testnet, shadow and live exist
+  so future code has one place to ask, but none of them can be reached.
+
+`npm run status` prints the mode, the kill switch, the armed plan and what
+memory holds. The app's `/api/health` answers the same for anything that
+monitors it.
+
 ## Is this safe?
 
 - **There is no live-trading code.** Not disabled — absent. `src/execution.ts`
@@ -574,6 +598,11 @@ npm run memory:show     # what it remembers
 npm run memory:reset    # forget everything
 npm run plan:clear      # forget today's armed plan
 npm run selftest        # offline logic check
+npm test                # the test suite: guard, kill switch, server routes
+npm run check           # type check + self-test + test suite
+npm run stop            # KILL SWITCH — no new positions until you resume
+npm run resume          # release the kill switch
+npm run status          # mode, kill switch, plan, memory at a glance
 npm run tradingview     # TradingView setup steps
 ```
 

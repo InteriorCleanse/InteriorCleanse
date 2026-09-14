@@ -26,8 +26,20 @@ a daily brief, proposes a plan, and only acts within the plan the owner arms.
 ## 2. Safety Rules
 
 - **Paper only. There is no live-trading code path.** Not disabled — absent.
-  `LIVE_TRADING_ENABLED` is `false` in `config.ts` and `execution.ts` throws if
-  it is ever otherwise.
+  `LIVE_TRADING_ENABLED` is `false` in `config.ts`, `src/mode.ts` reports
+  `paper` as the only reachable mode, and `execution.ts` throws if either is
+  ever otherwise.
+- **Every state-changing request must prove it came from the app.** `src/guard.ts`
+  requires the token issued by `/api/config` on every `POST /api/*` and refuses
+  cross-site requests (Sec-Fetch-Site / Origin). A web page open in the same
+  browser cannot forge a request to reset memory, change the plan or close a
+  position. The TradingView webhook keeps its own secret instead.
+- **PIN guessing is throttled per device** (`PinThrottle`): ten wrong PINs lock
+  that device for fifteen minutes; other devices are unaffected.
+- **There is a kill switch.** The file `data/STOP` (via `npm run stop`,
+  `npm run resume`, the ⏹ button, or `/api/stop`) prevents any new position,
+  paper included, until released. Open paper positions are still managed to
+  their stop or target. `/api/health` and `npm run status` report it.
 - **No secrets in source.** The only optional secret is `ANTHROPIC_API_KEY`,
   read from a gitignored `.env`. No exchange keys exist or are asked for.
 - **The dashboard binds to 127.0.0.1 only** and serves no secrets.

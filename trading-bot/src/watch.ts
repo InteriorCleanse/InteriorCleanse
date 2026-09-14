@@ -24,6 +24,7 @@ import { checkRisk } from './risk.ts'
 import { consultMemory } from './adaptiveFilter.ts'
 import { appendLedgerRow, memoryIsEmpty } from './memory.ts'
 import { managePositions, openPosition, readPositions } from './paperTrader.ts'
+import { entriesAllowed } from './killswitch.ts'
 import type { AppEvent } from './types.ts'
 import * as ui from './ui.ts'
 
@@ -110,7 +111,10 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
         `Entry $${p.entry.toFixed(0)}, stop $${p.stop.toFixed(0)}, target $${p.takeProfit.toFixed(0)}. ${a.signal.reason}`, 'action')
 
       // The 24/7 paper trader: take it on paper if risk and memory agree and nothing is open.
-      if (config.app.autoPaperTrade && readPositions().open.length === 0) {
+      const gate = entriesAllowed()
+      if (config.app.autoPaperTrade && !gate.ok) {
+        if (once(`stopped-${a.time}`)) eventLog.push('info', 'Paper trade not taken — kill switch is on', gate.reason, 'warn')
+      } else if (config.app.autoPaperTrade && readPositions().open.length === 0) {
         const risk = checkRisk(a.signal)
         const verdict = risk.approved && !memoryIsEmpty() ? consultMemory(a.signal) : null
         if (!risk.approved) {

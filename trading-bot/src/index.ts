@@ -16,6 +16,8 @@ import { getFlow } from './orderflow.ts'
 import { paperStats } from './paperTrader.ts'
 import { clearPlan, readPlan } from './plan.ts'
 import { describeKey } from './adaptiveFilter.ts'
+import { stop, resume, stopState, STOP_PATH } from './killswitch.ts'
+import { describeMode } from './mode.ts'
 import * as ui from './ui.ts'
 
 /** Older versions of Node can't run TypeScript directly. Say so kindly. */
@@ -449,12 +451,45 @@ function commandPlanClear(): void {
   ui.blank()
 }
 
+function commandStop(): void {
+  const reason = process.argv.slice(3).join(' ') || 'stopped from the terminal'
+  const s = stop(reason)
+  ui.heading('KILL SWITCH — ON')
+  console.log(`  No new positions will be opened (paper included) since ${s.stopped ? s.since : ''}.`)
+  console.log('  Open paper positions are still managed to their stop or target.')
+  console.log(ui.dim(`  The switch is the file ${STOP_PATH}. Release it with: npm run resume`))
+  ui.blank()
+}
+
+function commandResume(): void {
+  const before = stopState()
+  resume()
+  ui.heading('KILL SWITCH — RELEASED')
+  console.log(before.stopped ? `  It had been on since ${before.since} (${before.reason}). Entries are allowed again.` : '  It was not on. Nothing changed.')
+  ui.blank()
+}
+
+function commandStatus(): void {
+  ui.heading('SYSTEM STATUS')
+  const s = stopState()
+  ui.table(['', ''], [
+    ['Mode', describeMode()],
+    ['Kill switch', s.stopped ? ui.warn(`ON since ${s.since} — ${s.reason}`) : ui.good('off — entries allowed')],
+    ['Plan armed', readPlan() ? `${readPlan()!.allow}, ${readPlan()!.riskPerTradePercent}% risk` : 'none'],
+    ['Memory', `${readLedger().length} decisions, ${lessonLines().length} lessons`],
+  ])
+  ui.blank()
+}
+
 function commandHelp(): void {
   ui.heading('MR. CASH — WHAT CAN I DO?')
   ui.safetyBanner()
   ui.blank()
   ui.table(['Type this', 'And it will'], [
     ['npm start', 'open the dashboard in your browser (easiest)'],
+    ['npm run stop', 'KILL SWITCH: open no new positions until you resume'],
+    ['npm run resume', 'release the kill switch'],
+    ['npm run status', 'mode, kill switch, plan, memory — at a glance'],
     ['npm run talk', 'chat with the bot: brief, plan, questions, what-ifs'],
     ['npm run brief', "print today's brief — ranges, levels, bias, news, plan"],
     ['npm run news', 'show what is on the calendar and what stands out'],
@@ -505,6 +540,9 @@ async function main(): Promise<void> {
       case 'memory:reset': commandMemoryReset(); break
       case 'memory:show': commandMemoryShow(); break
       case 'plan:clear': commandPlanClear(); break
+      case 'stop': commandStop(); break
+      case 'resume': commandResume(); break
+      case 'status': commandStatus(); break
       default: commandHelp()
     }
   } catch (err) {
