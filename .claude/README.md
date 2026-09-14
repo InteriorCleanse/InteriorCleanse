@@ -11,6 +11,17 @@ nothing under `.claude/` is built, served, or linted.
 | design-dna | github.com/zanwei/design-dna | 593e39b | MIT |
 | motion-design | github.com/lottiefiles/motion-design-skill | f9a8a04 | MIT |
 | cast, paint, genjutsu/_jutsu/* | github.com/AThevon/genjutsu | 94a260a | MIT |
+| watch | github.com/bradautomates/claude-video (`skills/watch`) | 83da59f | MIT |
+
+`/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
+captions and frames and answers from them. It runs Python scripts that need
+`ffmpeg`, `ffprobe`, and `yt-dlp` on the machine running Claude Code (run
+`python3 .claude/skills/watch/scripts/setup.py` once; on Linux it prints the
+install commands). A Groq or OpenAI key in `~/.config/watch/.env` is optional
+and only used to transcribe videos that have no captions. The upstream plugin
+also ships a SessionStart hook that prints setup status; it is not installed
+here, since `/watch` runs the same check itself. Its dev-only
+`build-skill.sh` was left out.
 
 Genjutsu's `cast` and `paint` orchestrators load their sub-skills from
 `genjutsu/_jutsu`, which is where its resolver probes for a skills-directory
