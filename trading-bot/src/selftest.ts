@@ -29,6 +29,8 @@ import { analyzeBook, analyzeTape } from './orderflow.ts'
 import { assessMarket } from './regime.ts'
 import { computeR, computeStats, buildReview } from './journal.ts'
 import type { JournalEntry } from './journal.ts'
+import { evaluateExit, closeMetrics } from './paperTrader.ts'
+import type { PaperPosition } from './paperTrader.ts'
 import type { Candle, Level, Signal } from './types.ts'
 import * as ui from './ui.ts'
 
@@ -302,6 +304,32 @@ console.log(ui.bold('  Journal'))
   check('the review names improvising as the thing to fix', /improvis|obey/i.test(rv.oneThing), rv.oneThing)
   const empty = buildReview([], [], now)
   check('an empty journal gets a kind first step, not a lecture', empty.oneThing.toLowerCase().includes('write one entry'))
+}
+
+// --- the paper trader ------------------------------------------------
+console.log('')
+console.log(ui.bold('  Paper trader'))
+{
+  const pos = (direction: 'long' | 'short', entry: number, stop: number, target: number): PaperPosition => ({
+    id: 't', openedAt: 1000, dayKey: '', session: '', setupKey: 'T', direction, entry, stop, target, quantity: 1, riskUsd: 1, quality: 0, reason: '', status: 'open',
+  })
+  const long = pos('long', 100, 99, 102)
+  const before = mk(0, 100, 100, 100, 100) // before the entry — must be ignored
+  const quiet = mk(2000, 100, 101, 99.5, 100.5)
+  const toTarget = mk(3000, 100.5, 102.5, 100.2, 102)
+  const hit = evaluateExit(long, [before, quiet, toTarget])
+  check('a long exits at the target on the candle that reaches it', hit?.reason === 'target' && hit.exit === 102 && hit.candlesHeld === 2, JSON.stringify(hit))
+  check('candles before the entry are ignored', evaluateExit(long, [mk(0, 100, 103, 97, 100)]) === null)
+  const both = evaluateExit(long, [mk(2000, 100, 102.5, 98.5, 100)])
+  check('when one candle hits both stop and target, the stop wins (pessimistic)', both?.reason === 'stop' && both.exit === 99)
+  const short = evaluateExit(pos('short', 100, 101, 98), [mk(2000, 100, 101.2, 99.8, 100.4)])
+  check('a short is stopped when price trades above its stop', short?.reason === 'stop' && short.exit === 101)
+  const many = Array.from({ length: config.ict.maxHoldCandles + 2 }, (_, i) => mk(2000 + i * STEP, 100, 100.4, 99.6, 100.1))
+  const timed = evaluateExit(long, many)
+  check(`a trade going nowhere is closed by the time stop after ${config.ict.maxHoldCandles} candles`, timed?.reason === 'time' && timed.candlesHeld === config.ict.maxHoldCandles, JSON.stringify(timed))
+  const m = closeMetrics(long, 102)
+  check('a +2R exit is about +1.8R after fees on both sides', Math.abs(m.rMultiple - 1.8) < 1e-9, String(m.rMultiple))
+  check('dollars follow the quantity', Math.abs(m.pnlUsd - (2 - 0.2)) < 1e-9, String(m.pnlUsd))
 }
 
 // --- the safety lock -----------------------------------------------

@@ -204,6 +204,45 @@ What's not possible: nothing can read your TradingView charts or layouts
 back. That API doesn't exist. The chart in the TradingView tab is
 TradingView's own free widget, live, with your symbol and timeframe.
 
+### 24/7 paper trading that learns as it trades
+
+Double-click **`start-24-7.command`** (Mac) or **`start-24-7.bat`** (Windows)
+and leave it. Mr. Cash re-reads the market every candle, and when the whole
+checklist passes inside a killzone — and risk and memory agree — it opens a
+**paper** position, then babysits it candle by candle: stop, target, or time.
+When it closes:
+
+1. the outcome goes into **memory**, so a setup that keeps failing gets
+   refused next time (and the "was skipping worth it" table stays honest);
+2. a **lesson** is written if that exact setup has now lost enough;
+3. a **journal entry** is created with what the bot saw — you add how you
+   felt when the alert came in.
+
+Equity, open positions with live R, and the full closed-trade history are on
+the Today and Memory tabs and in `npm run paper`. You can flatten any paper
+position by hand. If the computer sleeps, so does Mr. Cash — set it not to
+sleep while plugged in, or run it on a Raspberry Pi or a $5 server. Turn the
+auto-trader off with `app.autoPaperTrade: false`; alerts still come.
+
+### Ask Claude about Mr. Cash from anywhere (MCP)
+
+```bash
+npm run mcp:config
+```
+
+That prints the one-line command for Claude Code and the JSON for Claude
+Desktop. After that, any Claude chat can ask for the brief, the checklist,
+the market state, order flow, news, the paper account, your journal review,
+or run the doctor — and can arm today's plan. Nine tools, all read-only
+except `arm_plan`, none of which can place an order. Zero dependencies: Mr.
+Cash speaks the protocol itself.
+
+### The share card
+
+**Share card** on the Today tab renders today's brief as a 1080×1350 image —
+market state, bias, ranges, levels, the plan, and a footer that says it's
+paper — ready for Instagram. Downloading it is one click.
+
 ### Is everything connected?
 
 ```bash
@@ -394,6 +433,35 @@ The worst thing this bot can do to you is be wrong on paper.
 
 ---
 
+## "Can I start with a small $100 account?" — read this first
+
+Technically, yes, at any time. Whether you *should* yet is a different
+question, and here is the honest version.
+
+**What $100 can and can't do.** With no leverage, 1% risk is $1 a trade.
+Fees at 0.1% a side on a ~$100 position are about 20 cents a round trip —
+a fifth of your risk gone before the trade starts. That doesn't make it
+pointless; it makes it *tuition*, not income. The value of a $100 account is
+learning what a real fill, real slippage and real fear feel like, after the
+paper stage has shown you the edge exists at all.
+
+**The gate I'd set, and the bot will help you check it:**
+
+- at least **60 closed paper trades** across **8+ weeks** (`npm run paper`),
+- a **process score ≥ 90%** in the journal (you follow your own plan),
+- **positive expectancy** in R over that sample, not just a good week,
+- and a losing streak you've already lived through on paper without
+  changing the rules.
+
+**How to go live when you do:** Mr. Cash stays *advisory*. It alerts, you
+place the order by hand on your exchange, you log it in the journal. There
+is deliberately no code path from this bot to an exchange, and I'd keep it
+that way until the paper record is boringly long. If you're in the US,
+Coinbase or Kraken; Binance.com isn't available there.
+
+None of this is financial advice — it's risk management, which is the only
+part of trading you fully control.
+
 ## The honest part: will it make money?
 
 Nobody can promise that, and anyone who does is selling something. What this
@@ -455,7 +523,9 @@ npm run brief           # today's brief in the terminal
 npm run news            # calendar + headlines
 npm run state           # uptrend / downtrend / range, and what to watch for
 npm run flow            # where the big orders are and what is trading
-npm run watch           # stay on and raise alerts every candle
+npm run watch           # stay on, raise alerts, and paper-trade every candle
+npm run paper           # the paper account: equity, open and closed trades
+npm run mcp:config      # connect Mr. Cash to Claude Desktop / Claude Code
 npm run doctor          # check every connection
 npm run picture -- chart.png "question"   # analyze a chart screenshot
 npm run scan            # one real decision, logged

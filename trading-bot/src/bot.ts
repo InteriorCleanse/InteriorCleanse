@@ -17,6 +17,7 @@ import { getFlow } from './orderflow.ts'
 import { assessMarket } from './regime.ts'
 import { planFor } from './plan.ts'
 import { tradingDayKey } from './sessions.ts'
+import { todaysPaperStats } from './paperTrader.ts'
 import type { Candle, FlowReport, IctAnalysis, MarketState, NewsReport, PaperOrder, RiskDecision, Signal } from './types.ts'
 import type { MemoryVerdict } from './adaptiveFilter.ts'
 import type { DayPlan } from './plan.ts'
@@ -41,11 +42,12 @@ function warmupCandles(): number {
   return Math.min(4000, perDay * 4)
 }
 
-/** Today's trade count and losses from the ledger, so daily limits survive restarts. */
+/** Today's trade count and losses — paper positions plus manual scans — so daily limits survive restarts. */
 function todaysStats(dayKey: string): { trades: number; lossesR: number } {
+  const paper = todaysPaperStats(dayKey)
   const rows = readLedger().filter((r) => r.mode.startsWith('scan') && (r.action === 'BUY' || r.action === 'SELL'))
-  const today = rows.filter((r) => tradingDayKey(new Date(r.timestamp).getTime()) === dayKey)
-  return { trades: today.length, lossesR: 0 }
+  const scans = rows.filter((r) => tradingDayKey(new Date(r.timestamp).getTime()) === dayKey).length
+  return { trades: paper.trades + scans, lossesR: paper.lossesR }
 }
 
 /** Fetch data, run the engine, read news and plan. No side effects — safe to call as often as you like. */

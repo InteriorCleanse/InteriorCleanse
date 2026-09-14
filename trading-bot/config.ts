@@ -239,6 +239,14 @@ export const config = {
 
     /** Warn this many minutes before an entry window opens. */
     killzoneHeadsUpMinutes: 15,
+
+    /**
+     * The 24/7 paper trader. When the checklist passes and risk and memory
+     * agree, Mr. Cash opens a PAPER position, manages it candle by candle,
+     * records the outcome in memory, and writes you a journal entry.
+     * Still no exchange, still no real money — a record in a file.
+     */
+    autoPaperTrade: true,
   },
 
   // ---------- ORDER FLOW ----------

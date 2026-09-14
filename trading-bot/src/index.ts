@@ -13,6 +13,7 @@ import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, re
 import { buildBrief } from './brief.ts'
 import { getNews, summarizeNews, upcomingEvents } from './news.ts'
 import { getFlow } from './orderflow.ts'
+import { paperStats } from './paperTrader.ts'
 import { clearPlan, readPlan } from './plan.ts'
 import { describeKey } from './adaptiveFilter.ts'
 import * as ui from './ui.ts'
@@ -218,6 +219,37 @@ async function commandState(): Promise<void> {
     for (const w of s.watchOuts) console.log(`  ${ui.warn('!')} ${ui.wrap(w, 72).replace(/\n/g, '\n    ')}`)
   }
   ui.plainEnglish(['This is a description of now, not a forecast. Each reading gets a', 'vote; the state is what most of them agree on, and the dissenters are', 'listed so you can see the argument.'])
+  ui.blank()
+}
+
+async function commandPaper(): Promise<void> {
+  ui.heading('THE PAPER ACCOUNT')
+  ui.safetyBanner()
+  let price: number | undefined
+  try { price = (await analyzeNow({ withNews: false, withFlow: false })).signal.price } catch { /* stats without unrealized */ }
+  const p = paperStats(price)
+  ui.blank()
+  ui.table(['', '', ''], [
+    ['Started with', ui.money(p.startUsd), 'pretend money'],
+    ['Equity now', p.equityUsd >= p.startUsd ? ui.good(ui.money(p.equityUsd)) : ui.bad(ui.money(p.equityUsd)), 'closed trades only'],
+    ...(price !== undefined && p.open.length ? [['With open trades', ui.money(p.equityWithOpenUsd), `at $${price.toFixed(2)}`]] : []),
+    ['Closed trades', String(p.trades), `${p.wins} wins / ${p.losses} losses`],
+    ['Total', ui.r(p.totalR), p.expectancyR !== null ? `expectancy ${ui.r(p.expectancyR)}` : ''],
+  ])
+  if (p.open.length) {
+    ui.sub('OPEN')
+    ui.table(['Opened', 'Side', 'Entry', 'Stop', 'Target', 'Now'], p.open.map((o) => [ui.formatTime(o.openedAt), o.direction, ui.price(o.entry), ui.price(o.stop), ui.price(o.target), o.unrealized ? ui.r(o.unrealized.rMultiple) : '—']))
+  }
+  if (p.closed.length) {
+    ui.sub('RECENT CLOSED')
+    ui.table(['Closed', 'Side', 'Exit', 'Result', 'Setup'], p.closed.slice(0, 12).map((c) => [ui.formatTime(c.closedAt ?? 0), c.direction, c.exitReason ?? '', (c.rMultiple ?? 0) >= 0 ? ui.good(ui.r(c.rMultiple ?? 0)) : ui.bad(ui.r(c.rMultiple ?? 0)), c.setupKey.split('|').slice(3).join(' ')]))
+  }
+  ui.plainEnglish([
+    'Every trade here was opened and closed by Mr. Cash on paper while',
+    '`npm start` (or start-24-7) was running. Each close is written to',
+    'memory, can become a lesson, and creates a journal entry for you.',
+    'This is the track record. Let it get long before you trust it.',
+  ])
   ui.blank()
 }
 
@@ -428,7 +460,9 @@ function commandHelp(): void {
     ['npm run news', 'show what is on the calendar and what stands out'],
     ['npm run state', 'uptrend / downtrend / range, and what to watch out for'],
     ['npm run flow', 'where the big orders are and what is trading'],
-    ['npm run watch', 'stay on and raise alerts every candle'],
+    ['npm run watch', 'stay on, raise alerts, and paper-trade every candle'],
+    ['npm run paper', 'the paper account: equity, open and closed trades'],
+    ['npm run mcp:config', 'connect Mr. Cash to Claude Desktop / Claude Code'],
     ['npm run doctor', 'check every connection'],
     ['npm run picture -- chart.png', 'analyze a chart screenshot (needs the AI key)'],
     ['npm run scan', 'check the market right now and explain its decision'],
@@ -464,6 +498,7 @@ async function main(): Promise<void> {
       case 'news': await commandNews(); break
       case 'flow': await commandFlow(); break
       case 'state': await commandState(); break
+      case 'paper': await commandPaper(); break
       case 'replay:raw': await commandReplayRaw(); break
       case 'replay:memory': await commandReplayMemory(); break
       case 'compare': await commandCompare(); break

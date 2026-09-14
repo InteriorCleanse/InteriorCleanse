@@ -20,6 +20,10 @@ import { DATA_DIR, ensureDataDir } from './memory.ts'
 import { describeSweep } from './liquidity.ts'
 import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
+import { checkRisk } from './risk.ts'
+import { consultMemory } from './adaptiveFilter.ts'
+import { appendLedgerRow, memoryIsEmpty } from './memory.ts'
+import { managePositions, openPosition, readPositions } from './paperTrader.ts'
 import type { AppEvent } from './types.ts'
 import * as ui from './ui.ts'
 
@@ -74,6 +78,13 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
   const a = snap.analysis
   const now = Date.now()
 
+  // Babysit open paper positions first — a close today counts toward today's limits.
+  for (const p of managePositions(snap.candles)) {
+    const r = p.rMultiple ?? 0
+    eventLog.push('setup', `Paper ${p.direction} closed at ${r >= 0 ? '+' : ''}${r.toFixed(2)}R (${p.exitReason})`,
+      `Entered ${p.entry.toFixed(2)}, out ${p.exit?.toFixed(2)} after ${p.candlesHeld} candle(s). ${r >= 0 ? 'Made' : 'Lost'} $${Math.abs(p.pnlUsd ?? 0).toFixed(3)}. Memory has recorded it; a journal entry is waiting for how you felt.`, r >= 0 ? 'action' : 'warn')
+  }
+
   if (a) {
     const watching = a.levels.filter((l) => l.sweptAt === undefined && l.brokenAt === undefined).map((l) => `${l.label} $${l.price.toFixed(0)}`).join(', ')
 
@@ -97,6 +108,22 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
       const p = a.signal.plan
       eventLog.push('setup', `${a.signal.action} setup — ${p.rr.toFixed(1)}:1, quality ${a.signal.quality}/100`,
         `Entry $${p.entry.toFixed(0)}, stop $${p.stop.toFixed(0)}, target $${p.takeProfit.toFixed(0)}. ${a.signal.reason}`, 'action')
+
+      // The 24/7 paper trader: take it on paper if risk and memory agree and nothing is open.
+      if (config.app.autoPaperTrade && readPositions().open.length === 0) {
+        const risk = checkRisk(a.signal)
+        const verdict = risk.approved && !memoryIsEmpty() ? consultMemory(a.signal) : null
+        if (!risk.approved) {
+          eventLog.push('info', 'Paper trade not taken — risk said no', risk.reason, 'info')
+        } else if (verdict?.block) {
+          appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: a.signal.price, quantity: 0, reason: `${a.signal.setupKey} — ${verdict.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
+          eventLog.push('info', 'Paper trade refused by memory', verdict.reason, 'warn')
+        } else {
+          const pos = openPosition(a.signal, risk, a.session ? sessionLabel(a.session) : '')
+          eventLog.push('setup', `Paper ${pos.direction} OPENED at $${pos.entry.toFixed(0)}`,
+            `Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}, size ${pos.quantity.toFixed(6)} (risk $${pos.riskUsd.toFixed(3)}). Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
+        }
+      }
     }
     if (snap.news) {
       for (const b of snap.news.blackouts) {

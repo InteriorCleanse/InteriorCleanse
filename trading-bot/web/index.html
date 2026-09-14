@@ -136,6 +136,7 @@
       <button class="btn" id="btn-refresh">Refresh</button>
       <button class="btn ghost" id="btn-scan">Check the market now</button>
       <button class="btn ghost" id="btn-journal-now">Journal this moment</button>
+      <button class="btn ghost" id="btn-card">Share card</button>
       <span class="muted" id="today-status"></span>
     </div>
     <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market, the news and the order book…</div></div>
@@ -316,6 +317,15 @@ function stateCard(s) {
     ${s.watchOuts.length ? `<div class="warnbox"><b>Watch out for</b><ul style="margin:6px 0 0;padding-left:18px">${s.watchOuts.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>` : ''}
   </div>`
 }
+function paperCard(p) {
+  if (!p) return ''
+  const eq = p.equityUsd - p.startUsd
+  return `<div class="card"><h2>Paper account — Mr. Cash trading 24/7 on paper</h2>
+    <div class="stats"><div class="stat"><div class="k">Equity</div><div class="v ${eq>=0?'win':'loss'}">${money(p.equityUsd)}</div></div><div class="stat"><div class="k">Since start</div><div class="v ${eq>=0?'win':'loss'}">${money(eq,3)}</div></div><div class="stat"><div class="k">Closed trades</div><div class="v">${p.trades}</div></div><div class="stat"><div class="k">Win rate</div><div class="v">${p.winRate===null?'—':Math.round(p.winRate*100)+'%'}</div></div><div class="stat"><div class="k">Total</div><div class="v ${p.totalR>=0?'win':'loss'}">${R(p.totalR)}</div></div></div>
+    ${p.open.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Open</th><th>Side</th><th>Entry</th><th>Stop</th><th>Target</th><th>Now</th><th></th></tr>${p.open.map(o=>`<tr><td>${when(o.openedAt)}</td><td>${esc(o.direction)}</td><td class="num">${px(o.entry)}</td><td class="num loss">${px(o.stop)}</td><td class="num win">${px(o.target)}</td><td class="num ${o.unrealized&&o.unrealized.rMultiple>=0?'win':'loss'}">${o.unrealized?R(o.unrealized.rMultiple):'—'}</td><td><button class="chip" data-close="${esc(o.id)}">close now</button></td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No open paper position. Mr. Cash opens one only when the whole checklist passes inside a killzone.</div>'}
+    ${p.closed.length ? `<div class="muted" style="font-size:12.5px;margin-top:8px">Last closed: ${p.closed.slice(0,3).map(c=>`${c.direction} ${c.exitReason} <b class="${(c.rMultiple||0)>=0?'win':'loss'}">${R(c.rMultiple||0)}</b>`).join(' · ')}. Full history in the Memory tab.</div>` : ''}
+    <div class="plain">Every close goes into memory (so a setup that keeps failing gets refused), may become a lesson, and creates a journal entry for you. This is the track record — let it get long before you trust it.</div></div>`
+}
 function flowCard(f) {
   if (!f || (!f.book && !f.tape)) return ''
   return `<div class="card"><h2>Order flow</h2>${f.lines.map(l=>`<div style="font-size:13.5px;margin-bottom:5px">${esc(l)}</div>`).join('')}<div class="muted" style="font-size:12.5px;margin-top:6px">Full picture in the Flow tab.</div></div>`
@@ -342,6 +352,7 @@ function renderToday() {
     <div class="card"><h2>Decision right now</h2><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div>
       ${s.plan ? `<div class="stats" style="margin-top:12px"><div class="stat"><div class="k">Entry</div><div class="v">${px(s.plan.entry)}</div></div><div class="stat"><div class="k">Stop</div><div class="v loss">${px(s.plan.stop)}</div></div><div class="stat"><div class="k">Target</div><div class="v win">${px(s.plan.takeProfit)}</div></div><div class="stat"><div class="k">Reward:risk</div><div class="v">${s.plan.rr.toFixed(1)}:1</div></div><div class="stat"><div class="k">Quality</div><div class="v">${s.quality}/100</div></div></div>` : ''}
     </div>
+    ${paperCard(data.paper)}
     ${stateCard(data.state)}
     <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>
     ${flowCard(data.flow)}
@@ -356,6 +367,7 @@ function renderToday() {
     </div>
     <div class="card"><h2>The brief</h2><pre class="brief">${esc(b.lines.join('\n'))}</pre></div>
     ${data.news && data.news.errors.length ? `<div class="warnbox">News feed problems: ${esc(data.news.errors.join(' | '))}</div>` : ''}`
+  document.querySelectorAll('[data-close]').forEach(btn => btn.onclick = async () => { if (!confirm('Close this paper position at the current price?')) return; setBusy(true); await call('/api/paper/close', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({id: btn.dataset.close})}); setBusy(false); loadToday(true) })
   $('plan-allow').value = plan ? plan.allow : b.proposal.allow
   $('btn-arm').onclick = async () => { setBusy(true); await call('/api/plan', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({allow:$('plan-allow').value, riskPerTradePercent:$('plan-risk').value, maxTrades:$('plan-max').value, notes:$('plan-notes').value})}); setBusy(false); loadToday(false) }
   const pc = $('btn-plan-clear'); if (pc) pc.onclick = async () => { setBusy(true); await call('/api/plan/clear', {method:'POST'}); setBusy(false); loadToday(false) }
@@ -371,6 +383,42 @@ $('btn-scan').onclick = async () => {
   $('today-out').insertAdjacentHTML('afterbegin', `<div class="card"><h2>Scan result — logged</h2><div class="decision ${d.finalAction}">${d.finalAction}</div><div>${esc(d.finalReason)}</div><table style="margin-top:10px"><tr><th>Risk</th><td>${esc(d.risk.reason)}</td></tr>${d.memory?`<tr><th>Memory</th><td>${esc(d.memory.reason)}</td></tr>`:''}</table><div class="plain">${explain}</div></div>`)
 }
 $('btn-journal-now').onclick = () => { showTab('journal'); openJournalForm(true) }
+
+// ---------- share card (1080×1350, Instagram portrait) ----------
+function shareCard() {
+  if (!data || !data.analysis) { alert('Load the Today tab first.'); return }
+  const a = data.analysis, s = data.state, b = data.brief, W = 1080, H = 1350
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d')
+  const F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif'
+  const T = (t, x, y, size, color='#e6edf3', weight='600') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; ctx.fillText(t, x, y) }
+  const wrap = (t, x, y, size, maxW, lh, color='#c9d1d9', weight='500') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; let line = '', yy = y; for (const w of String(t).split(' ')) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, yy); line = w; yy += lh } else line = test } if (line) ctx.fillText(line, x, yy); return yy + lh }
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, 150)
+  T('MR. CASH', 60, 78, 44, '#3fb950', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#8b98a5', '600')
+  T(`${a.weekday} ${a.etClock} ET`, W - 60 - ctx.measureText(`${a.weekday} ${a.etClock} ET`).width * 0.9, 78, 24, '#8b98a5')
+  let y = 215
+  T(cfg.symbol, 60, y, 48, '#e6edf3', '800'); T(px(a.price), 60 + ctx.measureText(cfg.symbol).width * 1.15 + 20, y, 48, '#e6edf3', '500')
+  y += 70
+  if (s) { const col = s.trend === 'uptrend' ? '#3fb950' : s.trend === 'downtrend' ? '#f85149' : '#d29922'; T(s.trend.toUpperCase(), 60, y, 40, col, '800'); T(`strength ${s.strength}/100 · ${s.continuation.label}`, 60 + ctx.measureText(s.trend.toUpperCase()).width * 1.15 + 24, y, 26, '#8b98a5'); y += 44; y = wrap(s.evidence[0] || '', 60, y, 24, W - 120, 32) }
+  y += 10; T('BIAS', 60, y, 20, '#8b98a5', '700'); y += 34
+  T(a.bias.direction.toUpperCase(), 60, y, 34, a.bias.direction === 'bullish' ? '#3fb950' : a.bias.direction === 'bearish' ? '#f85149' : '#8b98a5', '800'); y += 40
+  y = wrap(a.bias.reason, 60, y, 24, W - 120, 32); y += 10
+  T('THE RANGES', 60, y, 20, '#8b98a5', '700'); y += 36
+  const S = data.analysis && data.sessions ? null : null; void S
+  const ranges = [['Asia', b.lines.find(l => l.trim().startsWith('Asia'))], ['London', b.lines.find(l => l.trim().startsWith('London'))], ['New York', b.lines.find(l => l.trim().startsWith('New York'))], ['Yesterday', b.lines.find(l => l.trim().startsWith('Yesterday'))]]
+  for (const [, line] of ranges) if (line) { T(line.trim().replace(/\s+/g, ' '), 60, y, 24, '#c9d1d9', '500'); y += 34 }
+  y += 10; T('LEVELS', 60, y, 20, '#8b98a5', '700'); y += 36
+  for (const l of b.levels.slice(0, 7)) { T(`${l.label}`, 60, y, 24, '#e6edf3', '600'); T(px(l.price), 420, y, 24, '#e6edf3', '500'); T(l.status, 600, y, 22, /SWEPT|broken/.test(l.status) ? '#d29922' : '#8b98a5', '500'); y += 34 }
+  y += 10; T("TODAY'S PLAN", 60, y, 20, '#8b98a5', '700'); y += 36
+  y = wrap(data.plan ? `${data.plan.allow.toUpperCase()} · ${data.plan.riskPerTradePercent}% risk · max ${data.plan.maxTrades} trades${data.plan.notes ? ' · ' + data.plan.notes : ''}` : b.proposal.proposal, 60, y, 24, W - 120, 32)
+  ctx.fillStyle = '#161b22'; ctx.fillRect(0, H - 90, W, 90)
+  T('Paper trading · educational · not financial advice · the bot shows its losses too', 60, H - 38, 20, '#8b98a5', '500')
+  const url = c.toDataURL('image/png')
+  const w = window.open('', '_blank')
+  if (!w) { alert('Pop-up blocked — allow pop-ups for Mr. Cash to see the card.'); return }
+  w.document.write(`<title>Mr. Cash card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#3fb950;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
+}
+$('btn-card').onclick = shareCard
 
 // ---------- chart ----------
 const canvas = $('chart'), tip = $('tip')
@@ -621,9 +669,24 @@ $('btn-raw').onclick = () => runTest('raw'); $('btn-mem').onclick = () => runTes
 
 // ---------- memory + doctor ----------
 async function loadMemory() {
-  const r = await call('/api/memory'); const d = r.data
-  $('memory-out').innerHTML = `<div class="card"><h2>Lessons it has written</h2>${d.lessons.length ? '<ul>'+d.lessons.map(l=>`<li>${esc(l)}</li>`).join('')+'</ul>' : '<div class="muted">Nothing yet. It has not seen a setup lose repeatedly, and nothing was invented to fill the gap.</div>'}</div>
+  const [r, pr] = await Promise.all([call('/api/memory'), call('/api/paper')]); const d = r.data, p = pr.data
+  const paperHtml = `<div class="card"><h2>Paper trades — the track record</h2>
+    <div class="stats"><div class="stat"><div class="k">Equity</div><div class="v ${p.equityUsd>=p.startUsd?'win':'loss'}">${money(p.equityUsd)}</div></div><div class="stat"><div class="k">Trades</div><div class="v">${p.trades}</div></div><div class="stat"><div class="k">Win rate</div><div class="v">${p.winRate===null?'—':Math.round(p.winRate*100)+'%'}</div></div><div class="stat"><div class="k">Expectancy</div><div class="v ${(p.expectancyR||0)>=0?'win':'loss'}">${p.expectancyR===null?'—':R(p.expectancyR)}</div></div><div class="stat"><div class="k">Total</div><div class="v ${p.totalR>=0?'win':'loss'}">${R(p.totalR)}</div></div></div>
+    ${p.curve.length > 1 ? '<canvas id="eq-curve" style="width:100%;height:140px;display:block;margin-top:12px"></canvas>' : ''}
+    ${p.closed.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Closed</th><th>Side</th><th>Entry</th><th>Exit</th><th>How</th><th>Result</th><th>Setup</th></tr>${p.closed.map(c=>`<tr><td>${when(c.closedAt||0)}</td><td>${esc(c.direction)}</td><td class="num">${px(c.entry)}</td><td class="num">${px(c.exit||0)}</td><td>${esc(c.exitReason||'')}</td><td class="num ${(c.rMultiple||0)>=0?'win':'loss'}">${R(c.rMultiple||0)}</td><td class="muted">${esc(c.setupKey.split('|').slice(3).join(' '))}</td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No paper trades closed yet. They appear here as Mr. Cash takes and finishes them.</div>'}
+  </div>`
+  $('memory-out').innerHTML = paperHtml + `<div class="card"><h2>Lessons it has written</h2>${d.lessons.length ? '<ul>'+d.lessons.map(l=>`<li>${esc(l)}</li>`).join('')+'</ul>' : '<div class="muted">Nothing yet. It has not seen a setup lose repeatedly, and nothing was invented to fill the gap.</div>'}</div>
     <div class="card"><h2>Decision log (${d.rows.length} most recent)</h2>${d.rows.length ? `<div class="scroll"><table><tr><th>When</th><th>Action</th><th>Price</th><th>Mode</th><th>Result</th><th>P/L</th></tr>${d.rows.slice().reverse().map(x=>`<tr><td>${esc(x.timestamp.slice(0,16).replace('T',' '))}</td><td>${esc(x.action)}</td><td class="num">${px(x.price)}</td><td>${esc(x.mode)}</td><td class="${x.outcome==='WIN'?'win':x.outcome==='LOSS'?'loss':'skip'}">${esc(x.outcome)}</td><td class="num">${x.pnl?pct(x.pnl):'—'}</td></tr>`).join('')}</table></div>` : '<div class="muted">Empty. Run a look-back test to fill it.</div>'}<div class="plain">This lives in <code>data/ledger.csv</code> — a plain text file you can open in Excel.</div></div>`
+  const ec = $('eq-curve')
+  if (ec) {
+    const ctx = ec.getContext('2d'), dpr = window.devicePixelRatio||1, W = ec.clientWidth, H = ec.clientHeight
+    ec.width = W*dpr; ec.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0)
+    const pts = [{equity:p.startUsd}, ...p.curve], lo = Math.min(...pts.map(q=>q.equity)), hi = Math.max(...pts.map(q=>q.equity)), span = (hi-lo)||1
+    const Y = (v) => H - ((v-lo)/span)*(H-10) - 5
+    ctx.strokeStyle = 'rgba(139,152,165,.4)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(0,Y(p.startUsd)); ctx.lineTo(W,Y(p.startUsd)); ctx.stroke(); ctx.setLineDash([])
+    ctx.strokeStyle = p.equityUsd >= p.startUsd ? '#3fb950' : '#f85149'; ctx.lineWidth = 2; ctx.beginPath()
+    pts.forEach((q,i) => { const x = i/(pts.length-1)*W; i ? ctx.lineTo(x,Y(q.equity)) : ctx.moveTo(x,Y(q.equity)) }); ctx.stroke()
+  }
 }
 $('btn-memshow').onclick = loadMemory
 $('btn-reset').onclick = async () => { if (!confirm('Wipe everything Mr. Cash has learned?\n\nYour settings and your journal are not affected.')) return; await call('/api/memory/reset',{method:'POST'}); loadMemory(); loadConfig() }

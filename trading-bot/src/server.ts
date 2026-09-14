@@ -38,6 +38,7 @@ import { getFlow, readFlowLog } from './orderflow.ts'
 import { startWatch, eventLog } from './watch.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
+import { paperStats, closeManually } from './paperTrader.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -147,6 +148,7 @@ function analysisPayload(snap: Snapshot, candleCount: number) {
     news: snap.news ? { ...snap.news, upcoming: upcomingEvents(snap.news), summary: summarizeNews(snap.news) } : null,
     state: snap.state,
     flow: snap.flow,
+    paper: paperStats(snap.signal.price),
     generatedAt: Date.now(),
   }
 }
@@ -302,6 +304,22 @@ const server = createServer(async (req, res) => {
     }
     if (path === '/api/doctor') {
       json(res, 200, { ok: true, data: await runDoctor() })
+      return
+    }
+
+    // ---- the paper account ----
+    if (path === '/api/paper') {
+      let price: number | undefined
+      try { price = (await snapshot()).signal.price } catch { /* stats without unrealized */ }
+      json(res, 200, { ok: true, data: paperStats(price) })
+      return
+    }
+    if (path === '/api/paper/close' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 4096)) || '{}') as { id?: string }
+      const price = (await snapshot()).signal.price
+      const closed = closeManually(String(body.id ?? ''), price)
+      if (closed) eventLog.push('setup', `Paper ${closed.direction} closed by you at ${(closed.rMultiple ?? 0).toFixed(2)}R`, `Flattened at $${price.toFixed(2)}. Recorded in memory and the journal.`, 'info')
+      json(res, 200, { ok: !!closed, data: closed })
       return
     }
 
