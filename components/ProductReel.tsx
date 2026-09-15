@@ -81,6 +81,7 @@ export function ProductReel({ products }: { products: Product[] }) {
       aria-label="Featured products"
     >
       <div className="scroll-gallery-sticky">
+        <h2 className="sr-only">Featured products</h2>
         <div className="reel-stage" ref={stageRef} aria-hidden="true">
           {products.map((p, i) => (
             <img

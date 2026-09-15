@@ -38,10 +38,10 @@ For each, in the Printful dashboard → Stores → your store → **Add product*
 
 | Site product | Printful product to pick | Design file you need | Notes |
 | --- | --- | --- | --- |
-| InteriorCleanse Tote Bag (`ic-linen-tote`) | Eco Tote Bag or Organic Cotton Tote, natural colour | Wordmark or botanical mark, PNG with transparent background, ≥ 3000 px wide | `public/brand/wordmark-dark.png` and `flowing-c-dark.svg` are the assets |
-| InteriorCleanse Ceramic Mug (`ic-ceramic-mug`) | White Glossy Mug 11 oz | Same mark, sized for the wrap area | Printful shows the safe area |
-| InteriorCleanse Premium Hoodie (`ic-premium-hoodie`) | Premium Eco Hoodie or Unisex Heavy Blend, bone/sand | Small chest mark, optional back print | Pick 3–4 sizes to start |
-| The Considered Home Print (`considered-home-art-print`) | Enhanced Matte Paper Poster, 12×16 or 18×24 | The artwork itself, 300 dpi at print size | This is the one product that needs an original design; if it does not exist yet, hold the product back rather than ship a placeholder |
+| InteriorCleanse Tote Bag (`ic-linen-tote`) | Eco Tote Bag or Organic Cotton Tote, natural colour | **Ready:** `print-files/tote-front-3600x4200.png` (12×14 in at 300 dpi, ink mark over wordmark, transparent) | Rendered from the brand vector by `npm run print:files` |
+| InteriorCleanse Ceramic Mug (`ic-ceramic-mug`) | White Glossy Mug 11 oz | **Ready:** `print-files/mug-wrap-2700x1050.png` (Printful's 11 oz template size; wordmark one side, mark the other) | Drop it on the template; the handle gap is already left clear |
+| InteriorCleanse Premium Hoodie (`ic-premium-hoodie`) | Premium Eco Hoodie or Unisex Heavy Blend, charcoal | **Ready:** `print-files/hoodie-chest-1500.png` (5×5 in tonal charcoal mark, left chest); `mark-bone-3000.png` if you want it visible instead | Pick 3–4 sizes to start |
+| The Considered Home Print (`considered-home-art-print`) | Enhanced Matte Paper Poster, 18×24 | **Proposal:** `print-files/considered-home-print-18x24.png` (5400×7200, warm-neutral plan of rooms on bone) | This is a design proposal, not a decision. Approve it, ask for a different direction, or supply your own artwork; do not publish the print until you have chosen |
 
 For each: upload the design → position it → pick variants → **set the retail
 price** (Printful shows cost; the site's current prices are $28 / $26 / $58 /

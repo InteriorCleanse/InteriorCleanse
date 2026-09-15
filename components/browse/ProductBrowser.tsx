@@ -132,6 +132,7 @@ export function ProductBrowser({
 
   return (
     <section className="product-browser" aria-label={label}>
+      <h2 className="sr-only">{label}</h2>
       <div
         className="browser-stack"
         ref={stackRef}
