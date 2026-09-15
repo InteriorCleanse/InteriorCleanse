@@ -245,6 +245,11 @@
     <div id="factory-out"><div class="plain">The factory tries many settings for a strategy, backtests each on real past prices, and keeps only the few that hold up <b>out-of-sample</b> — on prices they never fit on. The more settings it tries, the higher it sets the bar (a deflated Sharpe correction), so a lucky winner cannot slip through. It also rejects a setting that only works if its neighbours also work — a plateau, not a spike. Nothing here is ever switched on automatically; a survivor is a candidate for later, not a decision.</div></div>
   </section>
 
+  <section id="tab-vault" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-vault">Reload vault</button><span class="muted" id="vault-status"></span></div>
+    <div id="vault-out"><div class="plain">The vault is the lifecycle every factory survivor enters before it can trade: a <b>passport</b> records its genome, its out-of-sample evidence, and every result it gathers as it moves candidate → paper → shadow → live. Each passport is watched for <b>decay</b> — its edge fading below the out-of-sample floor — and demoted to watch if it fades. Promotion is champion-challenger: a new instance only takes over when it beats the current champion out-of-sample <i>and</i> on paper. Nothing is ever promoted to live automatically.</div></div>
+  </section>
+
   <section id="tab-memory" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-memshow">Reload</button><button class="btn danger" id="btn-reset">Wipe memory</button><button class="btn ghost" id="btn-doctor">Run doctor</button></div>
     <div id="memory-out"></div>
@@ -291,7 +296,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id)
-const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['memory','Memory','🧠'],['ask','Ask','💬']]
+const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠'],['ask','Ask','💬']]
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -324,6 +329,7 @@ function showTab(id, push=true) {
   if (id === 'tv') loadTV()
   if (id === 'playbook' && !document.querySelector('#playbook-out .strat')) loadPlaybook()
   if (id === 'factory' && !$('factory-strategy').options.length) loadFactory()
+  if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
   window.scrollTo({top:0})
 }
@@ -1008,6 +1014,21 @@ async function runFactory() {
   $('factory-out').innerHTML = html
 }
 $('btn-factory-run') && ($('btn-factory-run').onclick = runFactory)
+
+// ---------- vault (passports & lifecycle) ----------
+async function loadVault() {
+  const r = await call('/api/vault/passports')
+  const passports = (r.ok ? r.data.passports : []) || []
+  if (!passports.length) { $('vault-out').innerHTML = '<div class="plain">The vault is empty. Breed survivors on the <b>Factory</b> tab, then mint the ones that clear the gates — each becomes a passport here.</div>'; return }
+  const row = (p) => {
+    const oos = p.oos.avgR === null ? '—' : R(p.oos.avgR)
+    const decay = p.decay.decaying ? '<span class="loss">decaying</span>' : '<span class="win">ok</span>'
+    const promo = p.promotion && p.promotion.promote ? `<span class="win">→ ${esc(p.promotion.to)}</span>` : '<span class="muted">—</span>'
+    return `<tr><td>${esc(p.strategyId)}</td><td>${Object.keys(p.genome.params).sort().map(k=>`${k}=${p.genome.params[k]}`).join(', ')}</td><td>${esc(p.status)}</td><td class="num">${p.oos.trades}</td><td class="num ${(p.oos.avgR||0)>=0?'win':'loss'}">${oos}</td><td class="num">${R(p.oosLowerAvgR)}</td><td>${decay}</td><td>${promo}</td></tr>`
+  }
+  $('vault-out').innerHTML = `<div class="card"><h2>Passports — the strategy lifecycle</h2><div class="scroll"><table><tr><th>Strategy</th><th>Settings</th><th>Stage</th><th>OOS trades</th><th>OOS avg</th><th>Decay floor</th><th>Decay</th><th>Promotion</th></tr>${passports.map(row).join('')}</table></div><div class="plain">Stage is where it sits in its life (candidate → paper → shadow → live). The decay floor is the out-of-sample lower bound its live results must stay above; fall below it (confirmed) and it is demoted to watch. Promotion is champion-challenger and never reaches live automatically.</div></div>`
+}
+$('btn-vault') && ($('btn-vault').onclick = loadVault)
 
 // ---------- memory + doctor ----------
 async function loadMemory() {

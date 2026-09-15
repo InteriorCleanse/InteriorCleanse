@@ -8,11 +8,13 @@ import { config } from '../config.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import { runReplay, runStrategyReplay, compareStrategies, scoreSkippedTrades } from './replay.ts'
-import { STRATEGIES, enabledStrategyIds } from './strategies/registry.ts'
+import { STRATEGIES, enabledStrategyIds, metaById } from './strategies/registry.ts'
 import { runBacktest } from './backtest/runner.ts'
 import { reportLines } from './backtest/report.ts'
-import { runCampaign } from './factory/campaign.ts'
+import { runCampaign, getCampaign } from './factory/campaign.ts'
 import { campaignLines } from './factory/report.ts'
+import { listPassports, mint } from './vault/store.ts'
+import { vaultLines } from './vault/report.ts'
 import type { ReplayResult } from './replay.ts'
 import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { buildBrief } from './brief.ts'
@@ -588,6 +590,34 @@ async function commandFactory(): Promise<void> {
   ui.blank()
 }
 
+async function commandVault(): Promise<void> {
+  const mintCampaign = flagArg('mint')
+  const genome = flagArg('genome')
+  ui.heading('VAULT — passports, decay and champion-challenger')
+  ui.safetyBanner()
+  ui.blank()
+  if (mintCampaign && genome) {
+    const rec = getCampaign(mintCampaign)
+    if (!rec) { ui.note(ui.bad(`No campaign "${mintCampaign}".`)); return }
+    const survivor = (rec.selection?.all ?? []).find((j) => j.id === genome)
+    if (!survivor) { ui.note(ui.bad(`No genome "${genome}" in campaign "${mintCampaign}".`)); return }
+    const family = metaById().get(rec.strategyId)?.family
+    const p = mint(rec.strategyId, survivor.evaluation.genome, survivor.evaluation.report, { origin: mintCampaign, family, reason: `Minted from campaign ${mintCampaign}` })
+    ui.step(`Minted passport ${p.id} (status ${p.status}).`)
+    ui.blank()
+  }
+  for (const l of vaultLines(listPassports())) console.log(l ? `  ${l}` : '')
+  ui.plainEnglish([
+    'Every survivor the factory finds can be minted into a passport — a permanent',
+    'record with a lifecycle: candidate → paper → shadow → live. A passport is',
+    'watched for decay (its edge fading below the out-of-sample floor) and only',
+    'promoted when it beats the current champion where it counts. Nothing is ever',
+    'promoted to live automatically. Mint one with:',
+    '  npm run vault -- --mint <campaignId> --genome <genomeId>',
+  ])
+  ui.blank()
+}
+
 function commandHelp(): void {
   ui.heading('MR. CASH — WHAT CAN I DO?')
   ui.safetyBanner()
@@ -614,6 +644,7 @@ function commandHelp(): void {
     ['npm run compare', 'run both and show them side by side'],
     ['npm run backtest', 'in-sample vs out-of-sample, walk-forward, Monte Carlo'],
     ['npm run factory', 'breed strategy settings and keep only what survives out-of-sample'],
+    ['npm run vault', 'passports: the lifecycle, decay watch and champion-challenger'],
     ['npm run memory:show', 'print what it currently remembers'],
     ['npm run memory:reset', 'wipe its memory clean'],
     ['npm run plan:clear', "forget today's armed plan"],
@@ -657,6 +688,7 @@ async function main(): Promise<void> {
       case 'strategies': await commandStrategies(); break
       case 'backtest': await commandBacktest(); break
       case 'factory': await commandFactory(); break
+      case 'vault': await commandVault(); break
       default: commandHelp()
     }
   } catch (err) {

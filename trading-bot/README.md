@@ -773,6 +773,17 @@ more the factory tries, the higher it sets the bar. A campaign is seeded and
 resumable, and it enables nothing — a survivor is a candidate for a later step,
 never an automatic decision.
 
+**Giving a survivor a life.** `npm run vault` is that later step: every survivor
+can be minted into a *passport* — a permanent record of its settings, its
+out-of-sample evidence, and every result it gathers as it moves through a
+lifecycle (candidate → paper → shadow → live). A passport is watched for
+**decay**: if its live expectancy falls below the lower bound of its
+out-of-sample edge and a CUSUM confirms the drop is sustained (not just a rough
+patch), it is automatically demoted to *watch*. Promotion is
+**champion-challenger** — there is one champion per strategy, and a challenger
+only takes over when it beats the champion out-of-sample *and* on paper. The
+last step, to live money, is never automatic; it is always a human decision.
+
 **Do not put real money behind this because a look-back test looked good** —
 and *especially* not because the in-sample number looked good. The skill this
 bot teaches — testing an idea without lying to yourself, and trusting only the
@@ -834,6 +845,7 @@ npm run replay:memory   # the same, with memory allowed to refuse
 npm run compare         # both side by side
 npm run backtest -- --strategy fused   # in-sample vs out-of-sample, walk-forward, Monte Carlo
 npm run factory -- --strategy crossover --method grid   # breed settings, keep only what survives out-of-sample
+npm run vault           # passports: the lifecycle, decay watch, champion-challenger
 npm run memory:show     # what it remembers
 npm run memory:reset    # forget everything
 npm run plan:clear      # forget today's armed plan
@@ -884,6 +896,7 @@ src/
   replay.ts              the look-back tests
   backtest/              out-of-sample split, walk-forward, Monte Carlo, honest R metrics
   factory/               breed strategy settings; keep only survivors that hold up out-of-sample
+  vault/                 passports: the strategy lifecycle, decay detection, champion-challenger
   strategy.ts            the simple crossover strategy
   strategies/            the playbook: one interface, many strategies, each judged alone
     types.ts, registry.ts   the Strategy interface and the list of them

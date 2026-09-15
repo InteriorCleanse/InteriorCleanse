@@ -337,6 +337,28 @@ export const config = {
     maxGenomes: 60,
   },
 
+  // ---------- VAULT (passports, decay, champion-challenger) ----------
+
+  /**
+   * Every strategy instance the factory produces gets a passport and a
+   * lifecycle: candidate → paper → shadow → live, with decay detection and
+   * champion-challenger promotion. Nothing is ever auto-promoted to live.
+   */
+  vault: {
+    /** Decay needs at least this many live-ish trades before it will judge anything. */
+    decayMinTrades: 20,
+    /** The window (in trades) the rolling expectancy is measured over. */
+    decayWindow: 20,
+    /** CUSUM slack (in R): deviations smaller than this from the expected R are ignored. */
+    cusumSlack: 0.1,
+    /** CUSUM alarm threshold (in R): the accumulated downside that counts as a sustained shift. */
+    cusumThreshold: 3,
+    /** A challenger must beat the champion by at least this much OOS avg R to promote. */
+    promotionEdgeR: 0.02,
+    /** …and have at least this many paper trades where it also beats the champion. */
+    promotionMinPaperTrades: 20,
+  },
+
   // ---------- MEMORY ----------
 
   memory: {

@@ -27,6 +27,7 @@ import { runReplay, runStrategyReplay, scoreSkippedTrades } from './replay.ts'
 import { runBacktest } from './backtest/runner.ts'
 import { runCampaign, listCampaigns, getCampaign } from './factory/campaign.ts'
 import type { CampaignRecord } from './factory/campaign.ts'
+import { listPassports, getPassport, mint, champion, assessPromotion } from './vault/store.ts'
 import { STRATEGIES, enabledStrategyIds, metaById, strategyIds } from './strategies/registry.ts'
 import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
@@ -458,6 +459,32 @@ const server = createServer(async (req, res) => {
       if (!strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
       const r = await safely(() => runCampaign({ strategyId: id, method, seed, maxGenomes }))
       json(res, 200, r.ok ? { ok: true, data: r.data } : r)
+      return
+    }
+    if (path === '/api/vault/passports') {
+      const passports = listPassports()
+      const withPromo = passports.map((p) => ({ ...p, promotion: assessPromotion(p) }))
+      json(res, 200, { ok: true, data: { passports: withPromo } })
+      return
+    }
+    if (path === '/api/vault/passport') {
+      const id = url.searchParams.get('id') ?? ''
+      const p = getPassport(id)
+      if (!p) { json(res, 404, { ok: false, error: `No passport "${id}"` }); return }
+      json(res, 200, { ok: true, data: { passport: p, promotion: assessPromotion(p), champion: champion(p.strategyId)?.id ?? null } })
+      return
+    }
+    if (path === '/api/vault/mint') {
+      // Mint a passport from a factory survivor: campaign id + the survivor's genome id.
+      const campaignId = url.searchParams.get('campaign') ?? ''
+      const genomeId = url.searchParams.get('genome') ?? ''
+      const rec = getCampaign(campaignId)
+      if (!rec) { json(res, 404, { ok: false, error: `No campaign "${campaignId}"` }); return }
+      const survivor = (rec.selection?.all ?? []).find((j) => j.id === genomeId)
+      if (!survivor) { json(res, 404, { ok: false, error: `No genome "${genomeId}" in campaign "${campaignId}"` }); return }
+      const family = metaById().get(rec.strategyId)?.family
+      const p = mint(rec.strategyId, survivor.evaluation.genome, survivor.evaluation.report, { origin: campaignId, family, reason: `Minted from campaign ${campaignId}` })
+      json(res, 200, { ok: true, data: { passport: p } })
       return
     }
 

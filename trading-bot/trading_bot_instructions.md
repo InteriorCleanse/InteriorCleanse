@@ -256,6 +256,26 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   nothing** — a survivor is a candidate for a passport (Phase 15), never an
   automatic decision — and it does no parameter search that ignores the
   out-of-sample split.
+- **The vault** (`src/vault/`) is the lifecycle a factory survivor enters
+  before it can trade. A *passport* (`passport.ts`) records the genome, the
+  out-of-sample evidence and the decay floor at minting, and is **immutable in
+  its identity**: everything after is appended (results, events), and the
+  status and decay are re-derived, but the founding evidence is never rewritten.
+  The lifecycle is candidate → paper → shadow → live. `decay.ts` watches for an
+  edge fading: it flags decay only when the rolling expectancy falls below the
+  out-of-sample lower bound (`oosLowerBound`) AND a one-sided lower CUSUM
+  confirms a sustained downward shift — with a minimum trade count first, so a
+  rough patch is not mistaken for decay; a decaying passport is auto-demoted to
+  *watch*. `promotion.ts` is champion-challenger: one champion per strategy
+  family, and a challenger is promoted only when it beats the champion
+  out-of-sample AND on paper (with enough paper trades) while healthy — and
+  automatic promotion never reaches *live* (`nextStage` caps at shadow; the step
+  to live is a human decision). `store.ts` persists passports (JSON per
+  passport plus an index, so the UI matches disk) and exposes champion/promotion
+  lookups; `mint` turns a survivor into a passport, idempotent by genome.
+  Surfaced as `npm run vault` (and `-- --mint <campaignId> --genome <id>`), the
+  `/api/vault/*` routes, and a *Vault* tab. It **trades nothing and promotes
+  nothing to live automatically.**
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five
@@ -312,8 +332,8 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
 
 These must work: `selftest` (offline, ≥ 45 checks including a hand-built day
 that yields exactly one BUY), `start`, `talk`, `brief`, `news`, `scan`,
-`replay:raw`, `replay:memory`, `compare`, `backtest`, `factory`, `memory:show`,
-`memory:reset`, `plan:clear`, `tradingview`.
+`replay:raw`, `replay:memory`, `compare`, `backtest`, `factory`, `vault`,
+`memory:show`, `memory:reset`, `plan:clear`, `tradingview`.
 
 Every run prints the settings in force, the data used, and each decision with
 its evidence. If prices cannot be fetched the bot stops and says so; it never
