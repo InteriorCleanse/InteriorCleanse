@@ -130,6 +130,20 @@ with `npm run replay:raw -- --strategy <id>`. `npm run strategies` prints them
 all with a comparison table. Every vote carries the same evidence list the
 checklist uses, so "why?" and "why not?" both have an answer.
 
+**The fused decision.** The Today tab combines the votes into one call —
+**LONG, SHORT, LONG WATCH, SHORT WATCH, or NO TRADE** — with a 0–100
+agreement score, the strategies **for** it, what is **against or missing**,
+and a table of every vote with its regime weight. The weights are
+regime-aware: a range-fade counts for nothing in a trend, a trend-follower
+nothing in a range, and a disallowed strategy shows a weight of 0. A WATCH
+names exactly what would confirm it. The weights are shown with every
+decision, never hidden.
+
+This is still only shown, not acted on: the paper trader keeps trading the
+ICT session model alone. Set `fusion.driveTrading: true` in `config.ts` to
+let the fused decision drive paper trades instead (still through the risk
+check). `npm run brief` and `/api/decision` show the same call.
+
 ### The Ask tab (and `npm run talk`)
 
 Talk to it. Typed commands always work (`why`, `levels`, `whatif 105000`,
@@ -824,6 +838,8 @@ src/
   strategies/            the playbook: one interface, many strategies, each judged alone
     types.ts, registry.ts   the Strategy interface and the list of them
     sessionIfvg.ts, vwapReclaim.ts, breakout.ts, trendPullback.ts, meanReversion.ts, orderFlowMomentum.ts, crossover.ts
+  fusion.ts              combines the votes into one decision (LONG/SHORT/WATCH/NO TRADE)
+  fusion/weights.ts      how much each strategy family counts in each regime
   market.ts              real prices over REST (and refusing to fake them)
   data/bus.ts            the in-process market-data bus every reading passes through
   data/binanceStream.ts  the live stream: reconnects, order-book stitching, stale watchdog

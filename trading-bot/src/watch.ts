@@ -20,6 +20,7 @@ import { DATA_DIR, ensureDataDir } from './memory.ts'
 import { store } from './store.ts'
 import { bus } from './data/bus.ts'
 import { describeSweep } from './liquidity.ts'
+import { fusedToSignal } from './fusion.ts'
 import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
 import { checkRisk } from './risk.ts'
@@ -128,25 +129,33 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
         eventLog.push('sweep', `${s.level.label} swept`, `${describeSweep(s)} Now watching for displacement ${s.side === 'below' ? 'up' : 'down'} and a gap to invert.`, 'warn')
       }
     }
-    if ((a.signal.action === 'BUY' || a.signal.action === 'SELL') && a.signal.plan && once(`setup-${a.time}`)) {
-      const p = a.signal.plan
-      eventLog.push('setup', `${a.signal.action} setup — ${p.rr.toFixed(1)}:1, quality ${a.signal.quality}/100`,
-        `Entry $${p.entry.toFixed(0)}, stop $${p.stop.toFixed(0)}, target $${p.takeProfit.toFixed(0)}. ${a.signal.reason}`, 'action')
+    // Alert when the fused playbook decision changes (informational; it drives trades only when config.fusion.driveTrading is on).
+    if (snap.decision && prev?.snap.decision && snap.decision.action !== prev.snap.decision.action && once(`decision-${a.time}-${snap.decision.action}`)) {
+      eventLog.push('trend', `Playbook: ${snap.decision.action} (${snap.decision.score}/100)`, `${snap.decision.reason} ${snap.decision.confirms[0] ?? ''}`, snap.decision.action === 'NO TRADE' ? 'info' : 'warn')
+    }
+
+    // What the paper trader acts on: the fused decision when driveTrading is on, otherwise the ICT session signal (the frozen default).
+    const fused = config.fusion.driveTrading && snap.decision ? fusedToSignal(snap.decision, a.price, a.time) : null
+    const tradeSignal = fused ?? ((a.signal.action === 'BUY' || a.signal.action === 'SELL') && a.signal.plan ? a.signal : null)
+    if (tradeSignal && tradeSignal.plan && once(`setup-${a.time}`)) {
+      const p = tradeSignal.plan
+      eventLog.push('setup', `${tradeSignal.action} setup — ${p.rr.toFixed(1)}:1, quality ${tradeSignal.quality}/100${fused ? ' (fused)' : ''}`,
+        `Entry $${p.entry.toFixed(0)}, stop $${p.stop.toFixed(0)}, target $${p.takeProfit.toFixed(0)}. ${tradeSignal.reason}`, 'action')
 
       // The 24/7 paper trader: take it on paper if risk and memory agree and nothing is open.
       const gate = entriesAllowed()
       if (config.app.autoPaperTrade && !gate.ok) {
         if (once(`stopped-${a.time}`)) eventLog.push('info', 'Paper trade not taken — kill switch is on', gate.reason, 'warn')
       } else if (config.app.autoPaperTrade && readPositions().open.length === 0) {
-        const risk = checkRisk(a.signal)
-        const verdict = risk.approved && !memoryIsEmpty() ? consultMemory(a.signal) : null
+        const risk = checkRisk(tradeSignal)
+        const verdict = risk.approved && !memoryIsEmpty() ? consultMemory(tradeSignal) : null
         if (!risk.approved) {
           eventLog.push('info', 'Paper trade not taken — risk said no', risk.reason, 'info')
         } else if (verdict?.block) {
-          appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: a.signal.price, quantity: 0, reason: `${a.signal.setupKey} — ${verdict.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
+          appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: tradeSignal.price, quantity: 0, reason: `${tradeSignal.setupKey} — ${verdict.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
           eventLog.push('info', 'Paper trade refused by memory', verdict.reason, 'warn')
         } else {
-          const pos = openPosition(a.signal, risk, a.session ? sessionLabel(a.session) : '', a.atr)
+          const pos = openPosition(tradeSignal, risk, a.session ? sessionLabel(a.session) : '', a.atr)
           eventLog.push('setup', `Paper ${pos.direction} QUEUED near $${pos.intendedEntry.toFixed(0)}`,
             `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
         }

@@ -54,7 +54,7 @@ const HELP: Array<[string, string]> = [
 function contextFor(snap: Snapshot, plan: DayPlan | null): string {
   const a = snap.analysis
   if (!a) return `Strategy: crossover. Latest signal: ${snap.signal.reason}`
-  const brief = buildBrief(a, snap.news, plan, Date.now(), snap.state, snap.flow)
+  const brief = buildBrief(a, snap.news, plan, Date.now(), snap.state, snap.flow, snap.decision)
   const parts = [
     brief.lines.join('\n'),
     '',

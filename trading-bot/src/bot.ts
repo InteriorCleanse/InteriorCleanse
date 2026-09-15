@@ -16,8 +16,10 @@ import { appendLedgerRow, memoryIsEmpty, readLedger } from './memory.ts'
 import { getNews } from './news.ts'
 import { getFlow } from './orderflow.ts'
 import { assessMarket } from './regime.ts'
-import { contextFor, voteAll } from './strategies/registry.ts'
+import { contextFor, voteAll, metaById } from './strategies/registry.ts'
 import type { StrategyVote } from './strategies/types.ts'
+import { fuse } from './fusion.ts'
+import type { FusedDecision } from './fusion.ts'
 import { planFor } from './plan.ts'
 import { tradingDayKey } from './sessions.ts'
 import { todaysPaperStats } from './paperTrader.ts'
@@ -39,6 +41,8 @@ export type Snapshot = {
   state: MarketState | null
   /** Every enabled strategy's vote for the latest candle. The session model is the only one that trades. */
   strategyVotes: StrategyVote[]
+  /** The votes fused into one regime-weighted decision. Surfaced always; it drives trades only when config.fusion.driveTrading is on. */
+  decision: FusedDecision | null
 }
 
 /** How many candles the ICT model needs to have yesterday's range and a full Asia session. */
@@ -63,7 +67,7 @@ export async function analyzeNow(opts: { withNews?: boolean; withFlow?: boolean 
   if (config.strategy === 'crossover') {
     const needed = Math.max(config.crossover.slowMA + 5, 60)
     const candles = await getCandles(config.symbol, config.interval, needed)
-    return { candles, analysis: null, signal: getCrossoverSignal(candles, candles.length - 1), news: null, plan: null, engine: null, flow: null, state: null, strategyVotes: [] }
+    return { candles, analysis: null, signal: getCrossoverSignal(candles, candles.length - 1), news: null, plan: null, engine: null, flow: null, state: null, strategyVotes: [], decision: null }
   }
 
   const [candles, news, flow] = await Promise.all([
@@ -84,7 +88,8 @@ export async function analyzeNow(opts: { withNews?: boolean; withFlow?: boolean 
   }
   const state = assessMarket(candles, analysis, flow, news)
   const strategyVotes = analysis ? voteAll(contextFor(analysis, candles)) : []
-  return { candles, analysis, signal: analysis!.signal, news, plan: engine.plan, engine, flow, state, strategyVotes }
+  const decision = analysis ? fuse({ votes: strategyVotes, metaById: metaById(), regime: analysis.features.regime.value?.state ?? null }) : null
+  return { candles, analysis, signal: analysis!.signal, news, plan: engine.plan, engine, flow, state, strategyVotes, decision }
 }
 
 export type ScanResult = Snapshot & {

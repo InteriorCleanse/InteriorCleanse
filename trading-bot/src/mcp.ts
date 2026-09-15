@@ -43,7 +43,7 @@ const TOOLS: Tool[] = [
     run: async () => {
       const s = await analyzeNow()
       if (!s.analysis) return `Strategy is set to crossover. Latest: ${s.signal.reason}`
-      return buildBrief(s.analysis, s.news, readPlan(), Date.now(), s.state, s.flow).lines.join('\n')
+      return buildBrief(s.analysis, s.news, readPlan(), Date.now(), s.state, s.flow, s.decision).lines.join('\n')
     },
   },
   {

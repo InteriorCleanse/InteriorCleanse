@@ -231,6 +231,29 @@ export const config = {
     minRR: 2,
   },
 
+  // ---------- SIGNAL FUSION (combining the votes) ----------
+
+  /**
+   * How the separate strategy votes become one decision. The weights are
+   * regime-aware and are shown with every decision, never hidden.
+   *
+   * `driveTrading` is OFF by default: the 24/7 paper trader still acts on the
+   * ICT session model alone, exactly as before. Turn it on to have the paper
+   * trader act on the FUSED decision instead (still through the risk check).
+   */
+  fusion: {
+    driveTrading: false,
+
+    /** Agreement (0–100) at or above which a lean becomes an actual LONG/SHORT… */
+    enterScore: 60,
+
+    /** …provided the winning side also outweighs the other by at least this much. */
+    dominance: 1.5,
+
+    /** Base weight per strategy family, before the regime multiplier. */
+    weights: { session: 1.0, 'order-flow': 0.8, breakout: 0.7, trend: 0.7, vwap: 0.6, 'mean-reversion': 0.6, crossover: 0.3 } as Record<string, number>,
+  },
+
   // ---------- THE LOOK-BACK TEST ----------
 
   replay: {

@@ -136,7 +136,7 @@ async function commandBrief(): Promise<void> {
   }
   ui.step('Downloading prices and news...')
   const snap = await analyzeNow()
-  const brief = buildBrief(snap.analysis!, snap.news, readPlan(), Date.now(), snap.state, snap.flow)
+  const brief = buildBrief(snap.analysis!, snap.news, readPlan(), Date.now(), snap.state, snap.flow, snap.decision)
   ui.blank()
   for (const l of brief.lines) console.log(l ? `  ${l}` : '')
   ui.plainEnglish([

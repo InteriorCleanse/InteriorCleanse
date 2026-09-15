@@ -413,6 +413,19 @@ $('btn-stopped').onclick = toggleStop
 
 // ---------- today ----------
 function evidenceList(ev) { return `<ul class="ev">${ev.map(e => `<li class="${e.passed?'pass':'fail'}"><span class="mark">${e.passed?'✓':'✗'}</span><div><div class="step">${esc(e.step)}</div><div class="detail">${esc(e.detail)}</div></div></li>`).join('')}</ul>` }
+function decisionCard(d) {
+  if (!d) return ''
+  const cls = d.action === 'LONG' ? 'win' : d.action === 'SHORT' ? 'loss' : d.action.includes('WATCH') ? 'skip' : 'muted'
+  const bar = d.direction === 'long' ? 'g' : d.direction === 'short' ? 'r' : ''
+  return `<div class="card"><h2>Playbook decision <span class="muted" title="The strategy votes, weighted by regime, fused into one call. Drives paper trades only when config.fusion.driveTrading is on.">— the votes, combined</span></h2>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span class="decision ${cls}" style="font-size:22px;margin:0">${esc(d.action)}</span><span class="muted">agreement</span><div class="bar ${bar}" style="width:120px"><i style="width:${d.score}%"></i></div><b>${d.score}</b><span class="muted">/100 · regime ${esc(d.regime||'—')}</span></div>
+    <div class="muted" style="font-size:13px;margin-top:6px">${esc(d.reason)}</div>
+    ${d.confirms.length?`<div style="margin-top:8px"><b class="win" style="font-size:12px">FOR</b><ul style="margin:4px 0 0;padding-left:18px;color:var(--dim);font-size:13px">${d.confirms.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`:''}
+    ${d.invalidates.length?`<div style="margin-top:8px"><b class="loss" style="font-size:12px">AGAINST / MISSING</b><ul style="margin:4px 0 0;padding-left:18px;color:var(--dim);font-size:13px">${d.invalidates.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`:''}
+    <div class="scroll" style="margin-top:10px"><table><tr><th>Strategy</th><th>Vote</th><th>Conf</th><th>Weight</th></tr>${d.contributors.map(c=>`<tr><td>${esc(c.name)}</td><td class="${c.action==='BUY'?'win':c.action==='SELL'?'loss':'muted'}">${c.action}</td><td class="num">${c.action==='HOLD'?'—':c.confidence}</td><td class="num ${c.weight===0?'muted':''}">${c.weight.toFixed(2)}${c.weight===0?' (off)':''}</td></tr>`).join('')}</table></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">Only the ICT session model opens paper trades today. Turn on <code>fusion.driveTrading</code> to let this fused call drive them (still through the risk check).</div>
+  </div>`
+}
 function stateCard(s) {
   if (!s) return ''
   const cls = s.trend === 'uptrend' ? 'win' : s.trend === 'downtrend' ? 'loss' : 'skip'
@@ -461,6 +474,7 @@ function renderToday() {
     <div class="card"><h2>Decision right now</h2><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div>
       ${s.plan ? `<div class="stats" style="margin-top:12px"><div class="stat"><div class="k">Entry</div><div class="v">${px(s.plan.entry)}</div></div><div class="stat"><div class="k">Stop</div><div class="v loss">${px(s.plan.stop)}</div></div><div class="stat"><div class="k">Target</div><div class="v win">${px(s.plan.takeProfit)}</div></div><div class="stat"><div class="k">Reward:risk</div><div class="v">${s.plan.rr.toFixed(1)}:1</div></div><div class="stat"><div class="k">Quality</div><div class="v">${s.quality}/100</div></div></div>` : ''}
     </div>
+    ${decisionCard(data.decision)}
     ${paperCard(data.paper)}
     ${stateCard(data.state)}
     <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>

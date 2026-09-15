@@ -24,6 +24,9 @@ const BY_ID = new Map(STRATEGIES.map((s) => [s.meta.id, s]))
 export function getStrategy(id: string): Strategy | undefined { return BY_ID.get(id) }
 export function strategyIds(): string[] { return STRATEGIES.map((s) => s.meta.id) }
 
+/** Every strategy's meta, keyed by id — for fusion's weighting. */
+export function metaById(): Map<string, Strategy['meta']> { return new Map(STRATEGIES.map((s) => [s.meta.id, s.meta])) }
+
 /** Which strategies are on. config.strategies.enabled = [] means all of them; a runtime setting can narrow it. */
 export function enabledStrategyIds(): string[] {
   const fromConfig = config.strategies.enabled.length ? config.strategies.enabled : strategyIds()

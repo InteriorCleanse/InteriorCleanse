@@ -10,6 +10,7 @@ import { upcomingEvents } from './news.ts'
 import { describeSweep } from './liquidity.ts'
 import type { FlowReport, IctAnalysis, MarketState, NewsReport } from './types.ts'
 import type { DayPlan } from './plan.ts'
+import type { FusedDecision } from './fusion.ts'
 
 export type Brief = {
   lines: string[]
@@ -25,7 +26,7 @@ function fmtLocal(ms: number): string {
   return new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
-export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPlan | null, now = Date.now(), state: MarketState | null = null, flow: FlowReport | null = null): Brief {
+export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPlan | null, now = Date.now(), state: MarketState | null = null, flow: FlowReport | null = null, decision: FusedDecision | null = null): Brief {
   const L: string[] = []
   const et = toET(now)
   const p = (n: number) => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 })
@@ -76,6 +77,14 @@ export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPla
     if (f.vwapSession.value) L.push(`  ${a.session ? sessionLabel(a.session) : 'Session'} VWAP ${p(f.vwapSession.value.vwap)} — price is ${side(f.vwapSession.value.vwap)}`)
     if (f.profileDay.value) L.push(`  Value area ${p(f.profileDay.value.val)}–${p(f.profileDay.value.vah)}, most volume at ${p(f.profileDay.value.poc)}`)
     L.push(`  (${f.vwapDay.source === 'trades' ? 'from the live tape — exact' : 'from candle volume — an approximation; the live tape makes it exact'})`)
+    L.push('')
+  }
+
+  // The fused playbook decision
+  if (decision) {
+    L.push(`PLAYBOOK DECISION: ${decision.action} — ${decision.score}/100 agreement. ${decision.reason}`)
+    for (const c of decision.confirms.slice(0, 4)) L.push(`  + ${c}`)
+    for (const c of decision.invalidates.slice(0, 4)) L.push(`  − ${c}`)
     L.push('')
   }
 

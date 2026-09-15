@@ -59,7 +59,14 @@ test('the ideal model on the same candles is never worse than the realistic one 
   }
   for (const t of ideal.trades) {
     assert.equal(t.entryPrice, t.intendedEntry, 'the old model filled at the signal close')
-    if (t.exitReason === 'stop') assert.equal(t.exitPrice, t.plan!.stop)
+    if (t.exitReason === 'stop') {
+      // Normally the ideal stop fills exactly at the stop; but a candle that GAPS through the
+      // stop fills at the open even in the ideal model (you cannot fill where price never traded),
+      // which is on the worse side of the stop.
+      const stop = t.plan!.stop
+      const ok = t.exitPrice === stop || (t.action === 'BUY' ? t.exitPrice <= stop : t.exitPrice >= stop)
+      assert.ok(ok, `ideal stop exit ${t.exitPrice} vs stop ${stop} (${t.action})`)
+    }
   }
   assert.ok(ideal.notes.some((n) => /IDEAL fill model/.test(n)))
 })

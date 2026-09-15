@@ -155,7 +155,7 @@ function analysisPayload(snap: Snapshot, candleCount: number) {
   const firstTime = candles[0]?.openTime ?? 0
   const engine = snap.engine
   const plan = readPlan()
-  const brief = a ? buildBrief(a, snap.news, plan, Date.now(), snap.state, snap.flow) : null
+  const brief = a ? buildBrief(a, snap.news, plan, Date.now(), snap.state, snap.flow, snap.decision) : null
   return {
     strategy: config.strategy,
     candles,
@@ -177,6 +177,8 @@ function analysisPayload(snap: Snapshot, candleCount: number) {
     state: snap.state,
     flow: snap.flow,
     paper: paperStats(snap.signal.price),
+    decision: snap.decision,
+    strategyVotes: snap.strategyVotes,
     generatedAt: Date.now(),
   }
 }
@@ -186,7 +188,7 @@ function contextFor(snap: Snapshot, withJournal = false): string {
   const parts: string[] = []
   if (!a) parts.push(`Strategy: crossover. Latest: ${snap.signal.reason}`)
   else {
-    const brief = buildBrief(a, snap.news, readPlan(), Date.now(), snap.state, snap.flow)
+    const brief = buildBrief(a, snap.news, readPlan(), Date.now(), snap.state, snap.flow, snap.decision)
     parts.push(brief.lines.join('\n'), '', 'CHECKLIST RIGHT NOW:', ...a.signal.evidence.map((e) => `  [${e.passed ? 'ok' : 'NO'}] ${e.step}: ${e.detail}`), `Decision: ${a.signal.action} — ${a.signal.reason}`, '',
       'GAPS: ' + a.fvgs.slice(-8).map((f) => `${f.direction} $${f.bottom.toFixed(0)}–$${f.top.toFixed(0)} ${f.state}${ifvgRole(f) ? ` now ${ifvgRole(f)}` : ''}`).join('; '),
       'SETTINGS: ' + JSON.stringify({ symbol: config.symbol, interval: config.interval, account: config.accountSizeUsd, riskPct: config.riskPerTradePercent, minRR: config.ict.minRR, killzones: config.ict.killzones, requireInversion: config.ict.requireInversion }),
@@ -345,6 +347,11 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    if (path === '/api/decision') {
+      const snap = await safely(() => snapshot())
+      json(res, 200, snap.ok ? { ok: true, data: snap.data.decision } : snap)
+      return
+    }
     if (path === '/api/strategies' && req.method === 'GET') {
       const snap = await safely(() => snapshot())
       const votes = new Map((snap.ok ? snap.data.strategyVotes : []).map((v) => [v.id, v]))
