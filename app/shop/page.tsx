@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: 'Shop the Edit',
   description:
     'Curated cleaning picks, hand-poured candles, prints, mugs and apparel — objects selected for how beautifully they serve.',
+  alternates: { canonical: '/shop/' },
 }
 
 export default function Shop() {

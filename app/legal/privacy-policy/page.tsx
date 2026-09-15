@@ -2,7 +2,12 @@ import type { Metadata } from 'next'
 import { PageHero } from '@/components/ui'
 import { SITE } from '@/lib/site-config'
 
-export const metadata: Metadata = { title: 'Privacy Policy' }
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description:
+    'What InteriorCleanse collects when you browse, buy, or join the list; how it is used; who processes it; and how to ask for it to be deleted.',
+  alternates: { canonical: '/legal/privacy-policy/' },
+}
 
 export default function Privacy() {
   return (

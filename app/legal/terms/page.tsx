@@ -1,7 +1,12 @@
 import type { Metadata } from 'next'
 import { PageHero } from '@/components/ui'
 
-export const metadata: Metadata = { title: 'Terms of Service' }
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description:
+    'The terms for using interiorcleanse.com and buying from it: orders, pricing, digital licences, third-party checkouts, and how disputes are handled.',
+  alternates: { canonical: '/legal/terms/' },
+}
 
 export default function Terms() {
   return (

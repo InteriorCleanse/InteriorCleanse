@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
 import { ResidenceHero } from '@/components/hero/ResidenceHero'
@@ -8,6 +9,11 @@ import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
+
+// `trailingSlash: true` means the canonical form of every URL carries one.
+// Each page declares its own; a site-wide canonical of '/' told search engines
+// every page was a copy of the homepage.
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 const TRUST: { text: string }[] = [
   { text: 'Secure checkout via Amazon & TikTok Shop' },

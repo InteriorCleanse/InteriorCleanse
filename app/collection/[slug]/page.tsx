@@ -1,3 +1,5 @@
+import { getProduct } from '@/lib/content'
+import { clampDescription } from '@/lib/seo'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -28,11 +30,14 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const p = getCatalogProduct(params.slug)
   if (!p || p.status !== 'published') return { title: 'The Collection' }
   const title = p.seoTitle ?? p.name
-  const description = p.seoDescription ?? p.tagline ?? p.description.slice(0, 155)
+  const description = p.seoDescription ?? clampDescription(p.tagline, p.description)
+  // The same product is also served at /shop/<slug>/, which is where every
+  // card and the reel link to. One canonical, or search engines split the two.
+  const canonical = getProduct(p.slug) ? `/shop/${p.slug}/` : `/collection/${p.slug}/`
   return {
     title,
     description,
-    alternates: { canonical: `/collection/${p.slug}/` },
+    alternates: { canonical },
     openGraph: {
       title,
       description,

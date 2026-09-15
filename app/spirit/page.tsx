@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: 'The Faith Library',
   description:
     'Christian books, Bibles, devotionals, and coloring books for every member of the family.',
+  alternates: { canonical: '/spirit/' },
 }
 
 export default function Spirit() {

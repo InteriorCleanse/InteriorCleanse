@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: 'The Library',
   description:
     'Interior design and home organizing books from InteriorCleanse — written for real homes and real lives.',
+  alternates: { canonical: '/library/' },
 }
 
 export default function Library() {
