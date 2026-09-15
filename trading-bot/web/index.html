@@ -72,6 +72,8 @@
   .lg-asia::before{background:rgba(88,166,255,.35)} .lg-london::before{background:rgba(255,166,0,.35)} .lg-ny::before{background:rgba(63,185,80,.35)}
   .lg-fvgb::before{background:rgba(63,185,80,.5)} .lg-fvgs::before{background:rgba(248,81,73,.5)} .lg-ifvg::before{background:rgba(180,180,180,.5)} .lg-sweep::before{background:var(--amber)}
   .lg-ob::before{background:transparent;border:1px dashed rgba(63,185,80,.9)} .lg-brk::before{background:rgba(188,140,255,.25);border:1px dashed rgba(188,140,255,.9)} .lg-vwap::before{background:transparent;border-bottom:2px solid var(--amber);border-radius:0;height:5px}
+  .pill { display:inline-block; font-size:11px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--panel2); border:1px solid var(--line); color:var(--dim); vertical-align:2px; margin-left:6px; }
+  .pill.win { color:var(--green); border-color:rgba(63,185,80,.5); }
   .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12px; z-index:30; white-space:pre-wrap; max-width:min(340px, 80vw); display:none; }
   .chat { display:flex; flex-direction:column; gap:8px; max-height:460px; overflow-y:auto; padding-right:4px; }
   .msg { padding:9px 13px; border-radius:10px; max-width:90%; white-space:pre-wrap; font-size:14px; }
@@ -666,9 +668,32 @@ window.addEventListener('resize', () => { if (!$('tab-chart').classList.contains
 async function loadFlow(fresh) {
   $('flow-status').innerHTML = '<span class="spin">◐</span>'
   const r = await call('/api/flow' + (fresh ? '?fresh=1' : '')); $('flow-status').textContent = ''
-  const f = r.data, b = f.book, t = f.tape
+  const f = r.data, b = f.book, t = f.tape, lv = f.live
   const maxWall = b && b.walls.length ? Math.max(...b.walls.map(w=>w.usd)) : 1
+  const ln = f.liveNow
+  const live = lv && lv.stream && lv.stream.trusted
+  const val = x => x && x.available ? x.value : null
+  const cvd = live ? (val(lv.cvd) || val(lv.cvdSinceGap)) : null
+  const dl = live ? val(lv.delta) : null, ab = live ? val(lv.absorption) : null, bi = live ? val(lv.bookImbalance) : null, fpr = live ? val(lv.footprint) : null
+  // Tape speed and big prints are rolling: take them as of NOW, not the last candle close.
+  const sp = ln && ln.tapeSpeed ? ln.tapeSpeed : null, lt = ln && ln.largeTrades ? ln.largeTrades : null
+  const liveCard = `<div class="card">
+    <h2>Live order flow ${live ? '<span class="pill win">● live stream — exact</span>' : '<span class="pill">windowed snapshot only</span>'}</h2>
+    ${live ? `<div class="stats">
+      ${cvd ? `<div class="stat"><div class="k">CVD ${lv.cvd.available ? '(day)' : '(since gap)'}</div><div class="v ${cvd.value>=0?'win':'loss'}">${cvd.value>=0?'+':''}${cvd.value.toFixed(3)}</div></div>` : ''}
+      ${dl ? `<div class="stat"><div class="k">This candle Δ</div><div class="v ${dl.delta>=0?'win':'loss'}">${dl.delta>=0?'+':''}${dl.delta.toFixed(3)}</div></div>` : ''}
+      ${dl ? `<div class="stat"><div class="k">Buy share</div><div class="v ${dl.buyShare>0.55?'win':dl.buyShare<0.45?'loss':''}">${Math.round(dl.buyShare*100)}%</div></div>` : ''}
+      ${sp ? `<div class="stat"><div class="k">Tape speed</div><div class="v">${sp.tradesPerMinute.toFixed(0)}/min ${sp.label==='accelerating'?'▲':sp.label==='slowing'?'▼':'·'}</div></div>` : ''}
+      ${bi ? `<div class="stat"><div class="k">Book (live)</div><div class="v ${bi.imbalance>0.6?'win':bi.imbalance<0.4?'loss':''}">${Math.round(bi.imbalance*100)}% bid</div></div>` : ''}
+      ${lt ? `<div class="stat"><div class="k">Big prints (${lt.windowMin}m)</div><div class="v">${lt.count}</div></div>` : ''}
+    </div>
+    ${ab && ab.detected ? `<div class="plain" style="margin-top:10px">Absorption (heuristic): <b>${ab.side}</b> — a ${ab.hint} hint. Heavy one-sided volume that failed to move price. ${esc(ab.note)}</div>` : ''}
+    ${fpr && fpr.rows.length ? `<h2 style="margin-top:14px">Footprint of the last candle — buy vs sell at each price</h2><div class="scroll"><table><tr><th>Price</th><th>Buy</th><th>Sell</th><th>Δ</th></tr>${fpr.rows.slice(0,14).map(row=>`<tr><td class="num">${px(row.price)}${fpr.pocPrice===row.price?' ◄':''}</td><td class="num win">${row.buy.toFixed(3)}</td><td class="num loss">${row.sell.toFixed(3)}</td><td class="num ${row.delta>=0?'win':'loss'}">${row.delta>=0?'+':''}${row.delta.toFixed(3)}</td></tr>`).join('')}</table></div>` : ''}
+    <div class="muted" style="font-size:12px;margin-top:8px">CVD and the footprint come from every trade on the stream. The exchange merges each taker order into one print, so a "big print" is one order, not necessarily one participant.</div>`
+    : `<div class="plain">The live tape is not connected, so CVD and the footprint are hidden — a running total needs every trade. The book and tape below are one-off REST snapshots: a window, not a continuous count. Turn the stream on with <code>data.stream: true</code> and check the green dot in the header.</div>`}
+  </div>`
   $('flow-out').innerHTML = `
+    ${liveCard}
     ${f.errors.length ? `<div class="warnbox">${esc(f.errors.join(' | '))}</div>` : ''}
     ${b ? `<div class="card"><h2>Order book — ${b.levelsRead} levels read at ${when(b.time)}</h2>
       <div class="stats"><div class="stat"><div class="k">Bids within 1%</div><div class="v win">${usdk(b.bidUsd1pct)}</div></div><div class="stat"><div class="k">Asks within 1%</div><div class="v loss">${usdk(b.askUsd1pct)}</div></div><div class="stat"><div class="k">Bid share</div><div class="v">${Math.round(b.imbalance*100)}%</div></div><div class="stat"><div class="k">Spread</div><div class="v">${b.spreadPct.toFixed(3)}%</div></div></div>

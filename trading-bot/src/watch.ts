@@ -203,6 +203,15 @@ export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e:
   let lastRunAt: number | null = null
   if (onEvent) eventLog.listeners.push(onEvent)
 
+  // Big prints straight off the live tape, the moment they happen — deduped by
+  // trade id. With the stream down no trades arrive and this simply never fires.
+  const offTrade = bus.on('trade', (t) => {
+    const usd = t.price * t.qty
+    if (usd >= config.orderflow.bigTradeUsd * 5 && once(`bigprint-${t.id}`)) {
+      eventLog.push('flow', `Big ${t.side}: ${fmtUsd(usd)}`, `A single ${t.side} of ${t.qty.toFixed(3)} at $${t.price.toFixed(0)} hit the tape live.`, 'info')
+    }
+  })
+
   const tick = async (trigger: 'start' | 'candle' | 'timer'): Promise<void> => {
     if (running) { queued = true; return } // one cycle at a time; a close during a cycle runs one more afterwards
     running = true
@@ -228,7 +237,7 @@ export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e:
     if (lastRunAt === null || Date.now() - lastRunAt >= everyMs - 5_000) void tick('timer')
   }, everyMs)
   return {
-    stop: () => { clearInterval(timer); unsubscribe() },
+    stop: () => { clearInterval(timer); unsubscribe(); offTrade() },
     current: () => state,
     lastError: () => lastError,
     stats: () => ({ cycles, lastTrigger, lastRunAt }),

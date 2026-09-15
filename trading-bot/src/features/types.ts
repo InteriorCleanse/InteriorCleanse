@@ -77,6 +77,114 @@ export type MomentumReading = {
   hours: number
 }
 
+// ---- order flow, from the streams only --------------------------------
+
+export type DeltaReading = {
+  buyV: number
+  sellV: number
+  /** Buyer-initiated minus seller-initiated volume, in units of the asset. */
+  delta: number
+  buyUsd: number
+  sellUsd: number
+  deltaUsd: number
+  buyShare: number
+  trades: number
+  volume: number
+}
+
+export type CvdReading = {
+  /** Cumulative delta since the anchor, in units of the asset. */
+  value: number
+  valueUsd: number
+  anchoredAt: number
+  candles: number
+  /** True only when every trade since the anchor was seen. */
+  complete: boolean
+  /** Set when the sum had to restart after a gap: the moment the tape became trusted again. */
+  restartedAt: number | null
+}
+
+export type TapeSpeedReading = {
+  tradesPerMinute: number
+  previousPerMinute: number
+  /** Now over the previous window; null when the previous window had no prints. */
+  acceleration: number | null
+  windowSec: number
+  label: 'accelerating' | 'steady' | 'slowing'
+}
+
+export type BigPrintSummary = { id: number; time: number; side: 'buy' | 'sell'; price: number; qty: number; usd: number }
+
+export type LargeTradesReading = {
+  windowMin: number
+  thresholdUsd: number
+  count: number
+  buys: number
+  sells: number
+  buyUsd: number
+  sellUsd: number
+  netUsd: number
+  largest: BigPrintSummary | null
+  recent: BigPrintSummary[]
+}
+
+export type BookImbalanceReading = {
+  mid: number
+  bestBid: number
+  bestAsk: number
+  spreadPct: number
+  bidUsd: number
+  askUsd: number
+  /** 0.5 = balanced, above = more resting bids than asks within the band. */
+  imbalance: number
+  bandPct: number
+  bookTime: number
+  lean: 'bids deeper' | 'asks deeper' | 'balanced'
+}
+
+export type FootprintRow = { price: number; buy: number; sell: number; delta: number; total: number }
+
+export type FootprintReading = {
+  openTime: number
+  bucketSize: number
+  /** Highest price first. */
+  rows: FootprintRow[]
+  volume: number
+  buyV: number
+  sellV: number
+  pocPrice: number | null
+  high: number
+  low: number
+}
+
+export type AbsorptionReading = {
+  detected: boolean
+  side: 'buyers absorbed' | 'sellers absorbed' | null
+  hint: 'bullish' | 'bearish' | null
+  volumeMultiple: number
+  rangeAtr: number
+  deltaShare: number
+  rule: { volumeMultiple: number; maxRangeAtr: number; minDeltaShare: number; minHistory: number }
+  note: string
+}
+
+/** The order-flow block. Every reading is from the streams; none is ever built from candles. */
+export type FlowFeatures = {
+  /** This candle's delta. */
+  delta: Feature<DeltaReading>
+  /** CVD from the configured anchor (day or session). Unavailable if any trade since the anchor was missed. */
+  cvd: Feature<CvdReading>
+  /** CVD restarted from the moment the tape became trusted, with the restart marked. */
+  cvdSinceGap: Feature<CvdReading>
+  tapeSpeed: Feature<TapeSpeedReading>
+  largeTrades: Feature<LargeTradesReading>
+  bookImbalance: Feature<BookImbalanceReading>
+  footprint: Feature<FootprintReading>
+  absorption: Feature<AbsorptionReading>
+  /** Whether the stream is trusted right now, and since when. */
+  stream: { trusted: boolean; trustedSince: number | null }
+}
+
 /** Everything computed for one closed candle. */
 export type FeatureSnapshot = {
   version: typeof FEATURE_VERSION
@@ -101,6 +209,8 @@ export type FeatureSnapshot = {
   structure: Feature<StructureReading>
   /** The nearest intact liquidity above and below, and today's raids. */
   liquidity: Feature<LiquidityReading>
+  /** Order flow from the trade and book streams. */
+  flow: FlowFeatures
   /** Whether the live tape covered this whole trading day without a gap. */
   tape: { exact: boolean; note: string }
 }
@@ -115,4 +225,7 @@ export type FeaturePoint = {
   /** Where each line is anchored, so a chart lifts the pen when the anchor moves instead of joining two days. */
   dayAnchor: number | null
   sessionAnchor: number | null
+  /** This candle's delta and the anchored CVD, from the tape only; null when not available. */
+  delta: number | null
+  cvd: number | null
 }

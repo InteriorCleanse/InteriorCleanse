@@ -15,13 +15,22 @@ import { volatility } from './volatility.ts'
 import { candleSums, vwapFromSums } from './vwap.ts'
 import { profileFromCandles, profileFromHistogram, valueArea } from './volumeProfile.ts'
 import { priceTick, tradeTape } from './trades.ts'
-import type { TradeAccumulator } from './trades.ts'
+import type { TapeBucket, TradeAccumulator } from './trades.ts'
+import { INTERVAL_MS } from '../market.ts'
 import { structureReading } from './structure.ts'
 import type { StructureInputs, StructureReading } from './structure.ts'
 import { liquidityReading } from './liquidity.ts'
 import type { LiquidityInputs, LiquidityReading } from './liquidity.ts'
+import { deltaOf } from './delta.ts'
+import { cvdBetween, cvdSinceTrusted } from './cvd.ts'
+import { tapeSpeed } from './tape.ts'
+import { largeTrades } from './largeTrades.ts'
+import { bookImbalance } from './imbalance.ts'
+import { footprint } from './footprint.ts'
+import { absorption } from './absorption.ts'
+import type { Book } from '../data/types.ts'
 import { FEATURE_VERSION } from './types.ts'
-import type { Feature, FeaturePoint, FeatureSnapshot, FeatureSource, ProfileReading, VwapReading } from './types.ts'
+import type { AbsorptionReading, BookImbalanceReading, CvdReading, DeltaReading, Feature, FeaturePoint, FeatureSnapshot, FeatureSource, FlowFeatures, FootprintReading, LargeTradesReading, ProfileReading, TapeSpeedReading, VwapReading } from './types.ts'
 
 function feature<T>(value: T | null, source: FeatureSource, asOf: number, approximate = false, note?: string): Feature<T> {
   return { value, available: value !== null, source: value === null ? 'none' : source, asOf, approximate: value !== null && approximate, ...(note ? { note } : {}) }
@@ -35,6 +44,8 @@ export type StepContext = {
   structure?: StructureInputs
   /** Today's levels and sweeps, when the caller tracks them. */
   liquidity?: LiquidityInputs
+  /** The live order book, when there is one. Only used if it is fresh as of this candle's close. */
+  book?: Book | null
 }
 
 export class FeatureEngine {
@@ -85,6 +96,7 @@ export class FeatureEngine {
       ? feature<ProfileReading>(valueArea(profileFromHistogram(tapeDay.hist, tapeDay.tick, bucketSize), bucketSize, config.features.valueAreaPercent), 'trades', asOf)
       : feature<ProfileReading>(valueArea(profileFromCandles(candles, this.dayStart, i, bucketSize), bucketSize, config.features.valueAreaPercent), 'candles', asOf, true, 'Each candle\'s volume spread evenly across its range; the tape would be exact.')
 
+    const flow = this.flowFeatures(candles, i, ctx, asOf, bucketSize)
     const hourly = hourlyAverages(candles, i)
     const snap: FeatureSnapshot = {
       version: FEATURE_VERSION,
@@ -105,6 +117,7 @@ export class FeatureEngine {
       profileDay,
       structure: feature<StructureReading>(ctx.structure ? structureReading(ctx.structure, c.close, ctx.atr) : null, 'candles', asOf, false, ctx.structure ? undefined : 'No structure trackers in this run.'),
       liquidity: feature<LiquidityReading>(ctx.liquidity ? liquidityReading(ctx.liquidity, c.close, ctx.atr) : null, 'candles', asOf, false, ctx.liquidity ? undefined : 'No levels tracked in this run.'),
+      flow,
       tape: { exact: dayExact, note: tapeNote },
     }
     this.latest = snap
@@ -113,12 +126,70 @@ export class FeatureEngine {
       vwapDay: vwapDay.value?.vwap ?? null, vwapDayUpper: vwapDay.value?.upper ?? null, vwapDayLower: vwapDay.value?.lower ?? null,
       vwapSession: vwapSession.value?.vwap ?? null,
       dayAnchor: vwapDay.value?.anchoredAt ?? null, sessionAnchor: vwapSession.value?.anchoredAt ?? null,
+      delta: flow.delta.value?.delta ?? null, cvd: flow.cvd.value?.value ?? null,
     })
     if (this.points.length > this.keepPoints) this.points.splice(0, this.points.length - this.keepPoints)
     return snap
   }
 
-  /** The VWAP lines from `fromTime` on, for drawing. */
+  /**
+   * Order flow, from the streams only. Never built from candles: when the
+   * tape did not see every trade of a candle, the reading is unavailable
+   * and says why.
+   */
+  private flowFeatures(candles: Candle[], i: number, ctx: StepContext, asOf: number, bucketSize: number): FlowFeatures {
+    const c = candles[i]
+    const tape = this.tape
+    const trustedSince = tape?.trustedSince() ?? null
+    const off = <T>(note: string): Feature<T> => feature<T>(null, 'trades', asOf, false, note)
+    if (!tape) {
+      const note = 'No tape in this run.'
+      return { delta: off(note), cvd: off(note), cvdSinceGap: off(note), tapeSpeed: off(note), largeTrades: off(note), bookImbalance: off('No book in this run.'), footprint: off(note), absorption: off(note), stream: { trusted: false, trustedSince: null } }
+    }
+    const down = trustedSince === null
+    const gapNote = down ? 'The stream is down: nothing on the tape is trusted.' : 'The stream came up, or had a gap, after this candle opened.'
+
+    // This candle
+    const b = tape.bucket(c.openTime)
+    const bucketExact = tape.bucketExact(c.openTime)
+    const delta = bucketExact && b ? feature<DeltaReading>(deltaOf(b), 'trades', asOf) : off<DeltaReading>(b ? gapNote : down ? gapNote : 'No trades on the tape for this candle.')
+    const fp = bucketExact && b ? feature<FootprintReading>(footprint(b, tape.tick(), bucketSize), 'trades', asOf) : off<FootprintReading>(b ? gapNote : 'No trades on the tape for this candle.')
+
+    // CVD from the anchor
+    const anchorIndex = config.features.cvdAnchor === 'session' && ctx.session !== null ? this.sessionStart : this.dayStart
+    const anchored = cvdBetween(tape, candles[anchorIndex].openTime, c.openTime)
+    const cvd = anchored?.complete ? feature<CvdReading>(anchored, 'trades', asOf) : off<CvdReading>(anchored ? `Not every trade since the ${config.features.cvdAnchor} anchor was seen (${down ? 'stream down' : 'gap or late start'}); see cvdSinceGap.` : 'No trades on the tape since the anchor.')
+    const restarted = anchored?.complete ? null : cvdSinceTrusted(tape, c.openTime)
+    const cvdSinceGap = restarted && restarted.complete ? feature<CvdReading>(restarted, 'trades', asOf) : off<CvdReading>(down ? gapNote : 'No trusted stretch of tape to sum from yet.')
+
+    // Rolling windows — trusted only while the stream has not dropped.
+    const speed = feature<TapeSpeedReading>(down ? null : tapeSpeed(tape, asOf, config.features.tapeWindowSec), 'trades', asOf, false, down ? gapNote : undefined)
+    const large = feature<LargeTradesReading>(down ? null : largeTrades(tape, asOf, config.features.largeTradesWindowMin), 'trades', asOf, false, down ? gapNote : undefined)
+
+    // Book imbalance — only when a book arrived around this candle's close (so old
+    // replayed candles never borrow a live book).
+    const book = ctx.book ?? tape.latestBook() ?? null
+    const bookFresh = book !== null && book.synced && book.receivedAt >= asOf && book.receivedAt - asOf <= (INTERVAL_MS[config.interval] ?? 300_000)
+    const bimb = bookFresh ? bookImbalance(book, config.features.bookBandPct) : null
+    const bookImb = bimb ? feature<BookImbalanceReading>(bimb, 'trades', asOf) : off<BookImbalanceReading>(book === null ? 'No order book in this run.' : !book.synced ? 'The order book is still being stitched.' : 'No book update at this candle close yet.')
+
+    // Absorption — this candle against the previous exact candles.
+    let absorptionF: Feature<AbsorptionReading>
+    if (bucketExact && b) {
+      const prev: TapeBucket[] = []
+      for (let j = i - 1; j >= 0 && prev.length < config.features.absorption.minHistory * 2; j--) {
+        const pb = tape.bucket(candles[j].openTime)
+        if (pb && tape.bucketExact(candles[j].openTime)) prev.push(pb)
+      }
+      const a = absorption(b, prev, ctx.atr, config.features.absorption)
+      absorptionF = a ? feature<AbsorptionReading>(a, 'trades', asOf) : off<AbsorptionReading>(`Not enough exact history yet (need ${config.features.absorption.minHistory} prior candles seen in full).`)
+    } else {
+      absorptionF = off<AbsorptionReading>(b ? gapNote : down ? gapNote : 'No trades on the tape for this candle.')
+    }
+
+    return { delta, cvd, cvdSinceGap, tapeSpeed: speed, largeTrades: large, bookImbalance: bookImb, footprint: fp, absorption: absorptionF, stream: { trusted: !down, trustedSince } }
+  }
+
   series(fromTime = 0): FeaturePoint[] {
     return this.points.filter((p) => p.openTime >= fromTime)
   }

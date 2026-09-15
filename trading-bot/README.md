@@ -119,6 +119,31 @@ dollar pressure, and every print over $100k. Every reading is logged to
 day. Honest caveat, printed every time: the book is intent and gets pulled;
 the tape already happened.
 
+**Live order flow** sits at the top of the tab and is a different thing from
+the REST snapshot below it. While the stream is up, Mr. Cash counts every
+trade as it prints and builds readings a candle chart cannot show:
+
+- **Delta** — buyer-initiated minus seller-initiated volume in one candle.
+- **CVD** (cumulative volume delta) — the running sum of that delta from the
+  start of the day (or the session, set by `features.cvdAnchor`). Price
+  rising while CVD falls is the classic warning that a move is thin.
+- **Footprint** — for the last candle, how much was bought and sold at each
+  price, and where the fight was (the point of control).
+- **Tape speed** — prints per minute now versus the minute before, so you can
+  see the tape accelerate or stall.
+- **Large prints** — single orders over `orderflow.bigTradeUsd`, by side.
+- **Book imbalance** — resting dollars near price, from the live book.
+- **Absorption** — a labelled *heuristic*: heavy one-sided volume that failed
+  to move price, so the passive side is holding. The exact rule is fixed in
+  its test.
+
+These come only from the stream. The exchange merges each taker order into
+one print, so a "large print" is one order, not necessarily one participant.
+The moment the stream drops or misses anything, CVD and the footprint are
+**hidden** and the block says "windowed snapshot only" — a running total that
+skipped trades is a lie, and Mr. Cash will not show one. The book and tape
+below are always available over REST, but they are a window, not a count.
+
 ### Market state (and `npm run state`)
 
 Uptrend, downtrend or range — with a strength score, a "likely to continue"
@@ -767,6 +792,8 @@ src/
     ema.ts, momentum.ts, volatility.ts, atr.ts   the market-state readings
     structure.ts, liquidity.ts, dealingRange.ts  swings, breaks, blocks, premium/discount, nearest liquidity
     trades.ts            the tape folded into candle buckets, and whether it missed anything
+    delta.ts, cvd.ts, footprint.ts   who was hitting whom, per candle and cumulatively
+    tape.ts, largeTrades.ts, imbalance.ts, absorption.ts   speed, big prints, book lean, and the absorption heuristic
   ui.ts                  makes the terminal readable
   selftest.ts            offline logic checks
   tradingview.ts         TradingView setup steps

@@ -156,6 +156,18 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   candles and flagged `approximate: true`. Features are inputs only — no
   trade rule may live in that folder — and the same code produces them in a
   replay and live.
+- **Order flow** (`src/features/` delta, cvd, footprint, tape, largeTrades,
+  imbalance, absorption; the `flow` block on the snapshot) is built ONLY from
+  the trade and book streams, never from candles. Delta and the footprint are
+  per candle; CVD is cumulative from `features.cvdAnchor` (day or session);
+  tape speed and large prints are rolling windows; book imbalance comes from
+  the live stitched book; absorption is a labelled heuristic whose rule lives
+  in `absorption.ts` and is pinned by its test. Every reading is
+  `available:false` with a reason the moment the stream drops or reports a
+  gap — CVD restarts from the trusted point (`cvdSinceGap`) rather than
+  silently carrying a wrong total. The Flow tab shows a "live stream — exact"
+  badge when the tape is trusted and "windowed snapshot only" (CVD and
+  footprint hidden) when it is not.
 - **Market structure** (`structure.ts`, `orderblocks.ts`,
   `features/dealingRange.ts`): swings are confirmed `swingLookback` candles
   after the fact and labelled HH/HL/LH/LL against the previous swing of the

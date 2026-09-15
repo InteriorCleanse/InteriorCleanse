@@ -350,6 +350,25 @@ export const config = {
 
     /** Hours of history the 20/50-hour averages need before they are reported. */
     hourlyAveragesMinHours: 60,
+
+    /** Where cumulative volume delta starts counting from: the trading day or the current session. */
+    cvdAnchor: 'day' as 'day' | 'session',
+
+    /** Tape speed is measured over this many seconds (and compared with the window before it). */
+    tapeWindowSec: 60,
+
+    /** Large prints are counted over this many minutes. */
+    largeTradesWindowMin: 15,
+
+    /** Book imbalance looks this far either side of the mid price, in percent. */
+    bookBandPct: 1,
+
+    /**
+     * The absorption heuristic (see src/features/absorption.ts): volume at
+     * least this many times the typical candle, trades spanning at most this
+     * many ATRs, and one side making up at least this share of the volume.
+     */
+    absorption: { volumeMultiple: 2, maxRangeAtr: 0.25, minDeltaShare: 0.3, minHistory: 6 },
   },
 
   // ---------- ORDER FLOW ----------

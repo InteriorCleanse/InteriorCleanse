@@ -38,6 +38,9 @@ import { describeShift, describeSwing } from './structure.ts'
 import { breakerRole, describeOrderBlock } from './orderblocks.ts'
 import { describeDealingRange } from './features/dealingRange.ts'
 import { getFlow, readFlowLog } from './orderflow.ts'
+import { tradeTape } from './features/trades.ts'
+import { tapeSpeed } from './features/tape.ts'
+import { largeTrades } from './features/largeTrades.ts'
 import { startWatch, eventLog } from './watch.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
@@ -386,8 +389,16 @@ const server = createServer(async (req, res) => {
       return
     }
     if (path === '/api/flow') {
-      const flow = url.searchParams.get('fresh') === '1' ? await getFlow() : (await snapshot()).flow ?? (await getFlow())
-      json(res, 200, { ok: true, data: { ...flow, history: readFlowLog(288) } })
+      const snap = await snapshot(url.searchParams.get('fresh') === '1')
+      const flow = url.searchParams.get('fresh') === '1' ? await getFlow() : snap.flow ?? (await getFlow())
+      // The candle-anchored order-flow block (delta, CVD, footprint, absorption) comes from the snapshot.
+      const live = snap.analysis?.features.flow ?? null
+      // The rolling readings (tape speed, large prints) are measured as of NOW so the tab is not stale.
+      const trusted = tradeTape.trustedSince() !== null
+      const liveNow = trusted
+        ? { trusted, tapeSpeed: tapeSpeed(tradeTape, Date.now(), config.features.tapeWindowSec), largeTrades: largeTrades(tradeTape, Date.now(), config.features.largeTradesWindowMin) }
+        : { trusted, tapeSpeed: null, largeTrades: null }
+      json(res, 200, { ok: true, data: { ...flow, live, liveNow, history: readFlowLog(288) } })
       return
     }
     if (path === '/api/state') {
