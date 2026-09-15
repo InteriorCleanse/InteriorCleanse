@@ -413,6 +413,22 @@ $('btn-stopped').onclick = toggleStop
 
 // ---------- today ----------
 function evidenceList(ev) { return `<ul class="ev">${ev.map(e => `<li class="${e.passed?'pass':'fail'}"><span class="mark">${e.passed?'✓':'✗'}</span><div><div class="step">${esc(e.step)}</div><div class="detail">${esc(e.detail)}</div></div></li>`).join('')}</ul>` }
+function riskCard(r) {
+  if (!r) return ''
+  const L = r.limits, u = r.used
+  const row = (label, used, limit, over) => `<div class="stat"><div class="k">${label}</div><div class="v ${over?'loss':''}">${used}${limit!==undefined?` / ${limit}`:''}</div></div>`
+  return `<div class="card"><h2>Risk limits <span class="muted" title="The risk engine vetoes any order that would breach these — paper included.">— the veto engine</span></h2>
+    <div class="stats">
+      ${row('Open positions', u.openPositions, L.maxOpenPositions, u.openPositions>=L.maxOpenPositions)}
+      ${row('Exposure', usdk(u.openNotionalUsd), usdk(L.maxExposureUsd))}
+      ${row('Trades today', u.tradesToday, L.maxTradesPerDay, u.tradesToday>=L.maxTradesPerDay)}
+      ${row('Loss today', u.lossesTodayR.toFixed(1)+'R', L.dailyLossLimitR+'R', u.lossesTodayR>=L.dailyLossLimitR)}
+      ${row('Drawdown', u.drawdownPercent.toFixed(1)+'%', L.maxDrawdownPercent+'%', u.drawdownPercent>=L.maxDrawdownPercent)}
+      <div class="stat"><div class="k">Risk / trade</div><div class="v">${L.riskPerTradePercent}%</div></div>
+    </div>
+    <div class="muted" style="font-size:12px;margin-top:8px">Every order — paper or otherwise — passes the risk engine first: kill switch, stale data, spread, exposure, the daily brakes, drawdown and execution. Anything that would breach a limit is refused with a reason.</div>
+  </div>`
+}
 function decisionCard(d) {
   if (!d) return ''
   const cls = d.action === 'LONG' ? 'win' : d.action === 'SHORT' ? 'loss' : d.action.includes('WATCH') ? 'skip' : 'muted'
@@ -475,6 +491,7 @@ function renderToday() {
       ${s.plan ? `<div class="stats" style="margin-top:12px"><div class="stat"><div class="k">Entry</div><div class="v">${px(s.plan.entry)}</div></div><div class="stat"><div class="k">Stop</div><div class="v loss">${px(s.plan.stop)}</div></div><div class="stat"><div class="k">Target</div><div class="v win">${px(s.plan.takeProfit)}</div></div><div class="stat"><div class="k">Reward:risk</div><div class="v">${s.plan.rr.toFixed(1)}:1</div></div><div class="stat"><div class="k">Quality</div><div class="v">${s.quality}/100</div></div></div>` : ''}
     </div>
     ${decisionCard(data.decision)}
+    ${riskCard(data.risk)}
     ${paperCard(data.paper)}
     ${stateCard(data.state)}
     <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>

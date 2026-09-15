@@ -33,7 +33,7 @@ import { readPlan, writePlan, clearPlan } from './plan.ts'
 import type { DayPlan } from './plan.ts'
 import { aiStatus, askAI, explainAiError, PICTURE_QUESTION } from './ai.ts'
 import type { AiImage } from './ai.ts'
-import { toET } from './sessions.ts'
+import { toET, tradingDayKey } from './sessions.ts'
 import { ifvgRole } from './fvg.ts'
 import { describeShift, describeSwing } from './structure.ts'
 import { breakerRole, describeOrderBlock } from './orderblocks.ts'
@@ -45,7 +45,10 @@ import { largeTrades } from './features/largeTrades.ts'
 import { startWatch, eventLog } from './watch.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
-import { paperStats, closeManually } from './paperTrader.ts'
+import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
+import { assess, riskLimits } from './riskEngine.ts'
+import type { RiskState } from './riskEngine.ts'
+import { entriesAllowed } from './killswitch.ts'
 import { SKILLS, skillById } from './skills.ts'
 import { checkStateChange, PinThrottle } from './guard.ts'
 import { describeMode, runtimeMode } from './mode.ts'
@@ -177,6 +180,10 @@ function analysisPayload(snap: Snapshot, candleCount: number) {
     state: snap.state,
     flow: snap.flow,
     paper: paperStats(snap.signal.price),
+    risk: (() => {
+      const eq = equity(); const peak = Math.max(equityPeak(), eq)
+      return { limits: riskLimits(), used: { openPositions: readPositions().open.length, openNotionalUsd: openNotionalUsd(), drawdownPercent: peak > 0 ? ((peak - eq) / peak) * 100 : 0, tradesToday: a ? todaysPaperStats(a.dayKey).trades : 0, lossesTodayR: a ? todaysPaperStats(a.dayKey).lossesR : 0 } }
+    })(),
     decision: snap.decision,
     strategyVotes: snap.strategyVotes,
     generatedAt: Date.now(),
@@ -347,6 +354,25 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    if (path === '/api/risk') {
+      const snap = await safely(() => snapshot())
+      const sig = snap.ok ? snap.data.signal : null
+      const positions = readPositions()
+      const eq = equity(); const peak = Math.max(equityPeak(), eq)
+      const last = snap.ok ? snap.data.candles[snap.data.candles.length - 1] : null
+      const tk = marketFeed.latestTicker
+      const gate = entriesAllowed()
+      const state: RiskState = {
+        now: Date.now(), killSwitch: { ok: gate.ok, reason: gate.ok ? '' : gate.reason },
+        candleAgeSec: last ? (Date.now() - last.closeTime) / 1000 : null,
+        spreadPct: tk && tk.bid > 0 && tk.ask > 0 ? ((tk.ask - tk.bid) / ((tk.ask + tk.bid) / 2)) * 100 : null,
+        openPositions: positions.open.length, openNotionalUsd: openNotionalUsd(),
+        today: todaysPaperStats(tradingDayKey(Date.now())), equityUsd: eq, peakEquityUsd: peak,
+      }
+      const verdict = sig && (sig.action === 'BUY' || sig.action === 'SELL') ? assess({ signal: sig }, state) : null
+      json(res, 200, { ok: true, data: { limits: riskLimits(), state: { openPositions: state.openPositions, openNotionalUsd: state.openNotionalUsd, equityUsd: eq, peakEquityUsd: peak, drawdownPercent: peak > 0 ? ((peak - eq) / peak) * 100 : 0, candleAgeSec: state.candleAgeSec, spreadPct: state.spreadPct, killSwitch: gate.ok }, verdict } })
+      return
+    }
     if (path === '/api/decision') {
       const snap = await safely(() => snapshot())
       json(res, 200, snap.ok ? { ok: true, data: snap.data.decision } : snap)

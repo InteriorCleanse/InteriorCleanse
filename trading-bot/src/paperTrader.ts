@@ -284,6 +284,20 @@ export function equity(): number {
   return config.accountSizeUsd + readPositions().closed.reduce((s, p) => s + (p.pnlUsd ?? 0), 0)
 }
 
+/** The highest the paper equity curve has reached (chronological closes), for the drawdown cap. */
+export function equityPeak(): number {
+  const closed = readPositions().closed.filter((p) => p.exitReason !== 'missed').slice().sort((a, b) => (a.closedAt ?? 0) - (b.closedAt ?? 0))
+  let run = config.accountSizeUsd
+  let peak = run
+  for (const p of closed) { run += p.pnlUsd ?? 0; if (run > peak) peak = run }
+  return peak
+}
+
+/** Total notional value of the open paper positions (filled ones), at their entry. */
+export function openNotionalUsd(): number {
+  return readPositions().open.filter((p) => p.status === 'open').reduce((s, p) => s + p.entry * p.quantity, 0)
+}
+
 /** Today's trade count and losses. Missed orders do not count as trades. */
 export function todaysPaperStats(dayKey: string): { trades: number; lossesR: number } {
   const s = readPositions()

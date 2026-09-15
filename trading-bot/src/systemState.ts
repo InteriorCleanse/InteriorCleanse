@@ -14,7 +14,8 @@ import { DATA_DIR, DB_PATH, store } from './store.ts'
 import { runtimeMode, describeMode } from './mode.ts'
 import { stopState } from './killswitch.ts'
 import { readPlan } from './plan.ts'
-import { readPositions, todaysPaperStats } from './paperTrader.ts'
+import { readPositions, todaysPaperStats, equity, equityPeak, openNotionalUsd } from './paperTrader.ts'
+import { riskLimits } from './riskEngine.ts'
 import { getSettings, overrides } from './settings.ts'
 import { tradingDayKey } from './sessions.ts'
 import { VERSION } from './version.ts'
@@ -51,6 +52,11 @@ export type SystemState = {
     maxTradesPerDay: number
     dailyLossLimitR: number
     plan: ReturnType<typeof readPlan>
+  }
+  /** The risk engine's limits and how much of each is used right now. */
+  risk: {
+    limits: ReturnType<typeof riskLimits>
+    used: { openPositions: number; openNotionalUsd: number; equityUsd: number; peakEquityUsd: number; drawdownPercent: number; tradesToday: number; lossesTodayR: number }
   }
   lastWatchAt: number | null
   lastError: { time: number; message: string } | null
@@ -104,6 +110,10 @@ export function systemState(input: SystemInputs): SystemState {
     feeds: { candles, news, orderFlow: flow, livePrice },
     marketData: feed,
     trading: { dayKey, openPaperPositions: readPositions().open.length, tradesToday: today.trades, lossesTodayR: today.lossesR, maxTradesPerDay: config.ict.maxTradesPerDay, dailyLossLimitR: config.ict.dailyLossLimitR, plan: readPlan() },
+    risk: (() => {
+      const eq = equity(); const peak = Math.max(equityPeak(), eq)
+      return { limits: riskLimits(), used: { openPositions: readPositions().open.length, openNotionalUsd: openNotionalUsd(), equityUsd: eq, peakEquityUsd: peak, drawdownPercent: peak > 0 ? ((peak - eq) / peak) * 100 : 0, tradesToday: today.trades, lossesTodayR: today.lossesR } }
+    })(),
     lastWatchAt: input.lastWatch?.at ?? null,
     lastError: input.lastError,
     uptimeSec: Math.round((now - input.startedAt) / 1000),

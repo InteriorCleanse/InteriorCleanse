@@ -184,6 +184,19 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   reads only session-level sweeps, and a regression test pins the baseline
   day's evidence word for word. All of this is drawn on the chart with a
   hover explanation and carried on the analysis; none of it trades yet.
+- **The risk engine** (`src/riskEngine.ts`, `src/risk/rules/*`,
+  `src/risk/filters.ts`) has veto power over every candidate order, paper
+  included: `assess(candidate, state) → RiskVerdict`. Rules run in order
+  (kill switch first): kill switch, stale data, spread, per-trade sizing (the
+  existing checkRisk, so an approved candidate is sized identically to the
+  frozen baseline), execution protection, exposure, daily trades, daily loss,
+  drawdown. The first failure is the veto. Sizing then passes the exchange
+  filters (config.risk.filters, 0 = off). The 24/7 paper trader in watch.ts
+  routes every order through it; nothing opens without `approved`. Limits are
+  in config.risk and surfaced on `/api/risk`, `/api/system` and the Today
+  tab. The engine's own News/Daily-limits/Plan checklist steps are left where
+  they are for now (so the baseline evidence text is unchanged); consolidating
+  them into the risk engine is a later refactor.
 - **The playbook** (`src/strategies/`): one interface,
   `Strategy { meta, evaluate(ctx) → StrategyVote }`. Each strategy reads the
   shared feature snapshot (and, for the session model, the full analysis) and

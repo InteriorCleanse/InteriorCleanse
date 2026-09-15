@@ -634,9 +634,18 @@ removes it.
 
 ## The safety switches
 
-Three things stand between you and an accident, and all three are tested
+Four things stand between you and an accident, and all four are tested
 (`npm test`):
 
+- **The risk engine.** Every candidate order — paper or otherwise — passes
+  through `src/riskEngine.ts` before it can become a position, and any rule
+  can veto it: the kill switch, stale prices, a wide spread, too much open
+  exposure, the daily trade and loss brakes, a drawdown cap, and execution
+  protection (a fill already past the stop is rejected). Nothing opens
+  without an approval, and every veto comes with a reason. The limits live in
+  `config.risk` and are shown on the Today tab and at `/api/risk` and
+  `/api/system`. It also does the sizing, respecting exchange step/tick/min
+  filters (off by default, so today's sizes are unchanged).
 - **The kill switch.** `npm run stop` (or the ⏹ Stop button on the Today tab,
   or ⌘K → "KILL SWITCH") writes a file called `data/STOP`. While it exists,
   Mr. Cash opens **no new positions of any kind**, paper included. Open paper
@@ -824,6 +833,9 @@ src/
   news.ts                calendar + headlines, scoring, blackouts
   ai.ts                  the optional assistant (boxed in)
   risk.ts                sizing from the stop; the part that says no
+  riskEngine.ts          the veto engine: every order passes it first
+  risk/filters.ts        exchange step/tick/min-notional rounding
+  risk/rules/            one file per rule: kill switch, stale data, spread, exposure, daily brakes, drawdown, execution
   execution.ts           pretend orders. No network. No exchange. Ever.
   store.ts               the database everything is kept in (SQLite, built into Node)
   memory.ts              the decision ledger and the lessons, with readable exports

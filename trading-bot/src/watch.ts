@@ -23,11 +23,13 @@ import { describeSweep } from './liquidity.ts'
 import { fusedToSignal } from './fusion.ts'
 import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
-import { checkRisk } from './risk.ts'
 import { consultMemory } from './adaptiveFilter.ts'
 import { appendLedgerRow, memoryIsEmpty } from './memory.ts'
-import { managePositions, openPosition, readPositions } from './paperTrader.ts'
+import { managePositions, openPosition, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { entriesAllowed } from './killswitch.ts'
+import { assess, toRiskDecision } from './riskEngine.ts'
+import type { RiskState } from './riskEngine.ts'
+import { marketFeed } from './data/feed.ts'
 import type { AppEvent } from './types.ts'
 import * as ui from './ui.ts'
 
@@ -88,6 +90,25 @@ export function once(key: string): boolean {
 
 const fmtUsd = (n: number) => '$' + (Math.abs(n) >= 1_000_000 ? (n / 1_000_000).toFixed(2) + 'M' : (n / 1000).toFixed(0) + 'k')
 
+/** The world the risk engine judges against, read from the live feed and the paper book. */
+function riskStateNow(dayKey: string, candles: import('./types.ts').Candle[], now: number, openCount: number): RiskState {
+  const last = candles[candles.length - 1]
+  const gate = entriesAllowed()
+  const tk = marketFeed.latestTicker
+  const spreadPct = tk && tk.bid > 0 && tk.ask > 0 ? ((tk.ask - tk.bid) / ((tk.ask + tk.bid) / 2)) * 100 : null
+  return {
+    now,
+    killSwitch: { ok: gate.ok, reason: gate.ok ? '' : gate.reason },
+    candleAgeSec: last ? (now - last.closeTime) / 1000 : null,
+    spreadPct,
+    openPositions: openCount,
+    openNotionalUsd: openNotionalUsd(),
+    today: todaysPaperStats(dayKey),
+    equityUsd: equity(),
+    peakEquityUsd: equityPeak(),
+  }
+}
+
 /** One look at the market, compared with the previous look. */
 export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
   const snap = await analyzeNow({ withFlow: true })
@@ -142,22 +163,26 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
       eventLog.push('setup', `${tradeSignal.action} setup — ${p.rr.toFixed(1)}:1, quality ${tradeSignal.quality}/100${fused ? ' (fused)' : ''}`,
         `Entry $${p.entry.toFixed(0)}, stop $${p.stop.toFixed(0)}, target $${p.takeProfit.toFixed(0)}. ${tradeSignal.reason}`, 'action')
 
-      // The 24/7 paper trader: take it on paper if risk and memory agree and nothing is open.
-      const gate = entriesAllowed()
-      if (config.app.autoPaperTrade && !gate.ok) {
-        if (once(`stopped-${a.time}`)) eventLog.push('info', 'Paper trade not taken — kill switch is on', gate.reason, 'warn')
-      } else if (config.app.autoPaperTrade && readPositions().open.length === 0) {
-        const risk = checkRisk(tradeSignal)
-        const verdict = risk.approved && !memoryIsEmpty() ? consultMemory(tradeSignal) : null
-        if (!risk.approved) {
-          eventLog.push('info', 'Paper trade not taken — risk said no', risk.reason, 'info')
-        } else if (verdict?.block) {
-          appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: tradeSignal.price, quantity: 0, reason: `${tradeSignal.setupKey} — ${verdict.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
-          eventLog.push('info', 'Paper trade refused by memory', verdict.reason, 'warn')
+      // The 24/7 paper trader: every candidate order goes through the risk engine
+      // (kill switch, stale data, spread, exposure, daily brakes, drawdown, execution).
+      if (config.app.autoPaperTrade) {
+        const positions = readPositions()
+        const verdict = assess({ signal: tradeSignal }, riskStateNow(a.dayKey, snap.candles, now, positions.open.length))
+        const routineOpen = verdict.vetoedBy === 'Exposure' && positions.open.length > 0
+        if (!verdict.approved) {
+          if (!routineOpen && once(`veto-${a.time}-${verdict.vetoedBy}`)) {
+            eventLog.push('info', `Paper trade not taken — ${verdict.vetoedBy}`, verdict.reason, verdict.vetoedBy === 'Kill switch' ? 'warn' : 'info')
+          }
         } else {
-          const pos = openPosition(tradeSignal, risk, a.session ? sessionLabel(a.session) : '', a.atr)
-          eventLog.push('setup', `Paper ${pos.direction} QUEUED near $${pos.intendedEntry.toFixed(0)}`,
-            `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
+          const memory = !memoryIsEmpty() ? consultMemory(tradeSignal) : null
+          if (memory?.block) {
+            appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: tradeSignal.price, quantity: 0, reason: `${tradeSignal.setupKey} — ${memory.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
+            eventLog.push('info', 'Paper trade refused by memory', memory.reason, 'warn')
+          } else {
+            const pos = openPosition(tradeSignal, toRiskDecision(verdict), a.session ? sessionLabel(a.session) : '', a.atr)
+            eventLog.push('setup', `Paper ${pos.direction} QUEUED near $${pos.intendedEntry.toFixed(0)}`,
+              `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
+          }
         }
       }
     }

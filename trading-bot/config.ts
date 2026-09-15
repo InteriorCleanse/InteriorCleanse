@@ -231,6 +231,34 @@ export const config = {
     minRR: 2,
   },
 
+  // ---------- RISK (the veto engine) ----------
+
+  /**
+   * The risk engine has veto power over every order, paper or live. These
+   * are the limits it enforces on top of the per-trade sizing. The exchange
+   * `filters` are 0 (off) here so paper sizes are exact; Phase 20 sets the
+   * real venue values before anything goes near a live order.
+   */
+  risk: {
+    /** At most this many paper positions open at once. */
+    maxOpenPositions: 1,
+
+    /** Total open notional cap, in dollars. 0 = use the account size. */
+    maxExposureUsd: 0,
+
+    /** Stop opening new risk once paper equity is this far below its peak, in percent. */
+    maxDrawdownPercent: 25,
+
+    /** Veto a trade when the latest candle is older than this — the feed may be stalled. */
+    maxCandleAgeSec: 180,
+
+    /** Veto a trade when the spread is wider than this percent of price. */
+    maxSpreadPct: 0.1,
+
+    /** Exchange filters for sizing. 0 = off. */
+    filters: { tickSize: 0, stepSize: 0, minNotionalUsd: 0 },
+  },
+
   // ---------- SIGNAL FUSION (combining the votes) ----------
 
   /**
