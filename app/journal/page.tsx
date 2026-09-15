@@ -5,7 +5,9 @@ import { articles } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'The Journal',
-  description: 'Editorial notes on home rituals, cleaning edits, and a quieter home.',
+  description:
+    'Editorial notes from InteriorCleanse on home rituals, cleaning edits, evening resets, and the small decisions that make a quieter home.',
+  alternates: { canonical: '/journal/' },
 }
 
 export default function Journal() {

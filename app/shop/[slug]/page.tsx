@@ -1,3 +1,4 @@
+import { clampDescription } from '@/lib/seo'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -22,18 +23,18 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
     const { collection } = resolved
     return {
       title: collection.title,
-      description: `${collection.title} — ${collection.eyebrow}. InteriorCleanse.`,
+      description: collection.description,
       alternates: { canonical: `/shop/${collection.slug}/` },
     }
   }
   if (resolved.kind === 'product') {
     return {
       title: resolved.product.name,
-      description: resolved.product.tagline,
+      description: clampDescription(resolved.product.tagline, resolved.product.description),
       alternates: { canonical: `/shop/${resolved.product.slug}/` },
       openGraph: {
         title: resolved.product.name,
-        description: resolved.product.tagline,
+        description: clampDescription(resolved.product.tagline, resolved.product.description),
         images: [resolved.product.heroImage],
         url: `/shop/${resolved.product.slug}/`,
       },

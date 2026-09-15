@@ -4,7 +4,9 @@ import { SITE } from '@/lib/site-config'
 
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Questions, corrections, or collaboration notes — get in touch.',
+  description:
+    'Get in touch with InteriorCleanse: order questions, corrections, press, and collaboration notes. We read everything and reply within two working days.',
+  alternates: { canonical: '/contact/' },
 }
 
 export default function Contact() {

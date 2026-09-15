@@ -41,9 +41,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       priority: 0.8,
     })),
-    // Published catalog products in their rooms. Drafts never appear here:
-    // the page itself is a 404 for anything not published.
-    ...publishedProducts().map((p) => ({
+    // Published catalog products in their rooms, unless the product also has
+    // a /shop/ page — then that URL is canonical and this one stays out.
+    // Drafts never appear here: the page itself is a 404 for anything not
+    // published.
+    ...publishedProducts().filter((p) => !allProducts.some((lp) => lp.slug === p.slug)).map((p) => ({
       url: url(`/collection/${p.slug}/`),
       lastModified: new Date(p.updatedAt),
       priority: 0.8,

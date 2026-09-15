@@ -9,7 +9,7 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const a = getArticle(params.slug)
   if (!a) return { title: 'Journal' }
-  return { title: a.title, description: a.excerpt }
+  return { title: a.title, description: a.excerpt, alternates: { canonical: `/journal/${a.slug}/` } }
 }
 
 export default function ArticlePage({ params }: { params: { slug: string } }) {

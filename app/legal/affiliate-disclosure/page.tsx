@@ -2,7 +2,12 @@ import type { Metadata } from 'next'
 import { PageHero } from '@/components/ui'
 import { SITE } from '@/lib/site-config'
 
-export const metadata: Metadata = { title: 'Affiliate Disclosure' }
+export const metadata: Metadata = {
+  title: 'Affiliate Disclosure',
+  description:
+    'How affiliate links work on InteriorCleanse: which partners pay a commission, what it costs you (nothing), and how sponsored placements are marked.',
+  alternates: { canonical: '/legal/affiliate-disclosure/' },
+}
 
 export default function Affiliate() {
   return (
