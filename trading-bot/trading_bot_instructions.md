@@ -184,6 +184,20 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   reads only session-level sweeps, and a regression test pins the baseline
   day's evidence word for word. All of this is drawn on the chart with a
   hover explanation and carried on the analysis; none of it trades yet.
+- **The playbook** (`src/strategies/`): one interface,
+  `Strategy { meta, evaluate(ctx) → StrategyVote }`. Each strategy reads the
+  shared feature snapshot (and, for the session model, the full analysis) and
+  returns one vote — BUY/SELL/HOLD, a confidence, the ordered evidence list,
+  and a plan when it wants a trade. The registry runs every enabled strategy
+  per candle; `analyzeNow` carries the votes on `Snapshot.strategyVotes`.
+  Nothing is combined (fusion is Phase 11) and only the ICT session model
+  opens paper trades — the others are read-only opinions. `session-ifvg`
+  delegates to the IctEngine signal, so its vote is byte-identical to the
+  session model. Per-strategy replay is `runStrategyReplay(id)` and
+  `npm run replay:raw -- --strategy <id>`; `compareStrategies` and
+  `npm run strategies` show them side by side. Strategies are enabled/disabled
+  via `settings.enabledStrategies` and the `/api/strategies` routes; the
+  Playbook tab shows each one's live vote.
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

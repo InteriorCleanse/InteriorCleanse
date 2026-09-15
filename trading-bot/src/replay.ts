@@ -29,6 +29,8 @@ import { checkRisk, sizeForStop } from './risk.ts'
 import { consultMemory, describeKey } from './adaptiveFilter.ts'
 import { addLesson, appendLedgerRow } from './memory.ts'
 import { toET } from './sessions.ts'
+import { contextFor, enabledStrategies, getStrategy, strategyIds } from './strategies/registry.ts'
+import type { StrategyVote } from './strategies/types.ts'
 import { defaultAssumptions, IDEAL_ASSUMPTIONS, simulateEntry, exitOnCandle, simulateExit } from './sim/fills.ts'
 import type { ExecutionAssumptions, EntryFill, Intent } from './sim/fills.ts'
 import { tradeMetrics } from './sim/trades.ts'
@@ -37,7 +39,7 @@ import type { Breakdown, Candle, ReplaySummary, ReplayTrade, Signal, TradePlan }
 export type FillModel = 'realistic' | 'ideal'
 
 export type ReplayResult = {
-  strategy: 'ict' | 'crossover'
+  strategy: string
   fillModel: FillModel
   assumptions: ExecutionAssumptions
   trades: ReplayTrade[]
@@ -423,6 +425,91 @@ export async function runCrossoverReplay(opts: Options): Promise<ReplayResult> {
 
 export async function runReplay(opts: Options): Promise<ReplayResult> {
   return config.strategy === 'ict' ? runIctReplay(opts) : runCrossoverReplay(opts)
+}
+
+// ---------------------------------------------------------------
+// Per-strategy replay (Phase 10): any one strategy, on its own
+// ---------------------------------------------------------------
+
+function voteToSignal(vote: StrategyVote, candle: Candle): Signal {
+  return { action: vote.action, reason: vote.reason, price: candle.close, time: candle.closeTime, setupKey: vote.setupKey, evidence: vote.evidence, plan: vote.plan, quality: vote.confidence }
+}
+
+/**
+ * Replay one named strategy over the look-back window. The session model and
+ * the crossover keep their own dedicated replays (so their numbers are
+ * unchanged); every other strategy is walked here, reading the same feature
+ * snapshots the app produces and filling through the same honest simulator.
+ */
+export async function runStrategyReplay(id: string, opts: Options): Promise<ReplayResult> {
+  if (id === 'session-ifvg') return { ...(await runIctReplay(opts)), strategy: id }
+  if (id === 'crossover') return { ...(await runCrossoverReplay(opts)), strategy: id }
+  const strat = getStrategy(id)
+  if (!strat) throw new Error(`Unknown strategy "${id}". Known: ${strategyIds().join(', ')}`)
+  const a = assumptionsFor(opts.fillModel ?? 'realistic')
+  const stepMs = INTERVAL_MS[config.interval] ?? 300_000
+  const start = Date.now() - (config.replay.lookbackDays + 2) * 86_400_000
+  const candles = await getCandlesSince(config.symbol, config.interval, start)
+  const testFrom = Date.now() - config.replay.lookbackDays * 86_400_000
+  const engine = new IctEngine(candles)
+  const trades: ReplayTrade[] = []
+  const notes: string[] = []
+  let totalSetups = 0
+  let missed = 0
+  let open: OpenTrade | null = null
+  const mode = 'replay-raw'
+
+  for (let i = 0; i < candles.length; i++) {
+    const analysis = engine.step(i)
+    if (open) {
+      const r = step(open, candles, i, a)
+      if (r && 'done' in r) { trades.push(r.done); engine.recordTrade(analysis.dayKey, r.done.rMultiple); if (opts.writeMemory) ledgerRowFor(r.done, mode); open = null }
+      else if (r && 'missed' in r) { missed++; open = null }
+      continue
+    }
+    if (candles[i].openTime < testFrom) continue
+    const vote = strat.evaluate(contextFor(analysis, candles))
+    if ((vote.action !== 'BUY' && vote.action !== 'SELL') || !vote.plan) continue
+    totalSetups++
+    const signal = voteToSignal(vote, candles[i])
+    const risk = checkRisk(signal)
+    if (!risk.approved) continue
+    const intent: Intent = { direction: vote.plan.direction, intendedEntry: vote.plan.entry, stop: vote.plan.stop, target: vote.plan.takeProfit, atr: analysis.atr }
+    open = { signalIndex: i, signal, plan: vote.plan, intent, session: analysis.session, quantity: risk.quantity, held: 0 }
+    if (a.latencyCandles <= 0) open.fill = { price: vote.plan.entry, time: candles[i].closeTime, index: i, costPerUnit: 0 }
+  }
+  if (open) notes.push('One trade was still open when the data ran out; it is not counted.')
+
+  const summary = summarise(trades, totalSetups, missed ? totalSetups - trades.length - missed : 0, missed)
+  notes.push(`Strategy "${strat.meta.name}" replayed on its own. It does not open real paper trades; only the ICT session model does.`)
+  if (!summary.enoughData) notes.push(`Only ${totalSetups} setup(s) in ${config.replay.lookbackDays} days — too few to trust the numbers; this is a demonstration.`)
+  notes.push(opts.fillModel === 'ideal' ? 'IDEAL fill model, for comparison only.' : `Fills simulated honestly (next-open entry + spread/slippage, honest stops/targets, fees). Costs $${summary.costsUsd.toFixed(3)} across ${summary.taken} trade(s).`)
+
+  return {
+    strategy: id,
+    fillModel: opts.fillModel ?? 'realistic',
+    assumptions: a,
+    trades,
+    summary,
+    breakdowns: [breakdown('By direction', trades, (t) => (t.action === 'BUY' ? 'Longs' : 'Shorts')), breakdown('By exit', trades, (t) => t.exitReason), breakdown('By weekday', trades, (t) => toET(t.time).weekdayName)],
+    candlesUsed: candles.length,
+    days: candles.length ? Math.round((candles[candles.length - 1].closeTime - Math.max(testFrom, candles[0].openTime)) / 86_400_000) : 0,
+    from: candles.length ? Math.max(testFrom, candles[0].openTime) : 0,
+    to: candles.length ? candles[candles.length - 1].closeTime : 0,
+    notes: notes.concat(stepMs > 900_000 ? ['Candles bigger than 15m blur most of these strategies — 5m is the intended setting.'] : []),
+  }
+}
+
+export type StrategyComparisonRow = { id: string; name: string; family: string; summary: ReplaySummary }
+
+/** Run every enabled strategy over the same window and return their summaries side by side. */
+export async function compareStrategies(opts: Options): Promise<StrategyComparisonRow[]> {
+  const rows: StrategyComparisonRow[] = []
+  for (const s of enabledStrategies()) {
+    const r = await runStrategyReplay(s.meta.id, opts)
+    rows.push({ id: s.meta.id, name: s.meta.name, family: s.meta.family, summary: r.summary })
+  }
+  return rows
 }
 
 /** What the refused trades WOULD have done — the honest scoreboard for memory. */

@@ -74,6 +74,9 @@
   .lg-ob::before{background:transparent;border:1px dashed rgba(63,185,80,.9)} .lg-brk::before{background:rgba(188,140,255,.25);border:1px dashed rgba(188,140,255,.9)} .lg-vwap::before{background:transparent;border-bottom:2px solid var(--amber);border-radius:0;height:5px}
   .pill { display:inline-block; font-size:11px; font-weight:600; padding:1px 8px; border-radius:999px; background:var(--panel2); border:1px solid var(--line); color:var(--dim); vertical-align:2px; margin-left:6px; }
   .pill.win { color:var(--green); border-color:rgba(63,185,80,.5); }
+  .pill.loss { color:var(--red); border-color:rgba(248,81,73,.5); }
+  .switch { display:inline-flex; align-items:center; gap:7px; cursor:pointer; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
   .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12px; z-index:30; white-space:pre-wrap; max-width:min(340px, 80vw); display:none; }
   .chat { display:flex; flex-direction:column; gap:8px; max-height:460px; overflow-y:auto; padding-right:4px; }
   .msg { padding:9px 13px; border-radius:10px; max-width:90%; white-space:pre-wrap; font-size:14px; }
@@ -226,6 +229,11 @@
     <div id="test-out"><div class="plain">Replays the last <span id="lb-days">30</span> days of real candles and takes every setup that passes the full checklist, scoring each one in R. Nothing is tuned, nothing is cherry-picked, and a candle that hits both stop and target counts as a loss.</div></div>
   </section>
 
+  <section id="tab-playbook" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-playbook">Reload votes</button><span class="muted" id="playbook-status"></span></div>
+    <div id="playbook-out"><div class="plain">Every strategy Mr. Cash knows, each judged on its own. Only the ICT session model opens paper trades; the rest are opinions. Turn any on or off, see its vote right now, and test it in full on past prices.</div></div>
+  </section>
+
   <section id="tab-memory" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-memshow">Reload</button><button class="btn danger" id="btn-reset">Wipe memory</button><button class="btn ghost" id="btn-doctor">Run doctor</button></div>
     <div id="memory-out"></div>
@@ -272,7 +280,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id)
-const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['memory','Memory','🧠'],['ask','Ask','💬']]
+const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['playbook','Playbook','📚'],['memory','Memory','🧠'],['ask','Ask','💬']]
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -303,6 +311,7 @@ function showTab(id, push=true) {
   if (id === 'news' && !$('news-out').innerHTML) loadNews()
   if (id === 'journal' && !$('j-out').innerHTML) loadJournal()
   if (id === 'tv') loadTV()
+  if (id === 'playbook' && !document.querySelector('#playbook-out .strat')) loadPlaybook()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
   window.scrollTo({top:0})
 }
@@ -722,6 +731,40 @@ async function loadFlow(fresh) {
   }
 }
 $('btn-flow').onclick = () => loadFlow(true)
+
+// ---------- playbook ----------
+async function loadPlaybook() {
+  $('playbook-status').innerHTML = '<span class="spin">◐</span>'
+  const r = await call('/api/strategies'); $('playbook-status').textContent = ''
+  const list = (r.data && r.data.strategies) || []
+  $('playbook-out').innerHTML = `<div class="plain">${esc(r.data ? r.data.note : '')}</div>` + list.map(s => {
+    const v = s.vote, act = v ? v.action : 'HOLD'
+    const cls = act === 'BUY' ? 'win' : act === 'SELL' ? 'loss' : 'muted'
+    return `<div class="card strat" data-id="${s.id}">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <label class="switch"><input type="checkbox" ${s.enabled?'checked':''} data-enable="${s.id}"> <b>${esc(s.name)}</b></label>
+        <span class="pill">${esc(s.family)}</span>
+        ${s.needsTape?'<span class="pill" title="Only votes with the live trade tape">live tape only</span>':''}
+        <span class="decision ${cls}" style="font-size:16px;margin:0 0 0 auto">${act}${v&&act!=='HOLD'?` · ${v.confidence}`:''}</span>
+      </div>
+      <div class="muted" style="font-size:13px;margin-top:6px">${esc(s.summary)}</div>
+      ${v?`<div class="muted" style="font-size:13px;margin-top:6px">${esc(v.reason)}</div>`:''}
+      <div class="row" style="margin-top:8px"><button class="btn ghost sm" data-replay="${s.id}">Test on past prices</button><span class="muted" data-out="${s.id}"></span></div>
+    </div>`
+  }).join('')
+  document.querySelectorAll('[data-enable]').forEach(el => el.onchange = async () => {
+    await call('/api/strategies/enable', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ id: el.dataset.enable, on: el.checked })}); loadPlaybook()
+  })
+  document.querySelectorAll('[data-replay]').forEach(el => el.onclick = async () => {
+    const id = el.dataset.replay, out = document.querySelector(`[data-out="${id}"]`)
+    out.innerHTML = '<span class="spin">◐</span> testing…'
+    const rr = await call('/api/replay/strategy?id=' + encodeURIComponent(id))
+    if (!rr.ok || !rr.data) { out.textContent = rr.error || 'failed'; return }
+    const s = rr.data.summary
+    out.innerHTML = `${s.taken} trade(s), ${s.winRate!==null?Math.round(s.winRate*100)+'% win':'—'}, ${s.totalR.toFixed(2)}R total over ${rr.data.days} days`
+  })
+}
+$('btn-playbook') && ($('btn-playbook').onclick = () => loadPlaybook())
 
 // ---------- news ----------
 async function loadNews(force) {

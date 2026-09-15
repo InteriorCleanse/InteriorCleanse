@@ -18,12 +18,14 @@ export type Settings = {
   watchEveryMinutes: number
   /** Whether the 24/7 paper trader may open positions on its own. */
   autoPaperTrade: boolean
+  /** Which playbook strategies are shown and replayable, comma-separated. Empty = the config default (all). */
+  enabledStrategies: string
 }
 
 const PREFIX = 'settings:'
 
 export function defaultSettings(): Settings {
-  return { strategy: config.strategy, watchEveryMinutes: config.app.watchEveryMinutes, autoPaperTrade: config.app.autoPaperTrade }
+  return { strategy: config.strategy, watchEveryMinutes: config.app.watchEveryMinutes, autoPaperTrade: config.app.autoPaperTrade, enabledStrategies: config.strategies.enabled.join(',') }
 }
 
 export function getSettings(): Settings {

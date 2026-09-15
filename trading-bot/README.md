@@ -100,6 +100,36 @@ direction, level swept, entry type, weekday and exit reason. Nothing is tuned
 and nothing is cherry-picked; a candle that hits both stop and target counts as
 a loss.
 
+### The Playbook tab (and `npm run strategies`)
+
+Mr. Cash reads the market through several strategies at once, and this tab
+shows every one of them side by side: what it looks for, whether it is turned
+on, and its vote right now with the reason. Each strategy is judged entirely
+on its own — nothing is combined into a single decision yet, and **only the
+ICT session model opens paper trades**; the rest are opinions you can watch.
+
+The strategies:
+
+- **ICT session model** — the full checklist (Asia range, killzone sweep,
+  displacement, inverted gap, retest). The bot's original brain.
+- **VWAP reclaim** — price dips through the day VWAP and closes back on the
+  other side.
+- **Volatility breakout** — a range that compressed and then broke, taken as
+  volatility expands.
+- **Trend pullback** — in a trend, join it on a pullback into discount (or
+  premium) that lands on an order block.
+- **Range mean-reversion** — in a range, fade a stretch past the VWAP band
+  back to the average.
+- **Order-flow momentum** — ride a hard push on the live tape. This one
+  **needs the stream**: with the tape down it holds and says so, never
+  guessing flow from a candle.
+- **MA crossover** — the simple teaching strategy.
+
+Turn any on or off, and test one in full on real past prices from the tab or
+with `npm run replay:raw -- --strategy <id>`. `npm run strategies` prints them
+all with a comparison table. Every vote carries the same evidence list the
+checklist uses, so "why?" and "why not?" both have an answer.
+
 ### The Ask tab (and `npm run talk`)
 
 Talk to it. Typed commands always work (`why`, `levels`, `whatif 105000`,
@@ -791,6 +821,9 @@ src/
   adaptiveFilter.ts      decides whether memory should refuse a setup
   replay.ts              the look-back tests
   strategy.ts            the simple crossover strategy
+  strategies/            the playbook: one interface, many strategies, each judged alone
+    types.ts, registry.ts   the Strategy interface and the list of them
+    sessionIfvg.ts, vwapReclaim.ts, breakout.ts, trendPullback.ts, meanReversion.ts, orderFlowMomentum.ts, crossover.ts
   market.ts              real prices over REST (and refusing to fake them)
   data/bus.ts            the in-process market-data bus every reading passes through
   data/binanceStream.ts  the live stream: reconnects, order-book stitching, stale watchdog

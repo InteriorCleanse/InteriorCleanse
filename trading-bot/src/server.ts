@@ -23,7 +23,8 @@ import { randomBytes } from 'node:crypto'
 import { config } from '../config.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import type { Snapshot } from './bot.ts'
-import { runReplay, scoreSkippedTrades } from './replay.ts'
+import { runReplay, runStrategyReplay, scoreSkippedTrades } from './replay.ts'
+import { STRATEGIES, enabledStrategyIds, strategyIds } from './strategies/registry.ts'
 import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 import { getNews, summarizeNews, upcomingEvents } from './news.ts'
@@ -341,6 +342,36 @@ const server = createServer(async (req, res) => {
       const s = releaseStop()
       eventLog.push('info', 'Kill switch released', 'Entries are allowed again.', 'info')
       json(res, 200, { ok: true, data: s })
+      return
+    }
+
+    if (path === '/api/strategies' && req.method === 'GET') {
+      const snap = await safely(() => snapshot())
+      const votes = new Map((snap.ok ? snap.data.strategyVotes : []).map((v) => [v.id, v]))
+      const on = new Set(enabledStrategyIds())
+      json(res, 200, { ok: true, data: {
+        strategies: STRATEGIES.map((s) => ({ ...s.meta, enabled: on.has(s.meta.id), vote: votes.get(s.meta.id) ?? null })),
+        note: 'Each strategy votes on its own. Only the ICT session model opens paper trades; the rest are opinions for now.',
+      } })
+      return
+    }
+    if (path === '/api/strategies/enable' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 4096)) || '{}') as { id?: string; on?: boolean }
+      const id = String(body.id ?? '')
+      if (!strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
+      const current = new Set(enabledStrategyIds())
+      if (body.on) current.add(id); else current.delete(id)
+      // Store the explicit list; if it ends up all of them, store all ids (not empty, which would mean "config default").
+      setSetting('enabledStrategies', strategyIds().filter((x) => current.has(x)).join(','))
+      snapCache = null
+      json(res, 200, { ok: true, data: { enabled: enabledStrategyIds() } })
+      return
+    }
+    if (path === '/api/replay/strategy') {
+      const id = url.searchParams.get('id') ?? ''
+      if (!strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
+      const r = await safely(() => runStrategyReplay(id, { useMemory: false, writeMemory: false }))
+      json(res, 200, r.ok ? { ...r } : r)
       return
     }
 

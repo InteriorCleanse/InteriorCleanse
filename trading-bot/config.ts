@@ -211,6 +211,26 @@ export const config = {
     holdCandles: 12,
   },
 
+  // ---------- THE PLAYBOOK (many strategies, each judged alone) ----------
+
+  /**
+   * Mr. Cash reads the market through several strategies at once. Each one
+   * votes on its own — nothing is combined into a single decision yet, and
+   * only the ICT session model actually opens paper trades. The rest are
+   * shown on the Playbook tab so you can watch what each would do and test
+   * it on its own with the look-back test.
+   */
+  strategies: {
+    /** Which strategies are shown and replayable. Empty = all of them. */
+    enabled: [] as string[],
+
+    /** The stop for the feature-based strategies sits this many ATRs from entry… */
+    stopAtr: 1.0,
+
+    /** …and the target is this many times the risk. */
+    minRR: 2,
+  },
+
   // ---------- THE LOOK-BACK TEST ----------
 
   replay: {

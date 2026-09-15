@@ -7,7 +7,8 @@
 import { config } from '../config.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 import { analyzeNow, runScan } from './bot.ts'
-import { runReplay, scoreSkippedTrades } from './replay.ts'
+import { runReplay, runStrategyReplay, compareStrategies, scoreSkippedTrades } from './replay.ts'
+import { STRATEGIES, enabledStrategyIds } from './strategies/registry.ts'
 import type { ReplayResult } from './replay.ts'
 import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { buildBrief } from './brief.ts'
@@ -325,13 +326,21 @@ function printSummary(result: ReplayResult): void {
   }
 }
 
+/** `--strategy <id>` from the command line, if present. */
+function strategyArg(): string | null {
+  const argv = process.argv.slice(3)
+  const i = argv.indexOf('--strategy')
+  return i >= 0 && argv[i + 1] ? argv[i + 1] : null
+}
+
 async function commandReplayRaw(): Promise<void> {
-  ui.heading('LOOK-BACK TEST — the strategy on its own')
+  const id = strategyArg()
+  ui.heading(id ? `LOOK-BACK TEST — strategy "${id}" on its own` : 'LOOK-BACK TEST — the strategy on its own')
   ui.safetyBanner()
   showSettings()
   ui.blank()
-  ui.step(`Downloading ${config.strategy === 'ict' ? `${config.replay.lookbackDays} days` : 'history'} of real ${config.symbol} candles...`)
-  const result = await runReplay({ useMemory: false, writeMemory: true })
+  ui.step(`Downloading ${config.replay.lookbackDays} days of real ${config.symbol} candles...`)
+  const result = id ? await runStrategyReplay(id, { useMemory: false, writeMemory: false }) : await runReplay({ useMemory: false, writeMemory: true })
   ui.step(`Studied ${result.candlesUsed} candles (${result.days} days), ${ui.formatTime(result.from)} → ${ui.formatTime(result.to)}.`)
   printTrades(result)
   printSummary(result)
@@ -502,6 +511,31 @@ function commandMigrate(): void {
   ui.blank()
 }
 
+async function commandStrategies(): Promise<void> {
+  ui.heading('THE PLAYBOOK — every strategy, judged alone')
+  ui.safetyBanner()
+  ui.blank()
+  const on = new Set(enabledStrategyIds())
+  ui.table(['Strategy', 'Family', 'On?', 'What it looks for'], STRATEGIES.map((s) => [s.meta.name, s.meta.family, on.has(s.meta.id) ? ui.good('yes') : ui.dim('no'), s.meta.summary]))
+  ui.blank()
+  ui.step(`Replaying each enabled strategy over the last ${config.replay.lookbackDays} days on the same candles...`)
+  const rows = await compareStrategies({ useMemory: false, writeMemory: false })
+  ui.table(['Strategy', 'Trades', 'Win %', 'Total R', 'Avg R'], rows.map((r) => [
+    r.name,
+    String(r.summary.taken),
+    r.summary.winRate !== null ? `${Math.round(r.summary.winRate * 100)}%` : '—',
+    r.summary.totalR.toFixed(2),
+    r.summary.avgR !== null ? r.summary.avgR.toFixed(2) : '—',
+  ]))
+  ui.plainEnglish([
+    'Each strategy is tested completely on its own here — nothing is combined',
+    'yet, and only the ICT session model opens real paper trades. Test one in',
+    'full with:  npm run replay:raw -- --strategy <id>',
+    'Small samples mean little; treat these as a demonstration, not a verdict.',
+  ])
+  ui.blank()
+}
+
 function commandHelp(): void {
   ui.heading('MR. CASH — WHAT CAN I DO?')
   ui.safetyBanner()
@@ -566,6 +600,7 @@ async function main(): Promise<void> {
       case 'resume': commandResume(); break
       case 'status': commandStatus(); break
       case 'migrate': commandMigrate(); break
+      case 'strategies': await commandStrategies(); break
       default: commandHelp()
     }
   } catch (err) {
