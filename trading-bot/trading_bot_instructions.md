@@ -227,11 +227,35 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   and calling out the curve-fit pattern (good in-sample, dead out-of-sample).
   `runner.ts` feeds it from `runStrategyReplay(id)` or `runFusedReplay()` over
   whatever candles the store has. Surfaced as `npm run backtest -- --strategy <id|fused>`,
-  the `/api/backtest` route, and the *Backtest* button on the Test tab. It does
-  **not** search or tune parameters — that is a later phase — and order-flow
-  strategies are only backtestable inside recorded tape windows; outside them
-  the report says "not backtestable" rather than falling back to candle
-  approximations. The out-of-sample number is the only one worth acting on.
+  the `/api/backtest` route, and the *Backtest* button on the Test tab.
+  Order-flow strategies are only backtestable inside recorded tape windows;
+  outside them the report says "not backtestable" rather than falling back to
+  candle approximations. The out-of-sample number is the only one worth acting on.
+- **The factory** (`src/factory/`) breeds strategy variants and keeps only the
+  ones that hold up out-of-sample, with multiple-testing discipline. A *genome*
+  is a strategy id plus a parameter vector; a strategy declares its tunable
+  knobs in `meta.parameters` (only knobs that actually change its behaviour —
+  the crossover exposes stop and target; the structural-stop strategies expose
+  target only; the frozen session model and mean-reversion expose none, and
+  order flow is not backtestable). `paramOverrides.ts` is the leaf primitive
+  that puts a genome's vector in force for one backtest (so a normal run, with
+  no overrides, is byte-identical to before). `genome.ts` gives each genome a
+  stable id and computes its grid neighbours; `generate.ts` proposes genomes by
+  grid, seeded random, or evolutionary breeding (crossover + mutation);
+  `evaluate.ts` scores one with the Phase 13 backtester (the backtest function
+  is injectable, so the factory's logic is tested without a month of candles);
+  `stats.ts` holds the normal helpers and the deflated Sharpe; `select.ts` is
+  the four survival gates — enough OOS trades, a real OOS edge, parameter
+  stability across neighbours (a plateau, not a spike), and a deflated Sharpe
+  that beats the best-of-N-trials chance benchmark (the trial count is recorded
+  and raises the bar); `campaign.ts` runs a seeded, resumable, persisted
+  campaign that generates, evaluates (skipping anything already scored), probes
+  the neighbours of promising genomes so stability is real, then selects.
+  Surfaced as `npm run factory -- --strategy <id> --method grid|random|evolve`,
+  the `/api/factory/*` routes, and a minimal *Factory* tab. It **enables
+  nothing** — a survivor is a candidate for a passport (Phase 15), never an
+  automatic decision — and it does no parameter search that ignores the
+  out-of-sample split.
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five
@@ -288,7 +312,7 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
 
 These must work: `selftest` (offline, ≥ 45 checks including a hand-built day
 that yields exactly one BUY), `start`, `talk`, `brief`, `news`, `scan`,
-`replay:raw`, `replay:memory`, `compare`, `backtest`, `memory:show`,
+`replay:raw`, `replay:memory`, `compare`, `backtest`, `factory`, `memory:show`,
 `memory:reset`, `plan:clear`, `tradingview`.
 
 Every run prints the settings in force, the data used, and each decision with

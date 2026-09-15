@@ -25,7 +25,9 @@ import { analyzeNow, runScan } from './bot.ts'
 import type { Snapshot } from './bot.ts'
 import { runReplay, runStrategyReplay, scoreSkippedTrades } from './replay.ts'
 import { runBacktest } from './backtest/runner.ts'
-import { STRATEGIES, enabledStrategyIds, strategyIds } from './strategies/registry.ts'
+import { runCampaign, listCampaigns, getCampaign } from './factory/campaign.ts'
+import type { CampaignRecord } from './factory/campaign.ts'
+import { STRATEGIES, enabledStrategyIds, metaById, strategyIds } from './strategies/registry.ts'
 import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 import { getNews, summarizeNews, upcomingEvents } from './news.ts'
@@ -151,6 +153,16 @@ async function snapshot(force = false): Promise<Snapshot> {
   const snap = await analyzeNow()
   snapCache = { at: Date.now(), snap }
   return snap
+}
+
+/** A compact campaign row for the list view (without the full evaluation set). */
+function campaignSummary(rec: CampaignRecord) {
+  return {
+    id: rec.id, strategyId: rec.strategyId, method: rec.method, seed: rec.seed,
+    updatedAt: rec.updatedAt, done: rec.done,
+    tried: rec.evaluated.length, trials: rec.selection?.trials ?? 0,
+    survivors: rec.selection?.survivors.length ?? 0,
+  }
 }
 
 function analysisPayload(snap: Snapshot, candleCount: number) {
@@ -413,6 +425,38 @@ const server = createServer(async (req, res) => {
       const id = url.searchParams.get('id') || (config.strategy === 'crossover' ? 'crossover' : 'session-ifvg')
       if (id !== 'fused' && !strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}". Known: ${strategyIds().join(', ')}, fused` }); return }
       const r = await safely(() => runBacktest(id))
+      json(res, 200, r.ok ? { ok: true, data: r.data } : r)
+      return
+    }
+    if (path === '/api/factory/tunable') {
+      // The strategies the factory can breed (those with tunable parameters).
+      const metas = metaById()
+      const tunable = strategyIds()
+        .map((id) => metas.get(id))
+        .filter((m): m is NonNullable<typeof m> => !!m && !!m.parameters && m.parameters.length > 0)
+        .map((m) => ({ id: m.id, name: m.name, parameters: m.parameters }))
+      json(res, 200, { ok: true, data: { strategies: tunable } })
+      return
+    }
+    if (path === '/api/factory/campaigns') {
+      json(res, 200, { ok: true, data: { campaigns: listCampaigns().map(campaignSummary) } })
+      return
+    }
+    if (path === '/api/factory/campaign') {
+      const id = url.searchParams.get('id') ?? ''
+      const rec = getCampaign(id)
+      if (!rec) { json(res, 404, { ok: false, error: `No campaign "${id}"` }); return }
+      json(res, 200, { ok: true, data: rec })
+      return
+    }
+    if (path === '/api/factory/run') {
+      const id = url.searchParams.get('id') ?? ''
+      const method = (url.searchParams.get('method') ?? 'grid') as 'grid' | 'random' | 'evolve'
+      const seed = Number(url.searchParams.get('seed') ?? '12345')
+      const maxRaw = url.searchParams.get('max')
+      const maxGenomes = maxRaw ? Number(maxRaw) : undefined
+      if (!strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
+      const r = await safely(() => runCampaign({ strategyId: id, method, seed, maxGenomes }))
       json(res, 200, r.ok ? { ok: true, data: r.data } : r)
       return
     }

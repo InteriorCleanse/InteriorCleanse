@@ -6,14 +6,14 @@
  */
 
 import { config } from '../../config.ts'
-import { atrPlan, fail, hold, pass } from './plan.ts'
+import { atrPlan, fail, hold, pass, RR_PARAMS } from './plan.ts'
 import type { Strategy, StrategyContext, StrategyVote } from './types.ts'
 import type { EvidenceStep } from '../types.ts'
 
 const ID = 'breakout'
 
 export const breakout: Strategy = {
-  meta: { id: ID, name: 'Volatility breakout', family: 'breakout', summary: 'A range that compressed and then broke: take the fresh break of structure as volatility expands.', needsTape: false },
+  meta: { id: ID, name: 'Volatility breakout', family: 'breakout', summary: 'A range that compressed and then broke: take the fresh break of structure as volatility expands.', needsTape: false, parameters: RR_PARAMS },
   evaluate(ctx: StrategyContext): StrategyVote {
     const ev: EvidenceStep[] = []
     const key = (dir: string) => `${config.symbol}|${config.interval}|${ID}|${dir}`

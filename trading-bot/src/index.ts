@@ -11,6 +11,8 @@ import { runReplay, runStrategyReplay, compareStrategies, scoreSkippedTrades } f
 import { STRATEGIES, enabledStrategyIds } from './strategies/registry.ts'
 import { runBacktest } from './backtest/runner.ts'
 import { reportLines } from './backtest/report.ts'
+import { runCampaign } from './factory/campaign.ts'
+import { campaignLines } from './factory/report.ts'
 import type { ReplayResult } from './replay.ts'
 import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { buildBrief } from './brief.ts'
@@ -557,6 +559,35 @@ async function commandBacktest(): Promise<void> {
   ui.blank()
 }
 
+/** `--<name> <value>` from the command line, if present. */
+function flagArg(name: string): string | null {
+  const argv = process.argv.slice(3)
+  const i = argv.indexOf(`--${name}`)
+  return i >= 0 && argv[i + 1] ? argv[i + 1] : null
+}
+
+async function commandFactory(): Promise<void> {
+  const id = strategyArg() ?? 'breakout'
+  const method = (flagArg('method') ?? 'grid') as 'grid' | 'random' | 'evolve'
+  const seed = Number(flagArg('seed') ?? '12345')
+  const maxGenomes = flagArg('max') ? Number(flagArg('max')) : undefined
+  ui.heading(`FACTORY — breeding "${id}" (${method}), then keeping only what survives out-of-sample`)
+  ui.safetyBanner()
+  ui.blank()
+  ui.step(`Generating genomes and backtesting each on ${config.replay.lookbackDays} days of real ${config.symbol} candles...`)
+  const rec = await runCampaign({ strategyId: id, method, seed, maxGenomes })
+  ui.blank()
+  for (const l of campaignLines(rec)) console.log(l ? `  ${l}` : '')
+  ui.plainEnglish([
+    'The factory tries many settings and keeps only the ones that work on prices',
+    'they never fit on — and the more it tries, the higher it sets the bar, so a',
+    'lucky winner does not slip through. A survivor is a candidate, not a decision:',
+    'nothing here trades until it earns a passport (Phase 15).',
+    'Try another with:  npm run factory -- --strategy <id> --method grid|random|evolve',
+  ])
+  ui.blank()
+}
+
 function commandHelp(): void {
   ui.heading('MR. CASH — WHAT CAN I DO?')
   ui.safetyBanner()
@@ -581,6 +612,8 @@ function commandHelp(): void {
     ['npm run replay:raw', 'test the strategy on real past prices'],
     ['npm run replay:memory', 'do the same, but let it use what it learned'],
     ['npm run compare', 'run both and show them side by side'],
+    ['npm run backtest', 'in-sample vs out-of-sample, walk-forward, Monte Carlo'],
+    ['npm run factory', 'breed strategy settings and keep only what survives out-of-sample'],
     ['npm run memory:show', 'print what it currently remembers'],
     ['npm run memory:reset', 'wipe its memory clean'],
     ['npm run plan:clear', "forget today's armed plan"],
@@ -623,6 +656,7 @@ async function main(): Promise<void> {
       case 'migrate': commandMigrate(); break
       case 'strategies': await commandStrategies(); break
       case 'backtest': await commandBacktest(); break
+      case 'factory': await commandFactory(); break
       default: commandHelp()
     }
   } catch (err) {

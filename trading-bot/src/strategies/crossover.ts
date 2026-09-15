@@ -6,7 +6,7 @@
 
 import { config } from '../../config.ts'
 import { getCrossoverSignal } from '../strategy.ts'
-import { atrPlan } from './plan.ts'
+import { atrPlan, RISK_PARAMS } from './plan.ts'
 import type { Strategy, StrategyContext, StrategyVote } from './types.ts'
 
 export const crossover: Strategy = {
@@ -16,6 +16,7 @@ export const crossover: Strategy = {
     family: 'crossover',
     summary: `A buy when the ${config.crossover.fastMA}-candle average crosses above the ${config.crossover.slowMA}-candle average, a sell when it crosses below.`,
     needsTape: false,
+    parameters: RISK_PARAMS,
   },
   evaluate(ctx: StrategyContext): StrategyVote {
     const sig = getCrossoverSignal(ctx.candles, ctx.index)

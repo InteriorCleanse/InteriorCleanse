@@ -761,6 +761,18 @@ One month of one market is a demonstration of the method, not proof of an
 edge — twenty out-of-sample setups is the floor before any number means
 anything, and the report labels every window that falls short.
 
+**Searching for settings without fooling yourself.** `npm run factory` breeds
+variants of a strategy — different stop and target settings — backtests each,
+and keeps only the few that survive four gates: enough out-of-sample trades, a
+real out-of-sample edge, *parameter stability* (the setting and its neighbours
+must both work, so it is a plateau you could stand on, not a spike that
+vanishes if a knob slips), and a *deflated Sharpe* that beats the best result
+you'd expect from chance given how many settings were tried. That last gate is
+the important one: try enough settings and one will look good by luck, so the
+more the factory tries, the higher it sets the bar. A campaign is seeded and
+resumable, and it enables nothing — a survivor is a candidate for a later step,
+never an automatic decision.
+
 **Do not put real money behind this because a look-back test looked good** —
 and *especially* not because the in-sample number looked good. The skill this
 bot teaches — testing an idea without lying to yourself, and trusting only the
@@ -821,6 +833,7 @@ npm run replay:raw      # the honest look-back test
 npm run replay:memory   # the same, with memory allowed to refuse
 npm run compare         # both side by side
 npm run backtest -- --strategy fused   # in-sample vs out-of-sample, walk-forward, Monte Carlo
+npm run factory -- --strategy crossover --method grid   # breed settings, keep only what survives out-of-sample
 npm run memory:show     # what it remembers
 npm run memory:reset    # forget everything
 npm run plan:clear      # forget today's armed plan
@@ -870,6 +883,7 @@ src/
   adaptiveFilter.ts      decides whether memory should refuse a setup
   replay.ts              the look-back tests
   backtest/              out-of-sample split, walk-forward, Monte Carlo, honest R metrics
+  factory/               breed strategy settings; keep only survivors that hold up out-of-sample
   strategy.ts            the simple crossover strategy
   strategies/            the playbook: one interface, many strategies, each judged alone
     types.ts, registry.ts   the Strategy interface and the list of them

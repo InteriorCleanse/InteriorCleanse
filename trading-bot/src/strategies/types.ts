@@ -45,6 +45,20 @@ export type StrategyVote = {
   plan?: TradePlan
 }
 
+/**
+ * One tunable knob the strategy factory (Phase 14) is allowed to vary. The
+ * range is inclusive and quantised to `step`; `default` is the current config
+ * value, so the default genome reproduces today's behaviour exactly.
+ */
+export type ParamSpec = {
+  name: string
+  label: string
+  min: number
+  max: number
+  step: number
+  default: number
+}
+
 export type StrategyMeta = {
   id: string
   name: string
@@ -53,6 +67,8 @@ export type StrategyMeta = {
   summary: string
   /** True when the strategy can only vote with the live trade tape (order-flow strategies). */
   needsTape: boolean
+  /** The knobs the factory may vary. Absent or empty = not tunable (the frozen session model, and order flow). */
+  parameters?: ParamSpec[]
 }
 
 export interface Strategy {

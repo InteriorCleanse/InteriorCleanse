@@ -13,6 +13,7 @@ import type { EvidenceStep } from '../types.ts'
 const ID = 'mean-reversion'
 
 export const meanReversion: Strategy = {
+  // No tunable parameters: both its stop and its target are structural (the VWAP band and the average), so there is nothing for the factory to move.
   meta: { id: ID, name: 'Range mean-reversion', family: 'mean-reversion', summary: 'In a range, fade a stretch past the VWAP band back to the average.', needsTape: false },
   evaluate(ctx: StrategyContext): StrategyVote {
     const ev: EvidenceStep[] = []

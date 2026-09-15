@@ -312,6 +312,31 @@ export const config = {
     monteCarloSamples: 2000,
   },
 
+  // ---------- FACTORY (the strategy breeder) ----------
+
+  /**
+   * The strategy factory generates parameter variants, backtests each one, and
+   * keeps only the survivors that hold up out-of-sample with multiple-testing
+   * discipline. Nothing it finds is ever auto-enabled — a survivor still needs
+   * a passport (Phase 15) before it can trade. These are the survival gates.
+   */
+  factory: {
+    /** A survivor needs at least this many out-of-sample trades — anything less is noise. */
+    minOosTrades: 20,
+    /** …and an out-of-sample expectancy (avg R per trade) of at least this. */
+    minOosAvgR: 0.05,
+    /**
+     * Parameter stability: of a genome and its immediate neighbours on the
+     * grid, at least this share must also be profitable out-of-sample. A lone
+     * spike surrounded by losers is curve-fitting, not an edge, and is rejected.
+     */
+    stabilityMinShare: 0.6,
+    /** Deflated-Sharpe confidence: P(edge is real, given the number of trials) must clear this. */
+    deflatedSharpeMin: 0.9,
+    /** Default campaign budget — the most genomes one run will evaluate (excluding stability probes). */
+    maxGenomes: 60,
+  },
+
   // ---------- MEMORY ----------
 
   memory: {

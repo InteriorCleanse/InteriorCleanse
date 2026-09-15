@@ -235,6 +235,16 @@
     <div id="playbook-out"><div class="plain">Every strategy Mr. Cash knows, each judged on its own. Only the ICT session model opens paper trades; the rest are opinions. Turn any on or off, see its vote right now, and test it in full on past prices.</div></div>
   </section>
 
+  <section id="tab-factory" class="hidden">
+    <div class="row">
+      <select id="factory-strategy" class="btn ghost"></select>
+      <select id="factory-method" class="btn ghost"><option value="grid">Grid (every setting)</option><option value="random">Random search</option><option value="evolve">Evolve (breed the best)</option></select>
+      <button class="btn" id="btn-factory-run">Breed & test</button>
+      <span class="muted" id="factory-status"></span>
+    </div>
+    <div id="factory-out"><div class="plain">The factory tries many settings for a strategy, backtests each on real past prices, and keeps only the few that hold up <b>out-of-sample</b> — on prices they never fit on. The more settings it tries, the higher it sets the bar (a deflated Sharpe correction), so a lucky winner cannot slip through. It also rejects a setting that only works if its neighbours also work — a plateau, not a spike. Nothing here is ever switched on automatically; a survivor is a candidate for later, not a decision.</div></div>
+  </section>
+
   <section id="tab-memory" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-memshow">Reload</button><button class="btn danger" id="btn-reset">Wipe memory</button><button class="btn ghost" id="btn-doctor">Run doctor</button></div>
     <div id="memory-out"></div>
@@ -281,7 +291,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id)
-const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['playbook','Playbook','📚'],['memory','Memory','🧠'],['ask','Ask','💬']]
+const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['memory','Memory','🧠'],['ask','Ask','💬']]
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -313,6 +323,7 @@ function showTab(id, push=true) {
   if (id === 'journal' && !$('j-out').innerHTML) loadJournal()
   if (id === 'tv') loadTV()
   if (id === 'playbook' && !document.querySelector('#playbook-out .strat')) loadPlaybook()
+  if (id === 'factory' && !$('factory-strategy').options.length) loadFactory()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
   window.scrollTo({top:0})
 }
@@ -963,6 +974,40 @@ async function runBacktest() {
   $('backtest-out').innerHTML = html
 }
 $('btn-backtest').onclick = runBacktest
+
+// ---------- factory (breed & survive) ----------
+async function loadFactory() {
+  const r = await call('/api/factory/tunable')
+  const list = (r.ok ? r.data.strategies : []) || []
+  $('factory-strategy').innerHTML = list.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('') || '<option value="">(none tunable)</option>'
+}
+function factoryJudgedRow(j) {
+  const p = Object.keys(j.evaluation.genome.params).sort().map(k => `${k}=${j.evaluation.genome.params[k]}`).join(', ')
+  const oos = j.oosAvgR === null ? '—' : R(j.oosAvgR)
+  const cls = j.survived ? 'win' : 'loss'
+  return `<tr><td>${esc(p)}</td><td class="num">${j.oosTrades}</td><td class="num ${(j.oosAvgR||0)>=0?'win':'loss'}">${oos}</td><td class="num">${(j.stabilityShare*100).toFixed(0)}%</td><td class="num">${Math.round(j.deflated.probability*100)}%</td><td class="${cls}">${j.survived?'survived':'rejected'}</td></tr>`
+}
+async function runFactory() {
+  if (busy) return
+  const id = $('factory-strategy').value, method = $('factory-method').value
+  if (!id) return
+  setBusy(true); $('factory-status').innerHTML = '<span class="spin">◐</span> breeding settings and backtesting each on real past prices… (this can take a minute)'
+  const r = await call(`/api/factory/run?id=${encodeURIComponent(id)}&method=${encodeURIComponent(method)}`); setBusy(false); $('factory-status').textContent = ''
+  if (!r.ok) { $('factory-out').innerHTML = errBox(r.error); return }
+  const d = r.data, sel = d.selection
+  let html = `<div class="card"><h2>Factory — ${esc(d.strategyId)} · ${esc(d.method)} · ${d.evaluated.length} settings tried</h2>`
+  if (!sel || !sel.survivors.length) {
+    html += `<div class="plain">No setting survived every gate — the common, honest outcome. Judged out-of-sample, on prices they never fit on, with the bar raised for the ${sel?sel.trials:d.evaluated.length} things tried.</div>`
+  } else {
+    html += `<div class="plain"><b>${sel.survivors.length} survivor(s)</b>, each profitable out-of-sample, on a stable plateau, and past the deflated-Sharpe bar for ${sel.trials} trials.</div>`
+    html += `<div class="scroll"><table><tr><th>Settings</th><th>OOS trades</th><th>OOS avg</th><th>Stability</th><th>Confidence</th><th></th></tr>${sel.survivors.map(factoryJudgedRow).join('')}</table></div>`
+  }
+  const misses = (sel ? sel.all.filter(j => !j.survived) : []).slice(0, 5)
+  if (misses.length) html += `<h2 style="margin-top:14px">Nearest misses</h2><div class="scroll"><table><tr><th>Settings</th><th>OOS trades</th><th>OOS avg</th><th>Stability</th><th>Confidence</th><th></th></tr>${misses.map(factoryJudgedRow).join('')}</table></div>`
+  html += `<div class="plain">Nothing here is switched on. A survivor is a candidate for a later step (a passport), never an automatic decision. The only number that counts is the out-of-sample one, and the confidence already pays for how many settings were tried.</div></div>`
+  $('factory-out').innerHTML = html
+}
+$('btn-factory-run') && ($('btn-factory-run').onclick = runFactory)
 
 // ---------- memory + doctor ----------
 async function loadMemory() {

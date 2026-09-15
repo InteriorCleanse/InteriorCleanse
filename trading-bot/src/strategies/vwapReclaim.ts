@@ -7,14 +7,14 @@
  */
 
 import { config } from '../../config.ts'
-import { atrPlan, fail, hold, pass } from './plan.ts'
+import { atrPlan, fail, hold, pass, RR_PARAMS } from './plan.ts'
 import type { Strategy, StrategyContext, StrategyVote } from './types.ts'
 import type { EvidenceStep } from '../types.ts'
 
 const ID = 'vwap-reclaim'
 
 export const vwapReclaim: Strategy = {
-  meta: { id: ID, name: 'VWAP reclaim', family: 'vwap', summary: 'Price dips through the day VWAP and closes back on the other side, reclaiming the average.', needsTape: false },
+  meta: { id: ID, name: 'VWAP reclaim', family: 'vwap', summary: 'Price dips through the day VWAP and closes back on the other side, reclaiming the average.', needsTape: false, parameters: RR_PARAMS },
   evaluate(ctx: StrategyContext): StrategyVote {
     const ev: EvidenceStep[] = []
     const key = (dir: string) => `${config.symbol}|${config.interval}|${ID}|${dir}`

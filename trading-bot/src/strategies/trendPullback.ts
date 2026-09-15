@@ -6,14 +6,14 @@
  */
 
 import { config } from '../../config.ts'
-import { atrPlan, fail, hold, pass } from './plan.ts'
+import { atrPlan, fail, hold, pass, RR_PARAMS } from './plan.ts'
 import type { Strategy, StrategyContext, StrategyVote } from './types.ts'
 import type { EvidenceStep } from '../types.ts'
 
 const ID = 'trend-pullback'
 
 export const trendPullback: Strategy = {
-  meta: { id: ID, name: 'Trend pullback', family: 'trend', summary: 'In a trend, join it on a pullback into discount (or premium) that lands on an order block.', needsTape: false },
+  meta: { id: ID, name: 'Trend pullback', family: 'trend', summary: 'In a trend, join it on a pullback into discount (or premium) that lands on an order block.', needsTape: false, parameters: RR_PARAMS },
   evaluate(ctx: StrategyContext): StrategyVote {
     const ev: EvidenceStep[] = []
     const key = (dir: string) => `${config.symbol}|${config.interval}|${ID}|${dir}`

@@ -11,11 +11,15 @@
 import { config } from '../../config.ts'
 import { runStrategyReplay, runFusedReplay } from '../replay.ts'
 import { strategyIds, metaById } from '../strategies/registry.ts'
+import { withParamsAsync } from '../paramOverrides.ts'
 import { buildReport } from './report.ts'
 import type { BacktestOptions, BacktestReport } from './report.ts'
 
+/** The backtester's own options, plus an optional parameter vector to run under (the factory uses this). */
+export type RunBacktestOptions = BacktestOptions & { params?: Record<string, number> }
+
 /** `id` is a strategy id or the pseudo-id `fused`. */
-export async function runBacktest(id: string, opts: BacktestOptions = {}): Promise<BacktestReport> {
+export async function runBacktest(id: string, opts: RunBacktestOptions = {}): Promise<BacktestReport> {
   if (id !== 'fused' && !strategyIds().includes(id)) throw new Error(`Unknown strategy "${id}". Known: ${strategyIds().join(', ')}, fused`)
 
   // Order-flow strategies read the live trade tape, which historical candles
@@ -27,13 +31,17 @@ export async function runBacktest(id: string, opts: BacktestOptions = {}): Promi
     })
   }
 
-  const result = id === 'fused' ? await runFusedReplay({ useMemory: false, writeMemory: false }) : await runStrategyReplay(id, { useMemory: false, writeMemory: false })
+  const { params, ...reportOpts } = opts
+  // A genome's parameter vector is in force for the whole replay, then cleared.
+  const result = await withParamsAsync(params ?? null, () =>
+    id === 'fused' ? runFusedReplay({ useMemory: false, writeMemory: false }) : runStrategyReplay(id, { useMemory: false, writeMemory: false }),
+  )
   return buildReport(id, result.trades, {
     trainPct: config.backtest.trainPct,
     validationPct: config.backtest.validationPct,
     walkForward: config.backtest.walkForward,
     monteCarloSamples: config.backtest.monteCarloSamples,
-    ...opts,
+    ...reportOpts,
   })
 }
 
