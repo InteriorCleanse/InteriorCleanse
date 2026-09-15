@@ -12,7 +12,9 @@
     "posters:extract": "node scripts/extract-posters.mjs",
     "posters:fetch": "node scripts/fetch-posters.mjs",
     "clips:loop": "node scripts/loop-clips.mjs",
-    "build:grain": "node scripts/build-grain.mjs"
+    "build:grain": "node scripts/build-grain.mjs",
+    "print:files": "node scripts/build-print-files.mjs",
+    "catalog:fill": "node scripts/fill-drafts-from-content.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

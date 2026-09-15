@@ -28,6 +28,7 @@ export default function Shop() {
           catalogue underneath the filtered result. */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="section-inner">
+          <h2 className="sr-only">All products</h2>
           <nav className="collection-nav" aria-label="Collections">
             {COLLECTIONS.map((c) => (
               <Link key={c.slug} href={`/shop/${c.slug}/`}>
