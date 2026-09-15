@@ -169,5 +169,10 @@ export function assessMarket(candles: Candle[], analysis: IctAnalysis | null, fl
       ? `Range. ${evidence[0] ?? ''}`
       : `${trend === 'uptrend' ? 'Uptrend' : 'Downtrend'}, ${strength}/100 strength, ${label}. Volatility ${volatility}.`
 
-  return { trend, strength, continuation: { score, label, reasons }, volatility, watchOuts, evidence, summary }
+  // The richer regime reading (trend / range / breakout / transition) is a
+  // shared feature computed in the engine; surface it here without touching
+  // the fields above, so the Today card is unchanged.
+  const regime = analysis?.features?.regime?.value ?? undefined
+
+  return { trend, strength, continuation: { score, label, reasons }, volatility, watchOuts, evidence, summary, regime }
 }

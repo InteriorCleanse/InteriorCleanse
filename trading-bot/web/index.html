@@ -407,7 +407,10 @@ function evidenceList(ev) { return `<ul class="ev">${ev.map(e => `<li class="${e
 function stateCard(s) {
   if (!s) return ''
   const cls = s.trend === 'uptrend' ? 'win' : s.trend === 'downtrend' ? 'loss' : 'skip'
-  return `<div class="card"><h2>Market state</h2>
+  const rg = s.regime
+  const rgLabel = rg ? ({'trending-up':'Trending up','trending-down':'Trending down','ranging':'Ranging','breakout':'Breakout','transition':'Transition'}[rg.state] || rg.state) : null
+  const rgCls = rg && (rg.state==='trending-up'||(rg.state==='breakout'&&rg.direction==='up')) ? 'win' : rg && (rg.state==='trending-down'||(rg.state==='breakout'&&rg.direction==='down')) ? 'loss' : ''
+  return `<div class="card"><h2>Market state ${rg ? `<span class="pill ${rgCls}" title="${esc(rg.reasons.join(' '))}">${esc(rgLabel)} · vol ${esc(rg.volatility)}</span>` : ''}</h2>
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span class="decision ${cls}" style="font-size:24px;margin:0">${esc(s.trend.toUpperCase())}</span><span class="muted">strength</span><div class="bar ${cls==='win'?'g':cls==='loss'?'r':''}" style="width:120px"><i style="width:${s.strength}%"></i></div><b>${s.strength}</b><span class="muted">·</span><b>${esc(s.continuation.label)}</b><span class="muted">(${s.continuation.score}/100)</span><span class="muted">· volatility ${esc(s.volatility)}</span></div>
     <ul style="margin:10px 0 0;padding-left:18px;color:var(--dim);font-size:13.5px">${s.evidence.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>
     ${s.continuation.reasons.length ? `<div class="muted" style="font-size:13px;margin-top:6px">${esc(s.continuation.reasons.join(' '))}</div>` : ''}

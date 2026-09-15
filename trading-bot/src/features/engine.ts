@@ -19,6 +19,10 @@ import type { TapeBucket, TradeAccumulator } from './trades.ts'
 import { INTERVAL_MS } from '../market.ts'
 import { structureReading } from './structure.ts'
 import type { StructureInputs, StructureReading } from './structure.ts'
+import { classifyRegime } from './regime.ts'
+import type { Dir, RegimeReading } from './regime.ts'
+import { volatility as volatilityOf } from './volatility.ts'
+import { atrAt } from './atr.ts'
 import { liquidityReading } from './liquidity.ts'
 import type { LiquidityInputs, LiquidityReading } from './liquidity.ts'
 import { deltaOf } from './delta.ts'
@@ -98,6 +102,10 @@ export class FeatureEngine {
 
     const flow = this.flowFeatures(candles, i, ctx, asOf, bucketSize)
     const hourly = hourlyAverages(candles, i)
+    const mom = i > 0 ? momentum(candles, i, ctx.atr) : null
+    const vol = volatility(candles, i, ctx.atr)
+    const structureVal = ctx.structure ? structureReading(ctx.structure, c.close, ctx.atr) : null
+    const regime = this.regimeFeature(candles, i, ctx, asOf, structureVal, hourly, mom, vol, flow)
     const snap: FeatureSnapshot = {
       version: FEATURE_VERSION,
       index: i,
@@ -109,14 +117,15 @@ export class FeatureEngine {
       session: ctx.session,
       atr: feature(ctx.atr, 'candles', asOf),
       hourly: feature(hourly, 'candles', asOf, false, hourly ? undefined : `Not enough history: the hourly averages need about ${config.features.hourlyAveragesMinHours} hours.`),
-      momentum: feature(i > 0 ? momentum(candles, i, ctx.atr) : null, 'candles', asOf, false, i > 0 ? undefined : 'First candle: nothing to measure against.'),
-      volatility: feature(volatility(candles, i, ctx.atr), 'candles', asOf),
+      momentum: feature(mom, 'candles', asOf, false, i > 0 ? undefined : 'First candle: nothing to measure against.'),
+      volatility: feature(vol, 'candles', asOf),
       vwapDay,
       vwapSession,
       vwapDayTape,
       profileDay,
-      structure: feature<StructureReading>(ctx.structure ? structureReading(ctx.structure, c.close, ctx.atr) : null, 'candles', asOf, false, ctx.structure ? undefined : 'No structure trackers in this run.'),
+      structure: feature<StructureReading>(structureVal, 'candles', asOf, false, ctx.structure ? undefined : 'No structure trackers in this run.'),
       liquidity: feature<LiquidityReading>(ctx.liquidity ? liquidityReading(ctx.liquidity, c.close, ctx.atr) : null, 'candles', asOf, false, ctx.liquidity ? undefined : 'No levels tracked in this run.'),
+      regime,
       flow,
       tape: { exact: dayExact, note: tapeNote },
     }
@@ -188,6 +197,46 @@ export class FeatureEngine {
     }
 
     return { delta, cvd, cvdSinceGap, tapeSpeed: speed, largeTrades: large, bookImbalance: bookImb, footprint: fp, absorption: absorptionF, stream: { trusted: !down, trustedSince } }
+  }
+
+  /** Price against the 20/50-hour averages: the same rule the market-state vote uses. */
+  private averagesDir(hourly: FeatureSnapshot['hourly']['value'], close: number): Dir {
+    if (!hourly) return null
+    const rising = hourly.ema20 > hourly.ema20Prev
+    if (close > hourly.ema20 && close > hourly.ema50 && rising && hourly.ema20 > hourly.ema50) return 'up'
+    if (close < hourly.ema20 && close < hourly.ema50 && !rising && hourly.ema20 < hourly.ema50) return 'down'
+    return null
+  }
+
+  /**
+   * The regime, from the readings this candle already produced. Needs the
+   * structure trackers; without them (a candles-only run) it is unavailable.
+   */
+  private regimeFeature(
+    candles: Candle[], i: number, ctx: StepContext, asOf: number,
+    structureVal: StructureReading | null, hourly: FeatureSnapshot['hourly']['value'],
+    mom: FeatureSnapshot['momentum']['value'], vol: NonNullable<FeatureSnapshot['volatility']['value']>,
+    flow: FlowFeatures,
+  ): Feature<RegimeReading> {
+    if (!structureVal) return feature<RegimeReading>(null, 'candles', asOf, false, 'No structure trackers in this run.')
+    const cfg = config.features.regime
+    const lookbackIdx = i - cfg.breakoutLookback
+    const beforeRatio = lookbackIdx >= 0 ? volatilityOf(candles, lookbackIdx, atrAt(candles, lookbackIdx)).ratio : vol.ratio
+    const volExpanding = vol.ratio >= 1 && vol.ratio >= beforeRatio * cfg.breakoutVolRatio
+    const cvdV = flow.cvd.value?.value ?? flow.cvdSinceGap.value?.value ?? null
+    const flowDir: Dir = cvdV === null ? null : cvdV > 0 ? 'up' : cvdV < 0 ? 'down' : null
+    const reading = classifyRegime({
+      swingTrend: structureVal.swingTrend,
+      lastShiftKind: structureVal.lastShift?.kind ?? null,
+      lastShiftDir: structureVal.lastShift?.direction ?? null,
+      shiftAgeCandles: structureVal.lastShift ? i - structureVal.lastShift.index : null,
+      averages: this.averagesDir(hourly, candles[i].close),
+      momentumAtr: mom?.moveAtr ?? 0,
+      volLabel: vol.label,
+      volExpanding,
+      flow: flowDir,
+    }, cfg.recentShiftCandles)
+    return feature<RegimeReading>(reading, 'candles', asOf)
   }
 
   series(fromTime = 0): FeaturePoint[] {

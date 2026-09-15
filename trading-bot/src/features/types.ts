@@ -18,6 +18,7 @@
 import type { SessionName } from '../types.ts'
 import type { StructureReading } from './structure.ts'
 import type { LiquidityReading } from './liquidity.ts'
+import type { RegimeReading } from './regime.ts'
 
 /** Bump this when the meaning of any feature changes, so stored readings are not compared across versions. */
 export const FEATURE_VERSION = 1
@@ -209,6 +210,8 @@ export type FeatureSnapshot = {
   structure: Feature<StructureReading>
   /** The nearest intact liquidity above and below, and today's raids. */
   liquidity: Feature<LiquidityReading>
+  /** What kind of market this is — trend, range, breakout, transition — with its reasons. */
+  regime: Feature<RegimeReading>
   /** Order flow from the trade and book streams. */
   flow: FlowFeatures
   /** Whether the live tape covered this whole trading day without a gap. */

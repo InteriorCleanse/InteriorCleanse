@@ -184,6 +184,16 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   reads only session-level sweeps, and a regression test pins the baseline
   day's evidence word for word. All of this is drawn on the chart with a
   hover explanation and carried on the analysis; none of it trades yet.
+- **Regime** (`src/features/regime.ts`) is a shared reading on every
+  `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
+  `breakout`, `transition`, plus volatility `low/normal/high`, from five
+  inputs (structure, hourly averages, momentum, volatility, and cumulative
+  delta when the tape is trusted — order flow only ever adds a vote, it is
+  never required). `transition` is a fresh CHoCH the averages have not
+  confirmed; `breakout` is compressed volatility expanding on a fresh BOS.
+  It carries its reasons and is available whenever the structure trackers
+  ran. It is surfaced on `MarketState.regime` (the Today card shows it as a
+  chip) but nothing trades on it yet — gating comes later.
 - **Market state** (`regime.ts`) is a vote: swing structure, hourly EMAs,
   3-hour momentum, today's sweeps, and the tape. Trend needs a 2:1 majority
   with ≥ 3 votes; otherwise "range". Continuation is a 0–100 score with every

@@ -369,6 +369,14 @@ export const config = {
      * many ATRs, and one side making up at least this share of the volume.
      */
     absorption: { volumeMultiple: 2, maxRangeAtr: 0.25, minDeltaShare: 0.3, minHistory: 6 },
+
+    /**
+     * The regime reading (see src/features/regime.ts): a break counts as
+     * "recent" for this many candles, and volatility is "expanding" when the
+     * current ratio is at least `breakoutVolRatio`× the ratio `breakoutLookback`
+     * candles ago (and above 1).
+     */
+    regime: { recentShiftCandles: 12, breakoutLookback: 12, breakoutVolRatio: 1.3 },
   },
 
   // ---------- ORDER FLOW ----------

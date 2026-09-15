@@ -82,6 +82,7 @@ export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPla
   // Market state
   if (state) {
     L.push(`MARKET STATE: ${state.trend.toUpperCase()} — strength ${state.strength}/100 — ${state.continuation.label} (${state.continuation.score}/100). Volatility ${state.volatility}.`)
+    if (state.regime) L.push(`  Regime: ${state.regime.state} (${state.regime.volatility} volatility${state.regime.direction ? `, leaning ${state.regime.direction}` : ''}). ${state.regime.reasons[0] ?? ''}`)
     for (const e of state.evidence) L.push(`  • ${e}`)
     if (state.continuation.reasons.length) L.push('  ' + state.continuation.reasons.join(' '))
     if (state.watchOuts.length) {

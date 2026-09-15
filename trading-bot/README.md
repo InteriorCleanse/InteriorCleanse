@@ -153,6 +153,16 @@ for**: liquidity close ahead, walls, stretched price, high-impact news, quiet
 or wild volatility, weekends. It's a description of now, not a forecast, and it
 shows its dissenters.
 
+Next to the heading is the **regime** in one word — Trending up, Trending
+down, Ranging, Breakout, or Transition — with the volatility (low, normal,
+high). It comes from five shared readings: the swing structure, the hourly
+averages, momentum, volatility, and cumulative delta when the tape is
+trusted. **Breakout** means volatility was compressed and has just expanded
+on a fresh break of structure; **Transition** means structure just flipped
+(a change of character) but the averages have not confirmed it yet. Hover the
+word for the reasons. Like everything else here it only describes the market;
+no trade is placed or blocked on the regime yet.
+
 ### The Journal tab
 
 A trading journal built to make *you* better. Each entry separates the
@@ -791,6 +801,7 @@ src/
     vwap.ts, volumeProfile.ts   VWAP and value area: exact from the tape, approximate from candles
     ema.ts, momentum.ts, volatility.ts, atr.ts   the market-state readings
     structure.ts, liquidity.ts, dealingRange.ts  swings, breaks, blocks, premium/discount, nearest liquidity
+    regime.ts            one word for the market: trend / range / breakout / transition, from five readings
     trades.ts            the tape folded into candle buckets, and whether it missed anything
     delta.ts, cvd.ts, footprint.ts   who was hitting whom, per candle and cumulatively
     tape.ts, largeTrades.ts, imbalance.ts, absorption.ts   speed, big prints, book lean, and the absorption heuristic

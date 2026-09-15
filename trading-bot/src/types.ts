@@ -1,6 +1,7 @@
 /** The shared shapes used across the bot. */
 
 import type { FeatureSnapshot } from './features/types.ts'
+import type { RegimeReading } from './features/regime.ts'
 
 /** One price candle: what the market did over one slice of time. */
 export type Candle = {
@@ -457,6 +458,8 @@ export type MarketState = {
   watchOuts: string[]
   evidence: string[]
   summary: string
+  /** The regime feature (trend/range/breakout/transition), when the analysis carried one. Additive; the card's other fields are unchanged. */
+  regime?: RegimeReading
 }
 
 // ---------------------------------------------------------------
