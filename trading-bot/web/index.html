@@ -225,8 +225,9 @@
   </section>
 
   <section id="tab-test" class="hidden">
-    <div class="row"><button class="btn" id="btn-raw">Test on past prices</button><button class="btn ghost" id="btn-mem">Test with memory</button><span class="muted" id="test-status"></span></div>
+    <div class="row"><button class="btn" id="btn-raw">Test on past prices</button><button class="btn ghost" id="btn-mem">Test with memory</button><button class="btn ghost" id="btn-backtest">Backtest (out-of-sample)</button><span class="muted" id="test-status"></span></div>
     <div id="test-out"><div class="plain">Replays the last <span id="lb-days">30</span> days of real candles and takes every setup that passes the full checklist, scoring each one in R. Nothing is tuned, nothing is cherry-picked, and a candle that hits both stop and target counts as a loss.</div></div>
+    <div id="backtest-out"></div>
   </section>
 
   <section id="tab-playbook" class="hidden">
@@ -933,6 +934,35 @@ async function runTest(kind) {
   $('test-out').innerHTML = html + breakdowns(d.breakdowns) + tradesTable(d.trades); loadConfig()
 }
 $('btn-raw').onclick = () => runTest('raw'); $('btn-mem').onclick = () => runTest('memory')
+
+// ---------- backtest (in-sample vs out-of-sample) ----------
+function btMetricsRow(label, m, hi) {
+  const wr = m.winRate===null?'—':Math.round(m.winRate*100)+'%'
+  const avg = m.avgR===null?'—':R(m.avgR)
+  const small = m.enoughData ? '' : ' <span class="skip">(small sample)</span>'
+  return `<tr${hi?' style="font-weight:700"':''}><td>${esc(label)}${small}</td><td class="num">${m.trades}</td><td class="num">${wr}</td><td class="num ${m.totalR>=0?'win':'loss'}">${R(m.totalR)}</td><td class="num">${avg}</td><td class="num loss">${R(-m.maxDrawdownR)}</td></tr>`
+}
+async function runBacktest() {
+  if (busy) return
+  setBusy(true); $('test-status').innerHTML = '<span class="spin">◐</span> splitting the history and scoring out-of-sample…'
+  const r = await call('/api/backtest'); setBusy(false); $('test-status').textContent = ''
+  if (!r.ok) { $('backtest-out').innerHTML = errBox(r.error); return }
+  const d = r.data, mc = d.monteCarlo
+  if (d.notBacktestable) { $('backtest-out').innerHTML = `<div class="card"><h2>Backtest — ${esc(d.strategy)}</h2><div class="plain"><b>Not backtestable.</b> ${esc(d.notBacktestable)}</div></div>`; return }
+  let html = `<div class="card"><h2>Backtest — ${esc(d.strategy)} — trust the out-of-sample row</h2>`
+  html += `<div class="scroll"><table><tr><th>Window</th><th>Trades</th><th>Win rate</th><th>Total R</th><th>Avg R</th><th>Worst run</th></tr>`
+  html += btMetricsRow('All (everything)', d.all)
+  html += btMetricsRow('In-sample (fit here)', d.inSample)
+  html += btMetricsRow('Validation', d.validation)
+  html += btMetricsRow('OUT-OF-SAMPLE ← the real test', d.outOfSample, true)
+  html += `</table></div>`
+  if (d.walkForward && d.walkForward.folds.length) { const wf = d.walkForward; html += `<div class="plain"><b>Walk-forward:</b> ${wf.folds.length} rolling fold(s), each judged on prices its fit never saw. Combined out-of-sample: <span class="${wf.combinedOos.totalR>=0?'win':'loss'}">${R(wf.combinedOos.totalR)}</span> over ${wf.combinedOos.trades} trade(s).</div>` }
+  if (mc && mc.samples) { html += `<div class="plain"><b>Monte Carlo (${mc.samples} shuffles):</b> total R p5..p95 ${mc.totalR.p5.toFixed(1)}..${mc.totalR.p95.toFixed(1)} (median ${mc.totalR.median.toFixed(1)}); worst drawdown at p95 was ${R(-mc.maxDrawdownR.p95)}; ${Math.round(mc.profitableShare*100)}% of shuffles ended in profit.</div>` }
+  html += d.notes.map(n=>`<div class="plain">${esc(n)}</div>`).join('')
+  html += `</div>`
+  $('backtest-out').innerHTML = html
+}
+$('btn-backtest').onclick = runBacktest
 
 // ---------- memory + doctor ----------
 async function loadMemory() {

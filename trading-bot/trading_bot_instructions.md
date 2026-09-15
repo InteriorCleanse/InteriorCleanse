@@ -211,6 +211,27 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   `npm run strategies` show them side by side. Strategies are enabled/disabled
   via `settings.enabledStrategies` and the `/api/strategies` routes; the
   Playbook tab shows each one's live vote.
+- **Backtesting** (`src/backtest/`) is the honest scoreboard, and it is pure
+  over a trade list so it is deterministic and testable. `metrics.ts` is the
+  one place every figure (win rate, total/avg R, expectancy, profit factor,
+  max drawdown in R, Sharpe-like, losing streak, enoughData) is defined;
+  memory-blocked trades are never counted. `splits.ts` cuts the time range
+  into contiguous, non-overlapping train/validation/oos windows (upper bound
+  exclusive, so no trade is scored twice). `walkForward.ts` rolls a
+  [train | test] pair forward by a step and aggregates the test windows into
+  the combined out-of-sample result. `monteCarlo.ts` resamples the R list
+  with replacement under a seeded RNG — reproducible, and the mean of the
+  simulated totals lands on the real total, so the spread is the point.
+  `report.ts` puts in-sample next to out-of-sample and says, in plain words,
+  which number to trust, labelling any window under `replay.minSetupsForConfidence`
+  and calling out the curve-fit pattern (good in-sample, dead out-of-sample).
+  `runner.ts` feeds it from `runStrategyReplay(id)` or `runFusedReplay()` over
+  whatever candles the store has. Surfaced as `npm run backtest -- --strategy <id|fused>`,
+  the `/api/backtest` route, and the *Backtest* button on the Test tab. It does
+  **not** search or tune parameters — that is a later phase — and order-flow
+  strategies are only backtestable inside recorded tape windows; outside them
+  the report says "not backtestable" rather than falling back to candle
+  approximations. The out-of-sample number is the only one worth acting on.
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five
@@ -267,8 +288,8 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
 
 These must work: `selftest` (offline, ≥ 45 checks including a hand-built day
 that yields exactly one BUY), `start`, `talk`, `brief`, `news`, `scan`,
-`replay:raw`, `replay:memory`, `compare`, `memory:show`, `memory:reset`,
-`plan:clear`, `tradingview`.
+`replay:raw`, `replay:memory`, `compare`, `backtest`, `memory:show`,
+`memory:reset`, `plan:clear`, `tradingview`.
 
 Every run prints the settings in force, the data used, and each decision with
 its evidence. If prices cannot be fetched the bot stops and says so; it never

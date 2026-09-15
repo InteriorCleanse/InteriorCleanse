@@ -24,6 +24,7 @@ import { config } from '../config.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import type { Snapshot } from './bot.ts'
 import { runReplay, runStrategyReplay, scoreSkippedTrades } from './replay.ts'
+import { runBacktest } from './backtest/runner.ts'
 import { STRATEGIES, enabledStrategyIds, strategyIds } from './strategies/registry.ts'
 import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
@@ -405,6 +406,14 @@ const server = createServer(async (req, res) => {
       if (!strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
       const r = await safely(() => runStrategyReplay(id, { useMemory: false, writeMemory: false }))
       json(res, 200, r.ok ? { ...r } : r)
+      return
+    }
+    if (path === '/api/backtest') {
+      // config.strategy is the engine name ('ict'|'crossover'); map it to a registry strategy id.
+      const id = url.searchParams.get('id') || (config.strategy === 'crossover' ? 'crossover' : 'session-ifvg')
+      if (id !== 'fused' && !strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}". Known: ${strategyIds().join(', ')}, fused` }); return }
+      const r = await safely(() => runBacktest(id))
+      json(res, 200, r.ok ? { ok: true, data: r.data } : r)
       return
     }
 

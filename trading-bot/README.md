@@ -738,12 +738,34 @@ them from what your exchange actually shows you.
 The ICT session model is popular because the story is real: sessions do set
 ranges, stops do get run, and reversals do leave gaps. Whether the *edge* is
 real, on this symbol, in this month, with these settings, is an empirical
-question. `npm run replay:raw` is the only answer worth trusting, and even that
-is one month of one market. Twenty setups is a demonstration, not proof.
+question. `npm run replay:raw` shows the whole month at once — but a number
+taken from the same data you fit on is close to worthless.
 
-**Do not put real money behind this because a look-back test looked good.**
-The skill this bot teaches — testing an idea without lying to yourself — is
-worth far more than any particular set of session times.
+**The out-of-sample number is the only one worth acting on.** `npm run backtest`
+(or the *Backtest* button on the Test tab) splits the history in time: it fits
+and chooses on the early part (in-sample and validation) and judges only on the
+part it never looked at (out-of-sample). It also rolls a **walk-forward** —
+train a window, test the next, roll forward, again and again — and runs a
+**Monte Carlo**: reshuffle the trade order thousands of times to show how much
+of the result was luck and how bad the drawdown could have been. When the
+in-sample number looks great and the out-of-sample number falls apart, that is
+curve-fitting, not edge, and the report says so in plain words. Backtest a
+single strategy or the fused decision:
+
+```bash
+npm run backtest -- --strategy session-ifvg   # any strategy id
+npm run backtest -- --strategy fused           # the combined decision
+```
+
+One month of one market is a demonstration of the method, not proof of an
+edge — twenty out-of-sample setups is the floor before any number means
+anything, and the report labels every window that falls short.
+
+**Do not put real money behind this because a look-back test looked good** —
+and *especially* not because the in-sample number looked good. The skill this
+bot teaches — testing an idea without lying to yourself, and trusting only the
+data you never touched — is worth far more than any particular set of session
+times.
 
 ---
 
@@ -798,6 +820,7 @@ npm run scan            # one real decision, logged
 npm run replay:raw      # the honest look-back test
 npm run replay:memory   # the same, with memory allowed to refuse
 npm run compare         # both side by side
+npm run backtest -- --strategy fused   # in-sample vs out-of-sample, walk-forward, Monte Carlo
 npm run memory:show     # what it remembers
 npm run memory:reset    # forget everything
 npm run plan:clear      # forget today's armed plan
@@ -846,6 +869,7 @@ src/
   killswitch.ts          the big red button (data/STOP)
   adaptiveFilter.ts      decides whether memory should refuse a setup
   replay.ts              the look-back tests
+  backtest/              out-of-sample split, walk-forward, Monte Carlo, honest R metrics
   strategy.ts            the simple crossover strategy
   strategies/            the playbook: one interface, many strategies, each judged alone
     types.ts, registry.ts   the Strategy interface and the list of them

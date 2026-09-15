@@ -9,6 +9,8 @@ import { MarketDataError, explainMarketDataError } from './market.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import { runReplay, runStrategyReplay, compareStrategies, scoreSkippedTrades } from './replay.ts'
 import { STRATEGIES, enabledStrategyIds } from './strategies/registry.ts'
+import { runBacktest } from './backtest/runner.ts'
+import { reportLines } from './backtest/report.ts'
 import type { ReplayResult } from './replay.ts'
 import { LEDGER_PATH, LEARNINGS_PATH, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { buildBrief } from './brief.ts'
@@ -536,6 +538,25 @@ async function commandStrategies(): Promise<void> {
   ui.blank()
 }
 
+async function commandBacktest(): Promise<void> {
+  const id = strategyArg() ?? (config.strategy === 'crossover' ? 'crossover' : 'session-ifvg')
+  ui.heading(`BACKTEST — "${id}", in-sample vs out-of-sample`)
+  ui.safetyBanner()
+  ui.blank()
+  ui.step(`Downloading ${config.replay.lookbackDays} days of real ${config.symbol} candles and replaying...`)
+  const report = await runBacktest(id)
+  ui.blank()
+  for (const l of reportLines(report)) console.log(l ? `  ${l}` : '')
+  ui.plainEnglish([
+    'In-sample is the part the strategy effectively "fits" on; out-of-sample is',
+    'the part it never saw. A good in-sample number that falls apart out-of-sample',
+    'is curve-fitting, not edge. Backtest another with:',
+    '  npm run backtest -- --strategy <id>   (or --strategy fused)',
+    'Small samples mean little; this window is short by design in the sandbox.',
+  ])
+  ui.blank()
+}
+
 function commandHelp(): void {
   ui.heading('MR. CASH — WHAT CAN I DO?')
   ui.safetyBanner()
@@ -601,6 +622,7 @@ async function main(): Promise<void> {
       case 'status': commandStatus(); break
       case 'migrate': commandMigrate(); break
       case 'strategies': await commandStrategies(); break
+      case 'backtest': await commandBacktest(); break
       default: commandHelp()
     }
   } catch (err) {

@@ -29,8 +29,9 @@ import { checkRisk, sizeForStop } from './risk.ts'
 import { consultMemory, describeKey } from './adaptiveFilter.ts'
 import { addLesson, appendLedgerRow } from './memory.ts'
 import { toET } from './sessions.ts'
-import { contextFor, enabledStrategies, getStrategy, strategyIds } from './strategies/registry.ts'
+import { contextFor, enabledStrategies, getStrategy, strategyIds, voteAll, metaById } from './strategies/registry.ts'
 import type { StrategyVote } from './strategies/types.ts'
+import { fuse, fusedToSignal } from './fusion.ts'
 import { defaultAssumptions, IDEAL_ASSUMPTIONS, simulateEntry, exitOnCandle, simulateExit } from './sim/fills.ts'
 import type { ExecutionAssumptions, EntryFill, Intent } from './sim/fills.ts'
 import { tradeMetrics } from './sim/trades.ts'
@@ -497,6 +498,54 @@ export async function runStrategyReplay(id: string, opts: Options): Promise<Repl
     from: candles.length ? Math.max(testFrom, candles[0].openTime) : 0,
     to: candles.length ? candles[candles.length - 1].closeTime : 0,
     notes: notes.concat(stepMs > 900_000 ? ['Candles bigger than 15m blur most of these strategies — 5m is the intended setting.'] : []),
+  }
+}
+
+/**
+ * Replay the FUSED decision: at every candle, collect the playbook's votes,
+ * fuse them, and take the trade when the fused call is LONG or SHORT. This is
+ * what the paper trader does when fusion.driveTrading is on.
+ */
+export async function runFusedReplay(opts: Options): Promise<ReplayResult> {
+  const a = assumptionsFor(opts.fillModel ?? 'realistic')
+  const start = Date.now() - (config.replay.lookbackDays + 2) * 86_400_000
+  const candles = await getCandlesSince(config.symbol, config.interval, start)
+  const testFrom = Date.now() - config.replay.lookbackDays * 86_400_000
+  const engine = new IctEngine(candles)
+  const meta = metaById()
+  const trades: ReplayTrade[] = []
+  const notes: string[] = []
+  let totalSetups = 0
+  let missed = 0
+  let open: OpenTrade | null = null
+
+  for (let i = 0; i < candles.length; i++) {
+    const analysis = engine.step(i)
+    if (open) {
+      const r = step(open, candles, i, a)
+      if (r && 'done' in r) { trades.push(r.done); engine.recordTrade(analysis.dayKey, r.done.rMultiple); open = null }
+      else if (r && 'missed' in r) { missed++; open = null }
+      continue
+    }
+    if (candles[i].openTime < testFrom) continue
+    const votes = voteAll(contextFor(analysis, candles))
+    const decision = fuse({ votes, metaById: meta, regime: analysis.features.regime.value?.state ?? null })
+    const sig = fusedToSignal(decision, candles[i].close, candles[i].closeTime)
+    if (!sig || !sig.plan) continue
+    totalSetups++
+    const risk = checkRisk(sig)
+    if (!risk.approved) continue
+    const intent: Intent = { direction: sig.plan.direction, intendedEntry: sig.plan.entry, stop: sig.plan.stop, target: sig.plan.takeProfit, atr: analysis.atr }
+    open = { signalIndex: i, signal: sig, plan: sig.plan, intent, session: analysis.session, quantity: risk.quantity, held: 0 }
+    if (a.latencyCandles <= 0) open.fill = { price: sig.plan.entry, time: candles[i].closeTime, index: i, costPerUnit: 0 }
+  }
+  const summary = summarise(trades, totalSetups, 0, missed)
+  notes.push('The FUSED decision, replayed: every candle the votes are combined and a LONG/SHORT is taken. This is what the paper trader does when fusion.driveTrading is on.')
+  return {
+    strategy: 'fused', fillModel: opts.fillModel ?? 'realistic', assumptions: a, trades, summary,
+    breakdowns: [breakdown('By direction', trades, (t) => (t.action === 'BUY' ? 'Longs' : 'Shorts')), breakdown('By exit', trades, (t) => t.exitReason)],
+    candlesUsed: candles.length, days: candles.length ? Math.round((candles[candles.length - 1].closeTime - Math.max(testFrom, candles[0].openTime)) / 86_400_000) : 0,
+    from: candles.length ? Math.max(testFrom, candles[0].openTime) : 0, to: candles.length ? candles[candles.length - 1].closeTime : 0, notes,
   }
 }
 

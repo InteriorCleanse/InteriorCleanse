@@ -292,6 +292,26 @@ export const config = {
     minSetupsForConfidence: 20,
   },
 
+  // ---------- THE BACKTESTER (honest, out-of-sample) ----------
+
+  /**
+   * The backtester splits history into a part it "fits" on and a part it is
+   * judged on — the out-of-sample part it never looked at — plus a rolling
+   * walk-forward and a Monte-Carlo shuffle. The only number worth trusting is
+   * the out-of-sample one.
+   */
+  backtest: {
+    /** Fraction of history used in-sample (fitting), then for validation; the rest is out-of-sample. */
+    trainPct: 0.6,
+    validationPct: 0.2,
+
+    /** Walk-forward window sizes, in days. */
+    walkForward: { trainDays: 30, testDays: 10 },
+
+    /** How many resampled runs the Monte-Carlo does. */
+    monteCarloSamples: 2000,
+  },
+
   // ---------- MEMORY ----------
 
   memory: {
