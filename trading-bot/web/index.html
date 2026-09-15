@@ -71,7 +71,8 @@
   .legend span::before { content:""; display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
   .lg-asia::before{background:rgba(88,166,255,.35)} .lg-london::before{background:rgba(255,166,0,.35)} .lg-ny::before{background:rgba(63,185,80,.35)}
   .lg-fvgb::before{background:rgba(63,185,80,.5)} .lg-fvgs::before{background:rgba(248,81,73,.5)} .lg-ifvg::before{background:rgba(180,180,180,.5)} .lg-sweep::before{background:var(--amber)}
-  .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12px; z-index:30; white-space:pre; display:none; }
+  .lg-ob::before{background:transparent;border:1px dashed rgba(63,185,80,.9)} .lg-brk::before{background:rgba(188,140,255,.25);border:1px dashed rgba(188,140,255,.9)} .lg-vwap::before{background:transparent;border-bottom:2px solid var(--amber);border-radius:0;height:5px}
+  .tip { position:fixed; pointer-events:none; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12px; z-index:30; white-space:pre-wrap; max-width:min(340px, 80vw); display:none; }
   .chat { display:flex; flex-direction:column; gap:8px; max-height:460px; overflow-y:auto; padding-right:4px; }
   .msg { padding:9px 13px; border-radius:10px; max-width:90%; white-space:pre-wrap; font-size:14px; }
   .msg.you { align-self:flex-end; background:#1d2c44; } .msg.bot { align-self:flex-start; background:var(--panel2); }
@@ -180,13 +181,16 @@
       <label class="muted"><input type="checkbox" id="show-sessions" checked> sessions</label>
       <label class="muted"><input type="checkbox" id="show-levels" checked> levels</label>
       <label class="muted" title="Volume-weighted average price since the day started (solid) and since the session started (dotted), with the day's value area on the right"><input type="checkbox" id="show-vwap" checked> VWAP &amp; volume</label>
+      <label class="muted" title="Swing labels (HH, HL, LH, LL) and structure breaks: BOS continues the trend, CHoCH is the first break against it"><input type="checkbox" id="show-structure" checked> structure</label>
+      <label class="muted" title="Order blocks: the last candle against a forceful move. A broken one becomes a breaker and flips its role"><input type="checkbox" id="show-ob" checked> order blocks</label>
+      <label class="muted" title="The dealing range between the last swing high and low: premium above the middle, discount below"><input type="checkbox" id="show-range"> premium/discount</label>
       <span class="muted" id="chart-status"></span>
     </div>
     <div class="card" style="padding:8px">
       <canvas id="chart" class="chart"></canvas>
-      <div class="legend"><span class="lg-asia">Asia</span><span class="lg-london">London</span><span class="lg-ny">New York</span><span class="lg-fvgb">bullish gap</span><span class="lg-fvgs">bearish gap</span><span class="lg-ifvg">inverted gap</span><span class="lg-sweep">sweep</span></div>
+      <div class="legend"><span class="lg-asia">Asia</span><span class="lg-london">London</span><span class="lg-ny">New York</span><span class="lg-fvgb">bullish gap</span><span class="lg-fvgs">bearish gap</span><span class="lg-ifvg">inverted gap</span><span class="lg-sweep">sweep</span><span class="lg-ob">order block</span><span class="lg-brk">breaker</span><span class="lg-vwap">VWAP</span></div>
     </div>
-    <div class="plain">Hover (or touch) for prices and New York time. Session boxes span each session's high and low. A gap turns grey when price closes through it — that's an inversion, and the retest of a grey box is the entry Mr. Cash waits for. Triangles mark sweeps.</div>
+    <div class="plain">Hover (or touch) for prices and New York time — and for what any box or label means. Session boxes span each session's high and low. A gap turns grey when price closes through it — that's an inversion, and the retest of a grey box is the entry Mr. Cash waits for. Filled triangles mark raids on session levels; hollow ones mark raids on swing points. Dashed boxes are order blocks (the last candle against a forceful move); a purple one has been broken and flipped into a breaker. HH/HL/LH/LL label the swings; BOS is a break that continues the trend, CHoCH the first break against it. Turn on premium/discount to see which half of the dealing range price is in.</div>
   </section>
 
   <section id="tab-flow" class="hidden">
@@ -521,6 +525,7 @@ function drawChart() {
   canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H)
   const cs = data.candles, n = cs.length, padL = 8, padR = 70, padT = 14, padB = 28, plotW = W - padL - padR, plotH = H - padT - padB
   const showF = $('show-fvg').checked, showS = $('show-sessions').checked, showL = $('show-levels').checked, showV = $('show-vwap').checked
+  const showSt = $('show-structure').checked, showOb = $('show-ob').checked, showR = $('show-range').checked
   let lo = Infinity, hi = -Infinity
   for (const c of cs) { lo = Math.min(lo, c.low); hi = Math.max(hi, c.high) }
   if (showL && data.analysis) for (const l of data.analysis.levels) if (l.price > lo*0.985 && l.price < hi*1.015) { lo = Math.min(lo, l.price); hi = Math.max(hi, l.price) }
@@ -552,6 +557,26 @@ function drawChart() {
     ctx.font = '11px sans-serif'; const tw = ctx.measureText(label).width
     ctx.fillStyle = 'rgba(11,15,20,0.85)'; ctx.fillRect(padL + 4, y(l.price) - 14, tw + 8, 13)
     ctx.fillStyle = swept ? 'rgba(139,152,165,0.9)' : '#e6edf3'; ctx.fillText(label, padL + 8, y(l.price) - 4)
+  }
+  // Order blocks (outlined boxes) and breakers (purple): the last candle against a forceful move, and what became of it
+  if (showOb && data.orderBlocks) for (const ob of data.orderBlocks) {
+    const i0 = idxAt(ob.time); if (i0 > n-1) continue
+    const brk = ob.state === 'broken'
+    const col = brk ? '188,140,255' : ob.direction === 'bullish' ? '63,185,80' : '248,81,73'
+    const x0 = x(i0)-cw/2, w = W-padR-x0
+    ctx.fillStyle = `rgba(${col},${brk?0.10:0.07})`; ctx.fillRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top))
+    ctx.strokeStyle = `rgba(${col},${ob.state==='mitigated'?0.45:0.85})`; ctx.lineWidth = 1; ctx.setLineDash(brk ? [2,2] : [5,3]); ctx.strokeRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top)); ctx.setLineDash([])
+    ctx.fillStyle = `rgba(${col},0.95)`; ctx.font = 'bold 10px sans-serif'; ctx.fillText(brk ? 'BRK' : 'OB', x0 + 3, y(ob.bottom) - 3)
+  }
+  // The dealing range: premium above the middle, discount below, on the right of the chart
+  if (showR && data.dealingRange) {
+    const d = data.dealingRange, x0 = x(Math.max(0, n - Math.round(n * 0.3)))
+    const top = Math.min(hi, d.high), bot = Math.max(lo, d.low)
+    ctx.fillStyle = 'rgba(248,81,73,0.06)'; ctx.fillRect(x0, y(top), W-padR-x0, y(d.equilibrium)-y(top))
+    ctx.fillStyle = 'rgba(63,185,80,0.06)'; ctx.fillRect(x0, y(d.equilibrium), W-padR-x0, y(bot)-y(d.equilibrium))
+    ctx.strokeStyle = 'rgba(230,237,243,0.5)'; ctx.setLineDash([6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y(d.equilibrium)); ctx.lineTo(W-padR, y(d.equilibrium)); ctx.stroke(); ctx.setLineDash([])
+    ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(248,81,73,0.9)'; ctx.fillText('premium', x0 + 3, y(top) + 11); ctx.fillStyle = 'rgba(63,185,80,0.9)'; ctx.fillText('discount', x0 + 3, y(bot) - 4)
+    ctx.fillStyle = 'rgba(230,237,243,0.8)'; ctx.fillText(`EQ · price at ${Math.round(d.position)}% (${d.zone})`, x0 + 3, y(d.equilibrium) - 3)
   }
   for (let i = 0; i < n; i++) {
     const c = cs[i], up = c.close >= c.open
@@ -591,7 +616,19 @@ function drawChart() {
     if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) } else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
     ctx.closePath(); ctx.fill()
   }
-  for (const s of data.shifts.slice(-6)) { const i = idxAt(s.time); if (i > n-1) continue; ctx.fillStyle = s.direction === 'bullish' ? 'rgba(63,185,80,0.9)' : 'rgba(248,81,73,0.9)'; ctx.font = 'bold 10px sans-serif'; ctx.fillText('MSS', x(i)-9, s.direction === 'bullish' ? y(cs[i].low)+14 : y(cs[i].high)-6) }
+  // Swing sweeps: hollow triangles, so they are told apart from raids on session levels (filled)
+  if (showSt && data.swingSweeps) for (const s of data.swingSweeps) {
+    const i = idxAt(s.time); if (i > n-1) continue
+    ctx.strokeStyle = '#d29922'; ctx.lineWidth = 1.2; ctx.beginPath()
+    if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) } else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
+    ctx.closePath(); ctx.stroke()
+  }
+  // Swing labels and structure breaks
+  if (showSt) {
+    ctx.font = '9px sans-serif'; ctx.fillStyle = 'rgba(139,152,165,0.95)'
+    if (data.swings) for (const s of data.swings) { const i = idxAt(s.time); if (i > n-1 || cs[i].openTime !== s.time) continue; ctx.fillText(s.label, x(i)-6, s.kind === 'high' ? y(s.price)-4 : y(s.price)+11) }
+    for (const s of data.shifts) { const i = idxAt(s.time); if (i > n-1) continue; ctx.fillStyle = s.direction === 'bullish' ? 'rgba(63,185,80,0.95)' : 'rgba(248,81,73,0.95)'; ctx.font = 'bold 10px sans-serif'; const lbl = s.kind || 'MSS'; ctx.fillText(lbl, x(i) - ctx.measureText(lbl).width/2, s.direction === 'bullish' ? y(cs[i].low)+22 : y(cs[i].high)-14) }
+  }
   const sig = data.signal
   if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#58a6ff','entry'],[sig.plan.stop,'#f85149','stop'],[sig.plan.takeProfit,'#3fb950','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,n-41)), y(p)-3) }
   ctx.fillStyle = '#8b98a5'; ctx.font = '11px sans-serif'
@@ -605,15 +642,24 @@ function chartHover(clientX, clientY) {
   const i = Math.max(0, Math.min(view.n-1, Math.floor((clientX - rect.left - view.padL) / view.plotW * view.n)))
   const c = data.candles[i]; if (!c) return
   const p = view.hi - (clientY - rect.top - view.padT) / view.plotH * (view.hi - view.lo)
-  tip.style.display = 'block'; tip.style.left = Math.min(window.innerWidth - 190, clientX + 14) + 'px'; tip.style.top = (clientY + 14) + 'px'
+  tip.style.display = 'block'; tip.style.left = Math.min(window.innerWidth - 350, clientX + 14) + 'px'; tip.style.top = (clientY + 14) + 'px'
   const fp = data.features && data.features.series ? data.features.series.find(q => q.openTime === c.openTime) : null
-  tip.textContent = `${c.day} ${c.et} ET\nO ${px(c.open)}  H ${px(c.high)}\nL ${px(c.low)}  C ${px(c.close)}${fp && fp.vwapDay !== null ? `\nVWAP ${px(fp.vwapDay)}${fp.vwapSession !== null ? ` · session ${px(fp.vwapSession)}` : ''}` : ''}\ncursor ${px(p)}`
+  // What the cursor is on: an order block or breaker under it, a swing or a break at this candle
+  const notes = []
+  if ($('show-ob').checked && data.orderBlocks) for (const ob of data.orderBlocks) { if (c.openTime >= ob.time && p <= ob.top && p >= ob.bottom) notes.push(ob.description) }
+  if ($('show-structure').checked) {
+    if (data.swings) for (const s of data.swings) if (s.time === c.openTime) notes.push(s.description)
+    for (const s of data.shifts) if (s.time === c.openTime && s.description) notes.push(s.description)
+    if (data.swingSweeps) for (const s of data.swingSweeps) if (s.time === c.openTime) notes.push(`Swing sweep: price ran the stops ${s.side} the ${s.level.label} by ${s.depthAtr.toFixed(2)} ATR and closed back.`)
+  }
+  if ($('show-range').checked && data.dealingRange && i === view.n - 1) notes.push(data.dealingRange.description)
+  tip.textContent = `${c.day} ${c.et} ET\nO ${px(c.open)}  H ${px(c.high)}\nL ${px(c.low)}  C ${px(c.close)}${fp && fp.vwapDay !== null ? `\nVWAP ${px(fp.vwapDay)}${fp.vwapSession !== null ? ` · session ${px(fp.vwapSession)}` : ''}` : ''}\ncursor ${px(p)}${notes.length ? '\n\n' + notes.join('\n') : ''}`
 }
 canvas.addEventListener('mousemove', (e) => chartHover(e.clientX, e.clientY))
 canvas.addEventListener('touchmove', (e) => { const t = e.touches[0]; chartHover(t.clientX, t.clientY) }, {passive:true})
 canvas.addEventListener('mouseleave', () => tip.style.display = 'none'); canvas.addEventListener('touchend', () => tip.style.display = 'none')
 $('candle-count').onchange = () => loadToday(false)
-;['show-fvg','show-sessions','show-levels','show-vwap'].forEach(id => $(id).onchange = drawChart)
+;['show-fvg','show-sessions','show-levels','show-vwap','show-structure','show-ob','show-range'].forEach(id => $(id).onchange = drawChart)
 window.addEventListener('resize', () => { if (!$('tab-chart').classList.contains('hidden')) drawChart() })
 
 // ---------- flow ----------

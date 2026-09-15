@@ -156,6 +156,22 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   candles and flagged `approximate: true`. Features are inputs only — no
   trade rule may live in that folder — and the same code produces them in a
   replay and live.
+- **Market structure** (`structure.ts`, `orderblocks.ts`,
+  `features/dealingRange.ts`): swings are confirmed `swingLookback` candles
+  after the fact and labelled HH/HL/LH/LL against the previous swing of the
+  same kind. A close beyond the latest swing is a break; it is a BOS when it
+  goes with the direction of the previous break and a CHoCH when it is the
+  first break against it (the very first break is a BOS). An order block is
+  the last opposite-coloured candle within `structure.orderBlockLookback`
+  candles before a displacement, wick to wick; touched = mitigated, closed
+  through = broken, and a broken block is a breaker with the opposite role
+  until it is closed through again. The dealing range runs from the last
+  swing low to the last swing high; above `premiumAbovePercent` is premium,
+  below `discountBelowPercent` is discount. Raids on swing points are
+  recorded as swing sweeps in a list of their own — the session checklist
+  reads only session-level sweeps, and a regression test pins the baseline
+  day's evidence word for word. All of this is drawn on the chart with a
+  hover explanation and carried on the analysis; none of it trades yet.
 - **Market state** (`regime.ts`) is a vote: swing structure, hourly EMAs,
   3-hour momentum, today's sweeps, and the tape. Trend needs a 2:1 majority
   with ≥ 3 votes; otherwise "range". Continuation is a 0–100 score with every

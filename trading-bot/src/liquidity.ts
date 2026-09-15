@@ -13,9 +13,10 @@
  */
 
 import { config } from '../config.ts'
+import type { SwingTracker } from './structure.ts'
 import type { Candle, Level, Sweep, Swing } from './types.ts'
 
-const HIGH_KINDS = new Set(['asia-high', 'london-high', 'ny-high', 'pdh', 'eqh'])
+const HIGH_KINDS = new Set(['asia-high', 'london-high', 'ny-high', 'pdh', 'eqh', 'swing-high'])
 
 export function isHighLevel(l: Level): boolean {
   return HIGH_KINDS.has(l.kind)
@@ -79,6 +80,32 @@ export function equalLevels(swings: Swing[], atr: number, tolAtr = 0.1): Level[]
     }
   }
   return out
+}
+
+/**
+ * A raid on the most recent confirmed swing high or low: the wick pokes
+ * past it by at least the minimum depth and the candle closes back on
+ * the original side. Each swing can be swept once; `swept` remembers
+ * which. A clean close through the swing is a structure break, not a
+ * sweep, and is left to the structure tracker.
+ */
+export function detectSwingSweep(candle: Candle, i: number, swings: SwingTracker, atr: number, swept: Set<number>): Sweep | null {
+  const minDepth = atr * config.ict.sweepMinDepthAtr
+  for (const kind of ['high', 'low'] as const) {
+    const s = swings.latest(kind)
+    if (!s || swept.has(s.index) || s.index >= i - 1) continue
+    if (kind === 'high' && candle.high >= s.price + minDepth && candle.close < s.price) {
+      swept.add(s.index)
+      const level: Level = { kind: 'swing-high', price: s.price, time: s.time, label: `Swing high (${s.label})`, sweptAt: candle.openTime }
+      return { level, side: 'above', index: i, time: candle.openTime, wick: candle.high, depthAtr: (candle.high - s.price) / atr }
+    }
+    if (kind === 'low' && candle.low <= s.price - minDepth && candle.close > s.price) {
+      swept.add(s.index)
+      const level: Level = { kind: 'swing-low', price: s.price, time: s.time, label: `Swing low (${s.label})`, sweptAt: candle.openTime }
+      return { level, side: 'below', index: i, time: candle.openTime, wick: candle.low, depthAtr: (s.price - candle.low) / atr }
+    }
+  }
+  return null
 }
 
 /** Plain-English description of a sweep. */

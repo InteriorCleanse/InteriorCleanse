@@ -363,6 +363,39 @@ price are at work. The bot sits out weekends, stands aside around high-impact
 news, stops after 2 trades or 2R of losses in a day, and insists on at least
 2:1 reward to risk.
 
+### Market structure on the chart
+
+The Chart tab also draws the vocabulary you asked for, each with a hover
+explanation, and each behind its own toggle:
+
+- **Swing labels.** Every confirmed swing is compared with the previous one
+  of its kind: **HH** higher high, **HL** higher low, **LH** lower high,
+  **LL** lower low. Higher highs and higher lows are an uptrend; lower
+  highs and lower lows a downtrend. Swings are only confirmed a few candles
+  after they happen, so a label never appears early.
+- **BOS and CHoCH.** A close beyond a swing point is a structure break. When
+  it goes *with* the trend the previous breaks set, it is a **break of
+  structure (BOS)** — continuation. The *first* break against that trend is a
+  **change of character (CHoCH)** — the earliest hint of a turn. The very
+  first break of all, with no trend before it, is called a BOS.
+- **Order blocks.** When a candle moves with force (a displacement), the
+  last candle that went the other way just before it is an **order block**:
+  the last red candle before a push up (bullish, support) or the last green
+  candle before a push down (bearish, resistance). The zone is the whole
+  candle, wick to wick. A block that price closes through becomes a
+  **breaker** and flips its role: a broken bullish block is now resistance.
+  The hover text says whether the move that made the block also broke
+  structure or left a gap — both together is the textbook version.
+- **Premium and discount.** The **dealing range** runs from the last swing
+  low to the last swing high. Above the middle is premium (expensive, where
+  shorts are looked for); below it is discount (cheap, where longs are).
+- **Swing sweeps.** Hollow triangles mark a wick that ran the stops past a
+  swing point and closed back; filled triangles are raids on session levels.
+
+None of this changes what Mr. Cash trades yet. The session checklist is
+unchanged (a regression test pins the baseline day word for word), and
+these are readings the next strategies will consume.
+
 ### Glossary
 
 | Term | Means |
@@ -705,7 +738,8 @@ src/
   sessions.ts            the New York clock and session ranges
   liquidity.ts           sweeps vs breaks, equal highs/lows
   fvg.ts                 fair value gaps and their inversion
-  structure.ts           ATR, swings, displacement, structure shifts
+  structure.ts           ATR, swings with HH/HL/LH/LL labels, displacement, BOS and CHoCH
+  orderblocks.ts         order blocks and breakers, and their lifecycle
   brief.ts               the daily brief and proposed plan
   plan.ts                the plan you arm
   news.ts                calendar + headlines, scoring, blackouts
@@ -731,6 +765,7 @@ src/
     engine.ts            one FeatureSnapshot per closed candle, same code in replay and live
     vwap.ts, volumeProfile.ts   VWAP and value area: exact from the tape, approximate from candles
     ema.ts, momentum.ts, volatility.ts, atr.ts   the market-state readings
+    structure.ts, liquidity.ts, dealingRange.ts  swings, breaks, blocks, premium/discount, nearest liquidity
     trades.ts            the tape folded into candle buckets, and whether it missed anything
   ui.ts                  makes the terminal readable
   selftest.ts            offline logic checks

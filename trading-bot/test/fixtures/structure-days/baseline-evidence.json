@@ -1,0 +1,1902 @@
+[
+ {
+  "i": 0,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 750 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 1,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 745 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 2,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 740 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 3,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 735 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 4,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 730 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 5,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 725 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 6,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 720 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 7,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 715 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 8,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:40 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 710 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 9,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:45 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 705 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 10,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:50 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 700 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 11,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 20:55 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 695 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 12,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 690 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 13,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 685 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 14,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 680 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 15,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 675 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 16,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 670 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 17,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 665 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 18,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 660 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 19,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 655 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 20,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:40 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 650 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 21,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:45 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 645 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 22,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:50 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 640 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 23,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 21:55 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 635 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 24,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 630 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 25,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 625 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 26,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 620 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 27,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 615 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 28,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 610 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 29,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 605 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 30,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 600 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 31,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 595 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 32,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:40 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 590 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 33,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:45 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 585 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 34,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:50 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 580 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 35,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 22:55 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 575 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 36,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 570 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 37,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 565 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 38,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 560 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 39,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 555 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 40,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 550 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 41,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 545 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 42,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 540 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 43,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 535 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 44,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:40 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 530 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 45,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:45 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 525 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 46,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:50 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 520 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 47,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Wednesday, 23:55 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is inside the Asia window, which is watch-only. The next entry window (New York AM) opens in 515 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "The Asia range is still forming, so there is nothing to sweep yet. No bias until London has shown its hand."
+  }
+ },
+ {
+  "i": 48,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 510 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 49,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 505 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 50,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 500 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 51,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 495 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 52,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 490 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 53,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 485 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 54,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 480 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 55,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 475 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 56,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:40 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 470 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 57,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:45 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 465 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 58,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:50 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 460 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 59,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 00:55 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 455 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 60,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 450 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 61,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 445 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 62,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 440 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 63,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 435 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 64,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 430 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 65,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 425 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 66,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 420 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 67,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 415 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 68,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:40 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 410 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 69,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:45 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 405 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 70,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:50 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 400 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 71,
+  "action": "HOLD",
+  "reason": "Watching, not trading. I only enter during London or New York AM.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 01:55 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": false,
+    "detail": "Price is between sessions. The next entry window (New York AM) opens in 395 minutes."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 72,
+  "action": "HOLD",
+  "reason": "No liquidity sweep to trade from. The setup starts with a raid on a session high or low, and there hasn't been one.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:00 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (9.7 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": false,
+    "detail": "Nothing has been swept yet. Watching: Asia high $110, Asia low $100, London high $105, London low $104, Equal highs $109, Equal lows $101."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 73,
+  "action": "HOLD",
+  "reason": "No liquidity sweep to trade from. The setup starts with a raid on a session high or low, and there hasn't been one.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:05 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (9.6 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": false,
+    "detail": "Nothing has been swept yet. Watching: Asia high $110, Asia low $100, London high $105, London low $103, Equal highs $109, Equal lows $101."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 74,
+  "action": "HOLD",
+  "reason": "No liquidity sweep to trade from. The setup starts with a raid on a session high or low, and there hasn't been one.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:10 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (9.2 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": false,
+    "detail": "Nothing has been swept yet. Watching: Asia high $110, Asia low $100, London high $105, London low $101, Equal highs $109, Equal lows $101."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 75,
+  "action": "HOLD",
+  "reason": "No liquidity sweep to trade from. The setup starts with a raid on a session high or low, and there hasn't been one.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:15 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (9.0 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": false,
+    "detail": "Nothing has been swept yet. Watching: Asia high $110, Asia low $100, London high $105, London low $100, Equal highs $109."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "neutral",
+   "reason": "No liquidity has been taken today. Until one side of the range gets raided, I have no opinion — and pretending to have one is how accounts die."
+  }
+ },
+ {
+  "i": 76,
+  "action": "HOLD",
+  "reason": "Sweep seen, but no forceful buying yet. A sweep without displacement is often just a breakout — I need proof the raid reversed.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:20 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (8.8 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": true,
+    "detail": "Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. That points UP."
+   },
+   {
+    "step": "Displacement",
+    "passed": false,
+    "detail": "Since the sweep (0 candles ago) there has been no bullish candle with a body of at least 1 ATR that left a gap behind it."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "bullish",
+   "reason": "Sell-side liquidity was taken — Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. Stops below got hit, which usually means the real move is UP toward the buy-side liquidity above."
+  }
+ },
+ {
+  "i": 77,
+  "action": "HOLD",
+  "reason": "Sweep seen, but no forceful buying yet. A sweep without displacement is often just a breakout — I need proof the raid reversed.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:25 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (8.1 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": true,
+    "detail": "Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. That points UP."
+   },
+   {
+    "step": "Displacement",
+    "passed": false,
+    "detail": "Since the sweep (1 candles ago) there has been no bullish candle with a body of at least 1 ATR that left a gap behind it."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "bullish",
+   "reason": "Sell-side liquidity was taken — Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. Stops below got hit, which usually means the real move is UP toward the buy-side liquidity above."
+  }
+ },
+ {
+  "i": 78,
+  "action": "HOLD",
+  "reason": "Everything is lined up for a long except the entry: waiting for price to come back and retest $103.10–$103.80.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:30 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (7.7 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": true,
+    "detail": "Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. That points UP."
+   },
+   {
+    "step": "Displacement",
+    "passed": true,
+    "detail": "A bullish displacement candle at 02:30 ET left a 1.24-ATR gap ($100.80–$102.40). No structure shift yet — acceptable, but weaker."
+   },
+   {
+    "step": "Inversion FVG",
+    "passed": true,
+    "detail": "The bearish gap from 02:10 ET ($103.10–$103.80) was closed through at 02:30 ET. It has flipped and now acts as support."
+   },
+   {
+    "step": "Retest",
+    "passed": false,
+    "detail": "Price is $0.30 above the zone and hasn't come back to it. No chasing — the entry is the retest, not the breakout."
+   }
+  ],
+  "quality": 0,
+  "bias": {
+   "direction": "bullish",
+   "reason": "Sell-side liquidity was taken — Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. Stops below got hit, which usually means the real move is UP toward the buy-side liquidity above."
+  }
+ },
+ {
+  "i": 79,
+  "action": "BUY",
+  "reason": "BUY at $103.90. Asia low was swept, price displaced up, and an inverted gap just held on the retest. Stop $99.11, target $113.48 (2.0R). Setup quality 85/100.",
+  "evidence": [
+   {
+    "step": "Trading day",
+    "passed": true,
+    "detail": "Thursday, 02:35 ET. Desks are open."
+   },
+   {
+    "step": "Killzone",
+    "passed": true,
+    "detail": "Inside the London killzone — the window where entries are allowed."
+   },
+   {
+    "step": "Asia range",
+    "passed": true,
+    "detail": "Asia high $110.00, low $100.00 — a $10.00 range (7.8 ATR). Plenty of stops on both sides."
+   },
+   {
+    "step": "Liquidity sweep",
+    "passed": true,
+    "detail": "Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. That points UP."
+   },
+   {
+    "step": "Displacement",
+    "passed": true,
+    "detail": "A bullish displacement candle at 02:30 ET left a 1.24-ATR gap ($100.80–$102.40). No structure shift yet — acceptable, but weaker."
+   },
+   {
+    "step": "Inversion FVG",
+    "passed": true,
+    "detail": "The bearish gap from 02:10 ET ($103.10–$103.80) was closed through at 02:30 ET. It has flipped and now acts as support."
+   },
+   {
+    "step": "Retest",
+    "passed": true,
+    "detail": "This candle dipped into the zone and closed above its floor — the zone held. Entry at the close, $103.90."
+   },
+   {
+    "step": "Stop & target",
+    "passed": true,
+    "detail": "Stop $99.11 (0.15 ATR beyond the sweep wick ($99.30)). Target $113.48 — 2R (the nearest liquidity, London high, is only 0.3R away). That's 2.0:1 reward to risk."
+   },
+   {
+    "step": "News",
+    "passed": true,
+    "detail": "News feed not available for this candle, so no blackout was applied. Check the calendar yourself before trusting a live entry."
+   },
+   {
+    "step": "Daily limits",
+    "passed": true,
+    "detail": "0 of 2 trades used, 0.0R of 2R loss budget used."
+   },
+   {
+    "step": "Your plan",
+    "passed": true,
+    "detail": "No plan armed for today, so config.ts defaults apply. Arm one with `npm run talk` to keep me on a leash."
+   }
+  ],
+  "quality": 85,
+  "bias": {
+   "direction": "bullish",
+   "reason": "Sell-side liquidity was taken — Price ran the stops below the Asia low ($100.00) by 0.61 ATR and closed back above it. Stops below got hit, which usually means the real move is UP toward the buy-side liquidity above."
+  }
+ }
+]

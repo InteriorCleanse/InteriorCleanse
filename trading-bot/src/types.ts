@@ -107,6 +107,7 @@ export type LevelKind =
   | 'ny-high' | 'ny-low'
   | 'pdh' | 'pdl'
   | 'eqh' | 'eql'
+  | 'swing-high' | 'swing-low'
 
 /** A price the market is likely to react to, with a name a human can read. */
 export type Level = {
@@ -161,11 +162,77 @@ export type FVG = {
   retestIndex?: number
 }
 
+/**
+ * A close beyond a confirmed swing point.
+ *   BOS   — "break of structure": the break went WITH the prevailing trend
+ *           (a new higher high in an uptrend, a new lower low in a downtrend).
+ *           Continuation.
+ *   CHoCH — "change of character": the FIRST break AGAINST the prevailing
+ *           trend. The earliest warning that the trend may be turning.
+ * The prevailing trend is the direction of the previous break; the very
+ * first break, with nothing before it, is called a BOS.
+ */
 export type StructureShift = {
   direction: 'bullish' | 'bearish'
+  kind: 'BOS' | 'CHoCH'
   index: number
   time: number
   brokeSwing: Swing
+  /** The candle's close that did the breaking. */
+  price: number
+}
+
+/** A swing point with its place in the sequence: higher high, lower low, and so on. The first of each kind is just H or L. */
+export type LabelledSwing = Swing & { label: 'HH' | 'HL' | 'LH' | 'LL' | 'H' | 'L' }
+
+/**
+ * An ORDER BLOCK: the last candle against the move, right before a
+ * displacement candle. Institutions are believed to have filled orders
+ * there, and price often returns to it before continuing.
+ *
+ *   Bullish OB — the last DOWN candle before a strong move UP. Support.
+ *   Bearish OB — the last UP candle before a strong move DOWN. Resistance.
+ *
+ * The zone is the whole candle, wick to wick (the decision recorded in
+ * orderblocks.ts). Lifecycle: fresh → mitigated (price traded into it) →
+ * broken (price CLOSED through it). A broken order block flips its role
+ * and becomes a BREAKER block: a bullish OB that breaks now acts as
+ * resistance, and the other way round.
+ */
+export type OrderBlock = {
+  id: string
+  direction: 'bullish' | 'bearish'
+  top: number
+  bottom: number
+  /** The index of the order-block candle itself. */
+  index: number
+  time: number
+  /** The displacement candle that validated it. */
+  displacementIndex: number
+  sizeAtr: number
+  /** True when the displacement also broke structure (BOS/CHoCH) — a stronger block. */
+  withStructureBreak: boolean
+  /** True when the displacement left a fair value gap — the classic confirmation. */
+  withFvg: boolean
+  state: 'fresh' | 'mitigated' | 'broken' | 'expired'
+  mitigatedIndex?: number
+  brokenIndex?: number
+  brokenTime?: number
+}
+
+/**
+ * Where price sits between the last confirmed swing high and swing low.
+ * Above the middle is PREMIUM (expensive — where shorts are looked for),
+ * below it is DISCOUNT (cheap — where longs are looked for).
+ */
+export type DealingRange = {
+  high: number
+  low: number
+  equilibrium: number
+  /** 0 = at the low, 100 = at the high. */
+  position: number
+  zone: 'premium' | 'discount' | 'equilibrium'
+  fromLabel: string
 }
 
 export type Bias = {
@@ -191,6 +258,15 @@ export type IctAnalysis = {
   sweepsToday: Sweep[]
   fvgs: FVG[]
   structureShifts: StructureShift[]
+  /** Live order blocks and breakers. */
+  orderBlocks: OrderBlock[]
+  /** The most recent confirmed swings with their HH/HL/LH/LL labels. */
+  swings: LabelledSwing[]
+  /** The trend the structure breaks currently describe. */
+  structureTrend: 'bullish' | 'bearish' | null
+  dealingRange: DealingRange | null
+  /** Raids on confirmed swing highs/lows today. Kept apart from `sweepsToday`, which the session checklist reads. */
+  swingSweepsToday: Sweep[]
   bias: Bias
   signal: Signal
   tradesToday: number

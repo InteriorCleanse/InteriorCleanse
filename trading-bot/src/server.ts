@@ -34,6 +34,9 @@ import { aiStatus, askAI, explainAiError, PICTURE_QUESTION } from './ai.ts'
 import type { AiImage } from './ai.ts'
 import { toET } from './sessions.ts'
 import { ifvgRole } from './fvg.ts'
+import { describeShift, describeSwing } from './structure.ts'
+import { breakerRole, describeOrderBlock } from './orderblocks.ts'
+import { describeDealingRange } from './features/dealingRange.ts'
 import { getFlow, readFlowLog } from './orderflow.ts'
 import { startWatch, eventLog } from './watch.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
@@ -157,7 +160,11 @@ function analysisPayload(snap: Snapshot, candleCount: number) {
     sessions: engine ? [...engine.sessions.days.values()].flatMap((d) => Object.values(d.sessions)).filter((s) => s.endTime >= firstTime) : [],
     sweeps: engine ? [...engine.sessions.days.keys()].flatMap((k) => engine.sweepsFor(k)).filter((s) => s.time >= firstTime) : [],
     fvgs: engine ? engine.fvgs.fvgs.filter((f) => f.createdTime >= firstTime && (f.state !== 'expired' || f.retestIndex !== undefined)).map((f) => ({ ...f, role: ifvgRole(f) })) : [],
-    shifts: engine ? engine.structure.shifts.filter((s) => s.time >= firstTime) : [],
+    shifts: engine ? engine.structure.shifts.filter((s) => s.time >= firstTime).map((s) => ({ ...s, description: describeShift(s) })) : [],
+    swings: engine ? engine.swings.swings.filter((s) => s.time >= firstTime).map((s) => ({ ...s, description: describeSwing(s) })) : [],
+    orderBlocks: engine ? engine.obs.blocks.filter((b) => b.time >= firstTime && b.state !== 'expired').map((b) => ({ ...b, role: breakerRole(b), description: describeOrderBlock(b) })) : [],
+    swingSweeps: engine ? [...engine.sessions.days.keys()].flatMap((k) => engine.swingSweepsFor(k)).filter((s) => s.time >= firstTime) : [],
+    dealingRange: a?.dealingRange ? { ...a.dealingRange, description: describeDealingRange(a.dealingRange) } : null,
     /** The shared readings: the latest snapshot in full, and the VWAP lines for the chart. */
     features: engine && a ? { latest: a.features, series: engine.features.series(firstTime) } : null,
     plan,

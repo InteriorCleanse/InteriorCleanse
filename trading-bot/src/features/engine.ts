@@ -16,6 +16,10 @@ import { candleSums, vwapFromSums } from './vwap.ts'
 import { profileFromCandles, profileFromHistogram, valueArea } from './volumeProfile.ts'
 import { priceTick, tradeTape } from './trades.ts'
 import type { TradeAccumulator } from './trades.ts'
+import { structureReading } from './structure.ts'
+import type { StructureInputs, StructureReading } from './structure.ts'
+import { liquidityReading } from './liquidity.ts'
+import type { LiquidityInputs, LiquidityReading } from './liquidity.ts'
 import { FEATURE_VERSION } from './types.ts'
 import type { Feature, FeaturePoint, FeatureSnapshot, FeatureSource, ProfileReading, VwapReading } from './types.ts'
 
@@ -23,7 +27,15 @@ function feature<T>(value: T | null, source: FeatureSource, asOf: number, approx
   return { value, available: value !== null, source: value === null ? 'none' : source, asOf, approximate: value !== null && approximate, ...(note ? { note } : {}) }
 }
 
-export type StepContext = { dayKey: string; session: SessionName | null; atr: number }
+export type StepContext = {
+  dayKey: string
+  session: SessionName | null
+  atr: number
+  /** The structure trackers, when the caller runs them (the ICT engine does). */
+  structure?: StructureInputs
+  /** Today's levels and sweeps, when the caller tracks them. */
+  liquidity?: LiquidityInputs
+}
 
 export class FeatureEngine {
   private readonly tape: TradeAccumulator | null
@@ -91,6 +103,8 @@ export class FeatureEngine {
       vwapSession,
       vwapDayTape,
       profileDay,
+      structure: feature<StructureReading>(ctx.structure ? structureReading(ctx.structure, c.close, ctx.atr) : null, 'candles', asOf, false, ctx.structure ? undefined : 'No structure trackers in this run.'),
+      liquidity: feature<LiquidityReading>(ctx.liquidity ? liquidityReading(ctx.liquidity, c.close, ctx.atr) : null, 'candles', asOf, false, ctx.liquidity ? undefined : 'No levels tracked in this run.'),
       tape: { exact: dayExact, note: tapeNote },
     }
     this.latest = snap

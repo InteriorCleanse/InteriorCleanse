@@ -180,6 +180,27 @@ export const config = {
     swingLookback: 3,
   },
 
+  // ---------- MARKET STRUCTURE ----------
+
+  /**
+   * How swings, structure breaks, order blocks and the dealing range are
+   * read. These are shared readings drawn on the chart; the session
+   * checklist above does not trade on them yet.
+   */
+  structure: {
+    /** An order block is the last opposite-coloured candle within this many candles before a displacement. */
+    orderBlockLookback: 3,
+
+    /** Forget an order block this many candles after it formed. 288 × 5m = one day. */
+    orderBlockMaxAgeCandles: 288,
+
+    /** Position in the dealing range (0 = at the swing low, 100 = at the swing high) above which price is "premium"… */
+    premiumAbovePercent: 55,
+
+    /** …and below which it is "discount". In between is equilibrium. */
+    discountBelowPercent: 45,
+  },
+
   // ---------- THE SIMPLE STRATEGY (only used when strategy = 'crossover') ----------
 
   crossover: {

@@ -16,6 +16,8 @@
  */
 
 import type { SessionName } from '../types.ts'
+import type { StructureReading } from './structure.ts'
+import type { LiquidityReading } from './liquidity.ts'
 
 /** Bump this when the meaning of any feature changes, so stored readings are not compared across versions. */
 export const FEATURE_VERSION = 1
@@ -95,6 +97,10 @@ export type FeatureSnapshot = {
   /** The tape-only VWAP for the day. Unavailable whenever the stream missed anything since the anchor. */
   vwapDayTape: Feature<VwapReading>
   profileDay: Feature<ProfileReading>
+  /** Swings, BOS/CHoCH, order blocks and the dealing range, as the trackers see them. */
+  structure: Feature<StructureReading>
+  /** The nearest intact liquidity above and below, and today's raids. */
+  liquidity: Feature<LiquidityReading>
   /** Whether the live tape covered this whole trading day without a gap. */
   tape: { exact: boolean; note: string }
 }

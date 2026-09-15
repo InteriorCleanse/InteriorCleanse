@@ -22,8 +22,10 @@ import { config } from '../config.ts'
 import { SessionTracker, isKillzone, isWeekend, nextKillzone, sessionAt, toET, sessionLabel } from './sessions.ts'
 import { SwingTracker, StructureTracker, atrAt } from './structure.ts'
 import { FvgTracker, ifvgRole } from './fvg.ts'
-import { detectSweeps, describeSweep, equalLevels, isHighLevel } from './liquidity.ts'
+import { detectSweeps, detectSwingSweep, describeSweep, equalLevels, isHighLevel } from './liquidity.ts'
+import { OrderBlockTracker } from './orderblocks.ts'
 import { FeatureEngine } from './features/engine.ts'
+import { dealingRange } from './features/dealingRange.ts'
 import { isBlackout } from './news.ts'
 import type { Candle, EvidenceStep, FVG, IctAnalysis, Level, Signal, Sweep, TradePlan, Bias, SessionName } from './types.ts'
 import type { NewsReport } from './types.ts'
@@ -39,10 +41,15 @@ export class IctEngine {
   readonly swings = new SwingTracker()
   readonly structure = new StructureTracker()
   readonly fvgs = new FvgTracker()
+  /** Order blocks and breakers. Drawn and reported; the checklist below does not trade on them yet. */
+  readonly obs = new OrderBlockTracker()
   /** The shared readings, computed once per candle here so replay and live see the same numbers. Inputs only; the checklist below does not read them yet. */
   readonly features = new FeatureEngine()
   private readonly levelsByDay = new Map<string, Level[]>()
   private readonly sweepsByDay = new Map<string, Sweep[]>()
+  /** Raids on confirmed swing points, kept apart from the session-level sweeps the checklist reads. */
+  private readonly swingSweepsByDay = new Map<string, Sweep[]>()
+  private readonly sweptSwings = new Set<number>()
   private readonly dayStats = new Map<string, DayStats>()
   private readonly consumedSweeps = new Set<number>()
   private lastSession: { dayKey: string; session: SessionName | null } | null = null
@@ -69,6 +76,10 @@ export class IctEngine {
 
   sweepsFor(dayKey: string): Sweep[] {
     return this.sweepsByDay.get(dayKey) ?? []
+  }
+
+  swingSweepsFor(dayKey: string): Sweep[] {
+    return this.swingSweepsByDay.get(dayKey) ?? []
   }
 
   /** Keeps the same Level objects alive across candles so their swept/broken marks persist. */
@@ -165,16 +176,26 @@ export class IctEngine {
     const { dayKey, session } = this.sessions.add(c)
     const atr = atrAt(this.candles, i)
     this.swings.add(this.candles, i)
-    this.structure.check(this.candles, i, this.swings)
-    this.fvgs.update(this.candles, i, atr)
+    const shift = this.structure.check(this.candles, i, this.swings)
+    const fvgEvents = this.fvgs.update(this.candles, i, atr)
+    this.obs.update(this.candles, i, atr, { brokeStructure: shift !== null, leftFvg: fvgEvents.created !== null })
 
     const levels = this.mergeLevels(dayKey, atr)
     const newSweeps = detectSweeps(c, i, this.sweepable(dayKey, levels), atr)
     const sweeps = this.sweepsByDay.get(dayKey) ?? []
     sweeps.push(...newSweeps)
     this.sweepsByDay.set(dayKey, sweeps)
+    const swingSweeps = this.swingSweepsByDay.get(dayKey) ?? []
+    const swingSweep = detectSwingSweep(c, i, this.swings, atr, this.sweptSwings)
+    if (swingSweep) swingSweeps.push(swingSweep)
+    this.swingSweepsByDay.set(dayKey, swingSweeps)
+    const range = dealingRange(c.close, this.swings.latest('high'), this.swings.latest('low'))
     this.lastSession = { dayKey, session }
-    const features = this.features.step(this.candles, i, { dayKey, session, atr })
+    const features = this.features.step(this.candles, i, {
+      dayKey, session, atr,
+      structure: { swings: this.swings, structure: this.structure, orderBlocks: this.obs, dealingRange: range },
+      liquidity: { levels, sweeps, swingSweeps },
+    })
 
     const et = toET(c.openTime)
     const stats = this.dayStats.get(dayKey) ?? { trades: 0, lossesR: 0 }
@@ -202,6 +223,11 @@ export class IctEngine {
       sweepsToday: sweeps,
       fvgs: this.fvgs.active(),
       structureShifts: this.structure.shifts.filter((s) => s.index >= i - 288),
+      orderBlocks: this.obs.active(),
+      swings: this.swings.recent(40),
+      structureTrend: this.structure.trend,
+      dealingRange: range,
+      swingSweepsToday: swingSweeps,
       bias,
       signal,
       tradesToday: stats.trades,
