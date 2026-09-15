@@ -152,6 +152,23 @@ export async function getCandlesSince(symbol: string, interval: string, startMs:
   })
 }
 
+/** Every closed candle whose open time lies in [startMs, endMs], paging forwards. Used by the candle store to fill gaps. */
+export async function getCandlesRange(symbol: string, interval: string, startMs: number, endMs: number): Promise<Candle[]> {
+  const stepMs = INTERVAL_MS[interval] ?? 300_000
+  return withSources(async (source) => {
+    const collected: Candle[] = []
+    let startTime = startMs
+    for (let guard = 0; guard < 400 && startTime <= endMs; guard++) {
+      const batch = await fetchOnce(source, symbol, interval, 1000, { startTime, endTime: endMs })
+      if (batch.length === 0) break
+      collected.push(...batch)
+      startTime = batch[batch.length - 1].openTime + stepMs
+      if (batch.length < 1000) break
+    }
+    return dropUnclosedCandle(collected).filter((c) => c.openTime >= startMs && c.openTime <= endMs)
+  })
+}
+
 /** Turns a data failure into something a human can act on. */
 export function explainMarketDataError(err: MarketDataError): string {
   return [

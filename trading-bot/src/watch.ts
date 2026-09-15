@@ -18,6 +18,7 @@ import { analyzeNow } from './bot.ts'
 import type { Snapshot } from './bot.ts'
 import { DATA_DIR, ensureDataDir } from './memory.ts'
 import { store } from './store.ts'
+import { bus } from './data/bus.ts'
 import { describeSweep } from './liquidity.ts'
 import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
@@ -176,16 +177,34 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
   return { snap, at: now }
 }
 
-export type Watcher = { stop(): void; current(): WatchState | null; lastError(): { time: number; message: string } | null }
+export type Watcher = {
+  stop(): void
+  current(): WatchState | null
+  lastError(): { time: number; message: string } | null
+  /** How many cycles ran, and what triggered the last one. */
+  stats(): { cycles: number; lastTrigger: 'start' | 'candle' | 'timer' | null; lastRunAt: number | null }
+  /** Run a cycle now (used by tests and the app's Refresh). */
+  run(trigger?: 'candle' | 'timer'): Promise<void>
+}
 
+/**
+ * Runs a cycle whenever a candle closes on the bus. A timer still fires
+ * every `minutes` as a safety net — but only if no candle-driven cycle ran
+ * in the meantime — so with the stream down the loop behaves exactly like
+ * the old poll, and with the stream up it reacts within seconds of the close.
+ */
 export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e: AppEvent) => void): Watcher {
   let state: WatchState | null = null
   let lastError: { time: number; message: string } | null = null
   let running = false
+  let queued = false
+  let cycles = 0
+  let lastTrigger: 'start' | 'candle' | 'timer' | null = null
+  let lastRunAt: number | null = null
   if (onEvent) eventLog.listeners.push(onEvent)
 
-  const tick = async () => {
-    if (running) return
+  const tick = async (trigger: 'start' | 'candle' | 'timer'): Promise<void> => {
+    if (running) { queued = true; return } // one cycle at a time; a close during a cycle runs one more afterwards
     running = true
     try {
       state = await watchOnce(state)
@@ -196,19 +215,35 @@ export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e:
       if (once(`err-${msg}-${Math.floor(Date.now() / 3_600_000)}`)) eventLog.push('info', 'Watch skipped a cycle', msg, 'info')
     } finally {
       running = false
+      cycles++
+      lastTrigger = trigger
+      lastRunAt = Date.now()
+      if (queued) { queued = false; void tick('candle') }
     }
   }
-  void tick()
-  const timer = setInterval(() => void tick(), Math.max(1, minutes) * 60_000)
-  return { stop: () => clearInterval(timer), current: () => state, lastError: () => lastError }
+  void tick('start')
+  const everyMs = Math.max(1, minutes) * 60_000
+  const unsubscribe = bus.on('candle:closed', () => void tick('candle'))
+  const timer = setInterval(() => {
+    if (lastRunAt === null || Date.now() - lastRunAt >= everyMs - 5_000) void tick('timer')
+  }, everyMs)
+  return {
+    stop: () => { clearInterval(timer); unsubscribe() },
+    current: () => state,
+    lastError: () => lastError,
+    stats: () => ({ cycles, lastTrigger, lastRunAt }),
+    run: (trigger = 'timer') => tick(trigger),
+  }
 }
 
 // `npm run watch` — the loop in a terminal, no browser needed.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { marketFeed } = await import('./data/feed.ts')
+  marketFeed.start()
   ui.heading('MR. CASH IS WATCHING')
   ui.safetyBanner()
   console.log('')
-  console.log(ui.dim(`  Re-reading the market every ${config.app.watchEveryMinutes} minutes. Ctrl+C to stop.`))
+  console.log(ui.dim(`  Reacting to every candle close (prices: ${marketFeed.describe()}); a safety poll runs every ${config.app.watchEveryMinutes} minutes. Ctrl+C to stop.`))
   console.log('')
   startWatch(undefined, (e) => {
     const mark = e.severity === 'action' ? ui.good('●') : e.severity === 'warn' ? ui.warn('●') : ui.dim('●')

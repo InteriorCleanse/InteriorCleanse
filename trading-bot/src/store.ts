@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS announced (key TEXT PRIMARY KEY, time INTEGER NOT NUL
 CREATE TABLE IF NOT EXISTS journal (id TEXT PRIMARY KEY, trade_time INTEGER NOT NULL, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, json TEXT NOT NULL, updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS flow_log (id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, price REAL, bid_usd REAL, ask_usd REAL, imbalance REAL, walls TEXT, trades INTEGER, tpm REAL, buy_share REAL, delta_usd REAL, big_buys INTEGER, big_sells INTEGER);
+CREATE TABLE IF NOT EXISTS candles (symbol TEXT NOT NULL, interval TEXT NOT NULL, open_time INTEGER NOT NULL, close_time INTEGER NOT NULL, open REAL NOT NULL, high REAL NOT NULL, low REAL NOT NULL, close REAL NOT NULL, volume REAL NOT NULL, source TEXT NOT NULL, PRIMARY KEY (symbol, interval, open_time));
 CREATE INDEX IF NOT EXISTS ledger_mode ON ledger(mode);
 CREATE INDEX IF NOT EXISTS positions_status ON positions(status);
 CREATE INDEX IF NOT EXISTS journal_time ON journal(trade_time);
@@ -197,6 +198,35 @@ export class Store {
   flowLog(limit: number): Array<{ time: number; price: number; imbalance: number; deltaUsd: number; tradesPerMinute: number; bigBuys: number; bigSells: number }> {
     const rows = this.db.prepare('SELECT time, price, imbalance, delta_usd AS deltaUsd, tpm AS tradesPerMinute, big_buys AS bigBuys, big_sells AS bigSells FROM flow_log ORDER BY id DESC LIMIT ?').all(limit) as unknown as Array<{ time: number; price: number; imbalance: number; deltaUsd: number; tradesPerMinute: number; bigBuys: number; bigSells: number }>
     return rows.reverse().map((r) => ({ ...r, price: Number(r.price ?? 0), imbalance: Number(r.imbalance ?? 0), deltaUsd: Number(r.deltaUsd ?? 0), tradesPerMinute: Number(r.tradesPerMinute ?? 0), bigBuys: Number(r.bigBuys ?? 0), bigSells: Number(r.bigSells ?? 0) }))
+  }
+
+  // ---- candles (the local history) ---------------------------------------
+  upsertCandles(symbol: string, interval: string, rows: Array<{ openTime: number; closeTime: number; open: number; high: number; low: number; close: number; volume: number }>, source: string): number {
+    if (!rows.length) return 0
+    const ins = this.db.prepare('INSERT INTO candles(symbol, interval, open_time, close_time, open, high, low, close, volume, source) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(symbol, interval, open_time) DO UPDATE SET close_time = excluded.close_time, open = excluded.open, high = excluded.high, low = excluded.low, close = excluded.close, volume = excluded.volume, source = excluded.source')
+    const own = !this.inTransaction
+    if (own) this.db.exec('BEGIN')
+    try {
+      for (const c of rows) ins.run(symbol, interval, c.openTime, c.closeTime, c.open, c.high, c.low, c.close, c.volume, source)
+      if (own) this.db.exec('COMMIT')
+    } catch (err) {
+      if (own) this.db.exec('ROLLBACK')
+      throw err
+    }
+    return rows.length
+  }
+  candlesBetween(symbol: string, interval: string, fromOpenTime: number, toOpenTime: number): Array<{ openTime: number; closeTime: number; open: number; high: number; low: number; close: number; volume: number; source: string }> {
+    return this.db.prepare('SELECT open_time AS openTime, close_time AS closeTime, open, high, low, close, volume, source FROM candles WHERE symbol = ? AND interval = ? AND open_time >= ? AND open_time <= ? ORDER BY open_time').all(symbol, interval, fromOpenTime, toOpenTime) as unknown as Array<{ openTime: number; closeTime: number; open: number; high: number; low: number; close: number; volume: number; source: string }>
+  }
+  lastCandles(symbol: string, interval: string, limit: number): Array<{ openTime: number; closeTime: number; open: number; high: number; low: number; close: number; volume: number; source: string }> {
+    const rows = this.db.prepare('SELECT open_time AS openTime, close_time AS closeTime, open, high, low, close, volume, source FROM candles WHERE symbol = ? AND interval = ? ORDER BY open_time DESC LIMIT ?').all(symbol, interval, limit) as unknown as Array<{ openTime: number; closeTime: number; open: number; high: number; low: number; close: number; volume: number; source: string }>
+    return rows.reverse()
+  }
+  candleCount(symbol: string, interval: string): number {
+    return Number((this.db.prepare('SELECT COUNT(*) n FROM candles WHERE symbol = ? AND interval = ?').get(symbol, interval) as { n: number }).n)
+  }
+  pruneCandles(symbol: string, interval: string, olderThanOpenTime: number): number {
+    return Number(this.db.prepare('DELETE FROM candles WHERE symbol = ? AND interval = ? AND open_time < ?').run(symbol, interval, olderThanOpenTime).changes)
   }
 
   // ---- health -------------------------------------------------------

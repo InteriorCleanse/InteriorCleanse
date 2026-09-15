@@ -69,13 +69,14 @@ export function syntheticKlines(days = 40, seed = 42, now = Date.now()): RawKlin
   return rows
 }
 
-export type MockFeeds = { url: string; close: () => Promise<void>; hits: Record<string, number> }
+export type MockFeeds = { url: string; close: () => Promise<void>; hits: Record<string, number>; rows: RawKline[]; depthUpdateId: { value: number } }
 
 export async function startMockFeeds(opts: { seed?: number; days?: number } = {}): Promise<MockFeeds> {
   const rows = syntheticKlines(opts.days ?? 40, opts.seed ?? 42)
   const last = rows[rows.length - 1][4]
   const { rnd } = makeRng(7)
   const hits: Record<string, number> = {}
+  const depthUpdateId = { value: 1 }
   const tomorrow830 = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() + 1); d.setUTCHours(12, 30, 0, 0); return d })()
 
   const server: Server = createServer((req, res) => {
@@ -86,7 +87,8 @@ export async function startMockFeeds(opts: { seed?: number; days?: number } = {}
     if (p.endsWith('/klines')) {
       const limit = Math.min(1000, Number(u.searchParams.get('limit') || 500))
       const st = u.searchParams.get('startTime'), et = u.searchParams.get('endTime')
-      return send(st ? rows.filter((r) => r[0] >= Number(st)).slice(0, limit) : et ? rows.filter((r) => r[0] <= Number(et)).slice(-limit) : rows.slice(-limit))
+      const inRange = rows.filter((r) => (!st || r[0] >= Number(st)) && (!et || r[0] <= Number(et)))
+      return send(st ? inRange.slice(0, limit) : inRange.slice(-limit))
     }
     if (p.endsWith('/depth')) {
       const bids: [string, string][] = [], asks: [string, string][] = []
@@ -94,7 +96,7 @@ export async function startMockFeeds(opts: { seed?: number; days?: number } = {}
         bids.push([(last * (1 - i * 0.00005)).toFixed(2), (0.02 + rnd() * 0.3 + (i === 120 ? 45 : 0)).toFixed(4)])
         asks.push([(last * (1 + i * 0.00005)).toFixed(2), (0.02 + rnd() * 0.3 + (i === 60 ? 30 : 0)).toFixed(4)])
       }
-      return send({ lastUpdateId: 1, bids, asks })
+      return send({ lastUpdateId: depthUpdateId.value, bids, asks })
     }
     if (p.endsWith('/aggTrades')) {
       const now = Date.now()
@@ -111,7 +113,7 @@ export async function startMockFeeds(opts: { seed?: number; days?: number } = {}
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', () => r()))
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  return { url, hits, close: () => new Promise((r) => server.close(() => r())) }
+  return { url, hits, rows, depthUpdateId, close: () => new Promise((r) => server.close(() => r())) }
 }
 
 // ---------------------------------------------------------------
@@ -126,7 +128,7 @@ export async function startBot(feeds: MockFeeds, opts: { dir?: string; env?: Rec
   const base = `http://127.0.0.1:${port}`
   const child = spawn(process.execPath, ['src/server.ts'], {
     cwd: ROOT,
-    env: { ...process.env, MRCASH_PORT: String(port), MRCASH_DATA_DIR: dir, MRCASH_MARKET_URL: feeds.url, MRCASH_NEWS_URL: feeds.url, NO_BROWSER: '1', NO_COLOR: '1', ...(opts.env ?? {}) },
+    env: { ...process.env, MRCASH_PORT: String(port), MRCASH_DATA_DIR: dir, MRCASH_MARKET_URL: feeds.url, MRCASH_NEWS_URL: feeds.url, MRCASH_STREAM: '0', NO_BROWSER: '1', NO_COLOR: '1', ...(opts.env ?? {}) },
     stdio: ['ignore', 'ignore', 'pipe'],
   })
   let stderr = ''

@@ -18,6 +18,8 @@ import { aiStatus, pingAI } from './ai.ts'
 import { DATA_DIR, ensureDataDir, readLedger, lessonLines } from './memory.ts'
 import { readPlan } from './plan.ts'
 import { store, DB_PATH } from './store.ts'
+import { probeStream } from './data/binanceStream.ts'
+import { storedCandleCount } from './data/candleStore.ts'
 import * as ui from './ui.ts'
 
 export type Check = { name: string; ok: boolean | null; detail: string; fix?: string }
@@ -57,6 +59,15 @@ export async function runDoctor(): Promise<Check[]> {
   } catch (err) {
     checks.push({ name: 'Prices', ok: false, detail: err instanceof Error ? err.message : String(err), fix: 'No internet, or your network blocks the exchange. Try a phone hotspot or a VPN.' })
   }
+
+  if (config.data.stream) {
+    const hosts = process.env.MRCASH_STREAM_URL ? [process.env.MRCASH_STREAM_URL] : config.data.streamHosts
+    const probe = await probeStream(hosts, config.symbol, config.interval, 6000)
+    checks.push({ name: 'Live stream', ok: probe.ok ? true : null, detail: probe.ok ? `${probe.host} — ${probe.detail}` : `${probe.detail} — the bot polls over REST instead`, fix: 'Optional but recommended. Some networks block WebSockets; a phone hotspot or VPN usually fixes it. Set data.stream: false in config.ts to stop trying.' })
+  } else {
+    checks.push({ name: 'Live stream', ok: null, detail: 'off in config.ts — polling every few minutes', fix: 'Set data.stream: true in config.ts to react the moment a candle closes.' })
+  }
+  checks.push({ name: 'Candle store', ok: true, detail: `${storedCandleCount(config.symbol, config.interval)} ${config.interval} candles on disk` })
 
   const flow = await getFlow()
   checks.push({ name: 'Order book', ok: !!flow.book, detail: flow.book ? `${flow.book.levelsRead} levels read, ${flow.book.walls.length} wall(s)` : flow.errors.find((e) => e.startsWith('Order book')) ?? 'off', fix: 'Same fix as prices.' })

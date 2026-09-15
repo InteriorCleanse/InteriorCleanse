@@ -21,7 +21,8 @@
  */
 
 import { config } from '../config.ts'
-import { getCandles, getCandlesSince, INTERVAL_MS } from './market.ts'
+import { INTERVAL_MS } from './market.ts'
+import { getCandles, getCandlesSince } from './data/candleStore.ts'
 import { IctEngine } from './ictStrategy.ts'
 import { getCrossoverSignal } from './strategy.ts'
 import { checkRisk, sizeForStop } from './risk.ts'

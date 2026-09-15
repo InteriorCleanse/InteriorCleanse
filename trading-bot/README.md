@@ -224,6 +224,37 @@ position by hand. If the computer sleeps, so does Mr. Cash — set it not to
 sleep while plugged in, or run it on a Raspberry Pi or a $5 server. Turn the
 auto-trader off with `app.autoPaperTrade: false`; alerts still come.
 
+### Where the prices come from
+
+While the app runs, Mr. Cash holds one **live stream** open to the exchange's
+public market-data feed: every trade, the best bid and ask, the order book,
+and the candle as it forms. No account, no key — this is the same public feed
+everyone sees. The moment a 5-minute candle closes, the stream says so and
+Mr. Cash re-reads the market **within a couple of seconds**, instead of
+waiting for the next poll. The dot next to the price in the app's header
+tells you which path is in use; hover it for the words.
+
+- **Green — live stream.** Prices arrive as they change. The price in the
+  header is the mid between the best bid and ask.
+- **Amber — polling over REST.** The stream is off (`data.stream: false` in
+  `config.ts`), connecting, or down. Mr. Cash then does what it always did:
+  asks for closed candles every `app.watchEveryMinutes`. Nothing is missed,
+  it is just slower. When the stream comes back, the dot turns green on its
+  own — it reconnects by itself, waiting a little longer after each failed
+  try (`data.reconnectMinMs` to `data.reconnectMaxMs`) and rotating through
+  `data.streamHosts`.
+- **Grey — no feed yet.** The app is still starting.
+
+Whichever path a candle arrives by, it is written to the store **once** and
+acted on **once**; if the stream drops in the middle of a candle, the REST
+safety poll fetches what was missed and says so in the terminal ("the stream
+missed 2 candle closes; REST filled them in"). A stream that goes quiet for
+`data.staleAfterMs` is treated as down. Closed candles live in the database
+(`data.keepDays` of them), so restarting the app does not re-download history
+it already has, and gaps the exchange itself cannot fill (maintenance
+windows) are remembered rather than re-requested forever. `npm run status`
+and `/api/system` show the mode, the host, reconnect count and the last gap.
+
 ### Ask Claude about Mr. Cash from anywhere (MCP)
 
 ```bash
@@ -680,7 +711,11 @@ src/
   adaptiveFilter.ts      decides whether memory should refuse a setup
   replay.ts              the look-back tests
   strategy.ts            the simple crossover strategy
-  market.ts              real prices (and refusing to fake them)
+  market.ts              real prices over REST (and refusing to fake them)
+  data/bus.ts            the in-process market-data bus every reading passes through
+  data/binanceStream.ts  the live stream: reconnects, order-book stitching, stale watchdog
+  data/candleStore.ts    closed candles in the database; gap filling over REST
+  data/feed.ts           the one feed: stream when it is up, REST when it is not
   ui.ts                  makes the terminal readable
   selftest.ts            offline logic checks
   tradingview.ts         TradingView setup steps

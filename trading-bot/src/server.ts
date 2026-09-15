@@ -48,6 +48,8 @@ import { getSettings, setSetting, resetSetting } from './settings.ts'
 import type { Settings } from './settings.ts'
 import { store } from './store.ts'
 import { VERSION } from './version.ts'
+import { marketFeed } from './data/feed.ts'
+import { bus } from './data/bus.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -277,7 +279,28 @@ const server = createServer(async (req, res) => {
     }
     // "What is the current state of my system?" — one document, from disk and the last watch cycle.
     if (path === '/api/system') {
-      json(res, 200, { ok: true, data: systemState({ lastWatch: watcher.current(), lastError: watcher.lastError(), startedAt: STARTED_AT }) })
+      json(res, 200, { ok: true, data: { ...systemState({ lastWatch: watcher.current(), lastError: watcher.lastError(), startedAt: STARTED_AT, feed: marketFeed.health() }), watch: watcher.stats() } })
+      return
+    }
+    // Live updates for the page: price ticks, candle closes, bell events, feed health. Server-Sent Events, no polling.
+    if (path === '/api/stream') {
+      res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' })
+      const send = (event: string, data: unknown) => { try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`) } catch { /* client gone */ } }
+      send('health', marketFeed.health())
+      let lastPriceSent = 0
+      const unsub = [
+        bus.on('bookTicker', (b) => { const now = Date.now(); if (now - lastPriceSent >= 500) { lastPriceSent = now; send('price', { price: (b.bid + b.ask) / 2, bid: b.bid, ask: b.ask, time: b.time }) } }),
+        bus.on('trade', (t) => { const now = Date.now(); if (!marketFeed.latestTicker && now - lastPriceSent >= 500) { lastPriceSent = now; send('price', { price: t.price, time: t.time }) } }),
+        bus.on('candle:update', (c) => send('candle', { openTime: c.openTime, close: c.close, high: c.high, low: c.low, complete: false })),
+        bus.on('candle:closed', (c) => send('candle', { openTime: c.openTime, close: c.close, high: c.high, low: c.low, complete: true, source: c.source })),
+        bus.on('stream:up', (h) => send('health', { ...marketFeed.health(), stream: h })),
+        bus.on('stream:down', (h, reason) => send('health', { ...marketFeed.health(), stream: h, reason })),
+        bus.on('stream:gap', (what, at) => send('gap', { what, at })),
+      ]
+      const onEvent = (e: { id: number }) => send('event', { id: e.id })
+      eventLog.listeners.push(onEvent)
+      const keepAlive = setInterval(() => { try { res.write(': ping\n\n') } catch { /* ignore */ } }, 25_000)
+      req.on('close', () => { clearInterval(keepAlive); for (const u of unsub) u(); const i = eventLog.listeners.indexOf(onEvent); if (i >= 0) eventLog.listeners.splice(i, 1) })
       return
     }
     if (path === '/api/settings' && req.method === 'GET') {
@@ -505,8 +528,10 @@ server.on('error', (err: NodeJS.ErrnoException) => {
   throw err
 })
 
-// The watch loop keeps the snapshot fresh and raises alerts. Declared
-// before listen() so the routes can read it.
+// The market feed (live stream + REST heartbeat) starts first so the watch
+// loop has candle closes to react to. Then the loop, declared before
+// listen() so the routes can read it.
+marketFeed.start()
 const watcher = startWatch(config.app.watchEveryMinutes, (e) => {
   const mark = e.severity === 'action' ? ui.good('●') : e.severity === 'warn' ? ui.warn('●') : ui.dim('●')
   console.log(`${ui.dim(new Date(e.time).toLocaleTimeString())}  ${mark} ${ui.bold(e.title)} ${ui.dim('— ' + e.body.slice(0, 110))}`)
@@ -530,7 +555,9 @@ server.listen(PORT, host, () => {
   }
   console.log(`  TradingView webhook secret: ${ui.dim(WEBHOOK_SECRET)}  ${ui.dim('(the TradingView tab explains where it goes)')}`)
   console.log('')
-  console.log(ui.dim(`  Watching the market every ${config.app.watchEveryMinutes} minutes; alerts show here and in the app's bell.`))
+  console.log(ui.dim(`  Prices: ${marketFeed.describe()}. Reacting to every candle close, with a safety poll every ${config.app.watchEveryMinutes} minutes; alerts show here and in the app's bell.`))
+  bus.on('stream:up', (h) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ● live stream connected (${h.host})`)))
+  bus.on('stream:down', (_h, reason) => console.log(ui.warn(`${new Date().toLocaleTimeString()}  ● live stream down — ${reason}. Polling over REST until it is back.`)))
   console.log(ui.dim('  To stop: press Ctrl+C in this window.'))
   console.log('')
   if (process.env.NO_BROWSER !== '1') openBrowser(address)

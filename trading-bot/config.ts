@@ -280,6 +280,35 @@ export const config = {
     autoPaperTrade: true,
   },
 
+  // ---------- LIVE MARKET DATA ----------
+
+  /**
+   * Where the bot's prices come from while it runs. With `stream` on it
+   * holds a live connection to the exchange's public data stream and
+   * reacts the moment a candle closes; if the stream drops, it falls back
+   * to polling and says so. Nothing here needs an account or a key.
+   */
+  data: {
+    /** Use the live stream. false = poll every watchEveryMinutes like before. */
+    stream: true,
+
+    /** Public stream hosts, tried in order. The first is the market-data-only host. */
+    streamHosts: ['wss://data-stream.binance.vision', 'wss://stream.binance.com:9443', 'wss://stream.binance.us:9443'],
+
+    /** Keep this many order-book levels per side in memory from the depth stream. */
+    bookLevels: 200,
+
+    /** Reconnect back-off, in milliseconds. Doubles from min to max. */
+    reconnectMinMs: 1000,
+    reconnectMaxMs: 30_000,
+
+    /** A stream with no message for this long is considered down. Candles arrive every interval; trades and the book every second on BTC. */
+    staleAfterMs: 90_000,
+
+    /** Keep at most this many days of candles in the store (older ones are pruned). */
+    keepDays: 400,
+  },
+
   // ---------- ORDER FLOW ----------
 
   orderflow: {

@@ -5,7 +5,8 @@
  */
 
 import { config } from '../config.ts'
-import { getCandles, INTERVAL_MS } from './market.ts'
+import { INTERVAL_MS } from './market.ts'
+import { getCandles } from './data/candleStore.ts'
 import { IctEngine } from './ictStrategy.ts'
 import { getCrossoverSignal } from './strategy.ts'
 import { checkRisk } from './risk.ts'

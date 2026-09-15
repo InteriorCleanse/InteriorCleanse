@@ -151,11 +151,22 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   with ≥ 3 votes; otherwise "range". Continuation is a 0–100 score with every
   penalty named; watch-outs list nearby liquidity, walls, stretch, news,
   volatility and weekends. It is described as "now", never as a forecast.
-- **Alerts** (`watch.ts`) re-read the market every `app.watchEveryMinutes`
-  and raise events (killzone heads-up/open, sweep, setup, news, trend change,
-  big print, TradingView alert). Each is announced once, persisted to
-  `data/events.jsonl`, shown in the app's bell and optionally as a system
-  notification. The watcher never acts.
+- **Market data** (`src/data/`) arrives over one public live stream (trades,
+  best bid/ask, order book, forming candle) and is published on an in-process
+  bus. Every closed candle is written to the store and announced exactly once,
+  whichever path delivered it. If the stream is off, connecting or down, a
+  REST heartbeat every `app.watchEveryMinutes` is the feed — the same code
+  path, never a fake reading — and the app says which one is in use. The
+  stream reconnects by itself with backoff across `data.streamHosts`; a quiet
+  stream (`data.staleAfterMs`) counts as down; gaps the exchange cannot fill
+  are remembered, not re-requested.
+- **Alerts** (`watch.ts`) re-read the market on every candle close (with a
+  safety poll every `app.watchEveryMinutes` in case a close is missed) and
+  raise events (killzone heads-up/open, sweep, setup, news, trend change,
+  big print, TradingView alert). Each is announced once, persisted to the
+  store (mirrored to `data/events.jsonl`), shown in the app's bell and
+  optionally as a system notification. Two triggers arriving at once run one
+  cycle, with one queued. The watcher never acts.
 
 ## 9. The App, Phone Access, TradingView, Journal, Pictures
 

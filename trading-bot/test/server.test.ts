@@ -211,6 +211,22 @@ test('/api/system answers "what is the state of my system" and /api/settings rou
   assert.notEqual(reset.data.watchEveryMinutes, 3)
 })
 
+test('/api/stream pushes a health event first, and /api/system reports where prices come from', async () => {
+  const res = await fetch(`${bot.base}/api/stream`)
+  assert.equal(res.headers.get('content-type'), 'text/event-stream')
+  const reader = res.body!.getReader()
+  const { value } = await reader.read()
+  const text = new TextDecoder().decode(value)
+  assert.match(text, /^event: health\ndata: /)
+  const health = JSON.parse(text.split('\n')[1].slice(6)) as { mode: string }
+  assert.equal(health.mode, 'rest', 'the test bot runs with the stream off')
+  await reader.cancel()
+  const sys = await getJson<{ data: { marketData: { mode: string }; feeds: { livePrice: { verdict: string } }; watch: { cycles: number } } }>('/api/system')
+  assert.equal(sys.data.marketData.mode, 'rest')
+  assert.equal(sys.data.feeds.livePrice.verdict, 'never')
+  assert.ok(sys.data.watch.cycles >= 1)
+})
+
 test('after a hard kill and restart, the bell still shows what happened and ids keep climbing', async () => {
   const before = await getJson<{ data: { events: Array<{ id: number; kind: string }>; latestId: number } }>('/api/events')
   assert.ok(before.data.events.some((e) => e.kind === 'tradingview'))

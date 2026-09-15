@@ -23,6 +23,10 @@
   .hbtn { background:transparent; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; cursor:pointer; font-family:inherit; position:relative; }
   .hbtn .n { position:absolute; top:-7px; right:-7px; background:var(--red); color:#fff; border-radius:999px; font-size:10.5px; padding:1px 6px; font-weight:700; }
   .hbtn.stopbtn { border-color:var(--red); color:var(--red); font-weight:700; }
+  #live { display:inline-flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums; }
+  #live .dot { width:8px; height:8px; border-radius:999px; background:var(--line); display:inline-block; }
+  #live.stream .dot { background:var(--green); box-shadow:0 0 6px var(--green); } #live.rest .dot { background:var(--amber); } #live.off .dot { background:var(--line); }
+  #live b { color:var(--text); }
   .spacer { flex:1; }
   nav { display:flex; gap:2px; padding:6px 10px 0; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:53px; z-index:19; overflow-x:auto; scrollbar-width:none; }
   nav::-webkit-scrollbar { display:none; }
@@ -141,6 +145,7 @@
 <header>
   <h1>Mr. Cash</h1>
   <span class="muted" id="market">loading…</span>
+  <span id="live" class="muted" title="Where prices are coming from"><span class="dot" id="live-dot"></span><b id="live-price"></b></span>
   <span class="muted" id="clock"></span>
   <span class="spacer"></span>
   <button class="hbtn" id="btn-palette" title="Jump anywhere (Ctrl/⌘ K)">⌘K</button>
@@ -346,6 +351,23 @@ function renderEvents(evs, prepend=false) {
 $('btn-bell').onclick = () => { $('events').classList.toggle('hidden'); $('bell-n').textContent = '0'; $('bell-n').classList.add('hidden') }
 document.addEventListener('click', (e) => { if (!$('events').contains(e.target) && e.target !== $('btn-bell')) $('events').classList.add('hidden') })
 setInterval(pollEvents, 30000)
+
+// ---------- live updates: the server pushes, the page listens ----------
+// Price ticks, candle closes and bell events arrive over Server-Sent Events.
+// If the browser cannot hold the connection, the 30-second polls above still work.
+let liveMode = 'off', candleTimer = null
+function setLive(mode, title) { liveMode = mode; const el = $('live'); el.className = 'muted ' + mode; el.title = title || ({ stream: 'Live stream: prices arrive the moment they change', rest: 'Polling over REST: the live stream is off or down', off: 'No price feed yet' })[mode] }
+function connectLive() {
+  if (!('EventSource' in window)) return
+  const es = new EventSource('/api/stream')
+  es.addEventListener('health', (e) => { const h = JSON.parse(e.data); setLive(h.mode, h.reason ? `Live stream down: ${h.reason}. Polling over REST.` : undefined); if (h.price) $('live-price').textContent = px(h.price) })
+  es.addEventListener('price', (e) => { const p = JSON.parse(e.data); $('live-price').textContent = px(p.price) })
+  es.addEventListener('candle', (e) => { const c = JSON.parse(e.data); if (c.complete) { clearTimeout(candleTimer); candleTimer = setTimeout(() => loadToday(false), 1500) } })
+  es.addEventListener('event', () => pollEvents())
+  es.addEventListener('gap', (e) => { const g = JSON.parse(e.data); console.info('feed gap:', g.what) })
+  es.onerror = () => { setLive(liveMode === 'stream' ? 'rest' : liveMode, 'Lost the live connection to Mr. Cash; retrying. Polling still works.') }
+}
+connectLive()
 
 // ---------- config ----------
 async function loadConfig() {
