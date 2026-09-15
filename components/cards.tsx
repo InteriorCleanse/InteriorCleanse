@@ -39,9 +39,7 @@ export function BookCard({ book }: { book: Book }) {
         <img src={book.coverImage} alt={book.imageAlt} loading="lazy" />
       </Link>
       <div className="book-card-info">
-        <p className="eyebrow" style={{ fontSize: '9px' }}>
-          The Library
-        </p>
+        <p className="eyebrow">The Library</p>
         <h3 className="book-card-title">
           <Link href={`/library/${book.slug}/`}>{book.title}</Link>
         </h3>

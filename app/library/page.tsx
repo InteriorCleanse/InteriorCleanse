@@ -22,6 +22,7 @@ export default function Library() {
 
       <section className="section" style={{ background: 'var(--mind-bg)', paddingTop: 0 }}>
         <div className="section-inner">
+          <h2 className="sr-only">Interior design and home books</h2>
           <div className="book-grid gsap-stagger" style={{ marginTop: 0 }}>
             {mindBooks.map((book) => (
               <BookCard book={book} key={book.slug} />

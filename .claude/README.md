@@ -16,6 +16,7 @@ nothing under `.claude/` is built, served, or linted.
 | ui-ux-pro-max, design, design-system, brand, banner-design, slides | github.com/nextlevelbuilder/ui-ux-pro-max-skill (`.claude/skills/*`) | 7f69fed | MIT |
 | last30days | github.com/mvanhorn/last30days-skill (`skills/last30days`) | ac0ed3b | MIT |
 | agency-agents (roster) + 32 project agents in `.claude/agents/` | github.com/msitarzewski/agency-agents | ad9264e | MIT |
+| prompt-master | github.com/nidhinjs/prompt-master | 2bd9251 | MIT |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -55,6 +56,10 @@ design, paid-media, and product, plus ten marketing roles) are installed as
 project subagents in `.claude/agents/`. Everything in `.claude/agents/` is
 loaded into every session, so add more from the roster deliberately rather
 than copying all of them.
+
+`prompt-master` activates only when asked to write, fix, or adapt a prompt for
+a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
+It is instructions plus two reference files; no scripts, no network.
 
 Genjutsu's `cast` and `paint` orchestrators load their sub-skills from
 `genjutsu/_jutsu`, which is where its resolver probes for a skills-directory

@@ -60,9 +60,11 @@ export function FeaturedCard({ product }: { product: Product }) {
         </Link>
       </div>
 
-      <h3 className="featured-card-name">
+      {/* A card label, not a document heading: the hero already carries the
+          page h1, and a carousel of headings skipped a level for every card. */}
+      <p className="featured-card-name">
         <Link href={`/shop/${product.slug}/`}>{product.name}</Link>
-      </h3>
+      </p>
       <p className="featured-card-price">${product.price}</p>
 
       {internal ? (
