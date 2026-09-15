@@ -309,6 +309,28 @@ export const config = {
     keepDays: 400,
   },
 
+  // ---------- FEATURES ----------
+
+  /**
+   * The shared readings every strategy consumes: VWAP, volume profile,
+   * hourly averages, momentum, volatility. Inputs only — no trade rules
+   * live here. Each reading says whether it came from the live tape
+   * (exact) or from candles (an approximation).
+   */
+  features: {
+    /** VWAP bands, in standard deviations of the volume-weighted price. */
+    vwapBandSd: 1,
+
+    /** The value area holds this percent of the day's volume. 70 is the textbook number. */
+    valueAreaPercent: 70,
+
+    /** Volume-profile bucket height, in ATRs. Smaller = finer, noisier. */
+    profileBucketAtr: 0.1,
+
+    /** Hours of history the 20/50-hour averages need before they are reported. */
+    hourlyAveragesMinHours: 60,
+  },
+
   // ---------- ORDER FLOW ----------
 
   orderflow: {

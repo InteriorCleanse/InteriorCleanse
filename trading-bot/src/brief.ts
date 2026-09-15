@@ -5,7 +5,7 @@
  */
 
 import { config } from '../config.ts'
-import { toET, describeWindow, nextKillzone } from './sessions.ts'
+import { toET, describeWindow, nextKillzone, sessionLabel } from './sessions.ts'
 import { upcomingEvents } from './news.ts'
 import { describeSweep } from './liquidity.ts'
 import type { FlowReport, IctAnalysis, MarketState, NewsReport } from './types.ts'
@@ -66,6 +66,18 @@ export function buildBrief(a: IctAnalysis, news: NewsReport | null, plan: DayPla
   const ifvgs = a.fvgs.filter((f) => f.state === 'inverted')
   if (ifvgs.length) L.push(`  ${ifvgs.length} inverted gap(s) on the board: ` + ifvgs.slice(-3).map((f) => `${p(f.bottom)}–${p(f.top)} (${f.direction === 'bearish' ? 'support' : 'resistance'})`).join(', '))
   L.push('')
+
+  // Where the volume sat
+  const f = a.features
+  if (f && (f.vwapDay.available || f.profileDay.available)) {
+    L.push('VWAP & VOLUME')
+    const side = (v: number) => `${p(Math.abs(a.price - v))} ${a.price >= v ? 'above' : 'below'} it (${((a.price - v) / a.atr).toFixed(1)} ATR)`
+    if (f.vwapDay.value) L.push(`  Day VWAP ${p(f.vwapDay.value.vwap)} — price is ${side(f.vwapDay.value.vwap)}; band ${p(f.vwapDay.value.lower)}–${p(f.vwapDay.value.upper)}`)
+    if (f.vwapSession.value) L.push(`  ${a.session ? sessionLabel(a.session) : 'Session'} VWAP ${p(f.vwapSession.value.vwap)} — price is ${side(f.vwapSession.value.vwap)}`)
+    if (f.profileDay.value) L.push(`  Value area ${p(f.profileDay.value.val)}–${p(f.profileDay.value.vah)}, most volume at ${p(f.profileDay.value.poc)}`)
+    L.push(`  (${f.vwapDay.source === 'trades' ? 'from the live tape — exact' : 'from candle volume — an approximation; the live tape makes it exact'})`)
+    L.push('')
+  }
 
   // Market state
   if (state) {

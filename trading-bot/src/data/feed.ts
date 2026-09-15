@@ -18,6 +18,7 @@ import { bus } from './bus.ts'
 import { BinanceStream } from './binanceStream.ts'
 import type { DepthSnapshot } from './binanceStream.ts'
 import { getCandles, lastClosedOpenTime, lastStoredCandle, recordClosedCandle } from './candleStore.ts'
+import { tradeTape } from '../features/trades.ts'
 import type { Book, BookTicker, FeedCandle, StreamHealth, Trade } from './types.ts'
 
 export type FeedMode = 'stream' | 'rest' | 'off'
@@ -61,6 +62,8 @@ export class MarketFeed {
         reconnectMinMs: config.data.reconnectMinMs, reconnectMaxMs: config.data.reconnectMaxMs, staleAfterMs: config.data.staleAfterMs, bookLevels: config.data.bookLevels,
       })
       this.unsubscribe.push(
+        // The tape accumulator makes VWAP and the volume profile exact while the stream is up.
+        tradeTape.attach(bus),
         bus.on('trade', (t) => { this.latestTrade = t }),
         bus.on('bookTicker', (b) => { this.latestTicker = b }),
         bus.on('book', (b) => { this.latestBook = b }),

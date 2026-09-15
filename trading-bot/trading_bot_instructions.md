@@ -146,6 +146,16 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   separates buyer- from seller-initiated trades and flags prints ≥
   `bigTradeUsd`. Every reading is logged to `data/orderflow.csv`. The book is
   always described as intent (can be pulled); the tape as fact.
+- **Features** (`src/features/`) are the shared readings, computed once per
+  closed candle by the ICT engine and carried on every analysis as a
+  `FeatureSnapshot`: ATR, the 20/50-hour averages, three-hour momentum,
+  volatility, day and session VWAP with bands, and the day's volume profile
+  (POC, VAH, VAL). Every feature carries `available`, `source` and `asOf`.
+  VWAP and the profile are `source: 'trades'` and exact only when the live
+  tape covered the whole anchor without a gap; otherwise they are built from
+  candles and flagged `approximate: true`. Features are inputs only — no
+  trade rule may live in that folder — and the same code produces them in a
+  replay and live.
 - **Market state** (`regime.ts`) is a vote: swing structure, hourly EMAs,
   3-hour momentum, today's sweeps, and the tape. Trend needs a 2:1 majority
   with ≥ 3 votes; otherwise "range". Continuation is a 0–100 score with every

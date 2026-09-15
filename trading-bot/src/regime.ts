@@ -14,29 +14,38 @@ import { config } from '../config.ts'
 import { SwingTracker, atrAt } from './structure.ts'
 import { upcomingEvents } from './news.ts'
 import { isHighLevel } from './liquidity.ts'
+import { hourlyAverages } from './features/ema.ts'
+import { momentum } from './features/momentum.ts'
+import { volatility } from './features/volatility.ts'
+import type { HourlyAverages, MomentumReading, VolatilityReading } from './features/types.ts'
 import type { Candle, FlowReport, IctAnalysis, MarketState, NewsReport } from './types.ts'
 
-function ema(values: number[], period: number): number[] {
-  const k = 2 / (period + 1)
-  const out: number[] = []
-  for (let i = 0; i < values.length; i++) out.push(i === 0 ? values[0] : values[i] * k + out[i - 1] * (1 - k))
-  return out
-}
-
-/** Last close of every `perBar` candles, aligned to the most recent candle. */
-function resampleCloses(candles: Candle[], perBar: number): number[] {
-  const out: number[] = []
-  for (let end = candles.length - 1; end >= perBar - 1; end -= perBar) out.unshift(candles[end].close)
-  return out
-}
-
 const usd = (n: number) => '$' + (Math.abs(n) >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M' : (n / 1000).toFixed(0) + 'k')
+
+/**
+ * The readings the vote is built on. When the analysis already carries a
+ * feature snapshot for this very candle they are taken from it; otherwise
+ * they are computed here with the same functions. Either way, one code
+ * path defines each number.
+ */
+function readings(candles: Candle[], i: number, atr: number, analysis: IctAnalysis | null): { hourly: HourlyAverages | null; momentum: MomentumReading; volatility: VolatilityReading } {
+  const f = analysis?.features
+  if (f && f.index === i && f.openTime === candles[i].openTime) {
+    return {
+      hourly: f.hourly.value,
+      momentum: f.momentum.value ?? momentum(candles, i, atr),
+      volatility: f.volatility.value ?? volatility(candles, i, atr),
+    }
+  }
+  return { hourly: hourlyAverages(candles, i), momentum: momentum(candles, i, atr), volatility: volatility(candles, i, atr) }
+}
 
 export function assessMarket(candles: Candle[], analysis: IctAnalysis | null, flow: FlowReport | null, news: NewsReport | null, now = Date.now()): MarketState {
   const n = candles.length
   const i = n - 1
   const c = candles[i]
-  const atr = atrAt(candles, i)
+  const atr = analysis?.features && analysis.features.index === i ? analysis.features.atr.value ?? atrAt(candles, i) : atrAt(candles, i)
+  const r = readings(candles, i, atr, analysis)
   const evidence: string[] = []
   const watchOuts: string[] = []
   const reasons: string[] = []
@@ -63,16 +72,11 @@ export function assessMarket(candles: Candle[], analysis: IctAnalysis | null, fl
     else evidence.push('Structure: mixed — no clean run of higher or lower swings. That is what a range looks like.')
   }
 
-  // 2. Hourly averages, built from the small candles
-  const stepMs = n > 1 ? candles[1].openTime - candles[0].openTime : 300_000
-  const perBar = Math.max(1, Math.round(3_600_000 / stepMs))
-  const hourly = resampleCloses(candles, perBar)
-  if (hourly.length >= 60) {
-    const e20 = ema(hourly, 20)
-    const e50 = ema(hourly, 50)
-    const last20 = e20[e20.length - 1]
-    const prev20 = e20[Math.max(0, e20.length - 7)]
-    const last50 = e50[e50.length - 1]
+  // 2. Hourly averages, built from the small candles (a shared feature)
+  if (r.hourly) {
+    const last20 = r.hourly.ema20
+    const prev20 = r.hourly.ema20Prev
+    const last50 = r.hourly.ema50
     const rising = last20 > prev20
     if (c.close > last20 && c.close > last50 && rising && last20 > last50) { up += 2; averagesDir = 'up'; evidence.push('Hourly averages: price is above the 20- and 50-hour averages and the 20 is rising.') }
     else if (c.close < last20 && c.close < last50 && !rising && last20 < last50) { down += 2; averagesDir = 'down'; evidence.push('Hourly averages: price is below the 20- and 50-hour averages and the 20 is falling.') }
@@ -83,9 +87,8 @@ export function assessMarket(candles: Candle[], analysis: IctAnalysis | null, fl
     evidence.push('Hourly averages: not enough history loaded to judge (need about 60 hours).')
   }
 
-  // 3. Momentum over the last three hours
-  const back = candles[Math.max(0, i - Math.round(3 * perBar))]
-  const move = (c.close - back.close) / atr
+  // 3. Momentum over the last three hours (a shared feature)
+  const move = r.momentum.moveAtr
   if (move > 1.5) { up += 1; evidence.push(`Momentum: up ${move.toFixed(1)} ATR in the last three hours.`) }
   else if (move < -1.5) { down += 1; evidence.push(`Momentum: down ${Math.abs(move).toFixed(1)} ATR in the last three hours.`) }
   else evidence.push('Momentum: flat over the last three hours.')
@@ -116,13 +119,8 @@ export function assessMarket(candles: Candle[], analysis: IctAnalysis | null, fl
   const trend: MarketState['trend'] = total === 0 ? 'range' : up >= 3 && up >= down * 2 ? 'uptrend' : down >= 3 && down >= up * 2 ? 'downtrend' : 'range'
   const strength = Math.min(100, Math.round((Math.abs(up - down) / 7) * 100))
 
-  // Volatility: this candle's ATR against the last day's typical ATR
-  const samples: number[] = []
-  for (let j = Math.max(14, n - 288); j <= i; j += 12) samples.push(atrAt(candles, j))
-  samples.sort((x, y) => x - y)
-  const typical = samples[Math.floor(samples.length / 2)] || atr
-  const ratio = atr / typical
-  const volatility: MarketState['volatility'] = ratio < 0.7 ? 'quiet' : ratio > 1.5 ? 'wild' : 'normal'
+  // Volatility: this candle's ATR against the last day's typical ATR (a shared feature)
+  const volatility: MarketState['volatility'] = r.volatility.label
   if (volatility === 'wild') watchOuts.push('Volatility is running hot — stops get hunted further than usual. Size down, widen nothing.')
   if (volatility === 'quiet') watchOuts.push('Quiet tape — moves are small and false starts are common. A quiet market often precedes a violent one, usually around news or a session open.')
 

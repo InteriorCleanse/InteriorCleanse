@@ -245,6 +245,17 @@ tells you which path is in use; hover it for the words.
   `data.streamHosts`.
 - **Grey — no feed yet.** The app is still starting.
 
+While the stream is up, Mr. Cash also folds every trade on the tape into
+**exact** readings: the day's and the session's VWAP (the volume-weighted
+average price, the price where most money changed hands) and the day's
+**volume profile** (the price with the most volume, the "point of control",
+and the band holding 70% of it, the "value area"). When the stream is off or
+had a gap, the same readings are built from candles instead and are marked
+**approximate** — a candle's volume has no price detail inside it, so that
+is a best effort, and every reading says which one it is. They are drawn on
+the Chart tab (the "VWAP & volume" toggle) and listed in the brief. They are
+inputs the strategies will read; the checklist itself does not use them yet.
+
 Whichever path a candle arrives by, it is written to the store **once** and
 acted on **once**; if the stream drops in the middle of a candle, the REST
 safety poll fetches what was missed and says so in the terminal ("the stream
@@ -716,6 +727,11 @@ src/
   data/binanceStream.ts  the live stream: reconnects, order-book stitching, stale watchdog
   data/candleStore.ts    closed candles in the database; gap filling over REST
   data/feed.ts           the one feed: stream when it is up, REST when it is not
+  features/              the shared readings every strategy consumes — inputs, never rules
+    engine.ts            one FeatureSnapshot per closed candle, same code in replay and live
+    vwap.ts, volumeProfile.ts   VWAP and value area: exact from the tape, approximate from candles
+    ema.ts, momentum.ts, volatility.ts, atr.ts   the market-state readings
+    trades.ts            the tape folded into candle buckets, and whether it missed anything
   ui.ts                  makes the terminal readable
   selftest.ts            offline logic checks
   tradingview.ts         TradingView setup steps

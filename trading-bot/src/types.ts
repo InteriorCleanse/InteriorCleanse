@@ -1,5 +1,7 @@
 /** The shared shapes used across the bot. */
 
+import type { FeatureSnapshot } from './features/types.ts'
+
 /** One price candle: what the market did over one slice of time. */
 export type Candle = {
   openTime: number
@@ -193,6 +195,8 @@ export type IctAnalysis = {
   signal: Signal
   tradesToday: number
   lossesTodayR: number
+  /** The shared readings (VWAP, profile, averages, momentum, volatility) as of this candle. */
+  features: FeatureSnapshot
 }
 
 // ---------------------------------------------------------------

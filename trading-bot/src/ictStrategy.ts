@@ -23,6 +23,7 @@ import { SessionTracker, isKillzone, isWeekend, nextKillzone, sessionAt, toET, s
 import { SwingTracker, StructureTracker, atrAt } from './structure.ts'
 import { FvgTracker, ifvgRole } from './fvg.ts'
 import { detectSweeps, describeSweep, equalLevels, isHighLevel } from './liquidity.ts'
+import { FeatureEngine } from './features/engine.ts'
 import { isBlackout } from './news.ts'
 import type { Candle, EvidenceStep, FVG, IctAnalysis, Level, Signal, Sweep, TradePlan, Bias, SessionName } from './types.ts'
 import type { NewsReport } from './types.ts'
@@ -38,6 +39,8 @@ export class IctEngine {
   readonly swings = new SwingTracker()
   readonly structure = new StructureTracker()
   readonly fvgs = new FvgTracker()
+  /** The shared readings, computed once per candle here so replay and live see the same numbers. Inputs only; the checklist below does not read them yet. */
+  readonly features = new FeatureEngine()
   private readonly levelsByDay = new Map<string, Level[]>()
   private readonly sweepsByDay = new Map<string, Sweep[]>()
   private readonly dayStats = new Map<string, DayStats>()
@@ -171,6 +174,7 @@ export class IctEngine {
     sweeps.push(...newSweeps)
     this.sweepsByDay.set(dayKey, sweeps)
     this.lastSession = { dayKey, session }
+    const features = this.features.step(this.candles, i, { dayKey, session, atr })
 
     const et = toET(c.openTime)
     const stats = this.dayStats.get(dayKey) ?? { trades: 0, lossesR: 0 }
@@ -202,6 +206,7 @@ export class IctEngine {
       signal,
       tradesToday: stats.trades,
       lossesTodayR: stats.lossesR,
+      features,
     }
   }
 

@@ -158,6 +158,8 @@ function analysisPayload(snap: Snapshot, candleCount: number) {
     sweeps: engine ? [...engine.sessions.days.keys()].flatMap((k) => engine.sweepsFor(k)).filter((s) => s.time >= firstTime) : [],
     fvgs: engine ? engine.fvgs.fvgs.filter((f) => f.createdTime >= firstTime && (f.state !== 'expired' || f.retestIndex !== undefined)).map((f) => ({ ...f, role: ifvgRole(f) })) : [],
     shifts: engine ? engine.structure.shifts.filter((s) => s.time >= firstTime) : [],
+    /** The shared readings: the latest snapshot in full, and the VWAP lines for the chart. */
+    features: engine && a ? { latest: a.features, series: engine.features.series(firstTime) } : null,
     plan,
     brief: brief ? { lines: brief.lines, proposal: brief.proposal, levels: brief.levels } : null,
     news: snap.news ? { ...snap.news, upcoming: upcomingEvents(snap.news), summary: summarizeNews(snap.news) } : null,
