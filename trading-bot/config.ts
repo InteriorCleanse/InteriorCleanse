@@ -359,6 +359,61 @@ export const config = {
     promotionMinPaperTrades: 20,
   },
 
+  // ---------- EXTENDED PAPER VALIDATION (the validation stage) ----------
+
+  /**
+   * The FROZEN validation profile. Extended paper trading is a *measurement*
+   * stage, not a tuning stage: nothing here is optimised against paper results,
+   * and none of these numbers may be changed to flatter a run. Change the
+   * profile only on purpose, and bump `profile` when you do — that invalidates
+   * the sample and the validation starts over. The market, timeframe, strategy,
+   * risk limits, execution assumptions, data provider and freshness limits are
+   * read from the blocks above; this block records the *gates* that decide when
+   * the paper sample finally MEANS something. Until every gate is met the
+   * verdict is INSUFFICIENT SAMPLE — a small sample is never dressed up as one.
+   */
+  paperValidation: {
+    /** The frozen profile label. Bump this when you deliberately change any input; it resets the sample. */
+    profile: 'PAPER_VALIDATION-1',
+
+    /** The gates. All must pass before the verdict leaves INSUFFICIENT SAMPLE. */
+    gates: {
+      /** Minimum taken paper trades, per strategy, before that strategy's numbers are trusted. */
+      minTradesPerStrategy: 20,
+      /** Minimum total taken paper trades across the whole system. */
+      minTradesTotal: 40,
+      /** Minimum calendar span, in weeks. A burst of trades in one week is not a track record. */
+      minWeeks: 4,
+      /** Minimum distinct regimes the taken trades must span (of trending/ranging/breakout/transition). */
+      minRegimesCovered: 2,
+      /** Minimum distinct sessions (killzones) the taken trades must span. */
+      minSessionsCovered: 2,
+      /** Data quality: the share of actionable signals seen on a fresh, trusted feed must be at least this. */
+      minDataQuality: 0.95,
+      /** Stability: realised paper expectancy must not fall more than this many R below the out-of-sample floor. */
+      maxPaperVsOosShortfallR: 0.1,
+      /** The paper equity drawdown over the window, in percent, must not exceed this. */
+      maxDrawdownPercent: 25,
+      /** Soak: the process must have run at least this many hours continuously with recovery intact. */
+      minSoakHours: 168,
+    },
+
+    /**
+     * Shadow trading is PREPARED here, never activated. SHADOW_READY is reported
+     * only when all of these are true — but turning shadow on stays a deliberate,
+     * separate, human action (config.shadow.enabled + a read-only key). Nothing
+     * in the validation stage flips it.
+     */
+    shadowReadiness: {
+      /** The paper gates must be met before shadow is even considered. */
+      requirePaperGatesMet: true,
+      /** A read-only exchange key must be present (checked, never printed). */
+      requireReadOnlyKey: true,
+      /** Minimum shadow-scored orders before shadow ITSELF would be validated — the next stage's gate, documented now. */
+      minShadowOrders: 20,
+    },
+  },
+
   // ---------- SHADOW (read-only exchange, Phase 19) ----------
 
   /**

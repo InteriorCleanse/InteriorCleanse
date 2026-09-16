@@ -67,6 +67,8 @@ export type PaperPosition = {
   entryCostUsd?: number
   /** Which strategy produced this order — 'fused', 'session-ifvg', 'crossover', etc. For per-strategy paper metrics. */
   strategyId?: string
+  /** The market regime the engine read at the moment the order was decided ('trending-up', 'ranging', …). For the validation regime breakdown. Undefined when the tape wasn't trusted enough to classify. */
+  regime?: string
   /** The order book best bid/ask at the moment the order was decided, and the spread it implied. Phase 18 observability. */
   observedBid?: number
   observedAsk?: number
@@ -153,7 +155,7 @@ export function evaluateExit(pos: PaperPosition, candles: Candle[], a: Execution
 
 /** Queues a paper order. It fills on the next candle, or is missed. */
 /** What the market looked like at the moment the order was decided. Recorded for honesty about spread and slippage. */
-export type DecisionObservation = { bid?: number; ask?: number; strategyId?: string }
+export type DecisionObservation = { bid?: number; ask?: number; strategyId?: string; regime?: string }
 
 export function openPosition(signal: Signal, risk: RiskDecision, session: string, atr = 0, obs: DecisionObservation = {}): PaperPosition {
   const plan = signal.plan as TradePlan
@@ -176,6 +178,7 @@ export function openPosition(signal: Signal, risk: RiskDecision, session: string
     atr,
     status: 'pending',
     strategyId: obs.strategyId,
+    regime: obs.regime,
     observedBid: obs.bid,
     observedAsk: obs.ask,
     observedSpreadPct: spreadPct,
@@ -214,7 +217,7 @@ export function recordMissedSignal(signal: Signal, reason: string, obs: Decision
     direction: plan.direction, intendedEntry: plan.entry, entry: plan.entry, stop: plan.stop, target: plan.takeProfit,
     quantity: 0, riskUsd: 0, quality: signal.quality ?? 0, reason: signal.reason, atr: 0,
     status: 'closed', closedAt: signal.time, exitReason: 'missed', rMultiple: 0, pnlUsd: 0, feesUsd: 0, candlesHeld: 0,
-    note: reason, strategyId: obs.strategyId, observedBid: obs.bid, observedAsk: obs.ask, observedSpreadPct: spreadPct,
+    note: reason, strategyId: obs.strategyId, regime: obs.regime, observedBid: obs.bid, observedAsk: obs.ask, observedSpreadPct: spreadPct,
   }
   savePosition(missed)
   appendLedgerRow({ timestamp: new Date(signal.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: plan.entry, quantity: 0, reason: `${signal.setupKey} — MISSED: ${reason}`, mode: 'live-paper', outcome: 'MISSED', pnl: 0 })

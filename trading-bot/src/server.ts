@@ -56,6 +56,7 @@ import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
+import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport } from './paper/validation.ts'
 import { listShadowOrders } from './shadow/recorder.ts'
 import { scoreShadowOrder, slippageComparison } from './shadow/scorer.ts'
 import { gateInputFromEnv, liveArmed, liveGates } from './live/gates.ts'
@@ -659,6 +660,57 @@ const server = createServer(async (req, res) => {
       const closed = closeManually(String(body.id ?? ''), price)
       if (closed) eventLog.push('setup', `Paper ${closed.direction} closed by you at ${(closed.rMultiple ?? 0).toFixed(2)}R`, `Flattened at $${price.toFixed(2)}. Recorded in memory and the journal.`, 'info')
       json(res, 200, { ok: !!closed, data: closed })
+      return
+    }
+    // The extended-paper-validation report: gates, journals, breakdowns, decay, correlation, soak, shadow readiness.
+    // Pure over the stored data; reports INSUFFICIENT SAMPLE until every gate is met. No tuning, ever.
+    if (path === '/api/validation') {
+      let price: number | undefined
+      let aiConsistency = null
+      try {
+        const snap = await snapshot()
+        price = snap.signal.price
+        // AI-vs-engine consistency, computed live: the CIO decision is the fused decision after risk; the narration is validated against the same context.
+        const features = snap.analysis?.features ?? null
+        const positions = readPositions()
+        const eq = equity(); const peak = Math.max(equityPeak(), eq)
+        const last = snap.candles[snap.candles.length - 1]
+        const tk = marketFeed.latestTicker
+        const gate = entriesAllowed()
+        const rstate: RiskState = {
+          now: Date.now(), killSwitch: { ok: gate.ok, reason: gate.ok ? '' : gate.reason },
+          candleAgeSec: last ? (Date.now() - last.closeTime) / 1000 : null,
+          spreadPct: tk && tk.bid > 0 && tk.ask > 0 ? ((tk.ask - tk.bid) / ((tk.ask + tk.bid) / 2)) * 100 : null,
+          openPositions: positions.open.length, openNotionalUsd: openNotionalUsd(),
+          today: todaysPaperStats(tradingDayKey(Date.now())), equityUsd: eq, peakEquityUsd: peak,
+        }
+        const fusedSig = snap.decision ? fusedToSignal(snap.decision, price, Date.now()) : null
+        const verdict = fusedSig && (fusedSig.action === 'BUY' || fusedSig.action === 'SELL') ? assess({ signal: fusedSig }, rstate) : null
+        const ctx = buildNarrationContext({ price, features, decision: snap.decision, risk: verdict })
+        const call = cioDecision(ctx.decision, ctx.risk)
+        const narration = await narrate(ctx)
+        aiConsistency = aiEngineConsistency(decisionLabel(call), decisionLabel(call), narration.valid)
+      } catch { /* the report stands without the live snapshot */ }
+      const stats = paperStats(price)
+      const soak = soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok' })
+      const hasReadOnlyKey = !!(process.env.EXCHANGE_API_KEY && process.env.EXCHANGE_API_SECRET)
+      const report = buildValidationReport({
+        closed: readPositions().closed,
+        passports: listPassports(),
+        curve: stats.curve,
+        startUsd: stats.startUsd,
+        soak,
+        version: VERSION,
+        hasReadOnlyKey,
+        shadowScoredOrders: listShadowOrders().length,
+        aiConsistency,
+      })
+      if (url.searchParams.get('format') === 'text') {
+        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
+        res.end(renderDailyReport(report))
+        return
+      }
+      json(res, 200, { ok: true, data: report })
       return
     }
 

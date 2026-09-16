@@ -171,7 +171,9 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
         const routineOpen = verdict.vetoedBy === 'Exposure' && positions.open.length > 0
         const strategyId = fused ? 'fused' : config.strategy === 'crossover' ? 'crossover' : 'session-ifvg'
         const tk = marketFeed.latestTicker
-        const obs = { bid: tk?.bid, ask: tk?.ask, strategyId }
+        // The regime the engine read at decision time, when the tape was trusted enough to classify it. Recorded for the validation regime breakdown; undefined stays honest as "unavailable".
+        const regime = a.features?.regime?.value?.state
+        const obs = { bid: tk?.bid, ask: tk?.ask, strategyId, regime }
         if (!verdict.approved) {
           if (!routineOpen && once(`veto-${a.time}-${verdict.vetoedBy}`)) {
             eventLog.push('info', `Paper trade not taken — ${verdict.vetoedBy}`, verdict.reason, verdict.vetoedBy === 'Kill switch' ? 'warn' : 'info')

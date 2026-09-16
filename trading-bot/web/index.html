@@ -130,6 +130,11 @@
     <div id="replay-out"><div class="plain">The replay player steps through the last stored candles and shows, for each one, exactly what every strategy voted and why — its evidence, tick by tick — and the fused decision at that moment. Press <b>Play</b> to watch the market unfold; drag the slider to jump. Nothing here trades; it is the engine's reasoning, replayed.</div></div>
   </section>
 
+  <section id="tab-validation" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-validation">Reload validation</button><a class="btn ghost" id="btn-validation-report" href="/api/validation?format=text" target="_blank" rel="noopener">Daily report (text)</a><span class="muted" id="validation-status"></span></div>
+    <div id="validation-out"><div class="plain">Extended paper validation measures the live paper run against real market data — it never tunes anything. Paper is validation data, not a fitting target. The verdict stays <b>INSUFFICIENT SAMPLE</b> until every explicit gate is met; each gate shows exactly how far it has to go. Below: progress to the gates, per-strategy performance vs the backtest, breakdowns by regime and session, decay, strategy correlation, order-flow honesty, system soak and shadow readiness.</div></div>
+  </section>
+
   <section id="tab-memory" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-memshow">Reload</button><button class="btn danger" id="btn-reset">Wipe memory</button><button class="btn ghost" id="btn-doctor">Run doctor</button></div>
     <div id="memory-out"></div>
@@ -167,6 +172,7 @@
     <div><b>Journal</b> — your habits, your leaks, your growth</div>
     <div><b>TradingView</b> — the live chart and your alerts</div>
     <div><b>Test</b> — the honest look-back over 30 days</div>
+    <div><b>Validation</b> — the gates the paper run must clear before shadow</div>
     <div><b>Memory</b> — what he's learned, the track record</div>
     <div><b>Ask</b> — talk to him; pick a hat; paste a chart; use your voice</div>
   </div>
@@ -176,7 +182,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id)
-const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠'],['ask','Ask','💬']]
+const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['validation','Validation','✅'],['memory','Memory','🧠'],['ask','Ask','💬']]
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -210,6 +216,7 @@ function showTab(id, push=true) {
   if (id === 'playbook' && !document.querySelector('#playbook-out .strat')) loadPlaybook()
   if (id === 'factory' && !$('factory-strategy').options.length) loadFactory()
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
+  if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
   if (id === 'replay' && window.loadReplay) window.loadReplay()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
   window.scrollTo({top:0})
@@ -938,6 +945,53 @@ async function loadVault() {
   $('vault-out').innerHTML = `<div class="card"><h2>Passports — the strategy lifecycle</h2><div class="scroll"><table><tr><th>Strategy</th><th>Settings</th><th>Stage</th><th>OOS trades</th><th>OOS avg</th><th>Decay floor</th><th>Decay</th><th>Promotion</th></tr>${passports.map(row).join('')}</table></div><div class="plain">Stage is where it sits in its life (candidate → paper → shadow → live). The decay floor is the out-of-sample lower bound its live results must stay above; fall below it (confirmed) and it is demoted to watch. Promotion is champion-challenger and never reaches live automatically.</div></div>`
 }
 $('btn-vault') && ($('btn-vault').onclick = loadVault)
+
+// ---------- paper validation ----------
+async function loadValidation() {
+  $('validation-status').textContent = 'loading…'
+  const r = await call('/api/validation')
+  $('validation-status').textContent = ''
+  if (!r.ok) { $('validation-out').innerHTML = `<div class="plain">Could not load the validation report: ${esc((r && r.error) || 'unknown error')}.</div>`; return }
+  const v = r.data
+  const g = v.gates
+  const badge = g.verdict === 'GATES MET' ? '<span class="badge good">GATES MET</span>' : '<span class="badge medium">INSUFFICIENT SAMPLE</span>'
+  const gateRow = (x) => `<tr><td>${x.met?'<span class="win">✓</span>':'<span class="skip">○</span>'}</td><td>${esc(x.label)}</td><td class="num">${x.value===null?'—':x.value}${x.unit?' '+esc(x.unit):''}</td><td class="num muted">${x.threshold}</td><td class="muted" style="font-size:12px">${esc(x.detail)}</td></tr>`
+  const gatesCard = `<div class="card"><h2>Validation gates ${badge}</h2>
+    <div style="margin:8px 0"><div style="height:10px;border-radius:6px;background:var(--line);overflow:hidden"><div style="height:100%;width:${g.progressPct}%;background:${g.verdict==='GATES MET'?'var(--good)':'var(--medium,#c90)'}"></div></div><div class="muted" style="font-size:12px;margin-top:4px">${g.metCount} of ${g.total} gates met (${g.progressPct}%). The verdict leaves INSUFFICIENT SAMPLE only when every gate passes. A gate with no data yet is not met — nothing is assumed.</div></div>
+    <div class="scroll"><table><tr><th></th><th>Gate</th><th>Now</th><th>Needs</th><th>Detail</th></tr>${g.gates.map(gateRow).join('')}</table></div></div>`
+
+  const cmpById = Object.fromEntries((v.comparison||[]).map(c=>[c.strategyId,c]))
+  const perStrat = (v.byStrategy||[]).length ? `<div class="card"><h2>Per strategy — vs the backtest <span class="muted">(win rate + expectancy, not a P&L leaderboard)</span></h2><div class="scroll"><table><tr><th>Strategy</th><th>Taken</th><th>Missed</th><th>Win</th><th>Paper avg</th><th>OOS avg</th><th>Δ</th><th>Obs spread</th><th>Sample</th></tr>${(v.byStrategy).map(m=>{const c=cmpById[m.strategyId]||{};return `<tr><td>${esc(m.strategyId)}</td><td class="num">${m.taken}</td><td class="num ${m.missed?'skip':''}">${m.missed||0}</td><td class="num">${m.winRate===null?'—':Math.round(m.winRate*100)+'%'}</td><td class="num ${(m.avgR||0)>=0?'win':'loss'}">${m.avgR===null?'—':R(m.avgR)}</td><td class="num">${c.oosAvgR==null?'—':R(c.oosAvgR)}</td><td class="num ${c.delta==null?'':c.delta>=0?'win':'loss'}">${c.delta==null?'—':R(c.delta)}</td><td class="num">${m.avgObservedSpreadPct==null?'—':m.avgObservedSpreadPct.toFixed(3)+'%'}</td><td class="${c.enoughSample?'win':'skip'}">${c.enoughSample?'ok':'thin'}</td></tr>`}).join('')}</table></div></div>` : ''
+
+  const bk = (title, rows) => rows.length ? `<div class="card"><h2>${title}</h2><div class="scroll"><table><tr><th>${title.includes('regime')?'Regime':title.includes('session')?'Session':'Bucket'}</th><th>Trades</th><th>Win</th><th>Avg</th><th>Total</th></tr>${rows.map(b=>`<tr><td>${esc(b.key)}</td><td class="num">${b.taken}</td><td class="num">${b.winRate===null?'—':Math.round(b.winRate*100)+'%'}</td><td class="num ${(b.avgR||0)>=0?'win':'loss'}">${b.avgR===null?'—':R(b.avgR)}</td><td class="num ${b.totalR>=0?'win':'loss'}">${R(b.totalR)}</td></tr>`).join('')}</table></div></div>` : ''
+  const regimeCard = bk('By regime', v.byRegime||[])
+  const sessionCard = bk('By session', v.bySession||[])
+
+  const decayCard = (v.decay||[]).length ? `<div class="card"><h2>Decay monitor</h2><div class="scroll"><table><tr><th>Strategy</th><th>Status</th><th>Trades</th><th>Rolling exp.</th><th>Floor</th><th>Reason</th></tr>${v.decay.map(d=>{const cls=d.status==='DECAYING'||d.status==='RETIRED'?'loss':d.status==='WATCH'?'skip':d.status==='HEALTHY'?'win':'muted';return `<tr><td>${esc(d.strategyId)}</td><td class="${cls}">${esc(d.status)}</td><td class="num">${d.trades}</td><td class="num">${d.rollingExpectancy===null?'—':R(d.rollingExpectancy)}</td><td class="num">${d.oosFloorR===null?'—':R(d.oosFloorR)}</td><td class="muted" style="font-size:12px">${esc(d.reason)}</td></tr>`}).join('')}</table></div></div>` : ''
+
+  const corr = v.correlations||{pairs:[],redundant:[],note:''}
+  const corrCard = `<div class="card"><h2>Strategy correlation / redundancy</h2><div class="plain">${esc(corr.note)}</div>${corr.pairs.length?`<div class="scroll" style="margin-top:8px"><table><tr><th>A</th><th>B</th><th>Corr</th><th>Shared days</th><th>Note</th></tr>${corr.pairs.map(p=>`<tr><td>${esc(p.a)}</td><td>${esc(p.b)}</td><td class="num">${p.correlation===null?'—':p.correlation.toFixed(2)}</td><td class="num">${p.sharedDays}</td><td class="muted" style="font-size:12px">${esc(p.note)}</td></tr>`).join('')}</table></div>`:''}</div>`
+
+  const of = v.orderFlow||{real:0,unavailable:0,estimated:0,note:''}
+  const honestyCard = `<div class="card"><h2>Order-flow honesty & data quality</h2>
+    <div class="stats"><div class="stat"><div class="k">REAL</div><div class="v win">${of.real}</div></div><div class="stat"><div class="k">ESTIMATED</div><div class="v">${of.estimated}</div></div><div class="stat"><div class="k">UNAVAILABLE</div><div class="v skip">${of.unavailable}</div></div><div class="stat"><div class="k">Data quality</div><div class="v">${v.quality&&v.quality.quality!==null?(v.quality.quality*100).toFixed(1)+'%':'—'}</div></div></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">${esc(of.note)} ${esc((v.quality&&v.quality.note)||'')}</div></div>`
+
+  const soak = v.soak||{}
+  const ai = v.aiConsistency
+  const sh = v.shadow||{status:'NOT_READY',reasons:[],blockers:[],scoredOrders:0}
+  const soakCard = `<div class="card"><h2>System soak, AI ↔ engine & shadow readiness</h2>
+    <div class="plain"><b>Soak:</b> ${esc(soak.note||'—')}</div>
+    <div class="plain"><b>AI vs engine:</b> ${ai?(ai.consistent?'<span class="win">consistent</span> — the explanation matches the engine decision, and the narration passed validation.':'<span class="loss">MISMATCH</span> — '+esc(ai.flags.join(' '))):'not evaluated this cycle.'}</div>
+    <div class="plain"><b>Shadow:</b> ${sh.status==='SHADOW_READY'?'<span class="badge good">SHADOW_READY</span>':'<span class="badge">NOT READY</span>'} (${sh.scoredOrders} scored orders). ${sh.blockers.length?'Blockers: '+esc(sh.blockers.join(' ')):''}</div>
+    <div class="muted" style="font-size:12px;margin-top:4px">${(sh.reasons||[]).map(esc).join(' ')}</div></div>`
+
+  const profile = v.profile||{}
+  const profileCard = `<div class="card"><h2>Frozen profile — ${esc(profile.profile||'')}</h2><div class="muted" style="font-size:12px">${esc(profile.market?profile.market.symbol+' '+profile.market.interval:'')} · engine ${esc(profile.strategyEngine||'')} · live trading ${profile.liveTradingEnabled?'<span class="loss">ENABLED</span>':'disabled'} · killzones ${esc((profile.sessions&&profile.sessions.killzones||[]).join(', '))} · spread ${profile.execution?profile.execution.spreadBps:'?'}bp / slippage ${profile.execution?profile.execution.slippageBps:'?'}bp · data ${esc(profile.data?profile.data.provider:'')}</div><div class="plain" style="margin-top:6px">This profile is frozen. Paper is validation data — no parameter is tuned to these results. Journals: ${v.journalCount} taken trades, ${v.noTradeCount} no-trade (refused/missed) records, both readable via the API.</div></div>`
+
+  $('validation-out').innerHTML = gatesCard + perStrat + regimeCard + sessionCard + decayCard + corrCard + honestyCard + soakCard + profileCard
+}
+$('btn-validation') && ($('btn-validation').onclick = loadValidation)
 
 // ---------- memory + doctor ----------
 async function loadMemory() {

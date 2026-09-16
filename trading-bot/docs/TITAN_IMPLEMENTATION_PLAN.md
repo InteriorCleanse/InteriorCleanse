@@ -636,3 +636,27 @@ node --test test/
 - `npm run selftest` is 72/72, `npx tsc --noEmit` is clean, `node --test test/` is green.
 - No change to any trading decision: the self-test day and a replay on the mock feeds produce the same trades as before (checked by hand once; automated in Phase 2).
 - README and `trading_bot_instructions.md` §2 updated to describe the guard, the throttle, the mode module and the kill switch.
+
+---
+
+## Post-roadmap: EXTENDED PAPER VALIDATION (validation stage)
+
+All 21 phases are complete and the pre-production audit passed. The next
+milestone is **not** a new phase but a **validation stage**: run the finished,
+paper-only system against real live data and prove it behaves as it did in
+development, before any consideration of shadow → testnet → live.
+
+- **What it does:** measures the live paper run against explicit, configurable
+  gates and reports **INSUFFICIENT SAMPLE** until every gate is met. It never
+  tunes anything — paper is validation data, not a fitting target.
+- **Where it lives:** frozen profile + gates in `config.paperValidation`; the
+  pure engine in `src/paper/validation.ts` (journals, no-trade journal,
+  regime/session breakdowns, strategy correlation, decay rollup, order-flow
+  honesty labels, soak, AI↔engine consistency, gates, shadow readiness, daily
+  report); `GET /api/validation` (JSON + `?format=text`); the **Validation**
+  dashboard tab; per-trade regime capture in `paperTrader.ts` / `watch.ts`;
+  tests in `test/paper/validation.test.ts`.
+- **Docs:** `docs/PAPER_VALIDATION_PLAN.md`, `docs/PAPER_VALIDATION_RUNBOOK.md`,
+  `docs/PAPER_VALIDATION_RESULTS.md`.
+- **Safety unchanged:** `LIVE_TRADING_ENABLED` stays `false`, the live path stays
+  dormant/unwired, shadow is *prepared* (`SHADOW_READY`) but never activated.

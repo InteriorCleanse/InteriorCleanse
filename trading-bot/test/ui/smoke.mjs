@@ -9,7 +9,7 @@ import { chromium } from 'playwright-core'
 
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:4173'
 const EXEC = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const TABS = ['today', 'chart', 'flow', 'news', 'journal', 'tv', 'test', 'replay', 'playbook', 'factory', 'vault', 'memory', 'ask']
+const TABS = ['today', 'chart', 'flow', 'news', 'journal', 'tv', 'test', 'replay', 'playbook', 'factory', 'vault', 'validation', 'memory', 'ask']
 
 function ignorable(text) {
   // The TradingView widget and blocked external hosts are expected to fail in QA.
