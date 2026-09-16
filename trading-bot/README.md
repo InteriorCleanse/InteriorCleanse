@@ -930,6 +930,12 @@ src/
   shadow/                builds the order it would send against the live book and scores it — never sends
   exchange/binanceTrade.ts  the order-placing adapter — inert; only the gated live trader can call it
   live/                  the gate chain, order state machine, reconciliation and trader — dormant, tested on a mock
+  log.ts                 structured JSON-lines logging with levels and rotation
+  recovery.ts            startup recovery: re-adopt open positions after a restart
+scripts/
+  backup.ts              back up the store (npm run backup) — restorable
+  live-arm.ts            show the live gate chain (npm run live:check) — never sends
+deploy/                  Dockerfile, docker-compose.yml, pm2 + systemd units, docs/DEPLOY.md
 web/
   index.html             the app shell
   css/app.css            the app's styles (extracted; served at /css/app.css)

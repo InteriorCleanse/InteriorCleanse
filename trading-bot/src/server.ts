@@ -329,7 +329,19 @@ const server = createServer(async (req, res) => {
     if (path === '/api/health') {
       let dataDirWritable = true
       try { ensureDataDir(); accessSync(DATA_DIR, constants.W_OK) } catch { dataDirWritable = false }
-      json(res, 200, { ok: true, data: { version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: store().integrity(), uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt: watcher.current()?.at ?? null } })
+      const storeIntegrity = store().integrity()
+      const feed = marketFeed.health()
+      const lastWatchAt = watcher.current()?.at ?? null
+      const watchStaleSec = lastWatchAt ? Math.round((Date.now() - lastWatchAt) / 1000) : null
+      // Deep checks: each subsystem reports ok; the process is healthy only if all the hard ones are.
+      const checks = [
+        { name: 'store', ok: storeIntegrity === 'ok', detail: storeIntegrity },
+        { name: 'dataDir', ok: dataDirWritable, detail: dataDirWritable ? 'writable' : 'not writable' },
+        { name: 'feed', ok: !!feed, detail: marketFeed.describe() },
+        { name: 'killSwitch', ok: !stopState().stopped, detail: stopState().stopped ? 'engaged' : 'clear' },
+      ]
+      const healthy = checks.filter((c) => c.name === 'store' || c.name === 'dataDir').every((c) => c.ok)
+      json(res, 200, { ok: true, data: { healthy, checks, version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: storeIntegrity, feed, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt, watchStaleSec } })
       return
     }
     // "What is the current state of my system?" — one document, from disk and the last watch cycle.

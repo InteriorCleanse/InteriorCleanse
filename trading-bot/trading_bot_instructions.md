@@ -364,6 +364,20 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   leg fill, rejects, a mid-order disconnect, reconciliation, the kill switch —
   with no keys and no network. **Nothing here can place a real order in this
   build; real money needs a human to open every gate, testnet first.**
+- **Production hardening / 24-7** (`src/log.ts`, `src/recovery.ts`, deploy/):
+  the paper (and later shadow) process is meant to run unattended for weeks.
+  `log.ts` writes structured JSON lines with levels and size-based rotation, and
+  never throws (a logging failure can't take the loop down). `recovery.ts`
+  re-adopts any paper position that was open when the process stopped, on startup,
+  so a restart never orphans a trade (the store is durable; the watch loop prints
+  the recovery summary and manages recovered positions from the next candle).
+  `/api/health` is a deep check — store integrity, data-dir writability, the feed
+  and the kill switch — with an overall `healthy` flag the container health check
+  watches. `scripts/backup.ts` (`npm run backup`) copies the store to
+  `data/backups/` after an integrity check and prunes to the most recent 14;
+  restore by copying a backup over `data/mrcash.db`. Deployment is documented in
+  `docs/DEPLOY.md` with a Dockerfile, docker-compose, a PM2 config and a systemd
+  unit; TLS is a reverse proxy or tunnel, never the plain port on the internet.
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

@@ -56,6 +56,21 @@ test('/api/health reports paper mode, the kill switch and a writable data folder
   assert.match(r.data.version, /^\d+\.\d+\.\d+$/)
 })
 
+test('/api/health deep-checks the store, data dir, feed and kill switch', async () => {
+  const r = await getJson<{ data: { healthy: boolean; checks: Array<{ name: string; ok: boolean; detail: string }> } }>('/api/health')
+  const names = r.data.checks.map((c) => c.name)
+  for (const n of ['store', 'dataDir', 'feed', 'killSwitch']) assert.ok(names.includes(n), `health should report ${n}`)
+  assert.equal(typeof r.data.healthy, 'boolean')
+  assert.equal(r.data.checks.find((c) => c.name === 'store')!.ok, true)
+})
+
+test('/api/live/status shows the gate chain and reports NOT armed (ships closed)', async () => {
+  const r = await getJson<{ ok: boolean; data: { armed: boolean; gates: Array<{ name: string; ok: boolean }> } }>('/api/live/status')
+  assert.equal(r.ok, true)
+  assert.equal(r.data.armed, false)
+  assert.ok(r.data.gates.some((g) => g.name === 'Hard flag' && g.ok === false))
+})
+
 test('/api/config hands the page a token and describes the setup', async () => {
   const cfg = await getJson<{ csrf: string; mode: string; symbol: string; skills: unknown[]; ai: { available: boolean }; journal: { emotions: string[] } }>('/api/config')
   assert.match(cfg.csrf, /^[0-9a-f]{48}$/)

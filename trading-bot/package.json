@@ -43,6 +43,8 @@
     "status": "node src/index.ts status",
     "migrate": "node src/index.ts migrate",
     "tradingview": "node src/tradingview.ts",
+    "backup": "node scripts/backup.ts",
+    "live:check": "node scripts/live-arm.ts",
     "help": "node src/index.ts help"
   },
   "optionalDependencies": {

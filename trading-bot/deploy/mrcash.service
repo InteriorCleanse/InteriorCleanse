@@ -1,0 +1,20 @@
+# systemd user unit for the 24/7 paper process. Edit WorkingDirectory and the
+# node path, then: systemctl --user enable --now mrcash
+# Paper only; no exchange keys.
+[Unit]
+Description=Mr. Cash paper-trading bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/trading-bot
+Environment=NODE_ENV=production
+Environment=MRCASH_DATA_DIR=%h/trading-bot/data
+ExecStart=/usr/bin/node src/index.ts paper
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=default.target
