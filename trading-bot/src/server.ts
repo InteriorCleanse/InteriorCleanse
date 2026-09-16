@@ -56,12 +56,14 @@ import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
+import { listShadowOrders } from './shadow/recorder.ts'
+import { scoreShadowOrder, slippageComparison } from './shadow/scorer.ts'
 import { assess, riskLimits } from './riskEngine.ts'
 import type { RiskState } from './riskEngine.ts'
 import { entriesAllowed } from './killswitch.ts'
 import { SKILLS, skillById } from './skills.ts'
 import { checkStateChange, PinThrottle } from './guard.ts'
-import { describeMode, runtimeMode } from './mode.ts'
+import { describeMode, runtimeMode, shadowEnabled } from './mode.ts'
 import { stopState, stop as engageStop, resume as releaseStop } from './killswitch.ts'
 import { systemState } from './systemState.ts'
 import { getSettings, setSetting, resetSetting } from './settings.ts'
@@ -615,6 +617,12 @@ const server = createServer(async (req, res) => {
     }
 
     // ---- the paper account ----
+    if (path === '/api/shadow') {
+      const orders = listShadowOrders()
+      const scores = orders.map((o) => scoreShadowOrder(o, [])) // scored against recorded prints elsewhere; here the record + slippage view
+      json(res, 200, { ok: true, data: { enabled: shadowEnabled(), orders: orders.slice(-200), slippage: slippageComparison(scores), note: 'Shadow trading builds the order it would send against the live venue and scores it later from real trades. Nothing is ever sent. Off unless a read-only exchange key is set and shadow.enabled is true.' } })
+      return
+    }
     if (path === '/api/paper') {
       let price: number | undefined
       try { price = (await snapshot()).signal.price } catch { /* stats without unrealized */ }

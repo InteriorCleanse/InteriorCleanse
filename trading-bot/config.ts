@@ -359,6 +359,24 @@ export const config = {
     promotionMinPaperTrades: 20,
   },
 
+  // ---------- SHADOW (read-only exchange, Phase 19) ----------
+
+  /**
+   * Shadow trading builds the exact order it WOULD send against the live venue
+   * and scores it later from real trades — without ever sending. It needs a
+   * READ-ONLY exchange key (EXCHANGE_API_KEY / EXCHANGE_API_SECRET in .env) and
+   * is off unless both the key is present and `enabled` is true. There is no
+   * order-placing code in this phase.
+   */
+  shadow: {
+    enabled: false,
+    /** Binance global by default; 'binance-us' switches the min-notional filter and base URL. */
+    flavour: 'binance' as 'binance' | 'binance-us',
+    baseUrl: 'https://api.binance.com',
+    baseUrlUs: 'https://api.binance.us',
+    recvWindow: 5000,
+  },
+
   // ---------- MEMORY ----------
 
   memory: {

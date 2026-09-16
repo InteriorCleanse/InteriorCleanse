@@ -327,6 +327,24 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   live results (a no-op for the frozen session model, which has no passport).
   Surfaced on `/api/paper` and the Memory tab's measured-paper table. Still
   paper only — **no exchange keys.**
+- **Shadow trading** (`src/exchange/`, `src/shadow/`) is the bridge between paper
+  and live, and it is strictly read-only. `exchange/sign.ts` signs the venue's
+  SIGNED endpoints (HMAC-SHA256, verified against Binance's known vector);
+  `exchange/binanceRest.ts` is a read-only client (injectable fetch, server-time
+  offset applied to every timestamp) exposing ONLY `exchangeInfo`, `account`,
+  `openOrders`, `myTrades` — it has no order-placing method, and there is no
+  `POST /api/v3/order` code anywhere in the tree. `assessKeyPermissions` refuses
+  a key that can withdraw (the doctor runs this when a key is set).
+  `exchange/filters.ts` reads the live LOT_SIZE / tick / min-notional into the
+  Phase 12 `Filters` shape. `shadow/recorder.ts` builds the exact order it WOULD
+  send — side, quantity rounded to the filters, price, OCO legs — logs it, and
+  never sends (a short is built for the record but marked un-placeable, spot
+  being long-only). `shadow/scorer.ts` scores an order from the real trades that
+  printed after it (which OCO leg hit → R), and `slippageComparison` puts the
+  observed spread next to the assumed slippage — the number Phase 4 gets updated
+  from. Gated by `config.shadow.enabled` + a read-only `EXCHANGE_API_KEY`
+  (`mode.shadowEnabled()`); off by default, `runtimeMode` stays paper. Surfaced
+  on `/api/shadow`. **No order is ever sent; no exchange write code exists.**
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

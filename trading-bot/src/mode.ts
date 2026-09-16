@@ -13,7 +13,7 @@
  *   live    — (not reachable) real orders, real money
  */
 
-import { LIVE_TRADING_ENABLED } from '../config.ts'
+import { LIVE_TRADING_ENABLED, config } from '../config.ts'
 
 export type Mode = 'paper' | 'testnet' | 'shadow' | 'live'
 
@@ -28,6 +28,16 @@ export function runtimeMode(): Mode {
 /** True when nothing can reach an exchange with write intent. */
 export function isPaperOnly(): boolean {
   return runtimeMode() === 'paper' && LIVE_TRADING_ENABLED === false
+}
+
+/**
+ * Shadow trading is REACHABLE (unlike the trading modes above): it observes the
+ * live venue read-only and records the order it would have sent, never sending.
+ * It is on only when `config.shadow.enabled` is true AND a read-only exchange
+ * key is present. It does not change `runtimeMode` — the bot is still paper.
+ */
+export function shadowEnabled(): boolean {
+  return config.shadow.enabled === true && !!process.env.EXCHANGE_API_KEY && !!process.env.EXCHANGE_API_SECRET
 }
 
 /** A one-line description for banners and the health endpoint. */

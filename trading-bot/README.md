@@ -900,6 +900,8 @@ src/
   vault/                 passports: the strategy lifecycle, decay detection, champion-challenger
   ai/                    the market read (narrator), the CIO (decision after risk), the researcher
   paper/metrics.ts       measured paper trading: per-strategy expectancy, observed spread, missed signals, vs OOS
+  exchange/              read-only signed venue adapter (HMAC signing, filters) — no order-placing code
+  shadow/                builds the order it would send against the live book and scores it — never sends
 web/
   index.html             the app shell
   css/app.css            the app's styles (extracted; served at /css/app.css)

@@ -100,6 +100,23 @@ export async function runDoctor(): Promise<Check[]> {
     fix: 'Optional. Set app.allowPhone: true in config.ts, start the app, and open the printed address on your phone with the PIN.',
   })
 
+  // Shadow trading (Phase 19): if an exchange key is configured, it must be
+  // read-only — a key that can withdraw is refused outright.
+  if (process.env.EXCHANGE_API_KEY && process.env.EXCHANGE_API_SECRET) {
+    try {
+      const { ReadOnlyExchange, assessKeyPermissions } = await import('./exchange/binanceRest.ts')
+      const ex = new ReadOnlyExchange({ baseUrl: config.shadow.flavour === 'binance-us' ? config.shadow.baseUrlUs : config.shadow.baseUrl, apiKey: process.env.EXCHANGE_API_KEY, apiSecret: process.env.EXCHANGE_API_SECRET, recvWindow: config.shadow.recvWindow })
+      await ex.syncTime()
+      const account = await ex.account()
+      const a = assessKeyPermissions(account)
+      checks.push({ name: 'Exchange key (shadow)', ok: a.ok, detail: a.reason, fix: a.ok ? 'Read-only key accepted for shadow trading.' : 'Create a new API key with withdrawals DISABLED (and trading disabled too, for shadow). Never give this bot a withdrawal-capable key.' })
+    } catch (err) {
+      checks.push({ name: 'Exchange key (shadow)', ok: false, detail: err instanceof Error ? err.message : String(err), fix: 'Could not verify the exchange key. Check EXCHANGE_API_KEY / EXCHANGE_API_SECRET in .env and that the venue is reachable.' })
+    }
+  } else {
+    checks.push({ name: 'Exchange key (shadow)', ok: null, detail: 'no exchange key set — shadow trading off', fix: 'Optional (Phase 19). Add a READ-ONLY EXCHANGE_API_KEY / EXCHANGE_API_SECRET to .env and set shadow.enabled in config.ts.' })
+  }
+
   const plan = readPlan()
   checks.push({ name: "Today's plan", ok: plan ? true : null, detail: plan ? `${plan.allow}, ${plan.riskPerTradePercent}% risk, max ${plan.maxTrades}` : 'none armed', fix: 'npm run talk → arm' })
   checks.push({ name: 'Memory', ok: true, detail: `${readLedger().length} decisions, ${lessonLines().length} lessons` })
