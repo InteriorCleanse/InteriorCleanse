@@ -310,6 +310,23 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   `npm run ui:smoke`, not in the unit-test glob) opens every tab at 1180px and
   400px and fails on any page or console error. **No live-order controls in the
   UI (Phase 20).**
+- **Measured paper trading** (`src/paperTrader.ts` + `src/paper/metrics.ts`) is
+  the first end-to-end proof: the full stack on real data with fake money,
+  recorded honestly. Every paper order now stores the book at decision time —
+  observed bid/ask and the spread it implied — the strategy that produced it,
+  the assumed slippage, and the fill latency. A real setup the system could not
+  act on (kill switch, stale data) is recorded as a **missed** signal with its
+  reason (`recordMissedSignal`), so the record shows the whole edge, not just the
+  trades that ran. `paper/metrics.ts` is pure over the closed positions:
+  per-strategy realised expectancy, win rate, average observed spread and
+  latency, missed counts bucketed by reason, and `comparePaperToOos` which lines
+  realised paper expectancy up against each strategy's out-of-sample passport —
+  with a sample-sufficiency gate (≥ `minSetupsForConfidence` trades AND ≥ 4
+  weeks; the exit criterion is a sample size, never a date). Closed paper trades
+  flow into the vault (`recordPaperResult`), so decay and champion-challenger see
+  live results (a no-op for the frozen session model, which has no passport).
+  Surfaced on `/api/paper` and the Memory tab's measured-paper table. Still
+  paper only — **no exchange keys.**
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

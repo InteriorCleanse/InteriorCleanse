@@ -25,7 +25,7 @@ import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
 import { consultMemory } from './adaptiveFilter.ts'
 import { appendLedgerRow, memoryIsEmpty } from './memory.ts'
-import { managePositions, openPosition, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
+import { managePositions, openPosition, recordMissedSignal, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { entriesAllowed } from './killswitch.ts'
 import { assess, toRiskDecision } from './riskEngine.ts'
 import type { RiskState } from './riskEngine.ts'
@@ -169,9 +169,18 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
         const positions = readPositions()
         const verdict = assess({ signal: tradeSignal }, riskStateNow(a.dayKey, snap.candles, now, positions.open.length))
         const routineOpen = verdict.vetoedBy === 'Exposure' && positions.open.length > 0
+        const strategyId = fused ? 'fused' : config.strategy === 'crossover' ? 'crossover' : 'session-ifvg'
+        const tk = marketFeed.latestTicker
+        const obs = { bid: tk?.bid, ask: tk?.ask, strategyId }
         if (!verdict.approved) {
           if (!routineOpen && once(`veto-${a.time}-${verdict.vetoedBy}`)) {
             eventLog.push('info', `Paper trade not taken — ${verdict.vetoedBy}`, verdict.reason, verdict.vetoedBy === 'Kill switch' ? 'warn' : 'info')
+          }
+          // A real setup refused because the system could not act (kill switch, stale
+          // data) is a MISSED signal — record it with the reason so the paper record
+          // shows the whole edge, not just the trades that happened to run.
+          if ((verdict.vetoedBy === 'Kill switch' || verdict.vetoedBy === 'Fresh data') && once(`missed-${a.time}-${verdict.vetoedBy}`)) {
+            recordMissedSignal(tradeSignal, `${verdict.vetoedBy}: ${verdict.reason}`, obs)
           }
         } else {
           const memory = !memoryIsEmpty() ? consultMemory(tradeSignal) : null
@@ -179,7 +188,7 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
             appendLedgerRow({ timestamp: new Date(a.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: tradeSignal.price, quantity: 0, reason: `${tradeSignal.setupKey} — ${memory.reason}`, mode: 'live-paper', outcome: 'SKIPPED', pnl: 0 })
             eventLog.push('info', 'Paper trade refused by memory', memory.reason, 'warn')
           } else {
-            const pos = openPosition(tradeSignal, toRiskDecision(verdict), a.session ? sessionLabel(a.session) : '', a.atr)
+            const pos = openPosition(tradeSignal, toRiskDecision(verdict), a.session ? sessionLabel(a.session) : '', a.atr, obs)
             eventLog.push('setup', `Paper ${pos.direction} QUEUED near $${pos.intendedEntry.toFixed(0)}`,
               `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Mr. Cash will manage it candle by candle and tell you how it ends.`, 'action')
           }

@@ -30,6 +30,7 @@ import { sizeForStop } from './risk.ts'
 import { defaultAssumptions, simulateEntry, exitOnCandle, simulateExit } from './sim/fills.ts'
 import type { ExecutionAssumptions, EntryFill } from './sim/fills.ts'
 import { tradeMetrics } from './sim/trades.ts'
+import { recordPaperResult } from './vault/store.ts'
 import type { Candle, RiskDecision, Signal, TradePlan } from './types.ts'
 
 export const POSITIONS_PATH = join(DATA_DIR, 'positions.json')
@@ -64,6 +65,16 @@ export type PaperPosition = {
   filledAt?: number
   /** Spread and slippage paid on entry, in dollars. */
   entryCostUsd?: number
+  /** Which strategy produced this order — 'fused', 'session-ifvg', 'crossover', etc. For per-strategy paper metrics. */
+  strategyId?: string
+  /** The order book best bid/ask at the moment the order was decided, and the spread it implied. Phase 18 observability. */
+  observedBid?: number
+  observedAsk?: number
+  observedSpreadPct?: number
+  /** The slippage the fill model assumed, in bps, so it can be checked against the observed book later. */
+  assumedSlippageBps?: number
+  /** How long between deciding the order and it filling, in ms (fill latency). */
+  latencyMs?: number
   closedAt?: number
   exit?: number
   exitReason?: 'target' | 'stop' | 'time' | 'manual' | 'missed'
@@ -141,8 +152,12 @@ export function evaluateExit(pos: PaperPosition, candles: Candle[], a: Execution
 // ---------------------------------------------------------------
 
 /** Queues a paper order. It fills on the next candle, or is missed. */
-export function openPosition(signal: Signal, risk: RiskDecision, session: string, atr = 0): PaperPosition {
+/** What the market looked like at the moment the order was decided. Recorded for honesty about spread and slippage. */
+export type DecisionObservation = { bid?: number; ask?: number; strategyId?: string }
+
+export function openPosition(signal: Signal, risk: RiskDecision, session: string, atr = 0, obs: DecisionObservation = {}): PaperPosition {
   const plan = signal.plan as TradePlan
+  const spreadPct = obs.bid && obs.ask && obs.bid > 0 && obs.ask > 0 ? ((obs.ask - obs.bid) / ((obs.ask + obs.bid) / 2)) * 100 : undefined
   const pos: PaperPosition = {
     id: `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     openedAt: signal.time,
@@ -160,6 +175,11 @@ export function openPosition(signal: Signal, risk: RiskDecision, session: string
     reason: signal.reason,
     atr,
     status: 'pending',
+    strategyId: obs.strategyId,
+    observedBid: obs.bid,
+    observedAsk: obs.ask,
+    observedSpreadPct: spreadPct,
+    assumedSlippageBps: config.execution.slippageBps,
   }
   savePosition(pos)
   return pos
@@ -167,7 +187,7 @@ export function openPosition(signal: Signal, risk: RiskDecision, session: string
 
 function fillPosition(pos: PaperPosition, fill: EntryFill): PaperPosition {
   const sized = sizeForStop(fill.price, pos.stop)
-  const filled: PaperPosition = { ...pos, status: 'open', entry: fill.price, filledAt: fill.time, quantity: sized.quantity, riskUsd: sized.riskUsd, entryCostUsd: fill.costPerUnit * sized.quantity }
+  const filled: PaperPosition = { ...pos, status: 'open', entry: fill.price, filledAt: fill.time, quantity: sized.quantity, riskUsd: sized.riskUsd, entryCostUsd: fill.costPerUnit * sized.quantity, latencyMs: Math.max(0, fill.time - pos.openedAt) }
   savePosition(filled)
   return filled
 }
@@ -176,6 +196,28 @@ function missPosition(pos: PaperPosition, time: number, note: string): PaperPosi
   const missed: PaperPosition = { ...pos, status: 'closed', closedAt: time, exitReason: 'missed', rMultiple: 0, pnlUsd: 0, feesUsd: 0, candlesHeld: 0, note }
   savePosition(missed)
   appendLedgerRow({ timestamp: new Date(time).toISOString(), symbol: config.symbol, action: 'SKIP', price: pos.intendedEntry, quantity: 0, reason: `${pos.setupKey} — MISSED: ${note}`, mode: 'live-paper', outcome: 'MISSED', pnl: 0 })
+  return missed
+}
+
+/**
+ * A real, actionable setup that was refused before it could ever be queued —
+ * the kill switch was on, the data was stale, and so on. It is recorded as a
+ * missed trade with the reason, so the paper record shows what the edge would
+ * have faced, not a flattering count of only the trades that happened to run.
+ */
+export function recordMissedSignal(signal: Signal, reason: string, obs: DecisionObservation = {}): PaperPosition {
+  const plan = signal.plan as TradePlan
+  const spreadPct = obs.bid && obs.ask && obs.bid > 0 && obs.ask > 0 ? ((obs.ask - obs.bid) / ((obs.ask + obs.bid) / 2)) * 100 : undefined
+  const missed: PaperPosition = {
+    id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    openedAt: signal.time, dayKey: tradingDayKey(signal.time), session: '', setupKey: signal.setupKey,
+    direction: plan.direction, intendedEntry: plan.entry, entry: plan.entry, stop: plan.stop, target: plan.takeProfit,
+    quantity: 0, riskUsd: 0, quality: signal.quality ?? 0, reason: signal.reason, atr: 0,
+    status: 'closed', closedAt: signal.time, exitReason: 'missed', rMultiple: 0, pnlUsd: 0, feesUsd: 0, candlesHeld: 0,
+    note: reason, strategyId: obs.strategyId, observedBid: obs.bid, observedAsk: obs.ask, observedSpreadPct: spreadPct,
+  }
+  savePosition(missed)
+  appendLedgerRow({ timestamp: new Date(signal.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: plan.entry, quantity: 0, reason: `${signal.setupKey} — MISSED: ${reason}`, mode: 'live-paper', outcome: 'MISSED', pnl: 0 })
   return missed
 }
 
@@ -202,6 +244,10 @@ function finalize(pos: PaperPosition, exit: number, reason: Exclude<PaperPositio
   if (!existsSync(EQUITY_PATH)) writeFileSync(EQUITY_PATH, 'timestamp,equity,rMultiple,setupKey\n')
   appendFileSync(EQUITY_PATH, `${new Date(time).toISOString()},${eq.toFixed(4)},${m.rMultiple.toFixed(3)},${pos.setupKey}\n`)
   learnFromLedger(pos.setupKey)
+  // Feed the vault: a real paper result flows to the passport of this strategy
+  // (a no-op for the frozen session model, which has no passport). This is how
+  // decay and champion-challenger see live results as they arrive.
+  try { recordPaperResult(pos.strategyId, m.rMultiple, time) } catch { /* the vault is best-effort; a paper trade still records */ }
 
   upsertEntry({
     tradeTime: pos.openedAt,

@@ -55,6 +55,7 @@ import { startWatch, eventLog } from './watch.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
+import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { assess, riskLimits } from './riskEngine.ts'
 import type { RiskState } from './riskEngine.ts'
 import { entriesAllowed } from './killswitch.ts'
@@ -617,7 +618,10 @@ const server = createServer(async (req, res) => {
     if (path === '/api/paper') {
       let price: number | undefined
       try { price = (await snapshot()).signal.price } catch { /* stats without unrealized */ }
-      json(res, 200, { ok: true, data: paperStats(price) })
+      const closed = readPositions().closed
+      const byStrategy = paperByStrategy(closed)
+      const comparison = comparePaperToOos(byStrategy, listPassports())
+      json(res, 200, { ok: true, data: { ...paperStats(price), byStrategy, comparison } })
       return
     }
     if (path === '/api/paper/close' && req.method === 'POST') {

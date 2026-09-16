@@ -8,7 +8,7 @@
 import { store } from '../store.ts'
 import type { BacktestReport } from '../backtest/report.ts'
 import type { Genome } from '../factory/genome.ts'
-import { createPassport, passportId } from './passport.ts'
+import { appendResult, createPassport, passportId } from './passport.ts'
 import type { Passport } from './passport.ts'
 import { championOf, compareChallenger } from './promotion.ts'
 import type { PromotionDecision } from './promotion.ts'
@@ -57,6 +57,22 @@ export function champion(strategyId: string): Passport | null {
 export function assessPromotion(challenger: Passport): PromotionDecision {
   const others = passportsFor(challenger.strategyId).filter((p) => p.id !== challenger.id)
   return compareChallenger(championOf(others), challenger)
+}
+
+/**
+ * Record one closed paper trade against every passport of that strategy family,
+ * so the vault's decay watch and champion-challenger see real paper results as
+ * they arrive. A no-op for a strategy with no passport (e.g. the frozen session
+ * model), which is exactly right — nothing to update. Returns how many were touched.
+ */
+export function recordPaperResult(strategyId: string | undefined, rMultiple: number, at: number): number {
+  if (!strategyId) return 0
+  let n = 0
+  for (const p of passportsFor(strategyId)) {
+    savePassport(appendResult(p, { stage: 'paper', at, trades: 1, totalR: rMultiple, avgR: rMultiple, rMultiples: [rMultiple] }))
+    n++
+  }
+  return n
 }
 
 export function deletePassport(id: string): void {

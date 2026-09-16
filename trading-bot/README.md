@@ -899,6 +899,7 @@ src/
   factory/               breed strategy settings; keep only survivors that hold up out-of-sample
   vault/                 passports: the strategy lifecycle, decay detection, champion-challenger
   ai/                    the market read (narrator), the CIO (decision after risk), the researcher
+  paper/metrics.ts       measured paper trading: per-strategy expectancy, observed spread, missed signals, vs OOS
 web/
   index.html             the app shell
   css/app.css            the app's styles (extracted; served at /css/app.css)
