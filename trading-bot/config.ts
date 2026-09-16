@@ -377,6 +377,31 @@ export const config = {
     recvWindow: 5000,
   },
 
+  // ---------- LIVE (real orders — dormant, gated, Phase 20) ----------
+
+  /**
+   * The live-execution block. It is OFF, and getting it on is deliberately
+   * hard: `enabled` here is only ONE of a chain of gates (see src/live/gates.ts),
+   * every one of which must pass — including the top-level `LIVE_TRADING_ENABLED`
+   * flag (still false), the `MRCASH_LIVE` env phrase, a testnet track record, a
+   * typed confirmation, the guard, an absent kill switch and a healthy feed.
+   * With any gate closed, no order-placing code can run. These caps are the
+   * hard ceiling once (if ever) it is armed.
+   */
+  live: {
+    enabled: false,
+    /** testnet first, then live — never reachable unless every gate passes. */
+    venue: 'testnet' as 'testnet' | 'live',
+    /** Minimum reconciled testnet trades before real money is even a possibility. */
+    minTestnetTrades: 20,
+    /** Hard caps, enforced on top of the risk engine. */
+    maxNotionalUsd: 25,
+    maxTradesPerDay: 3,
+    maxOpenPositions: 1,
+    /** The exact phrase MRCASH_LIVE must equal in the environment. */
+    envPhrase: 'I_UNDERSTAND_REAL_MONEY',
+  },
+
   // ---------- MEMORY ----------
 
   memory: {

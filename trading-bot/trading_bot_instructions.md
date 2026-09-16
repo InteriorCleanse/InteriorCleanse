@@ -345,6 +345,25 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   from. Gated by `config.shadow.enabled` + a read-only `EXCHANGE_API_KEY`
   (`mode.shadowEnabled()`); off by default, `runtimeMode` stays paper. Surfaced
   on `/api/shadow`. **No order is ever sent; no exchange write code exists.**
+- **Live execution** (`src/live/`, `src/exchange/binanceTrade.ts`) exists but is
+  **dormant**. `binanceTrade.ts` is the only file with order-placing methods
+  (marketBuy/marketSell/ocoSell/cancelAll, with a global-vs-US OCO flavour
+  switch); it is constructed and called ONLY by `live/trader.ts`, which refuses
+  unless `live/gates.ts` reports every gate open. That chain ships CLOSED —
+  `LIVE_TRADING_ENABLED` is false, `config.live.enabled` is false — so
+  `liveArmed()` is always false in this tree and no order-placing code runs;
+  `runtimeMode()` stays paper and the paper `execution.ts` guard is untouched.
+  `live/orders.ts` is the order state machine (legal transitions only; a rejected
+  order carries zero exposure — no phantom position); `live/reconcile.ts` rebuilds
+  the true position from the venue's own `myTrades` after a restart; `trader.ts`
+  opens with a market BUY, brackets with an OCO SELL, drives the state machine
+  from the fills, and enforces hard caps (notional / trades-per-day / open) on
+  top of the risk engine. Surfaced read-only on `/api/live/status`, in the
+  doctor, and via `node scripts/live-arm.ts` (reports the chain; never sends).
+  The whole path is tested against a MOCK exchange — fills, partial fills, an OCO
+  leg fill, rejects, a mid-order disconnect, reconciliation, the kill switch —
+  with no keys and no network. **Nothing here can place a real order in this
+  build; real money needs a human to open every gate, testnet first.**
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

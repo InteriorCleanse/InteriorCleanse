@@ -58,6 +58,7 @@ import { paperStats, closeManually, readPositions, equity, equityPeak, openNotio
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { listShadowOrders } from './shadow/recorder.ts'
 import { scoreShadowOrder, slippageComparison } from './shadow/scorer.ts'
+import { gateInputFromEnv, liveArmed, liveGates } from './live/gates.ts'
 import { assess, riskLimits } from './riskEngine.ts'
 import type { RiskState } from './riskEngine.ts'
 import { entriesAllowed } from './killswitch.ts'
@@ -617,6 +618,14 @@ const server = createServer(async (req, res) => {
     }
 
     // ---- the paper account ----
+    if (path === '/api/live/status') {
+      // Read-only: shows every gate and whether live is armed. It never places an order.
+      const last = (await safely(() => snapshot())).ok ? (await snapshot()).candles.slice(-1)[0] : null
+      const feedHealthy = last ? (Date.now() - last.closeTime) / 1000 <= config.risk.maxCandleAgeSec : false
+      const input = gateInputFromEnv({ testnetTradesReconciled: 0, guardPresent: authed(req), killSwitchEngaged: !entriesAllowed().ok, feedHealthy })
+      json(res, 200, { ok: true, data: { armed: liveArmed(input), gates: liveGates(input), venue: config.live.venue, caps: { maxNotionalUsd: config.live.maxNotionalUsd, maxTradesPerDay: config.live.maxTradesPerDay, maxOpenPositions: config.live.maxOpenPositions }, note: 'Live execution is gated and ships closed. This shows the gate chain; it cannot place an order.' } })
+      return
+    }
     if (path === '/api/shadow') {
       const orders = listShadowOrders()
       const scores = orders.map((o) => scoreShadowOrder(o, [])) // scored against recorded prints elsewhere; here the record + slippage view

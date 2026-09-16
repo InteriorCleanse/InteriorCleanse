@@ -792,6 +792,32 @@ times.
 
 ---
 
+## Real money (and why this build won't touch it)
+
+The code to place real orders exists — an order-placing adapter, an order state
+machine, reconciliation from the exchange's own fills, and a live trader — but it
+is **dormant**, and getting it to run is deliberately hard. Real money is behind
+a chain of gates, and **every one** must be open at the same time before a single
+order-placing line can execute:
+
+1. the top-level `LIVE_TRADING_ENABLED` flag (ships **false**),
+2. `config.live.enabled` (ships false),
+3. the `MRCASH_LIVE` environment phrase set exactly,
+4. a typed confirmation from you,
+5. a testnet track record of reconciled trades,
+6. hard caps (notional, trades per day, open positions),
+7. the app guard present,
+8. the kill switch clear,
+9. the market feed healthy.
+
+Run `node scripts/live-arm.ts` to see the chain — in this build it reports
+*"Live is NOT armed. Paper only. Nothing can send an order."* The whole live
+path is exercised in tests against a **mock** exchange (fills, partial fills, an
+OCO leg fill, rejects, a mid-order disconnect, reconciliation after a restart,
+the kill switch cancelling open orders), so the machinery is proven without a
+key and without risk. Testnet comes before real money; real money starts at the
+exchange minimum; spot is long-only and short signals are logged, not traded.
+
 ## When something goes wrong
 
 **"Stopped — no real prices available"** — the bot couldn't reach the price
@@ -902,6 +928,8 @@ src/
   paper/metrics.ts       measured paper trading: per-strategy expectancy, observed spread, missed signals, vs OOS
   exchange/              read-only signed venue adapter (HMAC signing, filters) — no order-placing code
   shadow/                builds the order it would send against the live book and scores it — never sends
+  exchange/binanceTrade.ts  the order-placing adapter — inert; only the gated live trader can call it
+  live/                  the gate chain, order state machine, reconciliation and trader — dormant, tested on a mock
 web/
   index.html             the app shell
   css/app.css            the app's styles (extracted; served at /css/app.css)

@@ -117,6 +117,15 @@ export async function runDoctor(): Promise<Check[]> {
     checks.push({ name: 'Exchange key (shadow)', ok: null, detail: 'no exchange key set — shadow trading off', fix: 'Optional (Phase 19). Add a READ-ONLY EXCHANGE_API_KEY / EXCHANGE_API_SECRET to .env and set shadow.enabled in config.ts.' })
   }
 
+  // Live execution readiness (Phase 20): the gate chain ships CLOSED. This
+  // shows it plainly; it can never place an order.
+  {
+    const { gateInputFromEnv, liveArmed } = await import('./live/gates.ts')
+    const input = gateInputFromEnv({ testnetTradesReconciled: 0, guardPresent: true, killSwitchEngaged: false, feedHealthy: true })
+    const armed = liveArmed(input)
+    checks.push({ name: 'Live execution', ok: armed ? true : null, detail: armed ? `ARMED for ${config.live.venue}` : 'closed — paper only (the top-level flag ships false)', fix: armed ? 'Live trading is armed. Make sure this is intended.' : 'By design. Real money is behind a chain of gates (see docs); nothing can send an order in this build.' })
+  }
+
   const plan = readPlan()
   checks.push({ name: "Today's plan", ok: plan ? true : null, detail: plan ? `${plan.allow}, ${plan.riskPerTradePercent}% risk, max ${plan.maxTrades}` : 'none armed', fix: 'npm run talk → arm' })
   checks.push({ name: 'Memory', ok: true, detail: `${readLedger().length} decisions, ${lessonLines().length} lessons` })
