@@ -359,6 +359,49 @@ export const config = {
     promotionMinPaperTrades: 20,
   },
 
+  // ---------- MR. CASH INTELLIGENCE LAYER (Phase 22 — read-only) ----------
+
+  /**
+   * The intelligence / visualization layer: automatic chart markup, provenance,
+   * "why this trade" and "why not", replay without look-ahead, alerts, AI
+   * explanations and the TradingView export.
+   *
+   * It is READ-ONLY and sits ABOVE the engine. Nothing here can produce a
+   * signal, size a position, veto a trade, place an order or change a decision —
+   * turning every one of these flags off must leave trading behaviour
+   * byte-identical. NONE of these is a trading-execution flag: the execution
+   * gates (LIVE_TRADING_ENABLED, live.enabled, shadow.enabled) are untouched by
+   * this block and stay exactly as they are.
+   */
+  intelligence: {
+    /** Master switch for the whole layer. Off = the /api/intel/* routes report disabled. */
+    enabled: true,
+
+    /** Automatic annotation of what the engine sees. */
+    chartMarkup: true,
+
+    /** Higher-timeframe context layers (only for timeframes the stored candles support). */
+    mtfMarkup: true,
+
+    /** Annotation frames + event timeline during replay, filtered to what was knowable. */
+    replayIntelligence: true,
+
+    /** The Pine snapshot generator. A point-in-time export, never a live feed. */
+    tradingViewExport: true,
+
+    /** Derivation of alert events from real engine-state changes. Never places an order. */
+    alertCenter: true,
+
+    /** The AI explanation endpoint. Explains engine state only and cites annotation ids. */
+    aiExplanation: true,
+
+    /** The most annotations one API response will return, so a huge window cannot wedge the page. */
+    maxAnnotations: 2000,
+
+    /** The most drawings one Pine export will emit (TradingView caps these too). */
+    maxPineDrawings: 400,
+  },
+
   // ---------- EXTENDED PAPER VALIDATION (the validation stage) ----------
 
   /**

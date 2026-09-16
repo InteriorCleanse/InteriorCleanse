@@ -57,11 +57,16 @@ import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeSta
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport } from './paper/validation.ts'
+import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
+import type { IntelSnapshot } from './intel/service.ts'
+import { intelEnabled, intelFlags, disabledPayload } from './intel/flags.ts'
+import { explain } from './intel/explain.ts'
+import type { ExplainTopic } from './intel/explain.ts'
 import { listShadowOrders } from './shadow/recorder.ts'
 import { scoreShadowOrder, slippageComparison } from './shadow/scorer.ts'
 import { gateInputFromEnv, liveArmed, liveGates } from './live/gates.ts'
 import { assess, riskLimits } from './riskEngine.ts'
-import type { RiskState } from './riskEngine.ts'
+import type { RiskState, RiskVerdict } from './riskEngine.ts'
 import { entriesAllowed } from './killswitch.ts'
 import { SKILLS, skillById } from './skills.ts'
 import { checkStateChange, PinThrottle } from './guard.ts'
@@ -711,6 +716,117 @@ const server = createServer(async (req, res) => {
         return
       }
       json(res, 200, { ok: true, data: report })
+      return
+    }
+
+    // ---------------------------------------------------------------
+    // Mr. Cash intelligence layer (Phase 22). READ-ONLY, every route GET.
+    // It projects engine state onto annotations and explanations; it cannot
+    // produce a signal, size a position, veto a trade or place an order.
+    // ---------------------------------------------------------------
+    if (path === '/api/intel/flags') {
+      json(res, 200, { ok: true, data: { flags: intelFlags(), note: 'Read-only visualization flags. None of these is a trading-execution flag; execution gates are unchanged.' } })
+      return
+    }
+    if (path.startsWith('/api/intel/')) {
+      if (!intelEnabled('enabled')) { json(res, 200, disabledPayload('enabled')); return }
+      const snap = await safely(() => snapshot())
+      if (!snap.ok) { json(res, 200, snap); return }
+      const s = snap.data
+      const a = s.analysis
+
+      // The risk verdict on the engine's own candidate — read, never re-decided.
+      let verdict: RiskVerdict | null = null
+      try {
+        const positions = readPositions()
+        const eq = equity(); const peak = Math.max(equityPeak(), eq)
+        const last = s.candles[s.candles.length - 1]
+        const tk = marketFeed.latestTicker
+        const gate = entriesAllowed()
+        const rstate: RiskState = {
+          now: Date.now(), killSwitch: { ok: gate.ok, reason: gate.ok ? '' : gate.reason },
+          candleAgeSec: last ? (Date.now() - last.closeTime) / 1000 : null,
+          spreadPct: tk && tk.bid > 0 && tk.ask > 0 ? ((tk.ask - tk.bid) / ((tk.ask + tk.bid) / 2)) * 100 : null,
+          openPositions: positions.open.length, openNotionalUsd: openNotionalUsd(),
+          today: todaysPaperStats(tradingDayKey(Date.now())), equityUsd: eq, peakEquityUsd: peak,
+        }
+        const cand = a && (a.signal.action === 'BUY' || a.signal.action === 'SELL') ? a.signal : null
+        if (cand) verdict = assess({ signal: cand }, rstate)
+      } catch { /* the intel view stands without a live risk verdict */ }
+
+      const pos = readPositions()
+      const intel: IntelSnapshot = {
+        symbol: config.symbol,
+        timeframe: config.interval,
+        engineVersion: VERSION,
+        candles: s.candles,
+        analysis: a,
+        votes: s.strategyVotes,
+        decision: s.decision,
+        news: s.news,
+        risk: verdict,
+        metaById: metaById(),
+        trades: [...pos.open, ...pos.closed].map((p) => ({
+          id: p.id, openedAt: p.openedAt, filledAt: p.filledAt, closedAt: p.closedAt, setupKey: p.setupKey,
+          direction: p.direction, intendedEntry: p.intendedEntry, entry: p.entry, stop: p.stop, target: p.target,
+          quantity: p.quantity, riskUsd: p.riskUsd, status: p.status, exitReason: p.exitReason, exit: p.exit,
+          rMultiple: p.rMultiple, candlesHeld: p.candlesHeld, note: p.note,
+        })),
+      }
+
+      if (path === '/api/intel/annotations') {
+        if (!intelEnabled('chartMarkup')) { json(res, 200, disabledPayload('chartMarkup')); return }
+        json(res, 200, { ok: true, data: intelAnnotations(intel) })
+        return
+      }
+      if (path === '/api/intel/trade') {
+        json(res, 200, { ok: true, data: intelTrade(intel) })
+        return
+      }
+      if (path === '/api/intel/trade/stages') {
+        const id = url.searchParams.get('id') ?? ''
+        const stages = intelTradeStages(intel, id)
+        json(res, stages ? 200 : 404, stages ? { ok: true, data: stages } : { ok: false, error: `No paper trade with id "${id}".` })
+        return
+      }
+      if (path === '/api/intel/timeline') {
+        json(res, 200, { ok: true, data: intelTimeline(intel) })
+        return
+      }
+      if (path === '/api/intel/changes') {
+        json(res, 200, { ok: true, data: intelChanges(intel) })
+        return
+      }
+      if (path === '/api/intel/alerts') {
+        if (!intelEnabled('alertCenter')) { json(res, 200, disabledPayload('alertCenter')); return }
+        json(res, 200, { ok: true, data: intelAlerts(intel) })
+        return
+      }
+      if (path === '/api/intel/export/pine') {
+        if (!intelEnabled('tradingViewExport')) { json(res, 200, disabledPayload('tradingViewExport')); return }
+        const out = intelPine(intel)
+        if (url.searchParams.get('format') === 'text') {
+          res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'content-disposition': `attachment; filename="${out.filename}"` })
+          res.end(out.source)
+          return
+        }
+        json(res, 200, { ok: true, data: out })
+        return
+      }
+      if (path === '/api/intel/explain') {
+        if (!intelEnabled('aiExplanation')) { json(res, 200, disabledPayload('aiExplanation')); return }
+        const topic = (url.searchParams.get('topic') ?? 'why-this-trade') as ExplainTopic
+        const annotationId = url.searchParams.get('id') ?? undefined
+        const ctx = intelExplainContext(intel, topic, annotationId)
+        const status = await aiStatus()
+        const aiFn = status.available
+          ? async (prompt: string, system: string) => (await askAI(prompt, '', [], () => {}, undefined, { name: 'Explainer', system })).text
+          : undefined
+        const answer = await explain(ctx, aiFn)
+        json(res, 200, { ok: true, data: { ...answer, topic, engineDecision: ctx.engineDecision, aiAvailable: status.available, cited: ctx.annotations.length } })
+        return
+      }
+      json(res, 404, { ok: false, error: `Unknown intelligence route "${path}".` })
       return
     }
 
