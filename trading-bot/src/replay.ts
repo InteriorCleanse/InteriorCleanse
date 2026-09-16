@@ -549,6 +549,53 @@ export async function runFusedReplay(opts: Options): Promise<ReplayResult> {
   }
 }
 
+export type ReplayStep = {
+  index: number
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+  votes: Array<{ id: string; name: string; action: 'BUY' | 'SELL' | 'HOLD'; direction: 'long' | 'short' | null; confidence: number; reason: string; evidence: Array<{ step: string; passed: boolean; detail: string }> }>
+  decision: { action: string; direction: 'long' | 'short' | null; score: number; enterScore: number; confirms: string[]; invalidates: string[] } | null
+}
+
+export type ReplaySteps = { symbol: string; interval: string; from: number; to: number; steps: ReplayStep[]; note: string }
+
+/**
+ * The replay PLAYER's data: for the last `limit` stored candles, the votes and
+ * evidence each strategy produced and the fused decision at that candle. The UI
+ * steps or plays through these to show, candle by candle, exactly what the
+ * playbook saw and why. Read-only; it takes no trades.
+ */
+export async function replaySteps(opts: { limit?: number } = {}): Promise<ReplaySteps> {
+  const limit = Math.max(10, Math.min(1000, opts.limit ?? 200))
+  const start = Date.now() - (config.replay.lookbackDays + 2) * 86_400_000
+  const candles = await getCandlesSince(config.symbol, config.interval, start)
+  const engine = new IctEngine(candles)
+  const meta = metaById()
+  const nameOf = (id: string) => meta.get(id)?.name ?? id
+  const steps: ReplayStep[] = []
+  const firstEmit = Math.max(0, candles.length - limit)
+  for (let i = 0; i < candles.length; i++) {
+    const analysis = engine.step(i) // step every candle so the trackers stay warm
+    if (i < firstEmit) continue
+    const votes = voteAll(contextFor(analysis, candles))
+    const decision = fuse({ votes, metaById: meta, regime: analysis.features.regime.value?.state ?? null })
+    const c = candles[i]
+    steps.push({
+      index: i, time: c.openTime, open: c.open, high: c.high, low: c.low, close: c.close,
+      votes: votes.map((v) => ({ id: v.id, name: nameOf(v.id), action: v.action, direction: v.direction, confidence: v.confidence, reason: v.reason, evidence: v.evidence })),
+      decision: { action: decision.action, direction: decision.direction, score: decision.score, enterScore: decision.enterScore, confirms: decision.confirms, invalidates: decision.invalidates },
+    })
+  }
+  return {
+    symbol: config.symbol, interval: config.interval,
+    from: steps[0]?.time ?? 0, to: steps[steps.length - 1]?.time ?? 0, steps,
+    note: 'Each step is one stored candle: what every strategy voted and why, and the fused decision. Nothing here trades.',
+  }
+}
+
 export type StrategyComparisonRow = { id: string; name: string; family: string; summary: ReplaySummary }
 
 /** Run every enabled strategy over the same window and return their summaries side by side. */

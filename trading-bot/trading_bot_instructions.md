@@ -296,6 +296,20 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   read* button on the Today tab, three new hats in `skills.ts` (CIO, Narrator,
   Researcher), and three read-only MCP tools (`market_read`, `decision`,
   `vault`). **No AI-generated orders, ever.**
+- **The command-center UI** (`web/`) is moving to modules, one panel at a time
+  so working UI is never thrown away. The styles live in `web/css/app.css`
+  (served at `/css/app.css`); `web/js/api.js` and `web/js/state.js` are the
+  shared foundation; the server serves `/js/*.js` and `/css/*.css` as read-only
+  static files (path-constrained to `web/`). The flagship new panel is the
+  **replay player** (`web/js/replay.js`, a *Replay* tab): it ▶plays or steps
+  through the last stored candles and shows, for each one, the candlestick view
+  with the current candle marked, the fused decision, and every strategy's vote
+  **and its evidence** at that candle — backed by `replaySteps()` in `replay.ts`
+  and `GET /api/replay/steps` (read-only; it takes no trades). Panels carry a
+  loading and an error state. A Playwright smoke (`test/ui/smoke.mjs`, run with
+  `npm run ui:smoke`, not in the unit-test glob) opens every tab at 1180px and
+  400px and fails on any page or console error. **No live-order controls in the
+  UI (Phase 20).**
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

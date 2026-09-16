@@ -23,7 +23,7 @@ import { randomBytes } from 'node:crypto'
 import { config } from '../config.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import type { Snapshot } from './bot.ts'
-import { runReplay, runStrategyReplay, scoreSkippedTrades } from './replay.ts'
+import { runReplay, runStrategyReplay, scoreSkippedTrades, replaySteps } from './replay.ts'
 import { runBacktest } from './backtest/runner.ts'
 import { runCampaign, listCampaigns, getCampaign } from './factory/campaign.ts'
 import type { CampaignRecord } from './factory/campaign.ts'
@@ -254,6 +254,16 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // The command-center modules: /js/*.js and /css/*.css from web/. Safe,
+    // read-only static files; the path is constrained so nothing escapes web/.
+    if ((path.startsWith('/js/') || path.startsWith('/css/')) && /^\/(js|css)\/[a-zA-Z0-9._-]+\.(js|css)$/.test(path)) {
+      const full = join(WEB_DIR, path.slice(1))
+      if (!existsSync(full)) { res.writeHead(404); res.end(); return }
+      res.writeHead(200, { 'content-type': path.endsWith('.css') ? 'text/css' : 'application/javascript', 'cache-control': 'public, max-age=3600' })
+      res.end(readFileSync(full))
+      return
+    }
+
     // TradingView alerts carry their own secret
     if (path === '/api/tv-alert' && req.method === 'POST') {
       const raw = await readBody(req, 64 * 1024)
@@ -450,6 +460,12 @@ const server = createServer(async (req, res) => {
       setSetting('enabledStrategies', strategyIds().filter((x) => current.has(x)).join(','))
       snapCache = null
       json(res, 200, { ok: true, data: { enabled: enabledStrategyIds() } })
+      return
+    }
+    if (path === '/api/replay/steps') {
+      const limit = Number(url.searchParams.get('limit') ?? '200')
+      const r = await safely(() => replaySteps({ limit }))
+      json(res, 200, r.ok ? { ok: true, data: r.data } : r)
       return
     }
     if (path === '/api/replay/strategy') {

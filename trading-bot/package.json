@@ -35,6 +35,7 @@
     "plan:clear": "node src/index.ts plan:clear",
     "selftest": "node src/selftest.ts",
     "typecheck": "tsc --noEmit -p .",
+    "ui:smoke": "node test/ui/smoke.mjs",
     "test": "node --test test/*.test.ts test/features/*.test.ts test/strategies/*.test.ts test/backtest/*.test.ts test/factory/*.test.ts test/vault/*.test.ts test/ai/*.test.ts",
     "check": "tsc --noEmit -p . && node src/selftest.ts && node --test test/*.test.ts test/features/*.test.ts test/strategies/*.test.ts test/backtest/*.test.ts test/factory/*.test.ts test/vault/*.test.ts test/ai/*.test.ts",
     "stop": "node src/index.ts stop",
