@@ -15,9 +15,12 @@ import { trendPullback } from './trendPullback.ts'
 import { meanReversion } from './meanReversion.ts'
 import { orderFlowMomentum } from './orderFlowMomentum.ts'
 import { crossover } from './crossover.ts'
+import { silverBullet } from './silverBullet.ts'
+import { unicorn } from './unicorn.ts'
+import { turtleSoup } from './turtleSoup.ts'
 
-/** In display order. */
-export const STRATEGIES: Strategy[] = [sessionIfvg, vwapReclaim, breakout, trendPullback, meanReversion, orderFlowMomentum, crossover]
+/** In display order. The three ICT stories sit with the session model they share a lineage with. */
+export const STRATEGIES: Strategy[] = [sessionIfvg, silverBullet, unicorn, turtleSoup, vwapReclaim, breakout, trendPullback, meanReversion, orderFlowMomentum, crossover]
 
 const BY_ID = new Map(STRATEGIES.map((s) => [s.meta.id, s]))
 

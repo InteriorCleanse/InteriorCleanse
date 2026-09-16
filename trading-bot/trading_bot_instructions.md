@@ -210,7 +210,14 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   `npm run replay:raw -- --strategy <id>`; `compareStrategies` and
   `npm run strategies` show them side by side. Strategies are enabled/disabled
   via `settings.enabledStrategies` and the `/api/strategies` routes; the
-  Playbook tab shows each one's live vote.
+  Playbook tab shows each one's live vote. Three ICT stories share the session
+  model's lineage and read `ctx.analysis` directly: **silver bullet** (a fresh
+  displacement gap retested in a 03/10/14 ET window, in the structure's
+  direction), **unicorn** (a breaker block overlapping a same-direction fair
+  value gap, taken on the retest) and **turtle soup** (a failed raid of a prior
+  high/low, faded back into the range once price closes back inside). Each has a
+  structural stop, so only the target multiple (RR) is tunable, and each is a
+  read-only opinion — none changes the frozen session model.
 - **Backtesting** (`src/backtest/`) is the honest scoreboard, and it is pure
   over a trade list so it is deterministic and testable. `metrics.ts` is the
   one place every figure (win rate, total/avg R, expectancy, profit factor,
