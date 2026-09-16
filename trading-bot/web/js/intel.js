@@ -12,14 +12,42 @@ import { getJson, esc, nyTime } from './api.js'
 
 const $ = (id) => document.getElementById(id)
 
-const LAYERS = [
-  ['structure', 'Structure'], ['liquidity', 'Liquidity'], ['imbalance', 'FVG'],
-  ['orderblock', 'Order blocks'], ['ict', 'ICT'], ['trade', 'Trades'], ['context', 'Context'],
+// The twelve display groups the operator actually thinks in. These are finer
+// than the annotation `layer` field on purpose: "context" alone would bundle
+// VWAP, sessions, news, order flow and regime behind one switch, and the trade
+// map is more useful split into what you're aiming at (TRADES) versus what you
+// stand to lose (RISK).
+//
+// `on` is the DEFAULT. Deliberately NOT everything: a chart with every mark lit
+// at once is unreadable, and an unreadable chart is a chart you stop checking.
+// The default is the decision-relevant core — structure, liquidity, imbalance,
+// and the live trade with its risk. Context layers are one click away.
+const GROUP_DEFS = [
+  { id: 'structure',  label: 'Structure',    colour: '#8b949e', on: true,  match: (a) => a.layer === 'structure' },
+  { id: 'liquidity',  label: 'Liquidity',    colour: '#ffa657', on: true,  match: (a) => a.layer === 'liquidity' },
+  { id: 'fvg',        label: 'FVG',          colour: '#39c5cf', on: true,  match: (a) => a.layer === 'imbalance' },
+  { id: 'orderblock', label: 'Order blocks', colour: '#bc8cff', on: false, match: (a) => a.layer === 'orderblock' },
+  { id: 'ict',        label: 'ICT',          colour: '#e3b341', on: false, match: (a) => a.layer === 'ict' },
+  { id: 'trades',     label: 'Trades',       colour: '#58a6ff', on: true,  match: (a) => a.layer === 'trade' && ['entry', 'take-profit', 'target-zone', 'entry-zone'].includes(a.annotationType) },
+  { id: 'risk',       label: 'Risk',         colour: '#f85149', on: true,  match: (a) => a.layer === 'trade' && ['stop-loss', 'stop-zone', 'invalidation-level', 'risk-reward'].includes(a.annotationType) },
+  { id: 'vwap',       label: 'VWAP',         colour: '#a5d6ff', on: false, match: (a) => a.annotationType === 'vwap' },
+  { id: 'sessions',   label: 'Sessions',     colour: '#6e7681', on: false, match: (a) => a.annotationType === 'session-boundary' },
+  { id: 'news',       label: 'News',         colour: '#ff7b72', on: false, match: (a) => a.annotationType === 'news-marker' },
+  { id: 'orderflow',  label: 'Order flow',   colour: '#7ee787', on: false, match: (a) => a.annotationType === 'order-flow-state' },
+  { id: 'regime',     label: 'Regime',       colour: '#d2a8ff', on: false, match: (a) => ['trend-regime', 'range-regime', 'volatility-regime'].includes(a.annotationType) },
 ]
 
-const LAYER_COLOUR = {
-  structure: '#8b949e', liquidity: '#ffa657', imbalance: '#39c5cf',
-  orderblock: '#bc8cff', ict: '#e3b341', trade: '#58a6ff', context: '#6e7681',
+const DEFAULT_GROUPS = () => new Set(GROUP_DEFS.filter((g) => g.on).map((g) => g.id))
+
+/** Which display group an annotation belongs to, or null when it has no chart form. */
+function groupOf(a) {
+  const def = GROUP_DEFS.find((g) => g.match(a))
+  return def ? def.id : null
+}
+
+function groupColour(a) {
+  const def = GROUP_DEFS.find((g) => g.match(a))
+  return def ? def.colour : '#8b949e'
 }
 
 const state = {
@@ -31,7 +59,7 @@ const state = {
   alerts: [],
   changes: null,
   timeframes: null,
-  layersOn: new Set(LAYERS.map(([id]) => id)),
+  groupsOn: DEFAULT_GROUPS(),
   strategiesOn: null,   // null = all
   htfOn: true,
   // viewport, in candle indices
@@ -100,7 +128,8 @@ function visibleAnnotations() {
   if (!cs.length) return []
   const from = cs[0].openTime, to = cs[cs.length - 1].closeTime ?? cs[cs.length - 1].openTime
   return state.annotations.filter((a) => {
-    if (!state.layersOn.has(a.layer)) return false
+    const g = groupOf(a)
+    if (!g || !state.groupsOn.has(g)) return false
     if (!state.htfOn && a.timeframe && state.timeframes && a.timeframe !== state.timeframes.executionTimeframe) return false
     if (state.strategiesOn && a.strategyIds.length && !a.strategyIds.some((s) => state.strategiesOn.has(s))) return false
     // Keep levels that extend into view even if they started before it.
@@ -160,8 +189,7 @@ function drawChart() {
   // zones behind the candles
   for (const a of anns) {
     if (typeof a.priceHigh !== 'number' || typeof a.priceLow !== 'number') continue
-    if (a.annotationType === 'session-boundary' && !state.layersOn.has('context')) continue
-    const col = LAYER_COLOUR[a.layer] || '#8b949e'
+    const col = groupColour(a)
     const x0 = xAt(a.startTime), x1 = a.endTime ? xAt(a.endTime) : W - padR
     const alpha = a.lifecycleStatus === 'ACTIVE' ? 0.13 : a.lifecycleStatus === 'INVALIDATED' ? 0.07 : 0.10
     ctx.fillStyle = hexA(col, alpha)
@@ -186,7 +214,7 @@ function drawChart() {
 
   // horizontal levels + point markers
   for (const a of anns) {
-    const col = LAYER_COLOUR[a.layer] || '#8b949e'
+    const col = groupColour(a)
     const selected = a.id === state.selected
     if (typeof a.price === 'number' && a.priceHigh === null && a.priceLow === null) {
       const yy = y(a.price)
@@ -255,18 +283,24 @@ function pick(mx, my) {
 // ---------------------------------------------------------------
 
 function layerControls() {
-  const chips = LAYERS.map(([id, label]) =>
-    `<button class="chip ${state.layersOn.has(id) ? 'on' : ''}" data-layer="${id}" style="border-color:${LAYER_COLOUR[id]}">${esc(label)}</button>`).join('')
+  const chips = GROUP_DEFS.map((g) => {
+    const n = state.annotations.filter((a) => groupOf(a) === g.id).length
+    return `<button class="chip ${state.groupsOn.has(g.id) ? 'on' : ''}" data-group="${g.id}" style="border-color:${g.colour}" title="${n} annotation(s)">${esc(g.label)}${n ? ` <span class="muted">${n}</span>` : ''}</button>`
+  }).join('')
   const tfs = state.timeframes
     ? state.timeframes.timeframes.map((t) => `<span class="badge ${t.available ? 'good' : ''}" title="${esc(t.note)}">${esc(t.timeframe)}${t.available ? '' : ' ✕'}</span>`).join(' ')
     : ''
+  const shown = visibleAnnotations().length
   return `<div class="card"><h2>Layers <span class="muted">— hide or show marks; the data underneath is never dropped</span></h2>
-    <div class="row" style="flex-wrap:wrap;gap:6px">${chips}
+    <div class="row" style="flex-wrap:wrap;gap:6px">${chips}</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">
       <button class="chip ${state.htfOn ? 'on' : ''}" data-htf="1">Higher timeframes</button>
-      <button class="chip" data-clear="1">Clear all annotations</button>
-      <button class="chip" data-reset="1">Reset default view</button>
+      <button class="chip" data-showall="1">Show all</button>
+      <button class="chip" data-hideall="1">Hide all</button>
+      <button class="chip" data-reset="1">Reset</button>
     </div>
-    <div class="muted" style="font-size:12px;margin-top:8px">Timeframes available from stored candles: ${tfs || '—'}. A timeframe marked ✕ has too little data and is reported UNAVAILABLE rather than synthesised.</div>
+    <div class="muted" style="font-size:12px;margin-top:8px">Showing <b>${shown}</b> of ${state.annotations.length} annotations. The default is the decision-relevant core — structure, liquidity, imbalance and the live trade with its risk — because a chart with everything lit at once is one you stop reading. Context layers are one click away, and hiding a layer never discards data.</div>
+    <div class="muted" style="font-size:12px;margin-top:4px">Timeframes available from stored candles: ${tfs || '—'}. A timeframe marked ✕ has too little data and is reported UNAVAILABLE rather than synthesised.</div>
   </div>`
 }
 
@@ -401,16 +435,18 @@ function rerenderInspector() {
 }
 
 function wire() {
-  for (const b of document.querySelectorAll('#intel-out [data-layer]')) {
-    b.onclick = () => { const id = b.dataset.layer; state.layersOn.has(id) ? state.layersOn.delete(id) : state.layersOn.add(id); renderAll() }
+  for (const b of document.querySelectorAll('#intel-out [data-group]')) {
+    b.onclick = () => { const id = b.dataset.group; state.groupsOn.has(id) ? state.groupsOn.delete(id) : state.groupsOn.add(id); renderAll() }
   }
   const htf = document.querySelector('#intel-out [data-htf]')
   if (htf) htf.onclick = () => { state.htfOn = !state.htfOn; renderAll() }
-  const clr = document.querySelector('#intel-out [data-clear]')
-  if (clr) clr.onclick = () => { state.layersOn.clear(); state.selected = null; renderAll() }
+  const showAll = document.querySelector('#intel-out [data-showall]')
+  if (showAll) showAll.onclick = () => { state.groupsOn = new Set(GROUP_DEFS.map((g) => g.id)); renderAll() }
+  const hideAll = document.querySelector('#intel-out [data-hideall]')
+  if (hideAll) hideAll.onclick = () => { state.groupsOn.clear(); state.selected = null; renderAll() }
   const rst = document.querySelector('#intel-out [data-reset]')
   if (rst) rst.onclick = () => {
-    state.layersOn = new Set(LAYERS.map(([id]) => id)); state.htfOn = true; state.selected = null
+    state.groupsOn = DEFAULT_GROUPS(); state.htfOn = true; state.selected = null
     state.view.count = Math.min(180, state.candles.length)
     state.view.start = Math.max(0, state.candles.length - state.view.count)
     renderAll()

@@ -7,7 +7,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { aggregateCandles, availableTimeframes, annotateHigherTimeframes, bandFor, splitByBand, timeframeReport, INTERVAL_MINUTES } from '../../src/intel/mtf.ts'
+import { aggregateCandles, availableTimeframes, annotateHigherTimeframes, bandFor, splitByBand, timeframeReport, INTERVAL_MINUTES, WEEK_ANCHOR_MS } from '../../src/intel/mtf.ts'
 import { noLookahead } from '../../src/intel/types.ts'
 import type { Candle } from '../../src/types.ts'
 
@@ -78,18 +78,46 @@ test('higher-timeframe context is banded apart from execution structure', () => 
   assert.equal(bandFor('1m', '5m'), 'execution')
 })
 
+/**
+ * AUDIT 1 regression. The MTF layer used to compute previous-day high/low from
+ * UTC-midnight buckets while the ENGINE derives them on the ICT trading day that
+ * rolls at 18:00 ET. Both were annotated `previous-day-high`, so the chart drew
+ * two different lines for the same concept — measured $279.56 apart on real
+ * data. The engine is authoritative; the MTF layer must not recompute it.
+ */
+test('the MTF layer NEVER emits a previous-day level — the engine owns that concept', () => {
+  const cs = candles(12 * 24 * 40) // forty days: a 1d bar is easy, and ≥3 weeks exist too
+  const asOf = cs[cs.length - 1].closeTime
+  const list = annotateHigherTimeframes({ symbol: 'BTCUSDT', executionTimeframe: '5m', engineVersion: 'test', candles: cs, asOf, now: NOW })
+  const daily = list.filter((a) => a.annotationType === 'previous-day-high' || a.annotationType === 'previous-day-low')
+  assert.deepEqual(daily, [], 'previous-day levels must come from the engine (pdh/pdl), never from MTF aggregation')
+  // The week IS the MTF layer's to own — the engine has no weekly concept.
+  assert.ok(list.some((a) => a.annotationType === 'previous-week-high'), 'the weekly level is genuinely additive and should still be present')
+})
+
+test('weeks are anchored to Monday, not to the epoch (which was a Thursday)', () => {
+  const cs = candles(12 * 24 * 40) // forty days
+  const weeks = aggregateCandles(cs, INTERVAL_MINUTES['1w'], WEEK_ANCHOR_MS)
+  assert.ok(weeks.length > 0)
+  for (const w of weeks) {
+    assert.equal(new Date(w.openTime).getUTCDay(), 1, `a week must start on a Monday, got ${new Date(w.openTime).toUTCString()}`)
+  }
+})
+
 test('previous-period extremes are only knowable once the period has closed', () => {
-  const cs = candles(12 * 24 * 12) // twelve days
+  const cs = candles(12 * 24 * 40) // forty days, so ≥3 complete weeks exist
   const asOf = cs[cs.length - 1].closeTime
   const list = annotateHigherTimeframes({ symbol: 'BTCUSDT', executionTimeframe: '5m', engineVersion: 'test', candles: cs, asOf, now: NOW })
   assert.ok(list.length > 0)
   assert.equal(noLookahead(list), true)
-  const pdh = list.find((a) => a.annotationType === 'previous-day-high')
-  assert.ok(pdh, 'expected a previous-day high')
-  assert.ok(pdh!.knownAt > pdh!.eventTime, 'the extreme is only knowable at the period close, after the period began')
-  assert.ok(pdh!.knownAt <= asOf, 'nothing may be knowable after the moment being analysed')
-  assert.equal(pdh!.timeframe, '1d')
-  assert.match(pdh!.rationale, /Higher-timeframe context, not an execution signal/)
+  // The week is the only period extreme this layer owns (the engine owns the day).
+  const pwh = list.find((a) => a.annotationType === 'previous-week-high')
+  assert.ok(pwh, 'expected a previous-week high')
+  assert.ok(pwh!.knownAt > pwh!.eventTime, 'the extreme is only knowable at the period close, after the period began')
+  assert.ok(pwh!.knownAt <= asOf, 'nothing may be knowable after the moment being analysed')
+  assert.equal(pwh!.timeframe, '1w')
+  assert.match(pwh!.rationale, /aggregated for display, not an execution signal, and not an engine level/)
+  assert.match(pwh!.rationale, /Monday 00:00 UTC/)
 })
 
 test('higher-timeframe swings use the engine tracker and are confirmed late, never early', () => {

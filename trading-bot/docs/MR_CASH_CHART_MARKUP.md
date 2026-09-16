@@ -14,12 +14,36 @@ engine itself could not justify.
 
 Open the **Intel** tab (🧭).
 
+### Layer groups (12)
+
+| Group | Contains | On by default |
+|---|---|---|
+| **Structure** | swings, HH/HL/LH/LL, BOS, CHoCH, dealing range | ✅ |
+| **Liquidity** | session/day levels, EQH/EQL, pools, sweeps, raids, failed breakouts | ✅ |
+| **FVG** | fair value gaps, midpoints, mitigation, inversion | ✅ |
+| **Order blocks** | order blocks, breakers, their mitigation/invalidation | — |
+| **ICT** | silver bullet, unicorn, turtle soup, other strategy setups | — |
+| **Trades** | entry, take profit, entry/target zones | ✅ |
+| **Risk** | stop loss, stop zone, invalidation level, risk/reward | ✅ |
+| **VWAP** | day VWAP with bands | — |
+| **Sessions** | session boundary boxes | — |
+| **News** | high-impact blackout windows | — |
+| **Order flow** | cumulative-delta state (or its UNAVAILABLE notice) | — |
+| **Regime** | trend / range / volatility readings | — |
+
+**The default is deliberately not everything.** A chart with every mark lit at
+once is unreadable, and an unreadable chart is one you stop checking. The default
+shows the decision-relevant core — structure, liquidity, imbalance, and the live
+trade with its risk. The other seven groups are one click away, and each chip
+shows how many annotations it holds so nothing is hidden *silently*.
+
 | Control | What it does |
 |---|---|
-| Layer chips | Show/hide a layer. **Hides marks; never drops data.** |
+| Layer chips (12) | Show/hide a group. **Hides marks; never drops data.** |
 | Higher timeframes | Toggle the HTF context band |
-| Clear all annotations | Hides every layer at once |
-| Reset default view | Restores all layers and the default zoom |
+| **Show all** | Enable all twelve groups |
+| **Hide all** | Disable all twelve (a clean candle chart) |
+| **Reset** | Back to the uncluttered default, plus default zoom |
 | Drag | Pan |
 | Wheel | Zoom |
 | Click a mark | Opens the provenance inspector |
@@ -106,6 +130,35 @@ why** — rather than quietly vanishing.
 
 ---
 
+## 2a. Derived visualization logic, declared (AUDIT 1)
+
+Everything above is read from engine state. These few things are **derived by
+this layer** rather than taken from the engine, so they are declared here rather
+than left for someone to discover:
+
+| Derived | What it is | Why it is not a second engine |
+|---|---|---|
+| **Weekly high/low** | max/min over candles aggregated into weeks, anchored **Monday 00:00 UTC** | The engine has no weekly concept at all, so there is nothing to contradict. The anchor is a display choice (the epoch was a Thursday, which would give Thursday→Wednesday "weeks"). |
+| **HTF swings** (`1d`/`4h`/`1h`) | the engine's own `SwingTracker` run over aggregated bars | Reuses the engine's model on a different timeframe; no parallel implementation. |
+| **`buyside-liquidity` / `sellside-liquidity`** | which side of the book a level implies | A labelling convention over `level.kind`, not a new detection. |
+| **`failed-breakout`** | a level with `sweptAt` set and `brokenAt` unset | A restatement of the engine's own sweep-vs-break distinction. |
+| **Confluence link classification** | which ingredient a fusion confirm/invalidate line refers to | Text grouping for display. The **score shown is the fusion engine's own**; nothing is re-scored. |
+| **Rejection categories** | mapping a veto name or failing step to a category | Grouping of reasons the engine recorded; the reasons themselves are verbatim. |
+
+### A real defect this audit caught
+
+The MTF layer used to compute **previous-day** high/low from UTC-midnight
+buckets, while the engine derives them on the **ICT trading day that rolls at
+18:00 ET**. Both were emitted as `previous-day-high`, so the chart drew **two
+different lines for the same concept — measured $279.56 apart on live data.**
+
+That is exactly the second-engine failure this layer exists to avoid. Fixed by
+deleting the duplicate: previous-day levels now come **only** from the engine's
+`pdh`/`pdl`. Locked by a regression test that fails if the MTF layer ever emits a
+previous-day level again.
+
+---
+
 ## 3. Higher-timeframe context
 
 HTF marks are visually and structurally separate from execution-timeframe
@@ -146,6 +199,66 @@ Where the engine recorded no explanation, the inspector says
 
 Order flow is `UNAVAILABLE` whenever the stream is not trusted. It is **never**
 estimated from candles, and the rationale says so explicitly.
+
+---
+
+## 5a. knownAt semantics — every annotation type (AUDIT 2)
+
+The table every look-ahead argument comes back to. **`eventTime`** = when the
+market did it. **`knownAt`** = the earliest moment the engine could report it.
+**Replay shows an annotation only once the cursor reaches its `knownAt`.**
+
+"Needs future candles?" is the column that matters: where it says **yes**, the
+object is confirmed by candles *after* the one it sits on, and drawing it at its
+event time would be a look-ahead lie.
+
+| Annotation type | Source engine state | eventTime | knownAt | Needs future candles? | Visible in replay from |
+|---|---|---|---|---|---|
+| `swing-high` / `swing-low` | `SwingTracker` | the swing candle | close of candle `index + swingLookback` | **yes** — needs `swingLookback` bars on the far side | the confirming candle |
+| `higher-high` / `higher-low` / `lower-high` / `lower-low` | `SwingTracker` (labelled) | the swing candle | close of candle `index + swingLookback` | **yes** | the confirming candle |
+| `bos` | `StructureTracker.shifts` | the breaking candle | same candle | no | the breaking candle |
+| `choch` | `StructureTracker.shifts` | the breaking candle | same candle | no | the breaking candle |
+| `dealing-range` | `analysis.dealingRange` | current candle | current candle | no (re-derived each candle) | immediately |
+| `fvg-bullish` / `fvg-bearish` | `FvgTracker` | `createdTime` | same | no | the creating candle |
+| `fvg-midpoint` | `FvgTracker` (live gaps only) | `createdTime` | same | no | the creating candle |
+| `fvg-mitigation` | `FvgTracker.state = mitigated` | **current candle** | same | no | the candle it is observed |
+| `fvg-invalidation` | `FvgTracker.invertedTime` | `invertedTime` | same | no | the inverting candle |
+| `order-block-*` | `OrderBlockTracker` | block candle `time` | same | no¹ | the block candle |
+| `breaker-block` | `OrderBlockTracker.state = broken` | block candle `time` | same | no | the block candle (role flips on break) |
+| `block-mitigation` | `OrderBlockTracker.mitigatedIndex` | candle at `mitigatedIndex` | same | no | the mitigating candle |
+| `block-invalidation` | `OrderBlockTracker.brokenTime` | `brokenTime` | same | no | the breaking candle |
+| `session-high` / `session-low` / `equal-highs` / `equal-lows` / `previous-day-high` / `previous-day-low` | `analysis.levels` (engine) | `level.time` | same | no | once the forming session/day closed |
+| `buyside-liquidity` / `sellside-liquidity` | `analysis.levels`, intact only | `level.time` | same | no | with the level |
+| `liquidity-sweep` | `analysis.sweepsToday` | sweep candle | same | no | the sweeping candle |
+| `liquidity-raid` | `analysis.swingSweepsToday` | raid candle | same | no | the raiding candle |
+| `failed-breakout` | `level.sweptAt && !brokenAt` | `sweptAt` | same | no | the sweeping candle |
+| `previous-week-high` / `previous-week-low` | aggregated candles (MTF) | period **start** | period **end** | **yes** — the week must close | the week's close |
+| HTF swings (`1d`/`4h`/`1h`) | `SwingTracker` on aggregated bars | the HTF swing bar | close of the confirming HTF bar | **yes** | the confirming HTF bar |
+| `silver-bullet-*` / `unicorn-setup` / `turtle-soup-setup` / `strategy-setup` | `StrategyVote` (action ≠ HOLD) | current candle | same | no | the voting candle |
+| `entry` / `stop-loss` / `take-profit` / zones / `risk-reward` / `invalidation-level` | `analysis.signal.plan` | current candle | same | no | the signalling candle |
+| `vwap` / `volatility-regime` / `trend-regime` / `range-regime` / `order-flow-state` | `analysis.features.*` | current candle | same | no | immediately |
+| `session-boundary` | `SessionTracker` | session `startTime` | same | no | the session open |
+| `news-marker` | news blackouts | blackout `start` | same | no | the blackout start |
+
+¹ The order block itself is identified retrospectively (it is the last opposite
+candle *before* a displacement), but the engine only ever **reports** it once the
+displacement has happened, and the annotation is only produced from the analysis
+at that later candle. So in replay it appears at the displacement, not at the
+block candle — the box is simply drawn back over its own candle, which is the
+normal way order blocks are displayed.
+
+**Two deliberately honest cases:**
+
+- **`fvg-mitigation`** — the engine records *that* a gap is mitigated but not
+  *when*. So the annotation is timestamped to the current candle and its
+  rationale says the exact moment is not recorded. It does **not** invent one.
+- **Block mitigation** — the engine *does* record `mitigatedIndex`, so the exact
+  candle is used. The difference between these two cases is the difference
+  between reporting and guessing.
+
+Enforced by `test/intel/audit.test.ts` (per-type rules), `test/intel/replay.test.ts`
+(frame-level leakage, including a deliberately poisoned frame) and
+`test/intel/mtf.test.ts` (HTF periods and swings).
 
 ---
 

@@ -304,3 +304,39 @@ export function filterByLayer(list: ChartAnnotation[], layers: AnnotationLayer[]
 export function noLookahead(list: ChartAnnotation[]): boolean {
   return list.every((a) => a.knownAt >= a.eventTime)
 }
+
+// ---------------------------------------------------------------
+// Logical identity vs runtime identity
+// ---------------------------------------------------------------
+
+/**
+ * `createdAt` records when the annotation OBJECT was built, so it moves with the
+ * wall clock even when the market input is identical. That is runtime identity,
+ * and it must never be mistaken for logical identity.
+ *
+ * LOGICAL identity is everything the annotation asserts about the market. Two
+ * runs over the same candles, the same config and the same engine version are
+ * required to agree on all of it — which is what replay comparison and snapshot
+ * tests actually care about. Comparing raw objects instead would make every
+ * snapshot spuriously fail one millisecond later.
+ */
+export type LogicalAnnotation = Omit<ChartAnnotation, 'createdAt'>
+
+export function logicalAnnotation(a: ChartAnnotation): LogicalAnnotation {
+  const { createdAt: _runtimeOnly, ...logical } = a
+  return logical
+}
+
+/**
+ * A stable digest of a whole annotation set's logical content — the thing to
+ * compare in a snapshot test. Order is normalised first, so two runs that emit
+ * the same annotations in a different order still agree.
+ */
+export function logicalDigest(list: ChartAnnotation[]): string {
+  return JSON.stringify(sortAnnotations(list).map(logicalAnnotation))
+}
+
+/** True when two annotation sets are logically identical, ignoring build time. */
+export function sameLogically(a: ChartAnnotation[], b: ChartAnnotation[]): boolean {
+  return logicalDigest(a) === logicalDigest(b)
+}

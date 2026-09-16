@@ -49,12 +49,12 @@ export type TimeframeAvailability = {
  * when it is COMPLETE — a half-formed higher-timeframe bar would be a small
  * look-ahead lie about where the period closed.
  */
-export function aggregateCandles(candles: Candle[], targetMinutes: number): Candle[] {
+export function aggregateCandles(candles: Candle[], targetMinutes: number, anchorMs = 0): Candle[] {
   if (targetMinutes <= 0 || !candles.length) return []
   const ms = targetMinutes * 60_000
   const byBucket = new Map<number, Candle[]>()
   for (const c of candles) {
-    const b = Math.floor(c.openTime / ms) * ms
+    const b = Math.floor((c.openTime - anchorMs) / ms) * ms + anchorMs
     const list = byBucket.get(b)
     if (list) list.push(c); else byBucket.set(b, [c])
   }
@@ -121,11 +121,20 @@ export function splitByBand(list: ChartAnnotation[], executionTimeframe: string)
 // Higher-timeframe annotations
 // ---------------------------------------------------------------
 
+/**
+ * Weeks are anchored to **Monday 00:00 UTC**, not to the epoch. The Unix epoch
+ * was a Thursday, so plain epoch bucketing would produce "weeks" running
+ * Thursday→Wednesday, which is not what anyone means by a weekly high. This is a
+ * VISUALIZATION choice and is documented as such; the engine has no weekly
+ * concept for it to disagree with.
+ */
+export const WEEK_ANCHOR_MS = 4 * 86_400_000 // 1970-01-05 was the first Monday
+
 /** The previous COMPLETE period's high and low, and when each became knowable. */
 type PeriodExtreme = { high: number; low: number; periodStart: number; periodEnd: number }
 
-function previousCompletePeriod(candles: Candle[], minutes: number, asOf: number): PeriodExtreme | null {
-  const bars = aggregateCandles(candles, minutes)
+function previousCompletePeriod(candles: Candle[], minutes: number, asOf: number, anchorMs = 0): PeriodExtreme | null {
+  const bars = aggregateCandles(candles, minutes, anchorMs)
   // The last bar whose period ENDED at or before `asOf` — the previous complete one.
   const done = bars.filter((b) => b.closeTime <= asOf)
   const prev = done[done.length - 1]
@@ -157,15 +166,27 @@ export function annotateHigherTimeframes(input: MtfInput): ChartAnnotation[] {
   const out: ChartAnnotation[] = []
   const avail = availableTimeframes(input.candles, input.executionTimeframe)
 
-  // --- previous complete week / day extremes -----------------------------
-  const periods: Array<{ tf: string; minutes: number; hi: AnnotationType; lo: AnnotationType; label: string }> = [
-    { tf: '1w', minutes: INTERVAL_MINUTES['1w'], hi: 'previous-week-high', lo: 'previous-week-low', label: 'week' },
-    { tf: '1d', minutes: INTERVAL_MINUTES['1d'], hi: 'previous-day-high', lo: 'previous-day-low', label: 'day' },
+  // --- previous complete WEEK extremes -----------------------------------
+  //
+  // Deliberately WEEK ONLY. The previous DAY's high and low are owned by the
+  // engine, which derives them on the ICT trading day that rolls at 18:00 ET
+  // (`config.ict.dayStartHour`) and publishes them as `pdh`/`pdl` levels —
+  // already annotated by `annotateLiquidity`. Computing them here from
+  // UTC-midnight buckets produced a SECOND, DIFFERENT previous-day line (measured
+  // at $279.56 away from the engine's on real data), which is precisely the
+  // "second trading engine" failure this layer exists to avoid. The engine is
+  // authoritative; we do not recompute what it already knows.
+  //
+  // The week is genuinely additive: the engine has no weekly concept at all, so
+  // there is nothing here to contradict. Its anchoring is a documented
+  // visualization choice (see WEEK_ANCHOR_MS).
+  const periods: Array<{ tf: string; minutes: number; hi: AnnotationType; lo: AnnotationType; label: string; anchor: number }> = [
+    { tf: '1w', minutes: INTERVAL_MINUTES['1w'], hi: 'previous-week-high', lo: 'previous-week-low', label: 'week', anchor: WEEK_ANCHOR_MS },
   ]
   for (const p of periods) {
     const ok = avail.find((x) => x.timeframe === p.tf)?.available
     if (!ok) continue
-    const ext = previousCompletePeriod(input.candles, p.minutes, input.asOf)
+    const ext = previousCompletePeriod(input.candles, p.minutes, input.asOf, p.anchor)
     if (!ext) continue
     for (const side of ['high', 'low'] as const) {
       out.push(makeAnnotation({
@@ -181,7 +202,7 @@ export function annotateHigherTimeframes(input: MtfInput): ChartAnnotation[] {
         price: side === 'high' ? ext.high : ext.low,
         direction: side === 'high' ? 'bearish' : 'bullish',
         dataQuality: 'REAL',
-        rationale: `Previous ${p.label} ${side} at $${(side === 'high' ? ext.high : ext.low).toFixed(2)}, from the ${p.tf} bar that closed ${new Date(ext.periodEnd).toISOString()}. Higher-timeframe context, not an execution signal.`,
+        rationale: `Previous ${p.label} ${side} at $${(side === 'high' ? ext.high : ext.low).toFixed(2)}, from the ${p.tf} bar (weeks anchored Monday 00:00 UTC) that closed ${new Date(ext.periodEnd).toISOString()}. Higher-timeframe context aggregated for display, not an execution signal, and not an engine level.`,
         lifecycleStatus: 'ACTIVE',
         invalidationCondition: `A ${p.tf} close beyond this level retires it as context.`,
         discriminator: `${p.tf}:${ext.periodStart}`,
