@@ -28,6 +28,11 @@ import { runBacktest } from './backtest/runner.ts'
 import { runCampaign, listCampaigns, getCampaign } from './factory/campaign.ts'
 import type { CampaignRecord } from './factory/campaign.ts'
 import { listPassports, getPassport, mint, champion, assessPromotion } from './vault/store.ts'
+import { fusedToSignal } from './fusion.ts'
+import { buildNarrationContext } from './ai/context.ts'
+import { narrate } from './ai/narrator.ts'
+import { cioDecision, decisionLabel } from './ai/cio.ts'
+import { proposeCampaigns } from './ai/researcher.ts'
 import { STRATEGIES, enabledStrategyIds, metaById, strategyIds } from './strategies/registry.ts'
 import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
@@ -390,6 +395,39 @@ const server = createServer(async (req, res) => {
     if (path === '/api/decision') {
       const snap = await safely(() => snapshot())
       json(res, 200, snap.ok ? { ok: true, data: snap.data.decision } : snap)
+      return
+    }
+    if (path === '/api/narrate') {
+      const snap = await safely(() => snapshot())
+      if (!snap.ok) { json(res, 200, snap); return }
+      const s = snap.data
+      const price = s.signal.price
+      const features = s.analysis?.features ?? null
+      const decision = s.decision
+      // The risk verdict on the fused decision, so the narration's "current decision" is the fused decision AFTER risk.
+      const positions = readPositions()
+      const eq = equity(); const peak = Math.max(equityPeak(), eq)
+      const last = s.candles[s.candles.length - 1]
+      const tk = marketFeed.latestTicker
+      const gate = entriesAllowed()
+      const state: RiskState = {
+        now: Date.now(), killSwitch: { ok: gate.ok, reason: gate.ok ? '' : gate.reason },
+        candleAgeSec: last ? (Date.now() - last.closeTime) / 1000 : null,
+        spreadPct: tk && tk.bid > 0 && tk.ask > 0 ? ((tk.ask - tk.bid) / ((tk.ask + tk.bid) / 2)) * 100 : null,
+        openPositions: positions.open.length, openNotionalUsd: openNotionalUsd(),
+        today: todaysPaperStats(tradingDayKey(Date.now())), equityUsd: eq, peakEquityUsd: peak,
+      }
+      const fusedSig = decision ? fusedToSignal(decision, price, Date.now()) : null
+      const verdict = fusedSig && (fusedSig.action === 'BUY' || fusedSig.action === 'SELL') ? assess({ signal: fusedSig }, state) : null
+      const ctx = buildNarrationContext({ price, features, decision, risk: verdict })
+      const call = cioDecision(ctx.decision, ctx.risk)
+      const status = await aiStatus()
+      const aiFn = status.available
+        ? async (prompt: string, system: string) => (await askAI(prompt, '', [], () => {}, undefined, { name: 'Narrator', system })).text
+        : undefined
+      const narration = await narrate(ctx, aiFn)
+      const research = proposeCampaigns({ tunableStrategyIds: strategyIds().filter((id) => (metaById().get(id)?.parameters?.length ?? 0) > 0), passports: listPassports() })
+      json(res, 200, { ok: true, data: { context: ctx, narration, cio: { ...call, label: decisionLabel(call) }, research, aiAvailable: status.available } })
       return
     }
     if (path === '/api/strategies' && req.method === 'GET') {

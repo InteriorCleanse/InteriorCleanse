@@ -276,6 +276,26 @@ Quality score (informational): +MSS, +sweep depth, +bias alignment,
   Surfaced as `npm run vault` (and `-- --mint <campaignId> --genome <id>`), the
   `/api/vault/*` routes, and a *Vault* tab. It **trades nothing and promotes
   nothing to live automatically.**
+- **The AI layer** (`src/ai/`) explains the engine; it never forms or places a
+  decision. `context.ts` assembles a `NarrationContext` from the feature
+  snapshot, the fused decision and the risk verdict — the only facts the model
+  may speak about — and collects every number it may quote. `narrator.ts` pins
+  the fixed five-section format (market read → what confirms → what invalidates
+  → current decision → why not yet), builds the prompt, and ships a
+  `deterministicNarration` that always satisfies the format and cites only
+  context numbers, so the feature works with no AI key and offline; a
+  `validateNarration` rejects a missing section or a number outside the context,
+  and `narrate` falls back to the deterministic text when the AI is unavailable
+  or off-format (the refusal path in `ai.ts` is unchanged). `cio.ts` defines the
+  reported decision as **exactly the fused decision after risk** (an actionable
+  side risk vetoes becomes NO TRADE; a WATCH/NO TRADE passes through) — the one
+  definition the narrator, the API and the MCP all use, so the CIO can never
+  drift from what the engine would do. `researcher.ts` proposes factory
+  campaign specs (as data, ordered by priority) but **never runs one** — a spec
+  runs only on an explicit click. Surfaced as `GET /api/narrate`, a *Market
+  read* button on the Today tab, three new hats in `skills.ts` (CIO, Narrator,
+  Researcher), and three read-only MCP tools (`market_read`, `decision`,
+  `vault`). **No AI-generated orders, ever.**
 - **Regime** (`src/features/regime.ts`) is a shared reading on every
   `FeatureSnapshot`: one of `trending-up`, `trending-down`, `ranging`,
   `breakout`, `transition`, plus volatility `low/normal/high`, from five

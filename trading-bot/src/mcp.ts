@@ -26,6 +26,10 @@ import { readPlan, writePlan } from './plan.ts'
 import { readJournal, journalSummaryForAI } from './journal.ts'
 import { runDoctor } from './doctor.ts'
 import { paperStats } from './paperTrader.ts'
+import { buildNarrationContext } from './ai/context.ts'
+import { deterministicNarration } from './ai/narrator.ts'
+import { cioDecision, decisionLabel } from './ai/cio.ts'
+import { listPassports } from './vault/store.ts'
 import { MarketDataError, explainMarketDataError } from './market.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -67,6 +71,44 @@ const TOOLS: Tool[] = [
       if (!s.state) return 'No market state available.'
       const st = s.state
       return [`${st.trend.toUpperCase()} — strength ${st.strength}/100 — ${st.continuation.label} (${st.continuation.score}/100). Volatility ${st.volatility}.`, ...st.evidence.map((e) => `• ${e}`), ...st.continuation.reasons.map((r) => `  ${r}`), ...(st.watchOuts.length ? ['Watch out for:', ...st.watchOuts.map((w) => `! ${w}`)] : [])].join('\n')
+    },
+  },
+  {
+    name: 'market_read',
+    description: 'The market read in the fixed five-section format (market read → what confirms → what invalidates → current decision → why not yet), built only from the engine\'s features and fused decision. Read-only; it decides and places nothing.',
+    inputSchema: noInput,
+    run: async () => {
+      const s = await analyzeNow()
+      const ctx = buildNarrationContext({ price: s.signal.price, features: s.analysis?.features ?? null, decision: s.decision, risk: null })
+      return `${deterministicNarration(ctx)}\n\n(Risk is applied in the app; this read shows the fused decision before the risk veto.)`
+    },
+  },
+  {
+    name: 'decision',
+    description: 'The fused decision from the strategy panel: the action, the agreement score, what confirms it and what argues against. Read-only.',
+    inputSchema: noInput,
+    run: async () => {
+      const s = await analyzeNow()
+      const d = s.decision
+      if (!d) return 'No fused decision available.'
+      const call = cioDecision(d, null)
+      return [
+        `Decision: ${decisionLabel(call)} — ${d.reason}`,
+        `Score ${d.score} vs enter threshold ${d.enterScore}.`,
+        ...(d.confirms.length ? ['Confirms:', ...d.confirms.map((c) => `• ${c}`)] : []),
+        ...(d.invalidates.length ? ['Invalidates / missing:', ...d.invalidates.map((c) => `• ${c}`)] : []),
+        '(Fused decision before the risk veto; the app applies risk.)',
+      ].join('\n')
+    },
+  },
+  {
+    name: 'vault',
+    description: 'The strategy vault: every passport with its stage (candidate/paper/shadow/live/watch), out-of-sample edge and decay status. Read-only; nothing here trades.',
+    inputSchema: noInput,
+    run: async () => {
+      const ps = listPassports()
+      if (!ps.length) return 'The vault is empty — no passports minted yet.'
+      return ps.map((p) => `${p.strategyId} [${p.status}] OOS ${p.oos.trades} trades @ ${p.oos.avgR === null ? '—' : p.oos.avgR.toFixed(3)}R, floor ${p.oosLowerAvgR.toFixed(3)}R, decay ${p.decay.decaying ? 'DECAYING' : 'ok'}`).join('\n')
     },
   },
   {

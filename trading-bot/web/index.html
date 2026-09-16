@@ -173,9 +173,11 @@
       <button class="btn ghost" id="btn-journal-now">Journal this moment</button>
       <button class="btn ghost" id="btn-card">Share card</button>
       <button class="btn ghost" id="btn-read" title="Mr. Cash reads the brief aloud">🔊 Read it to me</button>
+      <button class="btn ghost" id="btn-narrate" title="The market read in five sections, from the engine">🗣 Market read</button>
       <button class="btn danger" id="btn-kill" title="Kill switch: no new positions until you resume">⏹ Stop</button>
       <span class="muted" id="today-status"></span>
     </div>
+    <div id="narrate-out"></div>
     <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market, the news and the order book…</div></div>
   </section>
 
@@ -531,6 +533,34 @@ function renderToday() {
   const pc = $('btn-plan-clear'); if (pc) pc.onclick = async () => { setBusy(true); await call('/api/plan/clear', {method:'POST'}); setBusy(false); loadToday(false) }
 }
 $('btn-refresh').onclick = () => loadToday(true)
+
+// ---------- AI market read (narrator + CIO + researcher) ----------
+function narrateSections(text) {
+  // Split the five-section markdown into titled blocks.
+  const parts = text.split(/\n?##\s+/).filter(Boolean)
+  return parts.map(p => { const i = p.indexOf('\n'); const title = i < 0 ? p : p.slice(0, i); const body = i < 0 ? '' : p.slice(i + 1); return `<div style="margin-top:8px"><div class="k" style="text-transform:uppercase;font-size:11px;letter-spacing:.05em;color:var(--dim)">${esc(title.trim())}</div><div>${esc(body.trim()).replace(/\n/g,'<br>')}</div></div>` }).join('')
+}
+async function loadNarrate() {
+  if (busy) return
+  setBusy(true); $('today-status').innerHTML = '<span class="spin">◐</span> reading the market…'
+  const r = await call('/api/narrate'); setBusy(false); $('today-status').textContent = ''
+  if (!r.ok) { $('narrate-out').innerHTML = errBox(r.error); return }
+  const d = r.data, n = d.narration, call2 = d.cio
+  const src = n.source === 'ai' ? 'written by the assistant' : 'from the engine' + (d.aiAvailable ? ' (assistant answer did not pass the format check)' : '')
+  let html = `<div class="card"><h2>Market read — decision: ${esc(call2.label)}</h2>${narrateSections(n.text)}<div class="muted" style="margin-top:10px">${esc(src)}. The decision shown is the fused decision after risk; nothing here places or approves a trade.</div>`
+  if (d.research && d.research.length) {
+    html += `<div style="margin-top:10px"><div class="k" style="text-transform:uppercase;font-size:11px;color:var(--dim)">Research proposals</div>${d.research.map(s=>`<div class="plain" style="margin-top:6px"><b>${esc(s.strategyId)}</b> — ${esc(s.method)} search. ${esc(s.rationale)} <button class="btn ghost" data-run-campaign="${esc(s.strategyId)}" data-method="${esc(s.method)}">Run this</button></div>`).join('')}<div class="muted" style="margin-top:6px">Proposals are suggestions. A campaign runs only when you click — the researcher never starts one itself.</div></div>`
+  }
+  html += `</div>`
+  $('narrate-out').innerHTML = html
+  document.querySelectorAll('#narrate-out [data-run-campaign]').forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = 'running…'
+    await call(`/api/factory/run?id=${encodeURIComponent(b.dataset.runCampaign)}&method=${encodeURIComponent(b.dataset.method)}`)
+    b.textContent = 'done — see Factory tab'
+  })
+}
+$('btn-narrate') && ($('btn-narrate').onclick = loadNarrate)
+
 $('btn-scan').onclick = async () => {
   if (busy) return
   setBusy(true); $('today-status').innerHTML = '<span class="spin">◐</span> deciding…'

@@ -897,6 +897,7 @@ src/
   backtest/              out-of-sample split, walk-forward, Monte Carlo, honest R metrics
   factory/               breed strategy settings; keep only survivors that hold up out-of-sample
   vault/                 passports: the strategy lifecycle, decay detection, champion-challenger
+  ai/                    the market read (narrator), the CIO (decision after risk), the researcher
   strategy.ts            the simple crossover strategy
   strategies/            the playbook: one interface, many strategies, each judged alone
     types.ts, registry.ts   the Strategy interface and the list of them
