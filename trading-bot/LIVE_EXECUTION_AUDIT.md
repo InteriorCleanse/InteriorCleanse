@@ -117,12 +117,36 @@ The safety rests on it being **unwired** and on `LIVE_TRADING_ENABLED` being a
 That is the intended, human-gated activation path — but it means the tree is not
 *incapable* of live trading, only *not currently wired for it*.
 
-**Recommendations (non-blocking):**
+**Recommendations (both now implemented):**
 - Keep the self-test assertion `LIVE_TRADING_ENABLED === false` as a CI gate
   (present: `selftest.ts:359`). ✅
-- Consider a CI grep that fails if any file outside `src/live/` or
-  `src/exchange/binanceTrade.ts` imports the order path — turning "unwired" into
-  an enforced invariant. *(Suggested; not yet present.)*
+- A CI guard that fails if any file outside the allow-list imports the order
+  path — turning "unwired" into an **enforced invariant** rather than a property
+  that merely happens to hold today. ✅ **Implemented:**
+  `test/orderPathGuard.test.ts`.
+
+### The order-path guard (`test/orderPathGuard.test.ts`)
+
+Six assertions, run on every CI build:
+
+1. **Nothing in the running application imports the order path.** Any file
+   outside `src/live/{trader,orders,reconcile}.ts` and
+   `src/exchange/binanceTrade.ts` that imports it fails the build, naming the
+   offending file.
+2. Order-placing methods (`marketBuy`/`marketSell`/`ocoSell`/`cancelAll`) appear
+   in exactly two files and nowhere else.
+3. The write-capable endpoints (`/api/v3/order`, `/api/v3/orderList`) stay inside
+   the trade adapter.
+4. No HTTP route the server registers looks like it could submit an order, and
+   `/api/live/status` does not accept POST.
+5. `LIVE_TRADING_ENABLED`, `config.live.enabled` and `config.shadow.enabled` are
+   all still `false`.
+6. This audit document still describes the tree it audited.
+
+The guard was **verified to fail**, not merely to pass: importing `openLive` into
+`src/watch.ts` makes assertion 1 fail and print the offending path with an
+explanation. A guard that has never been seen to fire is not evidence of
+anything.
 
 ---
 

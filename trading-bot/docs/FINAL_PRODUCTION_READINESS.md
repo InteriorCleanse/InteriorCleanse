@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**339 tests, 338 pass, 1 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**437 tests, 437 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -28,26 +28,26 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 338/339 pass; the 1 todo is stale-but-passing (see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 437/437 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
-| Documentation | **PASS** (with minor WARNING) | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. **WARNING:** recommend adding a CI import-guard (below) and, optionally, retiring the stale todo marker. |
+| Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 
 ---
 
-## The one TODO — verdict: **SAFE TO LEAVE**
+## The one TODO — **now retired** (was: SAFE TO LEAVE)
 
-`test/memory.test.ts:29` — *"a newline inside a quoted reason splits the row"*,
+`test/memory.test.ts` — *"a newline inside a quoted reason splits the row"*, was
 marked `{ todo: 'the CSV reader is line-based …' }`.
 
-- The test **currently passes** (`ok … # TODO`): `readLedger()` reads **SQLite**
-  (`store().readLedger()`, `memory.ts:50`), which round-trips embedded newlines
-  correctly. The flagged line-based CSV parser is **no longer in any data path**.
-- `data/ledger.csv` is a **write-only** human mirror; nothing parses it back
-  (all `readLedger` consumers go through the store).
-- Therefore the limitation has **zero decision/production impact**. It is a stale
-  documentation marker. *Optional* cleanup: convert it to a normal passing test.
+The marker was **stale, not deferred work**: `readLedger()` reads **SQLite**
+(`store().readLedger()`, `memory.ts:50`), which round-trips embedded newlines
+correctly, and `data/ledger.csv` is a **write-only** human mirror that nothing
+parses back. The flagged line-based CSV parser had not been in any data path
+since Phase 3, so the limitation had zero decision/production impact.
 
-**Not a production blocker.**
+It has been converted into a normal passing test with a **stronger** assertion
+than the original: the row does not split *and* the reason's content — newline
+included — is preserved exactly. The suite now reports **0 todo**.
 
 ---
 
@@ -61,14 +61,20 @@ production blocker. No `placeholder`/`temp`/`example` shortcuts in production co
 
 ---
 
-## Recommended (non-blocking) hardening
+## Recommended (non-blocking) hardening — **all three now done**
 
-1. **CI import-guard**: fail the build if any file outside `src/live/` or
-   `src/exchange/binanceTrade.ts` imports the order-placing path — this turns
-   today's "unwired" property into an enforced invariant. *(Not yet present.)*
-2. Retire the stale `todo` marker in `test/memory.test.ts` (cosmetic).
-3. Keep `LIVE_TRADING_ENABLED === false` in the self-test as a permanent CI gate
-   (already present, `selftest.ts:359`).
+1. **CI import-guard**: ✅ **implemented** as `test/orderPathGuard.test.ts`. It
+   fails the build if any file outside the allow-list imports the order-placing
+   path, if an order verb or write-capable endpoint appears outside the trade
+   adapter, if a route looks like it could submit an order, or if any of the
+   three safety flags stops being `false`. It was verified to **fail** on a
+   deliberately introduced violation, not merely to pass. See
+   `LIVE_EXECUTION_AUDIT.md` for the full assertion list.
+2. Retire the stale `todo` marker in `test/memory.test.ts`: ✅ **done** — replaced
+   by a normal passing test with a stronger assertion. The suite reports 0 todo.
+3. Keep `LIVE_TRADING_ENABLED === false` in the self-test as a permanent CI gate:
+   ✅ already present (`selftest.ts:359`), and now additionally asserted by the
+   order-path guard.
 
 ---
 

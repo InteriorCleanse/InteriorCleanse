@@ -26,10 +26,21 @@ test('ledger rows survive commas and quotes in the reason', () => {
   assert.equal(rows[0].outcome, 'WIN')
 })
 
-test('a newline inside a quoted reason splits the row', { todo: 'Known limitation: the CSV reader is line-based. No current reason contains a newline. Phase 3 (the store) removes the CSV as the source of truth.' }, () => {
+/**
+ * This used to be a `todo`, documenting a line-based CSV reader that split a row
+ * whenever a reason contained a newline. That limitation is gone: since Phase 3
+ * the store (SQLite) is the source of truth and `readLedger()` reads from it,
+ * while `data/ledger.csv` is a write-only human mirror that nothing parses back.
+ * So the behaviour is now asserted properly rather than excused — a newline
+ * survives the round trip intact, content included.
+ */
+test('a newline inside a reason survives the round trip', () => {
   m.resetMemory()
-  m.appendLedgerRow({ timestamp: '2026-01-15T13:30:00.000Z', symbol: 'BTCUSDT', action: 'BUY', price: 1, quantity: 1, reason: 'line one\nline two', mode: 'replay-raw', outcome: 'WIN', pnl: 0 })
-  assert.equal(m.readLedger().length, 1)
+  const reason = 'line one\nline two'
+  m.appendLedgerRow({ timestamp: '2026-01-15T13:30:00.000Z', symbol: 'BTCUSDT', action: 'BUY', price: 1, quantity: 1, reason, mode: 'replay-raw', outcome: 'WIN', pnl: 0 })
+  const rows = m.readLedger()
+  assert.equal(rows.length, 1, 'one row in, one row out — the newline must not split it')
+  assert.equal(rows[0].reason, reason, 'the newline and both lines must be preserved exactly')
   m.resetMemory()
 })
 
