@@ -11,19 +11,29 @@
  * These are regression invariants, not feature tests: if one fails, the layer
  * has started influencing or misrepresenting the engine.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { setupDay } from '../fixtures/candles.ts'
-import { IctEngine } from '../../src/ictStrategy.ts'
-import { contextFor, voteAll, metaById } from '../../src/strategies/registry.ts'
-import { fuse } from '../../src/fusion.ts'
-import { annotate } from '../../src/intel/annotate.ts'
 import type { EngineView } from '../../src/intel/annotate.ts'
-import { annotateHigherTimeframes } from '../../src/intel/mtf.ts'
-import { sameLogically, logicalDigest, logicalAnnotation, noLookahead } from '../../src/intel/types.ts'
 import type { ChartAnnotation } from '../../src/intel/types.ts'
-import { config } from '../../config.ts'
 import type { IctAnalysis, Candle } from '../../src/types.ts'
+
+// Isolate the data directory BEFORE loading anything that reads it. `DATA_DIR`
+// is a top-level const captured at import time, and `voteAll` reaches the
+// SQLite store through the settings lookup — so a static import here would
+// bind this file to the SHARED default store and race every other test file
+// running in parallel ("database is locked").
+const tmp = tempDataDir('mrcash-intel-audit-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { IctEngine } = await import('../../src/ictStrategy.ts')
+const { contextFor, voteAll, metaById } = await import('../../src/strategies/registry.ts')
+const { fuse } = await import('../../src/fusion.ts')
+const { annotate } = await import('../../src/intel/annotate.ts')
+const { annotateHigherTimeframes } = await import('../../src/intel/mtf.ts')
+const { sameLogically, logicalDigest, logicalAnnotation, noLookahead } = await import('../../src/intel/types.ts')
+const { config } = await import('../../config.ts')
+after(() => tmp.cleanup())
 
 function engineRun() {
   const { candles, retestAt } = setupDay()

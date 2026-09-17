@@ -4,14 +4,21 @@
  * — naming the gate — on one that breaks it. Read-only opinions; none of them
  * changes the frozen session model.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { silverBullet, SILVER_BULLET_HOURS } from '../../src/strategies/silverBullet.ts'
 import { unicorn } from '../../src/strategies/unicorn.ts'
 import { turtleSoup } from '../../src/strategies/turtleSoup.ts'
-import { strategyIds } from '../../src/strategies/registry.ts'
 import type { IctAnalysis, FVG, OrderBlock, Sweep } from '../../src/types.ts'
 import type { StrategyContext } from '../../src/strategies/types.ts'
+
+// Isolate the data directory before loading anything that captures DATA_DIR.
+// Static imports are hoisted, so the assignment must precede a dynamic import.
+const tmp = tempDataDir('mrcash-ict-stories-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { strategyIds } = await import('../../src/strategies/registry.ts')
+after(() => tmp.cleanup())
 
 function fvg(o: Partial<FVG>): FVG {
   return { id: 'f', direction: 'bullish', top: 105, bottom: 100, createdIndex: 8, createdTime: 0, sizeAtr: 1.2, fromDisplacement: true, state: 'fresh', ...o }

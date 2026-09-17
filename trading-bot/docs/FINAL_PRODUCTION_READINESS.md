@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**459 tests, 459 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**479 tests, 479 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -28,7 +28,7 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 459/459 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 479/479 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
 | Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 

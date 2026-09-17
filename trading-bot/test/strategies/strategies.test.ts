@@ -4,16 +4,22 @@
  * built to break it; and the ICT session strategy's vote is byte-identical
  * to the session model's own signal on the baseline fixture day.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { setupDay } from '../fixtures/candles.ts'
 import { IctEngine } from '../../src/ictStrategy.ts'
-import { contextFor } from '../../src/strategies/registry.ts'
-import { STRATEGIES, getStrategy, strategyIds } from '../../src/strategies/registry.ts'
 import { sessionIfvg } from '../../src/strategies/sessionIfvg.ts'
 import type { Candle } from '../../src/types.ts'
 import type { FeatureSnapshot } from '../../src/features/types.ts'
 import type { StrategyContext } from '../../src/strategies/types.ts'
+
+// Isolate the data directory before loading anything that captures DATA_DIR.
+// Static imports are hoisted, so the assignment must precede a dynamic import.
+const tmp = tempDataDir('mrcash-strategies-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { contextFor, STRATEGIES, getStrategy, strategyIds } = await import('../../src/strategies/registry.ts')
+after(() => tmp.cleanup())
 
 const STEP = 300_000
 const t0 = Date.UTC(2026, 0, 15, 14, 0)

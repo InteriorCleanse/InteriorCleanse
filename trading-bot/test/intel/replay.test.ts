@@ -8,14 +8,24 @@
  * The frames are built by stepping the REAL engine one candle at a time, so
  * these assertions are about the actual system, not a stub of it.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { setupDay } from '../fixtures/candles.ts'
-import { IctEngine } from '../../src/ictStrategy.ts'
-import { contextFor, voteAll, metaById } from '../../src/strategies/registry.ts'
-import { fuse } from '../../src/fusion.ts'
-import { buildReplayFrames, auditFrames, isLeakFree, frameAt, jumpToEvent, eventFrameIndices } from '../../src/intel/replay.ts'
 import type { ReplayIntel } from '../../src/intel/replay.ts'
+
+// Isolate the data directory BEFORE loading anything that reads it. `DATA_DIR`
+// is a top-level const captured at import time, and `voteAll` reaches the
+// SQLite store through the settings lookup — so a static import here would
+// bind this file to the SHARED default store and race every other test file
+// running in parallel ("database is locked").
+const tmp = tempDataDir('mrcash-intel-replay-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { IctEngine } = await import('../../src/ictStrategy.ts')
+const { contextFor, voteAll, metaById } = await import('../../src/strategies/registry.ts')
+const { fuse } = await import('../../src/fusion.ts')
+const { buildReplayFrames, auditFrames, isLeakFree, frameAt, jumpToEvent, eventFrameIndices } = await import('../../src/intel/replay.ts')
+after(() => tmp.cleanup())
 
 const NOW = 1_700_000_000_000
 

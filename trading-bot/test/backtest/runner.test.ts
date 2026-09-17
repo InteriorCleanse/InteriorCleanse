@@ -4,10 +4,17 @@
  * quietly scored on a candle approximation. (The full candle-replay paths are
  * exercised end-to-end elsewhere; here we pin the refusal, which needs no feed.)
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { runBacktest } from '../../src/backtest/runner.ts'
-import { metaById, strategyIds } from '../../src/strategies/registry.ts'
+
+// Isolate the data directory before loading anything that captures DATA_DIR.
+// Static imports are hoisted, so the assignment must precede a dynamic import.
+const tmp = tempDataDir('mrcash-backtest-runner-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { metaById, strategyIds } = await import('../../src/strategies/registry.ts')
+after(() => tmp.cleanup())
 
 test('an unknown id is rejected before any replay is attempted', async () => {
   await assert.rejects(() => runBacktest('no-such-strategy'), /Unknown strategy/)

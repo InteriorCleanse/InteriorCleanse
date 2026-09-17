@@ -8,19 +8,26 @@
  * lifecycles are mapped from engine state rather than decided here, and a value
  * the engine could not supply is reported UNAVAILABLE instead of invented.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { setupDay } from '../fixtures/candles.ts'
-import { IctEngine } from '../../src/ictStrategy.ts'
-import { contextFor, voteAll, metaById } from '../../src/strategies/registry.ts'
-import { fuse } from '../../src/fusion.ts'
-import {
-  annotate, annotateStructure, annotateLiquidity, annotateImbalance,
-  annotateOrderBlocks, annotateStrategies, annotateTradeMap, annotateContext,
-} from '../../src/intel/annotate.ts'
 import type { EngineView } from '../../src/intel/annotate.ts'
-import { noLookahead, knowableAt, annotationId, ANNOTATION_SCHEMA_VERSION } from '../../src/intel/types.ts'
 import type { IctAnalysis } from '../../src/types.ts'
+
+// Isolate the data directory BEFORE loading anything that reads it. `DATA_DIR`
+// is a top-level const captured at import time, and `voteAll` reaches the
+// SQLite store through the settings lookup — so a static import here would
+// bind this file to the SHARED default store and race every other test file
+// running in parallel ("database is locked").
+const tmp = tempDataDir('mrcash-intel-annotate-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { IctEngine } = await import('../../src/ictStrategy.ts')
+const { contextFor, voteAll, metaById } = await import('../../src/strategies/registry.ts')
+const { fuse } = await import('../../src/fusion.ts')
+const { annotate, annotateStructure, annotateLiquidity, annotateImbalance, annotateOrderBlocks, annotateStrategies, annotateTradeMap, annotateContext } = await import('../../src/intel/annotate.ts')
+const { noLookahead, knowableAt, annotationId, ANNOTATION_SCHEMA_VERSION } = await import('../../src/intel/types.ts')
+after(() => tmp.cleanup())
 
 const NOW = 1_700_000_000_000
 

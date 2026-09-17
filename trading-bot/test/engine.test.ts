@@ -3,16 +3,23 @@
  * the documented evidence, the quiet day never fires, the risk module
  * sizes from the stop, and the session clock survives the DST switch.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from './helpers.ts'
 import { setupDay, noSetupDay, bothHitCandle, dstFallBackCandles, mk } from './fixtures/candles.ts'
 import { IctEngine } from '../src/ictStrategy.ts'
 import { checkRisk } from '../src/risk.ts'
 import { toET, tradingDayKey, sessionAt } from '../src/sessions.ts'
-import { evaluateExit } from '../src/paperTrader.ts'
 import type { PaperPosition } from '../src/paperTrader.ts'
 import type { Signal } from '../src/types.ts'
 import { config } from '../config.ts'
+
+// Isolate the data directory before loading anything that captures DATA_DIR.
+// Static imports are hoisted, so the assignment must precede a dynamic import.
+const tmp = tempDataDir('mrcash-engine-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { evaluateExit } = await import('../src/paperTrader.ts')
+after(() => tmp.cleanup())
 
 test('the setup day produces exactly one BUY, at the retest candle, with the full evidence list', () => {
   const { candles, retestAt } = setupDay()

@@ -3,13 +3,20 @@
  * (LOT_SIZE, tick, min-notional), and the scorer must judge which OCO leg the
  * real trades would have hit. Pure over its inputs; nothing is ever sent.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { tempDataDir } from '../helpers.ts'
 import { filtersForSymbol } from '../../src/exchange/filters.ts'
-import { buildShadowOrder } from '../../src/shadow/recorder.ts'
 import { scoreShadowOrder } from '../../src/shadow/scorer.ts'
 import type { ExchangeInfo } from '../../src/exchange/types.ts'
 import type { Signal } from '../../src/types.ts'
+
+// Isolate the data directory before loading anything that captures DATA_DIR.
+// Static imports are hoisted, so the assignment must precede a dynamic import.
+const tmp = tempDataDir('mrcash-shadow-')
+process.env.MRCASH_DATA_DIR = tmp.dir
+const { buildShadowOrder } = await import('../../src/shadow/recorder.ts')
+after(() => tmp.cleanup())
 
 const INFO: ExchangeInfo = {
   serverTime: 0,
