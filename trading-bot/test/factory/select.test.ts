@@ -42,14 +42,14 @@ function badOos(): TradeLike[] {
 }
 function report(oos: TradeLike[]): BacktestReport {
   const empty = computeMetrics([])
-  return { strategy: 't', window: null, all: computeMetrics(oos), inSample: empty, validation: empty, outOfSample: computeMetrics(oos), walkForward: null, monteCarlo: monteCarlo([]), notes: [], notBacktestable: null }
+  return { strategy: 't', window: null, all: computeMetrics(oos), inSample: empty, validation: computeMetrics(oos), outOfSample: computeMetrics(oos), walkForward: null, monteCarlo: monteCarlo([]), notes: [], notBacktestable: null }
 }
 function evalFor(a: number, oos: TradeLike[]): GenomeEvaluation {
   const genome: Genome = { strategyId: 't', params: { a } }
   return { id: genomeId(genome), genome, report: report(oos) }
 }
 
-test('a genome that only wins in-sample is rejected on the out-of-sample number', () => {
+test('a genome that only wins in-sample is rejected on the selection segment', () => {
   // The report's `all`/in-sample would look fine; selection judges OOS only, which is losing.
   const r = select([evalFor(2, badOos())], schema, criteria, 1)
   assert.equal(r.survivors.length, 0)
@@ -73,7 +73,7 @@ test('a genome on a profitable plateau survives every gate', () => {
   const r = select(evals, schema, criteria, 3)
   const winner = r.survivors.find((j) => j.evaluation.genome.params.a === 2)
   assert.ok(winner, 'the stable, profitable genome should survive')
-  assert.ok(winner!.reasons.some((x) => x.includes('Survived every gate')))
+  assert.ok(winner!.reasons.some((x) => x.includes('Survived selection')))
 })
 
 test('the trial count is recorded and changes the verdict', () => {

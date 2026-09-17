@@ -12,9 +12,9 @@ function paramStr(params: Record<string, number>): string {
 }
 
 function judgedLine(j: Judged): string {
-  const oos = j.oosAvgR === null ? '—' : `${j.oosAvgR.toFixed(3)}R`
+  const oos = j.selectionAvgR === null ? "—" : `${j.selectionAvgR.toFixed(3)}R`
   const conf = `${Math.round(j.deflated.probability * 100)}%`
-  return `  ${paramStr(j.evaluation.genome.params).padEnd(22)} OOS ${String(j.oosTrades).padStart(3)} trades · ${oos} avg · stability ${(j.stabilityShare * 100).toFixed(0)}% · deflated ${conf}`
+  return `  ${paramStr(j.evaluation.genome.params).padEnd(22)} sel ${String(j.selectionTrades).padStart(3)} trades · ${oos} avg · stability ${(j.stabilityShare * 100).toFixed(0)}% · deflated ${conf}`
 }
 
 export function campaignLines(rec: CampaignRecord): string[] {

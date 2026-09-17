@@ -19,7 +19,7 @@ function mk(i: number, r: number): TradeLike {
 }
 function report(oos: TradeLike[]): BacktestReport {
   const empty = computeMetrics([])
-  return { strategy: 'crossover', window: null, all: computeMetrics(oos), inSample: empty, validation: empty, outOfSample: computeMetrics(oos), walkForward: null, monteCarlo: monteCarlo([]), notes: [], notBacktestable: null }
+  return { strategy: 'crossover', window: null, all: computeMetrics(oos), inSample: empty, validation: computeMetrics(oos), outOfSample: computeMetrics(oos), walkForward: null, monteCarlo: monteCarlo([]), notes: [], notBacktestable: null }
 }
 // A deterministic scorer: one sweet spot performs, everything else loses.
 function makeStub(): { fn: BacktestFn; calls: () => number } {
