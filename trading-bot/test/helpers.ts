@@ -5,9 +5,10 @@
  *                       and the news feeds, with deterministic SYNTHETIC
  *                       data. It exists so the code paths can be exercised;
  *                       the numbers mean nothing.
- *   startBot()        — the real server (src/server.ts) as a child process
- *                       on a random port with a temporary data folder and
- *                       the mock feeds wired in.
+ *   startBot()        — the real server (src/server.ts) as a child process on a
+ *                       port the OS hands out, with a temporary data folder and
+ *                       the mock feeds wired in. It throws rather than return a
+ *                       server that turns out not to be ours.
  *   tempDataDir()     — a throwaway data folder; set MRCASH_DATA_DIR before
  *                       importing any src module that persists.
  */
@@ -122,10 +123,43 @@ export async function startMockFeeds(opts: { seed?: number; days?: number } = {}
 
 export type RunningBot = { base: string; dir: string; child: ChildProcess; stop: () => void; token: () => Promise<string>; post: (path: string, body?: unknown, extraHeaders?: Record<string, string>) => Promise<Response> }
 
+/**
+ * A port the OS says is free RIGHT NOW.
+ *
+ * The previous version of `startBot` guessed — `4300 + random(600)` — which is a
+ * lottery rather than an allocation, and it lost in the ugliest possible way.
+ * The readiness probe below used to fetch `/api/health` BEFORE checking whether
+ * the child had died, so when the guessed port was already held by another
+ * mrcash the probe got a cheerful 200 from THAT server, concluded ours was up,
+ * and every assertion in the file then ran against a foreign process with a
+ * foreign data directory. Reproduced deliberately: loop says "up", child says
+ * exit code 1. Same family as the shared-database race in `test/setup.ts` —
+ * parallel test files silently sharing a resource each believed it owned.
+ *
+ * Asking the kernel removes the guess. The reserve/close/spawn gap is a few
+ * microseconds against a 600-port band a developer's own server can sit in.
+ */
+async function freePort(): Promise<number> {
+  const probe = createServer()
+  await new Promise<void>((r) => probe.listen(0, '127.0.0.1', () => r()))
+  const { port } = probe.address() as AddressInfo
+  await new Promise<void>((r) => probe.close(() => r()))
+  return port
+}
+
+/** True if anything at all answers on the port — i.e. we did not get it. */
+async function occupied(base: string): Promise<boolean> {
+  try { await fetch(`${base}/api/health`); return true } catch { return false }
+}
+
 export async function startBot(feeds: MockFeeds, opts: { dir?: string; env?: Record<string, string> } = {}): Promise<RunningBot> {
   const dir = opts.dir ?? tempDataDir('mrcash-bot-').dir
-  const port = 4300 + Math.floor(Math.random() * 600)
+  // A caller that pins MRCASH_PORT must not have `base` point somewhere else:
+  // one port, one source of truth.
+  const pinned = opts.env?.MRCASH_PORT
+  const port = pinned ? Number(pinned) : await freePort()
   const base = `http://127.0.0.1:${port}`
+  if (!pinned && await occupied(base)) throw new Error(`port ${port} answered before we started — refusing to run against a server that is not ours`)
   const child = spawn(process.execPath, ['src/server.ts'], {
     cwd: ROOT,
     env: { ...process.env, MRCASH_PORT: String(port), MRCASH_DATA_DIR: dir, MRCASH_MARKET_URL: feeds.url, MRCASH_NEWS_URL: feeds.url, MRCASH_STREAM: '0', NO_BROWSER: '1', NO_COLOR: '1', ...(opts.env ?? {}) },
@@ -133,14 +167,26 @@ export async function startBot(feeds: MockFeeds, opts: { dir?: string; env?: Rec
   })
   let stderr = ''
   child.stderr?.on('data', (d) => { stderr += String(d) })
+  let up = false
   for (let i = 0; i < 150; i++) {
+    // Liveness first: a dead child can never be the thing answering us.
+    if (child.exitCode !== null) throw new Error(`server exited early (code ${child.exitCode}): ${stderr}`)
     try {
       const r = await fetch(`${base}/api/health`)
-      if (r.ok) break
+      if (r.ok) { up = true; break }
     } catch { /* not up yet */ }
-    if (child.exitCode !== null) throw new Error(`server exited early: ${stderr}`)
     await new Promise((r) => setTimeout(r, 200))
   }
+  if (!up) { child.kill('SIGKILL'); throw new Error(`server never became healthy on ${base} after 30s: ${stderr}`) }
+  // A child that lost the port answers nothing and dies — but not instantly, and
+  // meanwhile the winner answers the probe on its behalf. Measured here: a child
+  // that cannot bind exits code 1 after 444/464/481ms, with EMPTY stderr, so the
+  // exit code is the only evidence there is. Waiting 1000ms covers that with
+  // room to spare; it costs a second on the two calls that use this helper, and
+  // it is the difference between a loud failure and a whole file quietly
+  // asserting against someone else's server.
+  await new Promise((r) => setTimeout(r, 1000))
+  if (child.exitCode !== null) throw new Error(`something else is answering on ${base} — our server could not bind and exited (code ${child.exitCode})${stderr ? `: ${stderr}` : ' with no stderr'}`)
   let cachedToken = ''
   const token = async () => {
     if (!cachedToken) cachedToken = ((await (await fetch(`${base}/api/config`)).json()) as { csrf: string }).csrf
