@@ -12,6 +12,25 @@
 import type { ExecutionAssumptions, ExitReason } from './fills.ts'
 import { exitFeePercent } from './fills.ts'
 
+export type TradeOutcome = 'WIN' | 'LOSS' | 'FLAT'
+
+/**
+ * The deadband, in percent of the fill, inside which a trade is a scratch
+ * rather than a win or a loss. ONE constant, because two of them is how a win
+ * rate on one screen starts disagreeing with the win rate on another.
+ */
+export const OUTCOME_DEADBAND_PCT = 0.001
+
+/**
+ * THE canonical win/loss/flat rule. Everything that reports an outcome —
+ * backtest, replay, the ledger, the paper account, the validation report — must
+ * come through here, on the same input (percent after fees), so the same trade
+ * cannot be a win on one panel and a scratch on the next.
+ */
+export function classifyOutcome(pnlPercent: number): TradeOutcome {
+  return pnlPercent > OUTCOME_DEADBAND_PCT ? 'WIN' : pnlPercent < -OUTCOME_DEADBAND_PCT ? 'LOSS' : 'FLAT'
+}
+
 export type TradeMetrics = {
   rMultiple: number
   pnlPercent: number
@@ -19,7 +38,7 @@ export type TradeMetrics = {
   feesUsd: number
   /** The dollar risk the trade actually carried after the fill. */
   riskUsd: number
-  outcome: 'WIN' | 'LOSS' | 'FLAT'
+  outcome: TradeOutcome
 }
 
 export function tradeMetrics(input: { direction: 'long' | 'short'; fill: number; stop: number; exit: number; exitReason: ExitReason | 'manual'; quantity: number }, a: ExecutionAssumptions): TradeMetrics {
@@ -36,7 +55,7 @@ export function tradeMetrics(input: { direction: 'long' | 'short'; fill: number;
   return {
     rMultiple, pnlPercent, pnlUsd, feesUsd,
     riskUsd: dist * input.quantity,
-    outcome: pnlPercent > 0.001 ? 'WIN' : pnlPercent < -0.001 ? 'LOSS' : 'FLAT',
+    outcome: classifyOutcome(pnlPercent),
   }
 }
 

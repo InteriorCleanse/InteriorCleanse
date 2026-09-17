@@ -9,6 +9,7 @@
  */
 
 import { config } from '../../config.ts'
+import { paperOutcome } from '../paperTrader.ts'
 import type { PaperPosition } from '../paperTrader.ts'
 import type { Passport } from '../vault/passport.ts'
 
@@ -34,10 +35,13 @@ export type PaperStrategyMetrics = {
   spanDays: number | null
 }
 
+/**
+ * The engine's verdict, via the one shared reader. This used to apply its own
+ * R-based threshold, which disagreed with the paper account's — the same trade
+ * could be a win here and a scratch there.
+ */
 function decidedOutcome(p: PaperPosition): 'WIN' | 'LOSS' | 'FLAT' | 'MISSED' {
-  if (p.exitReason === 'missed') return 'MISSED'
-  const r = p.rMultiple ?? 0
-  return r > 0.0001 ? 'WIN' : r < -0.0001 ? 'LOSS' : 'FLAT'
+  return paperOutcome(p)
 }
 
 /** The strategy an order belongs to: its recorded id, else parsed from the setup key, else 'unknown'. */

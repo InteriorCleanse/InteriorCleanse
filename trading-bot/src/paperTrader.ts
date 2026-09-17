@@ -29,7 +29,8 @@ import { upsertEntry } from './journal.ts'
 import { sizeForStop } from './risk.ts'
 import { defaultAssumptions, simulateEntry, exitOnCandle, simulateExit } from './sim/fills.ts'
 import type { ExecutionAssumptions, EntryFill } from './sim/fills.ts'
-import { tradeMetrics } from './sim/trades.ts'
+import { tradeMetrics, classifyOutcome } from './sim/trades.ts'
+import type { TradeOutcome } from './sim/trades.ts'
 import { recordPaperResult } from './vault/store.ts'
 import type { Candle, RiskDecision, Signal, TradePlan } from './types.ts'
 
@@ -83,6 +84,12 @@ export type PaperPosition = {
   rMultiple?: number
   pnlUsd?: number
   feesUsd?: number
+  /**
+   * The ENGINE's own win/loss/flat verdict for this trade, recorded at close so
+   * every panel reports the same thing. Absent on positions closed before this
+   * field existed, and on missed orders (which were never trades).
+   */
+  outcome?: TradeOutcome
   candlesHeld?: number
   /** Why it was missed, when it was. */
   note?: string
@@ -226,10 +233,12 @@ export function recordMissedSignal(signal: Signal, reason: string, obs: Decision
 
 function finalize(pos: PaperPosition, exit: number, reason: Exclude<PaperPosition['exitReason'], 'missed' | undefined>, time: number, candlesHeld: number): PaperPosition {
   const m = closeMetrics(pos, exit, reason)
-  const closed: PaperPosition = { ...pos, status: 'closed', closedAt: time, exit, exitReason: reason, rMultiple: m.rMultiple, pnlUsd: m.pnlUsd, feesUsd: m.feesUsd, candlesHeld }
+  // One verdict, computed once by the engine's canonical rule, recorded on the
+  // position AND written to the ledger — so no reporting path has to re-derive it.
+  const outcome = classifyOutcome(m.pnlPercent)
+  const closed: PaperPosition = { ...pos, status: 'closed', closedAt: time, exit, exitReason: reason, rMultiple: m.rMultiple, pnlUsd: m.pnlUsd, feesUsd: m.feesUsd, outcome, candlesHeld }
   savePosition(closed)
 
-  const outcome = m.pnlPercent > 0.001 ? 'WIN' : m.pnlPercent < -0.001 ? 'LOSS' : 'FLAT'
   appendLedgerRow({
     timestamp: new Date(time).toISOString(),
     symbol: config.symbol,
@@ -354,12 +363,32 @@ export function todaysPaperStats(dayKey: string): { trades: number; lossesR: num
   return { trades: today.length, lossesR: today.reduce((sum, p) => sum + (p.rMultiple !== undefined && p.rMultiple < 0 ? -p.rMultiple : 0), 0) }
 }
 
+/**
+ * THE one reader of a paper trade's outcome. Every panel — the paper account,
+ * the per-strategy metrics, the validation breakdowns — goes through this, so a
+ * trade cannot be a win on one screen and a scratch on the next.
+ *
+ * Prefers the verdict the engine RECORDED at close. For positions closed before
+ * that field existed, the exact percent is recovered from the dollars
+ * (`pnlUsd = pnlPercent/100 × notional`, so the division is exact) and run
+ * through the same canonical rule. Only when even that is impossible does it
+ * fall back to the sign of R — and that case is flagged by returning FLAT for a
+ * trade it genuinely cannot classify, rather than guessing a winner.
+ */
+export function paperOutcome(p: PaperPosition): TradeOutcome | 'MISSED' {
+  if (p.exitReason === 'missed') return 'MISSED'
+  if (p.outcome) return p.outcome
+  const notional = p.entry * p.quantity
+  if (typeof p.pnlUsd === 'number' && notional > 0) return classifyOutcome((p.pnlUsd / notional) * 100)
+  return 'FLAT'
+}
+
 export function paperStats(price?: number) {
   const s = readPositions()
   const closed = s.closed.filter((p) => p.exitReason !== 'missed')
   const missed = s.closed.filter((p) => p.exitReason === 'missed').length
-  const wins = closed.filter((p) => (p.rMultiple ?? 0) > 0.05).length
-  const losses = closed.filter((p) => (p.rMultiple ?? 0) < -0.05).length
+  const wins = closed.filter((p) => paperOutcome(p) === 'WIN').length
+  const losses = closed.filter((p) => paperOutcome(p) === 'LOSS').length
   const totalR = closed.reduce((sum, p) => sum + (p.rMultiple ?? 0), 0)
   const openUnreal = price !== undefined ? s.open.reduce((sum, p) => sum + unrealized(p, price).pnlUsd, 0) : 0
   let run = config.accountSizeUsd

@@ -19,6 +19,7 @@
  */
 
 import { config, LIVE_TRADING_ENABLED } from '../../config.ts'
+import { paperOutcome } from '../paperTrader.ts'
 import type { PaperPosition } from '../paperTrader.ts'
 import type { Passport } from '../vault/passport.ts'
 import { paperByStrategy, comparePaperToOos, strategyOf } from './metrics.ts'
@@ -243,9 +244,10 @@ export type Breakdown = {
   avgObservedSpreadPct: number | null
 }
 
+/** The engine's verdict, via the one shared reader — never a local threshold. */
 function outcomeOf(p: PaperPosition): 'win' | 'loss' | 'flat' {
-  const r = p.rMultiple ?? 0
-  return r > 0.0001 ? 'win' : r < -0.0001 ? 'loss' : 'flat'
+  const o = paperOutcome(p)
+  return o === 'WIN' ? 'win' : o === 'LOSS' ? 'loss' : 'flat'
 }
 
 /** Group taken trades by a key and summarise each bucket honestly (win rate + expectancy, not a P&L leaderboard). */

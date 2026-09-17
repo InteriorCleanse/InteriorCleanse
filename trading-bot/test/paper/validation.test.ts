@@ -18,12 +18,22 @@ import {
 
 const DAY = 86_400_000
 
+/**
+ * A realistic closed position. `finalize()` always records rMultiple, pnlUsd and
+ * the engine's outcome together, so a fixture that sets only rMultiple describes
+ * a shape the system never actually produces. Here pnlUsd is derived from R at
+ * the fixture's $1 risk (R × riskUsd), which is what the real maths does.
+ */
 function pos(o: Partial<PaperPosition>): PaperPosition {
-  return {
+  const base = {
     id: Math.random().toString(36).slice(2), openedAt: 0, dayKey: '2026-01-01', session: 'London', setupKey: 'BTCUSDT|5m|crossover|BUY',
     direction: 'long', intendedEntry: 100, entry: 100, stop: 99, target: 102, quantity: 1, riskUsd: 1, quality: 80, reason: 'x', atr: 1,
     status: 'closed', ...o,
   } as PaperPosition
+  if (base.pnlUsd === undefined && base.exitReason !== 'missed' && typeof base.rMultiple === 'number') {
+    base.pnlUsd = base.rMultiple * base.riskUsd
+  }
+  return base
 }
 function passport(o: Partial<Passport>): Passport {
   return {

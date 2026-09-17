@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**437 tests, 437 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**459 tests, 459 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -28,7 +28,7 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 437/437 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 459/459 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
 | Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 
@@ -48,6 +48,51 @@ since Phase 3, so the limitation had zero decision/production impact.
 It has been converted into a normal passing test with a **stronger** assertion
 than the original: the row does not split *and* the reason's content — newline
 included — is preserved exactly. The suite now reports **0 todo**.
+
+---
+
+## Cross-source consistency audit — one defect found and fixed
+
+The Phase 22 audit found a bug by asking *"is this concept computed in more than
+one place, and do those places agree?"*. Applying the same question to the rest
+of the system found a second one.
+
+**`sim/trades.ts` opens by promising it is "the one place trade results are
+worked out … so a number on one screen can never disagree with the same number
+on another."** Two reporting paths had since invented their own thresholds:
+
+| Path | Win rule | Metric |
+|---|---|---|
+| engine (`sim/trades`, backtest, replay, ledger, memory) | `pnlPercent > 0.001` | percent after fees |
+| `paperStats` — the paper account | `rMultiple > 0.05` | R |
+| `paperByStrategy` + validation breakdowns | `rMultiple > 0.0001` | R |
+
+A trade closing at **+0.02R** was therefore a **WIN** on the validation panel and
+a **FLAT** on the paper account — *inside the same `/api/paper` response*, which
+returns both. Demonstrated directly before the fix.
+
+**Fix.** `classifyOutcome()` + `OUTCOME_DEADBAND_PCT` are now the single
+definition, used by `tradeMetrics` itself. The engine's verdict is recorded on
+each `PaperPosition` at close, and one shared reader (`paperOutcome`) is used by
+all three reporting paths. Legacy positions recover the exact percent from
+dollars (`pnlUsd = pnlPercent/100 × notional`, so the division back is exact);
+the un-classifiable branch is unreachable for real data, since every real close
+records `pnlUsd`.
+
+**Behaviour deliberately unchanged:** the ledger outcome, `learnFromLedger` and
+memory blocking are byte-identical — the value written is the same one, just
+computed once instead of twice. Win rate is not a validation gate input, so no
+gate moved. What changed is that the paper account's win/loss counts now match
+the engine's, which they previously did not.
+
+Locked by `test/paper/outcomeConsistency.test.ts`, including a guard that fails
+if any reporting module compares `rMultiple` against a local numeric threshold
+again.
+
+**Also noted, not yet changed:** the spread-percent formula
+`((ask − bid) / mid) × 100` is duplicated in 7 places. All seven are currently
+*identical*, so this is a drift risk rather than a defect — recorded here so it
+is a known item rather than a surprise later.
 
 ---
 
