@@ -56,7 +56,11 @@ export default function Home() {
 
       {/* SWIPE BROWSER — one product at a time over the scene. Every product
           here is also in the plain grid at /shop, never trapped in this UI. */}
-      <ProductBrowser products={allProducts} label="Browse the edit" />
+      <ProductBrowser
+        products={allProducts}
+        label="Browse the edit"
+        backdrop={getScene('showroom')?.posterImage ?? null}
+      />
 
       {/* 3D SCROLL GALLERY */}
       <ScrollGalleryLoader products={featured} />

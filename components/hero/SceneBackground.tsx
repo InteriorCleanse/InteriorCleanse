@@ -49,8 +49,11 @@ export function SceneBackground({
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
     const mobile = window.matchMedia(MOBILE_QUERY)
 
+    const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData)
+
     const pick = () => {
-      if (reduced.matches) return setSrc(null)
+      // Reduced motion and Data Saver both mean: the poster is the scene.
+      if (reduced.matches || saveData) return setSrc(null)
       const chosen = mobile.matches ? mobileVideo ?? desktopVideo : desktopVideo ?? mobileVideo
       setSrc(chosen ?? null)
     }

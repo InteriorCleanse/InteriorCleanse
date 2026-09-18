@@ -14,7 +14,8 @@
     "clips:loop": "node scripts/loop-clips.mjs",
     "build:grain": "node scripts/build-grain.mjs",
     "print:files": "node scripts/build-print-files.mjs",
-    "catalog:fill": "node scripts/fill-drafts-from-content.mjs"
+    "catalog:fill": "node scripts/fill-drafts-from-content.mjs",
+    "check:seo": "node scripts/check-seo.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
