@@ -413,6 +413,93 @@ here reaches the engine; `news.isBlackout` remains the only thing risk consults.
 
 ---
 
+## The stability gate is unreachable — **OPEN, needs an operator decision**
+
+**This is the most serious open finding in the repo.** Under the frozen
+`PAPER_VALIDATION-1` profile, the paper validation stage **can never report
+`GATES MET`**, no matter how well or how long it runs.
+
+**The chain.** The `stability` gate compares realised paper expectancy against an
+out-of-sample expectancy. It sources that OOS number from a **vault passport**
+(`comparePaperToOos` → `oosFor` → `passports.filter(p => p.strategyId === id)`).
+Passports are minted in exactly one place — `mint(rec.strategyId, …)` from a
+**factory campaign survivor** (`src/index.ts:605`, `src/server.ts:576`). The
+frozen profile's paper trades come from a **built-in** strategy, which has no
+genome and therefore no passport. `oosFor` returns `null`, `delta` is `null`,
+`shortfalls` is empty, `worstShortfall` is `null`, and the gate is `met: false`
+— for ever.
+
+**Verified, not inferred.** Running `evaluateGates` over the best sample a
+frozen-profile run could ever produce — 60 winning trades, 8.4 weeks, two
+regimes, two sessions, 100% data quality, 400 hours of soak, a monotonically
+rising equity curve, 0% drawdown — returns:
+
+```
+VERDICT: INSUFFICIENT SAMPLE  8/9
+  [ ] stability   value=null threshold=0.1
+```
+
+Eight of nine, permanently. The old wording made this invisible: *"No strategy
+has both a paper and an out-of-sample number to compare **yet**"* reads as a
+queue, and an operator would reasonably keep waiting.
+
+**What was changed now (no gate was loosened).** The gate's detail now
+distinguishes *nothing has traded* (a wait) from *something has traded for weeks
+with no OOS reference* (a dead end), names the blocked strategy, and states
+plainly that waiting will not resolve it. Pinned by
+`test/paper/validation.test.ts` — "a flawless run with no passport is stuck at
+8/9". Passing the gate on absent evidence was **not** an option considered: that
+is precisely the pretending the module exists to refuse.
+
+**What has to be decided.** The gate is right to demand out-of-sample evidence;
+it is looking for it in the wrong place for this profile. Three ways forward:
+
+1. **Let the gate read an out-of-sample backtest, not only a passport.** The
+   machinery already exists — `buildReport()` produces `outOfSample: Metrics`
+   with an `avgR` for any backtestable strategy, including the built-in one. This
+   is the correct fix and makes the gate reachable on its own terms. It touches
+   the gate plumbing and the OOS wiring, both of which are under a change freeze,
+   so it needs an explicit go-ahead.
+2. **Require that the strategy which trades is a factory-minted one** with a
+   passport. Reachable as shipped, but it changes what the validation stage is
+   validating.
+3. **Leave it, knowing `GATES MET` is unreachable** and treat 8/9 with a clean
+   stability blocker as the practical completion signal. Documented here so that
+   is a decision rather than an accident.
+
+Until one is chosen, **`GATES MET` cannot occur, so `SHADOW_READY` cannot occur**
+(`shadowReadiness` requires `gates.verdict === 'GATES MET'`). The safety posture
+is unaffected and if anything stricter than intended — nothing can progress.
+
+---
+
+## The drawdown figures are closed-trade drawdown — **now labelled as such**
+
+Two places reported a drawdown as though it were the account's worst moment when
+it is the worst moment *between closed trades*:
+
+- `evaluateGates` → the `drawdown` gate, off `paperStats().curve`, which has one
+  point per **close**.
+- `src/risk/rules/drawdown.ts` → the live veto, off `equity()` = account +
+  **closed** P&L.
+
+A position sitting underwater is invisible to both, so the true low-water mark
+can be deeper by the unrealised loss on whatever is open, and the cap can be
+overshot by about that much before the rule notices — an understatement in the
+**permissive** direction on a rule whose job is to cap risk.
+
+**Bounded:** `config.risk.maxOpenPositions` is `1`, so the overshoot is at most
+one position's loss against a 25% cap. Real, but small.
+
+**What was changed:** wording only. The gate is now labelled *"Max drawdown
+(closed trades)"* and both messages say that open positions are not counted.
+**No veto behaviour was altered** — making the cap mark-to-market would change
+which orders get refused, and that is an operator's call, not something to slip
+in behind a wording fix. Nothing in the repo tracks per-trade excursion, so a
+true low-water mark would need that added first.
+
+---
+
 ## Next validation stage
 
 Proceed to **extended paper trading** (≥ `minSetupsForConfidence` fused trades

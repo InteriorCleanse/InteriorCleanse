@@ -186,6 +186,69 @@ test('gates flip to GATES MET only once every gate passes', () => {
   assert.equal(g.gates.find((x) => x.id === 'sessions')?.met, true)
 })
 
+/**
+ * A DEAD END THAT READS LIKE A QUEUE.
+ *
+ * The stability gate compares paper expectancy against an out-of-sample number,
+ * and it gets that number from a vault passport. Passports are minted ONLY from
+ * factory campaign survivors. So a run whose trades come from a built-in
+ * strategy — which is what the frozen PAPER_VALIDATION profile actually does —
+ * can reach a flawless 8/9 and stay there for ever, while the gate reports a
+ * soft "no strategy has both numbers YET".
+ *
+ * Found by running the gates over the best sample a frozen-profile run could
+ * ever produce: 40 winning trades, 80 days, two regimes, two sessions, 100% data
+ * quality, 200 hours of soak, a monotonically rising curve. Verdict:
+ * INSUFFICIENT SAMPLE, 8/9, permanently.
+ *
+ * The gate is NOT loosened here — passing it on absent evidence is exactly the
+ * pretending this module exists to refuse. What changes is that it now states
+ * that waiting will not help and names what has to exist instead.
+ */
+test('a flawless run with no passport is stuck at 8/9, and the gate says so instead of saying "yet"', () => {
+  const closed = gatesMetClosed()
+  const g = evaluateGates({
+    closed, passports: [], curve: closed.map((_, i) => ({ equity: 25 + i })), startUsd: 25,
+    soak: soakMetrics({ uptimeSec: 200 * 3600, feedOk: true, storeOk: true }), quality: dataQuality(closed),
+  })
+  const stability = g.gates.find((x) => x.id === 'stability')!
+  assert.equal(stability.met, false)
+  assert.equal(g.metCount, g.total - 1, `only the stability gate should be short; unmet: ${g.gates.filter((x) => !x.met).map((x) => x.id).join(', ')}`)
+  assert.equal(g.verdict, 'INSUFFICIENT SAMPLE')
+  // The wording has to distinguish "not yet" from "not ever on this path".
+  assert.match(stability.detail, /CANNOT PASS however long the run continues/)
+  assert.match(stability.detail, /crossover/, 'the blocked strategy must be named')
+  assert.equal(/\byet\b/.test(stability.detail), false, 'a permanent blocker must not be described as a wait')
+})
+
+test('with nothing traded at all, the same gate correctly reads as simply not started', () => {
+  const g = evaluateGates({ closed: [], passports: [], curve: [], startUsd: 25, soak: soakMetrics({ uptimeSec: 0, feedOk: true, storeOk: true }), quality: dataQuality([]) })
+  const stability = g.gates.find((x) => x.id === 'stability')!
+  assert.equal(stability.met, false)
+  assert.match(stability.detail, /No strategy has traded yet/)
+  assert.equal(/CANNOT PASS/.test(stability.detail), false, 'an empty run is a wait, not a dead end')
+})
+
+/**
+ * THE DRAWDOWN GATE MEASURES CLOSED TRADES, AND MUST SAY SO.
+ *
+ * The equity curve has one point per CLOSE, so a position sitting underwater is
+ * invisible to it: the true low-water mark can be deeper than this figure by the
+ * unrealised loss on whatever is open. On a gate whose job is to cap risk, that
+ * understates in the permissive direction. Nothing tracks per-trade excursion,
+ * so the fix is to name which drawdown this is rather than imply the other one.
+ */
+test('the drawdown gate names itself as a closed-trade measure', () => {
+  const closed = gatesMetClosed()
+  const g = evaluateGates({
+    closed, passports: [passport({})], curve: closed.map((_, i) => ({ equity: 25 + i })), startUsd: 25,
+    soak: soakMetrics({ uptimeSec: 200 * 3600, feedOk: true, storeOk: true }), quality: dataQuality(closed),
+  })
+  const dd = g.gates.find((x) => x.id === 'drawdown')!
+  assert.match(dd.label, /closed trades/i)
+  assert.match(dd.detail, /open position's unrealised loss is not in this figure/)
+})
+
 test('soak is met only with enough continuous uptime and healthy subsystems', () => {
   assert.equal(soakMetrics({ uptimeSec: 200 * 3600, feedOk: true, storeOk: true }).met, true)
   assert.equal(soakMetrics({ uptimeSec: 200 * 3600, feedOk: false, storeOk: true }).met, false)

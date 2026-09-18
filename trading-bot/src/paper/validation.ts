@@ -536,6 +536,34 @@ export function evaluateGates(input: {
   const shortfalls = comparison.map((c) => c.delta).filter((d): d is number => typeof d === 'number').map((d) => -d) // positive = paper below OOS
   const worstShortfall = shortfalls.length ? Math.max(...shortfalls) : null
 
+  /**
+   * WHY THIS GATE IS NOT MET, AND WHETHER WAITING WILL FIX IT.
+   *
+   * These are different situations and the old wording ("no strategy has both a
+   * paper and an out-of-sample number to compare YET") described only the first:
+   *
+   *   a) Nothing has traded. Time fixes this.
+   *   b) Something has traded for weeks, and none of it has an out-of-sample
+   *      number to be compared against. **Time does not fix this.** An OOS
+   *      reference here comes from a vault passport, and passports are minted
+   *      only from factory campaign survivors — so a run whose trades come from
+   *      a built-in strategy can hit 8/9 and stay there for ever, with the gate
+   *      reporting a soft "yet" the whole time.
+   *
+   * Verified by running the gates over a flawless sample: 60 winning trades,
+   * 8 weeks, 2 regimes, 2 sessions, 100% data quality, 400h soak, 0% drawdown —
+   * still INSUFFICIENT SAMPLE at 8/9, permanently. A dead end that reads like a
+   * queue is worse than a dead end that says so.
+   */
+  const tradingIds = byStrategy.map((m) => m.strategyId)
+  const withOos = comparison.filter((c) => c.oosAvgR !== null).map((c) => c.strategyId)
+  const stuck = tradingIds.length > 0 && withOos.length === 0
+  const stabilityDetail = worstShortfall !== null
+    ? `Worst shortfall below the out-of-sample floor is ${worstShortfall.toFixed(3)}R (allowed ${g.maxPaperVsOosShortfallR}R).`
+    : stuck
+      ? `${tradingIds.join(', ')} ${tradingIds.length === 1 ? 'is' : 'are'} trading on paper with no out-of-sample passport to be measured against, so THIS GATE CANNOT PASS however long the run continues — waiting will not resolve it. An out-of-sample expectancy has to exist for the strategy that is actually trading. See docs/FINAL_PRODUCTION_READINESS.md, "The stability gate is unreachable".`
+      : 'No strategy has traded yet, so there is nothing to compare against out-of-sample.'
+
   // Smallest per-strategy trade count among strategies that have traded.
   const minPerStrategy = byStrategy.length ? Math.min(...byStrategy.map((m) => m.taken)) : null
 
@@ -548,8 +576,14 @@ export function evaluateGates(input: {
     { id: 'regimes', label: 'Regimes covered', value: regimes.size, threshold: g.minRegimesCovered, unit: 'regimes', met: regimes.size >= g.minRegimesCovered, detail: regimes.size ? `Traded in: ${[...regimes].sort().join(', ')}.` : 'No regime could be labelled yet.' },
     { id: 'sessions', label: 'Sessions covered', value: sessions.size, threshold: g.minSessionsCovered, unit: 'sessions', met: sessions.size >= g.minSessionsCovered, detail: sessions.size ? `Traded in: ${[...sessions].sort().join(', ')}.` : 'No session could be labelled yet.' },
     { id: 'dataQuality', label: 'Data quality', value: input.quality.quality === null ? null : Number((input.quality.quality * 100).toFixed(1)), threshold: g.minDataQuality * 100, unit: '%', met: input.quality.quality !== null && input.quality.quality >= g.minDataQuality, detail: input.quality.note },
-    { id: 'stability', label: 'Paper vs out-of-sample', value: worstShortfall === null ? null : Number(worstShortfall.toFixed(3)), threshold: g.maxPaperVsOosShortfallR, unit: 'R shortfall', met: worstShortfall !== null && worstShortfall <= g.maxPaperVsOosShortfallR, detail: worstShortfall === null ? 'No strategy has both a paper and an out-of-sample number to compare yet.' : `Worst shortfall below the out-of-sample floor is ${worstShortfall.toFixed(3)}R (allowed ${g.maxPaperVsOosShortfallR}R).` },
-    { id: 'drawdown', label: 'Max drawdown', value: dd === null ? null : Number(dd.toFixed(1)), threshold: g.maxDrawdownPercent, unit: '%', met: dd !== null && dd <= g.maxDrawdownPercent, detail: dd === null ? 'No closed trades to draw an equity curve yet.' : `Peak-to-trough paper drawdown is ${dd.toFixed(1)}% (cap ${g.maxDrawdownPercent}%).` },
+    { id: 'stability', label: 'Paper vs out-of-sample', value: worstShortfall === null ? null : Number(worstShortfall.toFixed(3)), threshold: g.maxPaperVsOosShortfallR, unit: 'R shortfall', met: worstShortfall !== null && worstShortfall <= g.maxPaperVsOosShortfallR, detail: stabilityDetail },
+    // "Max drawdown" reads as the worst the account ever got. It is not: the
+    // curve has one point per CLOSE, so an open position sitting underwater is
+    // invisible to it and the figure understates the real low-water mark — in
+    // the permissive direction, on a gate whose job is to cap risk. Nothing here
+    // tracks per-trade excursion, so the honest move is to say which drawdown
+    // this is rather than to imply the other one.
+    { id: 'drawdown', label: 'Max drawdown (closed trades)', value: dd === null ? null : Number(dd.toFixed(1)), threshold: g.maxDrawdownPercent, unit: '%', met: dd !== null && dd <= g.maxDrawdownPercent, detail: dd === null ? 'No closed trades to draw an equity curve yet.' : `Peak-to-trough paper drawdown is ${dd.toFixed(1)}% (cap ${g.maxDrawdownPercent}%), measured between closed trades — an open position's unrealised loss is not in this figure.` },
     { id: 'soak', label: 'System soak', value: Number(input.soak.uptimeHours.toFixed(1)), threshold: g.minSoakHours, unit: 'hours', met: input.soak.met, detail: input.soak.note },
   ]
 
