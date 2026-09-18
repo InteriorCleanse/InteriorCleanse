@@ -212,7 +212,7 @@ function detectAt(prev: Step | null, cur: Step): RawEvent[] {
 // Building a case study from an event — BEFORE from the previous step
 // ---------------------------------------------------------------
 
-function annotationsAt(step: Step, candles: Candle[]): ChartAnnotation[] {
+export function annotationsAt(step: Step, candles: Candle[]): ChartAnnotation[] {
   const full = annotate({ symbol: config.symbol, timeframe: config.interval, engineVersion: VERSION, analysis: step.analysis, candles: candles.slice(0, step.index + 1), votes: step.votes, decision: step.decision ?? null, now: step.candle.closeTime })
   return knowableAt(full, step.candle.closeTime)
 }
@@ -277,9 +277,13 @@ export type ScanOptions = {
   kinds?: CaseKind[]
 }
 
-/** Step the real engine over candles and return every case study it can support. Pure over the candles given. */
-export function scanCandles(candles: Candle[], opts: ScanOptions = {}): CaseStudy[] {
-  const votesTail = opts.votesTail ?? 600
+/**
+ * Step the real engine over candles, once, and keep every step. Strategy votes
+ * and the fused decision are computed for the trailing `votesTail` steps only
+ * (they are the expensive part). This is the ONE place the school steps the
+ * engine; the replay school and the lesson generator read these steps.
+ */
+export function stepEngine(candles: Candle[], votesTail = 600): Step[] {
   const engine = new IctEngine(candles)
   const meta = metaById()
   const steps: Step[] = []
@@ -294,6 +298,11 @@ export function scanCandles(candles: Candle[], opts: ScanOptions = {}): CaseStud
     }
     steps.push(step)
   }
+  return steps
+}
+
+/** Every case study a set of engine steps can support. Pure. */
+export function casesFromSteps(steps: Step[], candles: Candle[], opts: ScanOptions = {}): CaseStudy[] {
   const wanted = opts.kinds ? new Set(opts.kinds) : null
   const out: CaseStudy[] = []
   for (let i = 1; i < steps.length; i++) {
@@ -304,6 +313,11 @@ export function scanCandles(candles: Candle[], opts: ScanOptions = {}): CaseStud
   }
   out.sort((a, b) => b.at - a.at)
   return opts.limit ? out.slice(0, opts.limit) : out
+}
+
+/** Step the real engine over candles and return every case study it can support. Pure over the candles given. */
+export function scanCandles(candles: Candle[], opts: ScanOptions = {}): CaseStudy[] {
+  return casesFromSteps(stepEngine(candles, opts.votesTail ?? 600), candles, opts)
 }
 
 // ---------------------------------------------------------------
