@@ -17,6 +17,9 @@ nothing under `.claude/` is built, served, or linted.
 | last30days | github.com/mvanhorn/last30days-skill (`skills/last30days`) | ac0ed3b | MIT |
 | agency-agents (roster) + 32 project agents in `.claude/agents/` | github.com/msitarzewski/agency-agents | ad9264e | MIT |
 | prompt-master | github.com/nidhinjs/prompt-master | 2bd9251 | MIT |
+| diagram-design (+ 6 commands) | github.com/cathrynlavery/diagram-design | 9874ad7 | MIT |
+| 16 security skills (of 818) | github.com/mukul975/Anthropic-Cybersecurity-Skills | 54a7988 | Apache-2.0 |
+| harness-engineering templates (references, not skills) | github.com/ulises-jeremias/awesome-harness-engineering | 1e12fda | CC0 |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -60,6 +63,28 @@ than copying all of them.
 `prompt-master` activates only when asked to write, fix, or adapt a prompt for
 a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
 It is instructions plus two reference files; no scripts, no network.
+
+Every installed skill's name and description is loaded into **every** session
+before you type. This repository now carries 65 skills at roughly 7,400
+tokens of always-on context, up from 48 at ~4,000. That budget is why the
+cybersecurity pack is installed at 16 skills of its 818 (the full pack costs
+~108,000 tokens per session) and why the 166-skill scientific pack was not
+installed at all. Before adding a large pack, measure it.
+
+`diagram-design` is the first skill here to ship slash commands; they live in
+`.claude/commands/` and are project-scoped. Its `doctor` and `profile`
+commands have generic names — if a future pack adds its own, rename one.
+
+The security skills are written for authorised engagements. They are here to
+test this site, which you own. Despite its repository name, that pack is a
+community project and is not affiliated with Anthropic; its own README says
+so.
+
+`.claude/references/` holds material that is deliberately **not** a skill, so
+nothing in it loads automatically.
+
+What was requested and not installed, and how to install it on your own
+machine instead, is recorded in `docs/AGENT_CAPABILITIES.md`.
 
 Genjutsu's `cast` and `paint` orchestrators load their sub-skills from
 `genjutsu/_jutsu`, which is where its resolver probes for a skills-directory
