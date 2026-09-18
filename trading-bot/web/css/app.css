@@ -144,3 +144,39 @@
   .vote-badge.hold { background:rgba(139,152,165,.15); color:var(--dim); }
   .evi { font-size:12px; color:var(--dim); }
   .evi .ok { color:var(--green); } .evi .no { color:var(--red); }
+
+  /* ---------- THE DESK — six agents on one surface ---------- */
+  /* A panel that cannot see must LOOK like it cannot see: .desk-blind dims the
+     whole card and its waiting-on line is the loudest thing on it. A dashboard
+     that reads the same whether or not its feeds are alive is the failure this
+     styling exists to prevent. */
+  .desk-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
+  .desk-bar > div { background:var(--panel); padding:13px 15px; }
+  .desk-bar-label { font:10.5px ui-monospace,monospace; letter-spacing:.14em; color:var(--dim); margin-bottom:5px; }
+  .desk-bar-value { font:700 21px/1.15 ui-monospace,monospace; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .desk-bar-unit { font-size:12px; color:var(--dim); font-weight:400; }
+  .desk-bar-detail { font-size:11.5px; color:var(--dim); margin-top:6px; line-height:1.45; }
+
+  .desk-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:10px; }
+  .desk-card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px; display:flex; flex-direction:column; }
+  .desk-card.desk-blind { opacity:.62; border-style:dashed; }
+  .desk-card-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .desk-name { font:700 12.5px ui-monospace,monospace; letter-spacing:.1em; display:inline-flex; align-items:center; gap:7px; }
+  .desk-dot { width:7px; height:7px; border-radius:999px; display:inline-block; flex:0 0 auto; }
+  .desk-status { font:700 10px ui-monospace,monospace; letter-spacing:.12em; }
+  .desk-role { font-size:11px; color:var(--dim); margin-top:3px; }
+  .desk-headline { font:700 25px/1.1 ui-monospace,monospace; letter-spacing:-.02em; margin:11px 0 3px; font-variant-numeric:tabular-nums; word-break:break-word; }
+  .desk-meta { display:flex; gap:9px; font:10.5px ui-monospace,monospace; letter-spacing:.08em; }
+  .desk-age { color:var(--dim); }
+  .desk-rows { margin:11px 0 0; border-top:1px solid var(--line); }
+  .desk-row { display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px solid var(--line); font-size:12px; }
+  .desk-row-label { color:var(--dim); }
+  .desk-row-value { font-family:ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+  .desk-detail { font-size:12px; color:var(--dim); line-height:1.5; margin-top:10px; flex:1; }
+  .desk-waiting { margin-top:9px; font:10.5px/1.45 ui-monospace,monospace; letter-spacing:.06em; color:var(--amber); border-left:2px solid var(--amber); padding-left:8px; }
+  .desk-foot { margin-top:12px; font-size:11.5px; color:var(--dim); text-align:center; }
+
+  @media (max-width:520px) {
+    .desk-grid { grid-template-columns:1fr; }
+    .desk-headline { font-size:22px; }
+  }

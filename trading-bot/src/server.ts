@@ -56,7 +56,8 @@ import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
-import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport } from './paper/validation.ts'
+import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
+import { buildDesk, renderDesk } from './desk/agents.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
 import { intelEnabled, intelFlags, disabledPayload } from './intel/flags.ts'
@@ -716,6 +717,71 @@ const server = createServer(async (req, res) => {
         return
       }
       json(res, 200, { ok: true, data: report })
+      return
+    }
+
+    /**
+     * THE DESK — six agents on one surface. READ-ONLY.
+     *
+     * It projects state the engine has already produced: the feature snapshot,
+     * the strategy votes, the fused decision, the risk verdict, the validation
+     * gates. It decides nothing, sizes nothing and cannot place an order. The
+     * expensive AI narration the validation route runs is deliberately NOT part
+     * of this — the desk is meant to be cheap enough to poll.
+     */
+    if (path === '/api/desk') {
+      const snap = await safely(() => snapshot())
+      if (!snap.ok) { json(res, 200, snap); return }
+      const s = snap.data
+      const positions = readPositions()
+      const eq = equity(); const peak = Math.max(equityPeak(), eq)
+      const last = s.candles[s.candles.length - 1]
+      const tk = marketFeed.latestTicker
+      const gate = entriesAllowed()
+      const rstate: RiskState = {
+        now: Date.now(), killSwitch: { ok: gate.ok, reason: gate.ok ? '' : gate.reason },
+        candleAgeSec: last ? (Date.now() - last.closeTime) / 1000 : null,
+        spreadPct: tk && tk.bid > 0 && tk.ask > 0 ? ((tk.ask - tk.bid) / ((tk.ask + tk.bid) / 2)) * 100 : null,
+        openPositions: positions.open.length, openNotionalUsd: openNotionalUsd(),
+        today: todaysPaperStats(tradingDayKey(Date.now())), equityUsd: eq, peakEquityUsd: peak,
+      }
+      const fusedSig = s.decision ? fusedToSignal(s.decision, s.signal.price, Date.now()) : null
+      const verdict = fusedSig && (fusedSig.action === 'BUY' || fusedSig.action === 'SELL') ? assess({ signal: fusedSig }, rstate) : null
+
+      const stats = paperStats(s.signal.price)
+      const passports = listPassports()
+      const gates = evaluateGates({
+        closed: positions.closed, passports, curve: stats.curve, startUsd: stats.startUsd,
+        soak: soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok' }),
+        quality: dataQuality(positions.closed),
+      })
+      const decay = decayByStrategy(positions.closed, passports)
+      const a = s.analysis
+
+      const desk = buildDesk({
+        now: Date.now(),
+        symbol: config.symbol,
+        interval: config.interval,
+        features: a?.features ?? null,
+        votes: s.strategyVotes,
+        decision: s.decision,
+        risk: verdict,
+        structure: a
+          ? { swings: a.swings?.length ?? 0, orderBlocks: a.orderBlocks?.length ?? 0, fvgs: a.fvgs?.length ?? 0, sweeps: (a.sweepsToday?.length ?? 0) + (a.swingSweepsToday?.length ?? 0), bias: a.bias?.direction ?? null }
+          : null,
+        validation: {
+          verdict: gates.verdict, metCount: gates.metCount, total: gates.total,
+          trades: positions.closed.filter((p) => p.exitReason !== 'missed').length,
+          decaying: decay.filter((d) => d.status === 'DECAYING').length,
+          retired: decay.filter((d) => d.status === 'RETIRED').length,
+        },
+      })
+      if (url.searchParams.get('format') === 'text') {
+        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
+        res.end(renderDesk(desk))
+        return
+      }
+      json(res, 200, { ok: true, data: desk })
       return
     }
 

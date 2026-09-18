@@ -130,6 +130,11 @@
     <div id="replay-out"><div class="plain">The replay player steps through the last stored candles and shows, for each one, exactly what every strategy voted and why — its evidence, tick by tick — and the fused decision at that moment. Press <b>Play</b> to watch the market unfold; drag the slider to jump. Nothing here trades; it is the engine's reasoning, replayed.</div></div>
   </section>
 
+  <section id="tab-desk" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-desk">Reload desk</button><a class="btn ghost" href="/api/desk?format=text" target="_blank" rel="noopener">Desk (text)</a><span class="muted" id="desk-status"></span></div>
+    <div id="desk-out"><div class="plain">Six agents on one surface. <b>BOOK</b> reads the order book and the tape, <b>TAPE</b> organises structure, <b>SIGNAL</b> runs the strategy panel and fuses the votes, <b>RISK</b> holds the veto, <b>REGIME</b> classifies the market and re-weights the panel — and <b>PROOF</b> watches the other five and reports how much they have earned. Every panel carries where its number came from, how old it is, and what it is waiting on when it cannot speak. A blind agent looks blind rather than showing a zero. Read-only: the desk reports state and can never place, size or shape an order.</div></div>
+  </section>
+
   <section id="tab-intel" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-intel">Reload intelligence</button><span class="muted" id="intel-status"></span></div>
     <div id="intel-out"><div class="plain">The intelligence layer shows <b>what the engine sees</b>, automatically marked on the chart: structure, liquidity, imbalances, order blocks, ICT setups, the trade map and market context — each one clickable for its full provenance (what, why, when, which module, data quality, what would invalidate it). It is strictly read-only: it explains the engine's decisions and never makes one.</div></div>
@@ -171,6 +176,7 @@
   <div class="muted">A paper-trading partner that explains everything, prompts you when something matters, and learns as it trades. No real money, ever.</div>
   <div class="map">
     <div><b>Today</b> — the brief, the checklist, your plan, the paper account</div>
+    <div><b>Desk</b> — six agents on one surface, each saying what it can and cannot see</div>
     <div><b>Chart</b> — what he sees: sessions, levels, gaps, sweeps</div>
     <div><b>Flow</b> — where the big orders are</div>
     <div><b>News</b> — what could move price, and when he'll stand aside</div>
@@ -187,7 +193,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id)
-const TABS = [['today','Today','🏠'],['chart','Chart','📈'],['intel','Intel','🧭'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['validation','Validation','✅'],['memory','Memory','🧠'],['ask','Ask','💬']]
+const TABS = [['today','Today','🏠'],['desk','Desk','🛰'],['chart','Chart','📈'],['intel','Intel','🧭'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['validation','Validation','✅'],['memory','Memory','🧠'],['ask','Ask','💬']]
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -222,6 +228,7 @@ function showTab(id, push=true) {
   if (id === 'factory' && !$('factory-strategy').options.length) loadFactory()
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
+  if (id === 'desk' && window.loadDesk) window.loadDesk()
   if (id === 'intel' && window.loadIntel) window.loadIntel()
   if (id === 'replay' && window.loadReplay) window.loadReplay()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
@@ -1165,6 +1172,7 @@ $('btn-ask').onclick = () => ask(); $('q').addEventListener('keydown', e => { if
 loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const saved = location.hash.slice(1) || (()=>{ try { return localStorage.getItem('mrcash-tab') } catch { return null } })(); if (saved && TABS.some(t=>t[0]===saved) && saved !== 'today') showTab(saved, false); let toured = false; try { toured = localStorage.getItem('mrcash-toured') === '1' } catch {}; if (!toured) openTour() })
 </script>
 <script type="module" src="/js/replay.js"></script>
+<script type="module" src="/js/desk.js"></script>
 <script type="module" src="/js/intel.js"></script>
 </body>
 </html>
