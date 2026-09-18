@@ -303,6 +303,13 @@ export type ReplayTrade = {
   outcome: 'WIN' | 'LOSS' | 'FLAT'
   setupKey: string
   session: SessionName | null
+  /**
+   * The regime the feature engine read AT THE SIGNAL CANDLE, when the replay
+   * had one in hand (the ICT, strategy and fused replays; the crossover replay
+   * has no feature engine and leaves it null). Recorded at decision time so an
+   * attribution by regime is causal — never recomputed from later candles.
+   */
+  regime?: 'trending-up' | 'trending-down' | 'ranging' | 'breakout' | 'transition' | null
   quality?: number
   plan?: TradePlan
   blockedByMemory?: boolean

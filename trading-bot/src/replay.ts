@@ -170,6 +170,8 @@ type OpenTrade = {
   plan: TradePlan
   intent: Intent
   session: ReplayTrade['session']
+  /** The regime the feature engine read at the signal candle. Recorded here, never recomputed later. */
+  regime: ReplayTrade['regime']
   fill?: EntryFill
   quantity: number
   held: number
@@ -196,6 +198,7 @@ function finishTrade(open: OpenTrade, exit: { price: number; time: number; reaso
     outcome: m.outcome,
     setupKey: open.signal.setupKey,
     session: open.session,
+    regime: open.regime,
     quality: open.signal.quality,
     plan: open.plan,
   }
@@ -291,7 +294,7 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
         if (entry.filled) {
           const exit = simulateExit(intent, entry.fill, candles, a)
           if (exit) {
-            const ghost: OpenTrade = { signalIndex: i, signal, plan: signal.plan, intent, session: analysis.session, fill: entry.fill, quantity: sizeForStop(entry.fill.price, signal.plan.stop).quantity, held: exit.candlesHeld }
+            const ghost: OpenTrade = { signalIndex: i, signal, plan: signal.plan, intent, session: analysis.session, regime: analysis.features?.regime?.value?.state ?? null, fill: entry.fill, quantity: sizeForStop(entry.fill.price, signal.plan.stop).quantity, held: exit.candlesHeld }
             trades.push({ ...finishTrade(ghost, exit, candles, a), blockedByMemory: true, blockReason: verdict.reason })
           }
         }
@@ -302,7 +305,7 @@ export async function runIctReplay(opts: Options): Promise<ReplayResult> {
         continue
       }
     }
-    open = { signalIndex: i, signal, plan: signal.plan, intent, session: analysis.session, quantity: risk.quantity, held: 0 }
+    open = { signalIndex: i, signal, plan: signal.plan, intent, session: analysis.session, regime: analysis.features?.regime?.value?.state ?? null, quantity: risk.quantity, held: 0 }
     if (a.latencyCandles <= 0) {
       // The idealised model fills on the signal candle itself; nothing else happens on that candle.
       open.fill = { price: signal.plan.entry, time: candles[i].closeTime, index: i, costPerUnit: 0 }
@@ -476,7 +479,7 @@ export async function runStrategyReplay(id: string, opts: Options): Promise<Repl
     const risk = checkRisk(signal)
     if (!risk.approved) continue
     const intent: Intent = { direction: vote.plan.direction, intendedEntry: vote.plan.entry, stop: vote.plan.stop, target: vote.plan.takeProfit, atr: analysis.atr }
-    open = { signalIndex: i, signal, plan: vote.plan, intent, session: analysis.session, quantity: risk.quantity, held: 0 }
+    open = { signalIndex: i, signal, plan: vote.plan, intent, session: analysis.session, regime: analysis.features?.regime?.value?.state ?? null, quantity: risk.quantity, held: 0 }
     if (a.latencyCandles <= 0) open.fill = { price: vote.plan.entry, time: candles[i].closeTime, index: i, costPerUnit: 0 }
   }
   if (open) notes.push('One trade was still open when the data ran out; it is not counted.')
@@ -536,7 +539,7 @@ export async function runFusedReplay(opts: Options): Promise<ReplayResult> {
     const risk = checkRisk(sig)
     if (!risk.approved) continue
     const intent: Intent = { direction: sig.plan.direction, intendedEntry: sig.plan.entry, stop: sig.plan.stop, target: sig.plan.takeProfit, atr: analysis.atr }
-    open = { signalIndex: i, signal: sig, plan: sig.plan, intent, session: analysis.session, quantity: risk.quantity, held: 0 }
+    open = { signalIndex: i, signal: sig, plan: sig.plan, intent, session: analysis.session, regime: analysis.features?.regime?.value?.state ?? null, quantity: risk.quantity, held: 0 }
     if (a.latencyCandles <= 0) open.fill = { price: sig.plan.entry, time: candles[i].closeTime, index: i, costPerUnit: 0 }
   }
   const summary = summarise(trades, totalSetups, 0, missed)
