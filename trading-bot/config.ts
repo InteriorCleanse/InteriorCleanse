@@ -48,8 +48,21 @@ export const config = {
   maxPositionValueUsd: 25,
 
   /**
-   * Trading fees, percent per side. 0.1 is typical for crypto.
-   * Every result the bot shows you already has fees taken out.
+   * Fees for the IDEALISED pre-Phase-4 model only, percent per side — the
+   * before/after comparison in `IDEAL_ASSUMPTIONS`. It is NOT the fee your
+   * results are computed with.
+   *
+   * Every reported result — paper, backtest, replay, shadow, the journal —
+   * comes from `execution.takerFeePercent` / `execution.makerFeePercent`
+   * below, because those are what `defaultAssumptions()` reads. Changing the
+   * number here moves nothing except the idealised comparison. Set your real
+   * venue fees in `execution`, not here.
+   *
+   * (This comment used to claim every result already had this fee taken out.
+   * It did not: the engine has read `execution.*` since Phase 4, and the only
+   * other consumer, the journal's R, was reading this one — so the two
+   * disagreed by 0.08R the moment a venue fee tier was set. The journal now
+   * reads `execution.*` too.)
    */
   feePercent: 0.1,
 

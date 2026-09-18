@@ -2,6 +2,9 @@ import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { tempDataDir } from './helpers.ts'
+import { tradeMetrics } from '../src/sim/trades.ts'
+import { defaultAssumptions } from '../src/sim/fills.ts'
+import { config } from '../config.ts'
 
 const tmp = tempDataDir('mrcash-journal-')
 process.env.MRCASH_DATA_DIR = tmp.dir
@@ -56,4 +59,42 @@ test('computeR handles both directions and refuses to guess without an exit', ()
   assert.ok(Math.abs((j.computeR('short', 100, 101, 98) ?? 0) - 1.8) < 1e-9)
   assert.equal(j.computeR('long', 100, 99, null), null)
   assert.equal(j.computeR('none', 100, 99, 102), null)
+})
+
+
+/**
+ * THE JOURNAL'S R IS THE ENGINE'S R.
+ *
+ * `computeR` used to be a hand-rolled fourth copy of the R formula reading
+ * `config.feePercent`, a different knob from the `config.execution.*` fees every
+ * reported result actually uses. All three ship at 0.1, so the two agreed
+ * exactly and nothing looked wrong — until a venue fee tier was set, at which
+ * point the engine said 1.8800R and the journal 1.8000R for the same trade.
+ */
+test('the journal R equals the engine R for the same trade', () => {
+  for (const [dir, entry, stop, exit] of [
+    ['long', 30000, 29700, 30600],
+    ['long', 30000, 29700, 29700],
+    ['short', 30000, 30300, 29400],
+  ] as const) {
+    const engine = tradeMetrics({ direction: dir, fill: entry, stop, exit, exitReason: 'time', quantity: 1 }, defaultAssumptions()).rMultiple
+    assert.equal(j.computeR(dir, entry, stop, exit), engine, `journal and engine disagree on a ${dir} exiting at ${exit}`)
+  }
+})
+
+test('the journal R follows the execution fees, which are the ones results use', () => {
+  const ex = config.execution as { takerFeePercent: number; makerFeePercent: number }
+  const taker = ex.takerFeePercent, maker = ex.makerFeePercent
+  try {
+    const before = j.computeR('long', 30000, 29700, 30600)
+    ex.takerFeePercent = 0.075
+    ex.makerFeePercent = 0.045
+    assert.notEqual(
+      j.computeR('long', 30000, 29700, 30600), before,
+      'the journal ignored a change to the fees every other result is computed with',
+    )
+  } finally {
+    ex.takerFeePercent = taker
+    ex.makerFeePercent = maker
+  }
 })

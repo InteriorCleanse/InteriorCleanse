@@ -15,6 +15,8 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from '../config.ts'
+import { tradeMetrics } from './sim/trades.ts'
+import { defaultAssumptions } from './sim/fills.ts'
 import { DATA_DIR, ensureDataDir } from './memory.ts'
 import { store } from './store.ts'
 import { toET, tradingDayKey } from './sessions.ts'
@@ -100,12 +102,27 @@ function writeJournal(entries: JournalEntry[]): void {
   writeFileSync(JOURNAL_PATH, entries.map((e) => JSON.stringify(e)).join('\n') + (entries.length ? '\n' : ''))
 }
 
+/**
+ * The journal's R, through the same `tradeMetrics` the engine uses.
+ *
+ * This used to be a hand-rolled fourth copy of the R formula that read
+ * `config.feePercent` — a DIFFERENT knob from the `config.execution.*` fees
+ * every reported result is actually computed with. At the shipped config all
+ * three are 0.1 so the two agreed exactly, which is why it went unnoticed; set a
+ * venue fee tier (0.075 taker / 0.045 maker) and the engine says 1.8800R where
+ * the journal still says 1.8000R, for the same trade.
+ *
+ * A journal entry does not record HOW the trade exited, so the fee split has to
+ * be assumed. `time` resolves to the taker fee on the exit leg, which is what
+ * the hand-rolled version charged on both legs — the conservative assumption,
+ * and the one that keeps today's numbers identical. R is independent of size,
+ * so quantity is 1.
+ */
 export function computeR(direction: JournalEntry['direction'], entry: number | null, stop: number | null, exit: number | null): number | null {
   if (direction === 'none' || entry === null || stop === null || exit === null) return null
   const dist = Math.abs(entry - stop)
   if (!(dist > 0)) return null
-  const dir = direction === 'long' ? 1 : -1
-  return ((exit - entry) * dir) / dist - (config.feePercent * 2) / 100 * (entry / dist)
+  return tradeMetrics({ direction, fill: entry, stop, exit, exitReason: 'time', quantity: 1 }, defaultAssumptions()).rMultiple
 }
 
 const num = (v: unknown): number | null => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null)
