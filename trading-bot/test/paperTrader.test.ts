@@ -124,3 +124,59 @@ test('a losing streak on one setup key writes a lesson, exactly once', () => {
   assert.match(lessons[0], /lost 3 of 4 times/)
   assert.equal(pt.learnFromLedger(sigAt(T0).setupKey), false, 'already on file')
 })
+
+/**
+ * THE FILL MUST RESPECT THE VENUE'S FILTERS, NOT JUST THE APPROVAL.
+ *
+ * `assess` rounds the approved size to a whole number of the venue's steps, but
+ * `fillPosition` re-sizes from the actual fill price — and used to store that
+ * re-derived size raw, throwing the rounding away. With Binance BTCUSDT's real
+ * values the risk engine approves 0.00083 and the position was recorded as
+ * 0.000833017619655484: not a multiple of the 0.00001 step, not placeable.
+ * `filters.ts` states the intent plainly — "Even on paper, sizing that ignores
+ * these is a lie about what could actually be filled."
+ *
+ * Every filter ships at 0, so this is dormant today; it wakes up exactly when
+ * Phase 20 sets the venue's real values, on the way to risking money.
+ */
+const VENUE = { tickSize: 0.01, stepSize: 0.00001, minNotionalUsd: 5 }
+
+function withFilters<T>(f: { tickSize: number; stepSize: number; minNotionalUsd: number }, run: () => T): T {
+  const risk = config.risk as { filters: typeof f }
+  const before = risk.filters
+  risk.filters = f
+  try { return run() } finally { risk.filters = before }
+}
+
+test('a filled position is a whole number of the venue step size', () => {
+  const t = T0 + 40 * STEP
+  withFilters(VENUE, () => {
+    pt.openPosition(sigAt(t), risk, 'London', 1)
+    const changed = pt.managePositions([signalCandle(t), nextCandle(t)])
+    const filled = changed.find((p) => p.status === 'open' || p.exitReason !== 'missed')
+    assert.ok(filled, 'the order should have filled')
+    const steps = filled!.quantity / VENUE.stepSize
+    assert.ok(
+      Math.abs(steps - Math.round(steps)) < 1e-6,
+      `quantity ${filled!.quantity} is not a whole number of ${VENUE.stepSize} steps — the venue would reject it`,
+    )
+    // And the risk recorded must follow the size that could actually be placed.
+    const expectedRisk = filled!.quantity * Math.abs(filled!.entry - filled!.stop)
+    assert.ok(Math.abs((filled!.riskUsd ?? 0) - expectedRisk) < 1e-9, `riskUsd ${filled!.riskUsd} does not match the filled size`)
+  })
+})
+
+test('an order the venue would reject at the fill price is missed, not invented', () => {
+  const t = T0 + 60 * STEP
+  // A minimum notional far above anything this account can size into: the venue
+  // would refuse the order, so there is no fill to record.
+  withFilters({ ...VENUE, minNotionalUsd: 1_000_000 }, () => {
+    pt.openPosition(sigAt(t), risk, 'London', 1)
+    const changed = pt.managePositions([signalCandle(t), nextCandle(t)])
+    const p = changed[changed.length - 1]
+    assert.equal(p.status, 'closed')
+    assert.equal(p.exitReason, 'missed')
+    assert.match(p.note ?? '', /venue would have rejected/)
+    assert.equal(p.pnlUsd, 0, 'a rejected order cannot have made or lost anything')
+  })
+})

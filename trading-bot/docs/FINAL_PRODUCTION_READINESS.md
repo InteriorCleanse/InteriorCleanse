@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**492 tests, 492 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**494 tests, 494 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -24,11 +24,11 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Trading logic | **PASS** | No look-ahead (no future-index access in engine/features/replay); entries fill at the **next** candle open; timezone via `toET` (tested); tick/step/min-notional filters (`risk/filters.ts`); the frozen baseline still pins exactly one BUY at the retest candle, quality 85 (`test/engine.test.ts`). |
 | Backtesting | **PASS** (with WARNING on sample) | Honest fills: half-spread + slippage on entry, stop fills worse / at a gap open, target needs trade-through, taker/maker fees (`sim/fills.ts`); OOS split, walk-forward, Monte-Carlo; order-flow strategies reported "not backtestable" not approximated. **WARNING:** in-sandbox samples are one symbol / a short window — a real edge is unproven by design. |
 | Execution | **PASS** (paper) / **WARNING** (live dormant) | Paper path is an honest simulator with `assertPaperOnly()` that throws off-paper (`execution.ts:15`). Live path is fully tested against a mock (`test/live/*`) but **unwired and dormant**; it has had zero real/testnet fills (by mandate). |
-| Risk | **PASS** | `riskEngine.assess` gates every candidate; the paper trader opens **only** in the approved branch (`watch.ts:182`) — a signal cannot bypass the veto; every rule has a boundary test (`test/riskEngine.test.ts`); kill switch blocks new entries within one candle. |
+| Risk | **PASS** | `riskEngine.assess` gates every candidate; the paper trader opens **only** in the approved branch (`watch.ts:193`, the single `openPosition` call site in `src/`) — a signal cannot bypass the veto; every rule has a boundary test (`test/riskEngine.test.ts`); kill switch blocks new entries within one candle. |
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 492/492 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 494/494 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
 | Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 
@@ -269,6 +269,63 @@ Infinity, the position cap clamps it immediately, and what comes out is an
 ordinary-looking **0.25 quantity at a reported risk of $0** — a full-size
 position on a trade whose stop is its entry, which nothing downstream would
 flag. Measured by deleting the line and re-running the test.
+
+---
+
+## Fusion and risk-layer audit — one defect found and fixed
+
+The layer where a defect would be most consequential: how a vote becomes a
+position, and whether the veto can be reached around.
+
+**Verified clean, no change needed.** `openPosition` has exactly **one** call
+site in `src/` (`watch.ts:193`), nested inside the `else` of
+`if (!verdict.approved)` and behind the memory block — a signal cannot reach a
+position without a verdict. The rule order in `riskEngine.RULES` puts the kill
+switch first as documented, and `checks.find((c) => !c.passed)` makes the first
+failure the veto. The engine **fails closed**: a throwing rule produces no
+verdict at all rather than an approval, and `roundToStep` guards its zero-step
+default (`if (!(step > 0)) return qty`) instead of dividing by it.
+
+### The venue filters were thrown away at fill time
+
+`assess` rounds the approved size to a whole number of the venue's steps. Then
+`fillPosition` **re-sizes from the actual fill price** — correct in itself, the
+risk percent is owed to the real stop distance — and stored that re-derived size
+**raw**, discarding the rounding. Since the filled position is what gets
+recorded and reported, the filter was effectively defeated for every number
+downstream.
+
+Measured with Binance BTCUSDT's real values (`stepSize` 0.00001, `minNotional`
+5):
+
+| | size | placeable? |
+|---|---|---|
+| risk engine approved | 0.00083 | yes — a whole number of steps |
+| `fillPosition` stored | 0.000833017619655484 | **no** |
+
+`filters.ts` states the intent in its own header: *"Even on paper, sizing that
+ignores these is a lie about what could actually be filled."* That is exactly
+what was happening, and `riskUsd` inherited it too — `assess` returns
+`quantity: filt.quantity` (rounded) beside `riskUsd: sizing.riskUsd` (computed
+before rounding).
+
+**Dormant today, and that is the point.** Every filter ships at 0, so
+`applyFilters` is a no-op and not one recorded number moves — the full suite,
+including the pre-existing tests that assert exact fill quantities, passes
+unchanged. It wakes up precisely when Phase 20 sets the venue's real values,
+which is the run-up to risking money.
+
+**Fix.** `fillPosition` now puts the re-derived size through the same
+`applyFilters` the risk engine used, and derives `riskUsd` from the size that
+could actually be placed. A size the venue would reject is recorded as a
+**MISSED** order rather than a fill — inventing a fill the venue would have
+refused is the same lie in a different place — and the manage loop skips it
+instead of babysitting a position that does not exist.
+
+Locked by two tests in `test/paperTrader.test.ts` (a filled size is a whole
+number of steps and its `riskUsd` matches it; an order under an unreachable
+minimum notional is missed, not invented), both verified to fail against the old
+`fillPosition`.
 
 ---
 

@@ -27,6 +27,7 @@ import { tradingDayKey } from './sessions.ts'
 import { describeKey } from './adaptiveFilter.ts'
 import { upsertEntry } from './journal.ts'
 import { sizeForStop } from './risk.ts'
+import { applyFilters } from './risk/filters.ts'
 import { defaultAssumptions, simulateEntry, exitOnCandle, simulateExit } from './sim/fills.ts'
 import type { ExecutionAssumptions, EntryFill } from './sim/fills.ts'
 import { tradeMetrics, classifyOutcome } from './sim/trades.ts'
@@ -195,9 +196,35 @@ export function openPosition(signal: Signal, risk: RiskDecision, session: string
   return pos
 }
 
+/**
+ * Size the position at the price it actually filled at — the fill is rarely the
+ * signal price, and the risk percent is owed to the real stop distance — and
+ * then put that size through the SAME exchange filters the risk engine applied
+ * when it approved the order.
+ *
+ * The filter pass used to be missing here, so the rounding `assess` had done was
+ * silently thrown away at fill time and the position was recorded at a size the
+ * venue could not have accepted. With Binance BTCUSDT's real values the risk
+ * engine approves 0.00083 (a whole number of 0.00001 steps) and this function
+ * stored 0.000833017619655484 — not a multiple of the step, not placeable.
+ * `filters.ts` says exactly why that matters: "Even on paper, sizing that
+ * ignores these is a lie about what could actually be filled."
+ *
+ * Every filter ships at 0, so this is a no-op today and no recorded number
+ * moves; it starts mattering when Phase 20 sets the venue's real values, which
+ * is precisely the run-up to risking money.
+ *
+ * Returns a MISSED position when the filtered size is not placeable — a venue
+ * that would have rejected the order did not give us a fill, and inventing one
+ * is the same lie in a different place.
+ */
 function fillPosition(pos: PaperPosition, fill: EntryFill): PaperPosition {
   const sized = sizeForStop(fill.price, pos.stop)
-  const filled: PaperPosition = { ...pos, status: 'open', entry: fill.price, filledAt: fill.time, quantity: sized.quantity, riskUsd: sized.riskUsd, entryCostUsd: fill.costPerUnit * sized.quantity, latencyMs: Math.max(0, fill.time - pos.openedAt) }
+  const filt = applyFilters(sized.quantity, fill.price, config.risk.filters)
+  if (!filt.ok) return missPosition(pos, fill.time, `the venue would have rejected the order at the fill price — ${filt.reason}`)
+  // Risk follows the size that could actually be placed, not the one before rounding.
+  const riskUsd = filt.quantity * Math.abs(fill.price - pos.stop)
+  const filled: PaperPosition = { ...pos, status: 'open', entry: fill.price, filledAt: fill.time, quantity: filt.quantity, riskUsd, entryCostUsd: fill.costPerUnit * filt.quantity, latencyMs: Math.max(0, fill.time - pos.openedAt) }
   savePosition(filled)
   return filled
 }
@@ -296,8 +323,12 @@ export function managePositions(candles: Candle[], a: ExecutionAssumptions = def
         if (r.reason === 'missed') changed.push(missPosition(pos, candles[candles.length - 1].closeTime, r.detail))
         continue // the entry candle has not closed yet
       }
-      pos = fillPosition(pos, r.fill)
-      changed.push(pos)
+      const placed = fillPosition(pos, r.fill)
+      changed.push(placed)
+      // A size the venue would have rejected is a miss, not a fill — there is
+      // no open position to manage from here.
+      if (placed.status !== 'open') continue
+      pos = placed
       // Manage from the fill candle onward, in the same pass.
       let held = 0
       for (let i = r.fill.index; i < candles.length; i++) {
