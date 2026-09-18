@@ -60,7 +60,11 @@ import { refreshOosReference, oosReferenceFor, usableOosAvgR } from './paper/oos
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
+import { lastStoredCandle } from './data/candleStore.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
+import { overview as evidenceOverview, dimensionView, crossView, cohortView, tradesView, tradeDetail, cachedBacktest, refreshBacktestCache, tradingStrategyId } from './analyst/evidence.ts'
+import type { EvidenceInputs } from './analyst/evidence.ts'
+import type { CohortDimension, CohortDefinition } from './analyst/cohorts.ts'
 import { newsRead, renderNewsRead } from './news/brain.ts'
 import { pastInstances, historyDepth, allSeries } from './news/history.ts'
 import { recoverOpenPositions, recordStart, bootLog } from './recovery.ts'
@@ -868,6 +872,60 @@ const server = createServer(async (req, res) => {
         return
       }
       json(res, 200, { ok: true, data: report })
+      return
+    }
+
+    /**
+     * THE EVIDENCE TAB. Every route reads the store and returns provenance-
+     * stamped views; the only writer is the explicit POST that refreshes the
+     * cached backtest, which runs a replay and is therefore never on a GET.
+     */
+    if (path.startsWith('/api/evidence')) {
+      const EVIDENCE_DIMS: CohortDimension[] = ['strategyId', 'family', 'session', 'regime', 'volatility', 'symbol', 'interval', 'direction', 'hourET', 'weekdayET', 'exitReason', 'newsBucket', 'qualityBucket']
+      const dimOf = (v: string | null, fallback: CohortDimension): CohortDimension => (EVIDENCE_DIMS.includes(v as CohortDimension) ? (v as CohortDimension) : fallback)
+      const sourceOf = (v: string | null): 'paper' | 'backtest' => (v === 'backtest' ? 'backtest' : 'paper')
+      const strategy = url.searchParams.get('strategy') || tradingStrategyId()
+      if (path === '/api/evidence/backtest' && req.method === 'POST') {
+        const body = JSON.parse((await readBody(req, 4096)) || '{}') as { strategyId?: string }
+        const id = body.strategyId || tradingStrategyId()
+        if (id !== 'fused' && !strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
+        const r = await safely(() => refreshBacktestCache(id))
+        if (r.ok) eventLog.push('info', `Backtest evidence refreshed for ${id}`, `${r.data.trades.length} SIMULATED trades cached for the Evidence tab.`, 'info')
+        json(res, 200, r.ok ? { ok: true, data: { strategyId: r.data.strategyId, trades: r.data.trades.length, computedAt: r.data.computedAt, window: r.data.window } } : r)
+        return
+      }
+      const last = lastStoredCandle(config.symbol, config.interval)
+      const inputs: EvidenceInputs = {
+        closed: readPositions().closed,
+        backtest: cachedBacktest(strategy),
+        candlesBetween: (sym, iv, from, to) => store().candlesBetween(sym, iv, from, to),
+        stepMs: INTERVAL_MS[config.interval] ?? 300_000,
+        feed: { ageSec: last ? Math.round((Date.now() - last.closeTime) / 1000) : null, maxAgeSec: config.risk.maxCandleAgeSec },
+      }
+      const source = sourceOf(url.searchParams.get('source'))
+      if (path === '/api/evidence') { json(res, 200, { ok: true, data: evidenceOverview(inputs) }); return }
+      if (path === '/api/evidence/dimension') { json(res, 200, { ok: true, data: dimensionView(inputs, source, dimOf(url.searchParams.get('dim'), 'session'), url.searchParams.get('all') === '1') }); return }
+      if (path === '/api/evidence/cross') { json(res, 200, { ok: true, data: crossView(inputs, source, dimOf(url.searchParams.get('rows'), 'session'), dimOf(url.searchParams.get('cols'), 'strategyId')) }); return }
+      if (path === '/api/evidence/cohort') {
+        let def: CohortDefinition = { name: 'custom', filters: [] }
+        try {
+          const raw = JSON.parse(url.searchParams.get('filters') || '[]') as Array<{ dimension: string; values: unknown[] }>
+          if (!Array.isArray(raw) || raw.length > 8) throw new Error('bad filters')
+          def = {
+            name: raw.map((f) => `${f.dimension}=${(f.values ?? []).map(String).join('|')}`).join(' + ') || 'all trades',
+            filters: raw.map((f) => ({ dimension: dimOf(String(f.dimension), 'session'), values: (Array.isArray(f.values) ? f.values : []).slice(0, 12).map((v) => String(v).slice(0, 40)) })),
+          }
+        } catch { json(res, 400, { ok: false, error: 'filters must be a JSON array of { dimension, values }' }); return }
+        json(res, 200, { ok: true, data: cohortView(inputs, source, def) })
+        return
+      }
+      if (path === '/api/evidence/trades') { json(res, 200, { ok: true, data: tradesView(inputs, source) }); return }
+      if (path === '/api/evidence/trade') {
+        const d = tradeDetail(inputs, url.searchParams.get('id') || '')
+        json(res, d ? 200 : 404, d ? { ok: true, data: d } : { ok: false, error: 'no such paper trade' })
+        return
+      }
+      json(res, 404, { ok: false, error: 'unknown evidence view' })
       return
     }
 

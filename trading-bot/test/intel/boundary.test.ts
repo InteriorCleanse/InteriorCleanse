@@ -43,12 +43,33 @@ test('NO engine module imports the intelligence layer', () => {
     if (file.includes(`${'/'}intel${'/'}`)) continue // the layer may import itself
     const body = readFileSync(file, 'utf8')
     if (/from '\.{1,2}\/(?:\.\.\/)*intel\//.test(body) || /from '\.\/intel\//.test(body)) {
-      // The server is the one permitted consumer: it serves the read-only routes.
-      if (file.endsWith('server.ts')) continue
+      // Permitted consumers: the server (it serves the read-only routes) and
+      // the analyst layer, which is itself observation — it reuses whyTrade and
+      // tradeStages to explain a stored record. The arrow still points one way:
+      // the test below pins that nothing in src/analyst/ can reach the engine.
+      if (file.endsWith('server.ts') || file.includes(`${'/'}analyst${'/'}`)) continue
       offenders.push(file.replace(SRC, 'src'))
     }
   }
   assert.deepEqual(offenders, [], `these engine modules import src/intel/, which would let observation influence decisions:\n${offenders.join('\n')}`)
+})
+
+/**
+ * THE ANALYST LAYER IS OBSERVATION TOO. Its exemption above is only honest if
+ * it cannot, in turn, reach anything that decides or acts.
+ */
+test('the analyst layer imports nothing that decides, sizes, places or manages an order', () => {
+  // A value import of a deciding module is the violation. A type-only import
+  // is erased at runtime and cannot act, and the analyst layer uses several to
+  // rebuild the engine's own shapes from a stored snapshot.
+  const banned = /^import (?!type\b)[^\n]*from '.*\/(exchange\/binanceTrade|live\/trader|live\/orders|live\/reconcile|execution|riskEngine|fusion|watch|shadow\/[a-z]+)\.ts'/m
+  const writers = /\b(openPosition|closeManually|recordMissedSignal|savePosition|appendLedgerRow|managePositions|engageStop|releaseStop)\(/
+  for (const file of walk(join(SRC, 'analyst'))) {
+    const body = readFileSync(file, 'utf8')
+    assert.equal(banned.test(body), false, `${file.replace(SRC, 'src')} imports a deciding or acting module`)
+    assert.equal(writers.test(body), false, `${file.replace(SRC, 'src')} calls something that writes a position or an order`)
+    assert.equal(/EXCHANGE_API_KEY|EXCHANGE_API_SECRET/.test(body), false, `${file.replace(SRC, 'src')} references exchange credentials`)
+  }
 })
 
 test('the intelligence layer imports no exchange, live-trading or order-placing module', () => {

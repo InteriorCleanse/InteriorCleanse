@@ -157,6 +157,13 @@
     <div id="intel-out"><div class="plain">The intelligence layer shows <b>what the engine sees</b>, automatically marked on the chart: structure, liquidity, imbalances, order blocks, ICT setups, the trade map and market context — each one clickable for its full provenance (what, why, when, which module, data quality, what would invalidate it). It is strictly read-only: it explains the engine's decisions and never makes one.</div></div>
   </section>
 
+  <section id="tab-evidence" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-evidence">Reload evidence</button><a class="btn ghost" href="/api/evidence" target="_blank" rel="noopener">Evidence (JSON)</a><span class="muted" id="evidence-status"></span></div>
+    <div class="ev-head"><div><div class="ev-title">MR. CASH — EVIDENCE &amp; ATTRIBUTION</div><div class="muted">What actually happened, where it came from, and how much data says so. PAPER and BACKTEST never share a table.</div></div><div id="evidence-source"></div></div>
+    <div class="ev-views" id="evidence-views"></div>
+    <div id="evidence-out"><div class="plain">Loading the evidence…</div></div>
+  </section>
+
   <section id="tab-validation" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-validation">Reload validation</button><a class="btn ghost" id="btn-validation-report" href="/api/validation?format=text" target="_blank" rel="noopener">Daily report (text)</a><span class="muted" id="validation-status"></span></div>
     <div id="validation-out"><div class="plain">Extended paper validation measures the live paper run against real market data — it never tunes anything. Paper is validation data, not a fitting target. The verdict stays <b>INSUFFICIENT SAMPLE</b> until every explicit gate is met; each gate shows exactly how far it has to go. Below: progress to the gates, per-strategy performance vs the backtest, breakdowns by regime and session, decay, strategy correlation, order-flow honesty, system soak and shadow readiness.</div></div>
@@ -221,11 +228,11 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['validation','Validation','✅'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['validation','Validation','✅'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','journal','ask']
 const GROUPS = [
   ['Markets', 'what price is doing right now', ['flow','news','intel','tv']],
-  ['Is it working?', 'the honest scoreboard', ['validation','test','replay']],
+  ['Is it working?', 'the honest scoreboard', ['evidence','validation','test','replay']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
 ]
 const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
@@ -286,6 +293,7 @@ function showTab(id, push=true) {
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
   if (id === 'desk' && window.loadDesk) window.loadDesk()
+  if (id === 'evidence' && window.loadEvidence) window.loadEvidence()
   if (id === 'intel' && window.loadIntel) window.loadIntel()
   if (id === 'replay' && window.loadReplay) window.loadReplay()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
@@ -1274,6 +1282,7 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 </script>
 <script type="module" src="/js/replay.js"></script>
 <script type="module" src="/js/desk.js"></script>
+<script type="module" src="/js/evidence.js"></script>
 <script type="module" src="/js/intel.js"></script>
 </body>
 </html>
