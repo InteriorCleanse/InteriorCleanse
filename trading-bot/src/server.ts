@@ -61,6 +61,7 @@ import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
 import { newsRead, renderNewsRead } from './news/brain.ts'
+import { pastInstances, historyDepth, allSeries } from './news/history.ts'
 import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
@@ -789,6 +790,11 @@ const server = createServer(async (req, res) => {
         symbol: config.symbol,
         now: Date.now(),
         headlineCount: s2.news?.headlines.length ?? 0,
+        // What this symbol did on past instances of THIS release, rather than
+        // only what it does at that time of day. Empty on a fresh install and
+        // honest about it — the memory accumulates one calendar refresh at a
+        // time, and every study says TOO FEW until it has five.
+        pastInstances: (e) => pastInstances(e.country, e.title, e.time - 60_000).map((i) => i.time),
       })
       if (url.searchParams.get('format') === 'text') {
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
@@ -796,6 +802,34 @@ const server = createServer(async (req, res) => {
         return
       }
       json(res, 200, { ok: true, data: read })
+      return
+    }
+
+    /**
+     * WHAT THE CALENDAR MEMORY ACTUALLY HOLDS.
+     *
+     * The event studies above are only as good as this, and on a fresh install
+     * it is empty. Worth being able to look at rather than having to infer it
+     * from a page of TOO FEW verdicts.
+     */
+    if (path === '/api/news/history') {
+      const depth = historyDepth()
+      json(res, 200, {
+        ok: true,
+        data: {
+          ...depth,
+          note: depth.instances === 0
+            ? 'Nothing recorded yet. Every calendar refresh folds this week\'s releases in; until a release has five recorded instances, nothing is claimed about it.'
+            : `${depth.instances} recorded instances across ${depth.series} releases, ${depth.withActual} of them with a printed figure.`,
+          series: allSeries().slice(0, 60).map((s) => ({
+            series: s.series, title: s.title, country: s.country,
+            instances: s.instances.length,
+            withActual: s.instances.filter((i) => i.actual).length,
+            first: s.instances[0]?.time ?? null,
+            last: s.instances[s.instances.length - 1]?.time ?? null,
+          })),
+        },
+      })
       return
     }
 

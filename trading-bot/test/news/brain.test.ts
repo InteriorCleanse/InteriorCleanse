@@ -16,10 +16,13 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseFigure, surpriseOf, clockWindowStudy, newsRead, renderNewsRead } from '../../src/news/brain.ts'
+import { parseFigure, surpriseOf, clockWindowStudy, eventStudy, newsRead, renderNewsRead } from '../../src/news/brain.ts'
 import type { Candle, CalendarEvent } from '../../src/types.ts'
 
 const STEP = 300_000
+const DAY = 86_400_000
+/** 13:30 UTC on the first day of the synthetic history — 08:30 New York in winter. */
+const FIRST_LOUD = Date.UTC(2026, 0, 5, 13, 30)
 
 /**
  * Days of 5-minute candles in which one clock window is deliberately wilder.
@@ -136,6 +139,105 @@ test('no candles at all is TOO FEW, not a quiet market', () => {
 })
 
 // ---------------------------------------------------------------
+// Does this symbol move on THIS RELEASE — the study the clock cannot do
+// ---------------------------------------------------------------
+
+/** Timestamps of n daily instances landing in the loud window. */
+const instances = (n: number, from = 1) => Array.from({ length: n }, (_, i) => FIRST_LOUD + (from + i) * DAY)
+
+test('with nothing remembered, the event study claims nothing and says why', () => {
+  const s = eventStudy(days(20, { loudness: 6 }), [], { series: 'CPI m/m' })
+  assert.equal(s.verdict, 'TOO FEW')
+  assert.equal(s.samples, 0)
+  assert.equal(s.onRecord, 0)
+  assert.equal(s.multiple, null)
+  assert.match(s.note, /No past instances of CPI m\/m are on record yet/)
+})
+
+test('past instances of a release this symbol reacts to are measured as bigger', () => {
+  const s = eventStudy(days(20, { loudness: 6 }), instances(8), { series: 'CPI m/m' })
+  assert.equal(s.samples, 8)
+  assert.equal(s.verdict, 'MUCH BIGGER')
+  assert.ok(s.multiple! > 2, `expected a large multiple, got ${s.multiple}`)
+  assert.ok(s.worstRangePct! >= s.medianRangePct!, 'the tail must not be smaller than the median')
+  assert.equal(s.lastMeasured, FIRST_LOUD + 8 * DAY)
+})
+
+test('a release this symbol has never reacted to is called ordinary, whatever the feed says', () => {
+  const s = eventStudy(days(20, { loudness: 1 }), instances(8), { series: 'Crude Oil Inventories' })
+  assert.equal(s.verdict, 'ORDINARY')
+  assert.match(s.note, /has not historically reacted to this release/)
+})
+
+test('too few recorded instances refuses to characterise the release, and names both counts', () => {
+  const s = eventStudy(days(20, { loudness: 6 }), instances(3), { series: 'CPI m/m' })
+  assert.equal(s.verdict, 'TOO FEW')
+  assert.equal(s.samples, 3)
+  assert.equal(s.onRecord, 3)
+  assert.match(s.note, /3 of 3 recorded instances of CPI m\/m/)
+})
+
+/**
+ * A REFUSAL WITH A NUMBER BESIDE IT IS NOT A REFUSAL.
+ *
+ * Both studies computed a multiple and returned it even when the verdict was
+ * TOO FEW, so a rendering printed "TOO FEW 6.00×" — the word that declines to
+ * characterise the window, next to the characterisation. A ratio off three days
+ * is not a measurement, and a reader takes the number. The raw medians stay,
+ * because those ARE measurements; the ratio does not.
+ */
+test('below the sample bar, neither study reports a multiple', () => {
+  const thin = eventStudy(days(20, { loudness: 6 }), instances(3), { series: 'CPI m/m' })
+  assert.equal(thin.verdict, 'TOO FEW')
+  assert.equal(thin.multiple, null, 'a TOO FEW event study printed a multiple beside its own refusal')
+  assert.ok(thin.medianRangePct !== null, 'the raw measurement is still a measurement and should survive')
+
+  const clock = clockWindowStudy(days(2, { loudness: 6 }), 8, 30, 30)
+  assert.equal(clock.verdict, 'TOO FEW')
+  assert.equal(clock.multiple, null, 'a TOO FEW clock study printed a multiple beside its own refusal')
+})
+
+test('instances outside the candle history are on record but are not samples', () => {
+  // The distinction matters: "we remember six" and "we could measure six" are
+  // different numbers, and reporting the first as the second would manufacture
+  // a sample out of missing data.
+  const old = Array.from({ length: 6 }, (_, i) => FIRST_LOUD - (i + 1) * 40 * DAY)
+  const s = eventStudy(days(20, { loudness: 6 }), old, { series: 'CPI m/m' })
+  assert.equal(s.onRecord, 6)
+  assert.equal(s.samples, 0)
+  assert.equal(s.verdict, 'TOO FEW')
+  assert.match(s.note, /0 of 6 recorded instances/)
+})
+
+/**
+ * A SLIVER OF DATA IS NOT A COVERED WINDOW.
+ *
+ * The coverage rule used to hardcode five-minute candles: a window counted as
+ * measurable on `floor(minutes / 5) - 1` candles whatever the interval really
+ * was. On 1-minute data that made a 30-minute window "covered" by five candles —
+ * six minutes of data measured as if it were thirty, which reads as calm for
+ * entirely the wrong reason and biases every study toward ORDINARY.
+ */
+test('a 30-minute window with six minutes of one-minute candles in it is not a sample', () => {
+  const sparse: Candle[] = []
+  let price = 30_000
+  for (let d = 0; d < 20; d++) {
+    for (let h = 0; h < 24; h++) {
+      // Only the first five minutes of each hour exist.
+      for (let m = 0; m < 5; m++) {
+        const openTime = Date.UTC(2026, 0, 5, 0, 0) + d * DAY + h * 3_600_000 + m * 60_000
+        const amp = price * 0.001
+        sparse.push({ openTime, closeTime: openTime + 59_999, open: price, high: price + amp, low: price - amp, close: price, volume: 1 })
+      }
+    }
+  }
+  const at = Array.from({ length: 8 }, (_, i) => Date.UTC(2026, 0, 5, 13, 0) + (i + 1) * DAY)
+  const s = eventStudy(sparse, at, { series: 'CPI m/m' })
+  assert.equal(s.samples, 0, 'five one-minute candles were accepted as a covered 30-minute window')
+  assert.equal(s.verdict, 'TOO FEW')
+})
+
+// ---------------------------------------------------------------
 // The read
 // ---------------------------------------------------------------
 
@@ -159,6 +261,52 @@ test('the feed label is kept separate from the measurement, never merged', () =>
 })
 
 /**
+ * THE RELEASE OUTRANKS THE CLOCK — ONCE THERE IS ENOUGH OF IT.
+ *
+ * "08:30 ET is usually busy" and "CPI moves this instrument" are different
+ * claims, and only the second is about the event. The read should lean on the
+ * second whenever it has the sample, say that it is doing so, and fall back to
+ * the clock — visibly — when it does not.
+ */
+test('with memory of the release, the read leans on the release rather than the clock', () => {
+  const r = newsRead({
+    events: [ev({ time: Date.UTC(2026, 0, 20, 13, 30) })],
+    candles: days(20, { loudness: 6 }),
+    symbol: 'BTCUSDT',
+    now: Date.UTC(2026, 0, 20, 12, 0),
+    pastInstances: () => instances(8),
+  })
+  const e = r.events[0]
+  assert.equal(e.measuredOn, 'event')
+  assert.equal(e.event!.verdict, 'MUCH BIGGER')
+  assert.match(e.read, /measured on this release itself, not just the time of day/)
+  assert.equal(r.measuredOnEvent, 1)
+  // The clock study is still there — replaced as the headline, never discarded.
+  assert.equal(e.window.verdict, 'MUCH BIGGER')
+})
+
+test('without memory, nothing changes: the clock study stands and says so', () => {
+  const r = newsRead({ events: [ev()], candles: days(20, { loudness: 6 }), symbol: 'BTCUSDT', now: Date.UTC(2026, 0, 12, 12, 0) })
+  assert.equal(r.events[0].event, null)
+  assert.equal(r.events[0].measuredOn, 'clock')
+  assert.equal(r.measuredOnEvent, 0)
+  assert.match(r.caveats.join(' '), /None of these were measured on the release itself yet/)
+})
+
+test('thin memory falls back to the clock rather than claiming a release study', () => {
+  const r = newsRead({
+    events: [ev({ time: Date.UTC(2026, 0, 20, 13, 30) })],
+    candles: days(20, { loudness: 6 }),
+    symbol: 'BTCUSDT',
+    now: Date.UTC(2026, 0, 20, 12, 0),
+    pastInstances: () => instances(2),
+  })
+  assert.equal(r.events[0].measuredOn, 'clock')
+  assert.equal(r.events[0].event!.verdict, 'TOO FEW')
+  assert.match(r.events[0].read, /2 of 2 recorded instances/)
+})
+
+/**
  * THE REFUSAL THAT MATTERS MOST.
  *
  * "Hot CPI so short it" requires knowing how this instrument maps a surprise to
@@ -171,14 +319,18 @@ test('no output, in any state, tells you which way to trade', () => {
   const lines: string[] = []
   for (const loudness of [1, 6]) {
     for (const actual of [undefined, '0.3%', '0.9%', '-0.4%']) {
-      const r = newsRead({
-        events: [ev({ actual, impact: 'High' }), ev({ title: 'Crude Oil Inventories', impact: 'Medium', forecast: '-1.2M', actual, time: Date.UTC(2026, 0, 12, 15, 30) })],
-        candles: days(20, { loudness }),
-        symbol: 'BTCUSDT',
-        now: Date.UTC(2026, 0, 12, 12, 0),
-      })
-      for (const e of r.events) lines.push(e.read, e.surprise.note, e.window.note)
-      lines.push(renderNewsRead(r), ...r.caveats)
+      // Every memory depth too: none, thin, and enough to carry a verdict.
+      for (const memory of [undefined, () => instances(2), () => instances(8)]) {
+        const r = newsRead({
+          events: [ev({ actual, impact: 'High', time: Date.UTC(2026, 0, 20, 13, 30) }), ev({ title: 'Crude Oil Inventories', impact: 'Medium', forecast: '-1.2M', actual, time: Date.UTC(2026, 0, 20, 15, 30) })],
+          candles: days(20, { loudness }),
+          symbol: 'BTCUSDT',
+          now: Date.UTC(2026, 0, 20, 12, 0),
+          pastInstances: memory,
+        })
+        for (const e of r.events) lines.push(e.read, e.surprise.note, e.window.note, e.event?.note ?? '')
+        lines.push(renderNewsRead(r), ...r.caveats)
+      }
     }
   }
   for (const line of lines) {

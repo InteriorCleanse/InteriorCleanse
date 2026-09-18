@@ -356,6 +356,63 @@ production blocker. No `placeholder`/`temp`/`example` shortcuts in production co
 
 ---
 
+## The news brain's own caveat — closed, and what it cost
+
+The news brain shipped with a limitation written into its own output:
+
+> "The window study measures the CLOCK, not the event: it is what this symbol
+> usually does at that time of day, across all days in the history — not what it
+> did on past instances of this specific release."
+
+That was a real gap, not a disclaimer. *"08:30 ET is usually busy"* and *"CPI
+moves this instrument"* are different claims, and only the second is about the
+event. The module could only make the first because **nothing stored what the
+calendar said yesterday**: the feed carries the current week and is overwritten
+on every refresh, so the moment CPI printed, the fact that it had ever printed
+was gone.
+
+**What was added.** `src/news/history.ts` — a per-release record folded in on
+every successful calendar fetch (`getNews`), keyed by a normalised series id.
+`src/news/brain.ts` gained `eventStudy()`, which measures realised range in the
+window after each past instance of one specific release against an ordinary
+window of the same length **on those same days** (same-day, so the yardstick is
+not contaminated by the market being generally louder in the months a release
+happened to fall in). `newsRead` takes an optional `pastInstances` lookup and
+leans on the release study whenever it clears the sample bar, saying so; the
+clock study is demoted, never discarded, and is quoted alongside when the two
+disagree. Routes: `/api/news/read` supplies the lookup, `/api/news/history`
+reports what the memory actually holds.
+
+**What it does not buy you yet.** The memory starts empty and fills one calendar
+refresh at a time, so a monthly release needs roughly **five months** before
+anything is claimed about it. `minSamples` is 5 — the same bar as the clock
+study and as the attribution layer — and was deliberately *not* lowered to make
+the feature look alive sooner. Until then every event study reads `TOO FEW` and
+the read falls back to the clock, visibly. That is the honest state and it looks
+like it.
+
+**Two defects found while building it**, both by rendering the output rather
+than by reasoning about it:
+
+- **A refusal with a number beside it.** Both studies computed a multiple and
+  returned it even when the verdict was `TOO FEW`, so a rendering printed
+  `TOO FEW 6.00×` — the word that declines to characterise the window, next to
+  the characterisation. A ratio off three days is not a measurement and a reader
+  takes the number. The raw medians stay (those *are* measurements); the ratio is
+  now `null` below the bar. **This was pre-existing in `clockWindowStudy`.**
+- **A hardcoded candle interval in the coverage rule.** A window counted as
+  measurable on `floor(minutes / 5) - 1` candles whatever the interval really
+  was. On 5m data that is correct; on 1m data a 30-minute window was "covered" by
+  five candles — six minutes of data measured as if it were thirty, which reads
+  as calm for entirely the wrong reason and biases every study toward `ORDINARY`.
+  The step is now derived from the data.
+
+**Unchanged:** the module still calls no direction, in any state, at any memory
+depth — asserted across loudness × print × memory-depth combinations. Nothing
+here reaches the engine; `news.isBlackout` remains the only thing risk consults.
+
+---
+
 ## Next validation stage
 
 Proceed to **extended paper trading** (≥ `minSetupsForConfidence` fused trades

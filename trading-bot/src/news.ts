@@ -15,6 +15,7 @@
 
 import { config, newsSources } from '../config.ts'
 import { store } from './store.ts'
+import { recordCalendar } from './news/history.ts'
 import type { CalendarEvent, Headline, NewsReport } from './types.ts'
 
 /** The store key the last good report is cached under. */
@@ -219,6 +220,15 @@ export async function getNews(force = false): Promise<NewsReport> {
     store().setJson(CACHE_KEY, report)
   } catch {
     // A cache write failing is not worth stopping for.
+  }
+  // The feed carries this week and overwrites it on every refresh, so unless
+  // each sighting is folded into a per-release record, the fact that CPI has
+  // ever printed before is lost the moment it prints. This is the only place
+  // that memory accumulates; like the cache write, it is not worth failing over.
+  try {
+    if (calendar.length) recordCalendar(calendar)
+  } catch {
+    // Recording history is a nice-to-have on top of a report that is already good.
   }
   return report
 }
