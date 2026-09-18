@@ -21,7 +21,7 @@ import { config } from '../../config.ts'
 import { matches } from '../analyst/cohorts.ts'
 import { fromPaperPosition } from '../analyst/records.ts'
 import type { EvidenceRecord } from '../analyst/records.ts'
-import { addItem, getItem, listItems, recordEvidence, sweepStale } from '../knowledge/vault.ts'
+import { OPEN_STATUSES, addItem, getItem, listItems, recordEvidence, sweepStale } from '../knowledge/vault.ts'
 import type { KnowledgeItem, NewItem } from '../knowledge/vault.ts'
 import type { PaperPosition } from '../paperTrader.ts'
 import { flagForReview, listHypotheses, saveHypothesis, sweepStaleHypotheses } from '../research/hypotheses.ts'
@@ -139,7 +139,7 @@ function reassessItems(r: EvidenceRecord, now: number): string[] {
   const touched: string[] = []
   if (r.rMultiple === null) return touched
   for (const it of listItems()) {
-    if (it.status !== 'CURRENT' && it.status !== 'REVIEW REQUIRED') continue
+    if (!OPEN_STATUSES.includes(it.status)) continue
     const d = directionalOf(it)
     if (!d || !matches(r, d.filters)) continue
     const contradictory = (r.rMultiple > 0) !== (d.direction === 'positive')

@@ -32,7 +32,20 @@ export type KnowledgeKind =
   | 'strategy-observation' | 'regime-observation' | 'session-observation'
   | 'data-quality-warning' | 'lesson' | 'failed-hypothesis' | 'reassessment'
 
-export type KnowledgeStatus = 'CURRENT' | 'REVIEW REQUIRED' | 'STALE' | 'SUPERSEDED' | 'RETIRED'
+/**
+ * CURRENT          nothing has called the item into question
+ * WATCH            one soft decay flag (the decay monitor's first warning)
+ * REVIEW REQUIRED  evidence counts or several decay flags ask for a look
+ * STALE            past its review date without a review
+ * CONTRADICTED     a hard flag: contradictions outnumber support, a linked
+ *                  hypothesis was not supported, or paper diverged from the
+ *                  historical population the item rests on
+ * SUPERSEDED / RETIRED  closed by a newer item or a review; kept, never deleted
+ */
+export type KnowledgeStatus = 'CURRENT' | 'WATCH' | 'REVIEW REQUIRED' | 'STALE' | 'CONTRADICTED' | 'SUPERSEDED' | 'RETIRED'
+
+/** Statuses an item still "speaks" in — it can receive evidence and be decayed further. */
+export const OPEN_STATUSES: readonly KnowledgeStatus[] = ['CURRENT', 'WATCH', 'REVIEW REQUIRED', 'STALE', 'CONTRADICTED']
 
 /** The discipline every claim on screen carries. */
 export type EvidenceLabel = 'OBSERVED' | 'INFERRED' | 'HYPOTHESIS' | 'SIMULATED' | 'INSUFFICIENT DATA'
@@ -50,7 +63,7 @@ export type KnowledgeProvenance = {
   strategyVersion?: string
 }
 
-export type KnowledgeHistory = { at: number; event: 'created' | 'evidence' | 'contradiction' | 'review' | 'revised' | 'stale' | 'superseded' | 'retired'; detail: string; version: number }
+export type KnowledgeHistory = { at: number; event: 'created' | 'evidence' | 'contradiction' | 'review' | 'revised' | 'stale' | 'superseded' | 'retired' | 'watch' | 'contradicted'; detail: string; version: number }
 
 export type KnowledgeItem = {
   id: string
@@ -143,7 +156,7 @@ export function withEvidence(item: KnowledgeItem, e: { contradictory: boolean; d
     contradictory_evidence_count: item.contradictory_evidence_count + (e.contradictory ? 1 : 0),
     history: [...item.history, { at: now, event: e.contradictory ? 'contradiction' : 'evidence', detail: e.detail, version: item.version }],
   }
-  if (next.status === 'CURRENT' && (next.new_evidence_count >= REVIEW.afterNewEvidence || next.contradictory_evidence_count >= REVIEW.afterContradictions)) {
+  if ((next.status === 'CURRENT' || next.status === 'WATCH') && (next.new_evidence_count >= REVIEW.afterNewEvidence || next.contradictory_evidence_count >= REVIEW.afterContradictions)) {
     next.status = 'REVIEW REQUIRED'
     next.history.push({ at: now, event: 'review', detail: `Review required: ${next.new_evidence_count} new observation(s), ${next.contradictory_evidence_count} contradiction(s) since the last review.`, version: item.version })
   }
@@ -177,9 +190,26 @@ export function reviewed(item: KnowledgeItem, r: ReviewOutcome, now = Date.now()
 
 /** Past its review date and not yet looked at: STALE, with the fact recorded. */
 export function staleness(item: KnowledgeItem, now = Date.now()): KnowledgeItem {
-  if (item.status !== 'CURRENT' && item.status !== 'REVIEW REQUIRED') return item
+  if (item.status !== 'CURRENT' && item.status !== 'WATCH' && item.status !== 'REVIEW REQUIRED') return item
   if (now < item.review_due) return item
   return { ...item, status: 'STALE', history: [...item.history, { at: now, event: 'stale', detail: `Not reviewed since ${new Date(item.last_reviewed).toISOString()}; the conclusion is not assumed to still hold.`, version: item.version }] }
+}
+
+/**
+ * The decay monitor's transitions. Each is a status change with the flags that
+ * caused it written into history; none removes anything. WATCH is reachable
+ * only from CURRENT; REVIEW REQUIRED from CURRENT or WATCH; CONTRADICTED from
+ * any open status except CONTRADICTED itself, because a hard contradiction is
+ * stronger information than age. A closed item (SUPERSEDED, RETIRED) is left
+ * alone — it has already been decided.
+ */
+export function decayed(item: KnowledgeItem, to: 'WATCH' | 'REVIEW REQUIRED' | 'CONTRADICTED', reasons: string[], now = Date.now()): KnowledgeItem {
+  if (!OPEN_STATUSES.includes(item.status)) return item
+  if (item.status === to) return item
+  if (to === 'WATCH' && item.status !== 'CURRENT') return item
+  if (to === 'REVIEW REQUIRED' && item.status !== 'CURRENT' && item.status !== 'WATCH') return item
+  const event: KnowledgeHistory['event'] = to === 'WATCH' ? 'watch' : to === 'CONTRADICTED' ? 'contradicted' : 'review'
+  return { ...item, status: to, history: [...item.history, { at: now, event, detail: `${to}: ${reasons.join('; ')}`, version: item.version }] }
 }
 
 export function superseded(item: KnowledgeItem, byId: string, now = Date.now()): KnowledgeItem {
@@ -249,7 +279,7 @@ export function vaultSummary(): { total: number; byKind: Record<string, number>;
   for (const it of items) { byKind[it.kind] = (byKind[it.kind] ?? 0) + 1; byStatus[it.status] = (byStatus[it.status] ?? 0) + 1 }
   return {
     total: items.length, byKind, byStatus,
-    dueForReview: items.filter((i) => i.status === 'REVIEW REQUIRED' || i.status === 'STALE').length,
+    dueForReview: items.filter((i) => i.status === 'REVIEW REQUIRED' || i.status === 'STALE' || i.status === 'CONTRADICTED').length,
     failed: items.filter((i) => i.kind === 'failed-hypothesis' || i.kind === 'counterexample').length,
   }
 }

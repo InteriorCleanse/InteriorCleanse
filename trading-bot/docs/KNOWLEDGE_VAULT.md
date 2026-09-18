@@ -17,7 +17,7 @@ What Mr. Cash remembers — including what did not work. Module:
 | kind | concept, case-study, research-result, hypothesis, counterexample, strategy-observation, regime-observation, session-observation, data-quality-warning, lesson, failed-hypothesis, reassessment |
 | evidenceLabel | OBSERVED, INFERRED, HYPOTHESIS, SIMULATED, INSUFFICIENT DATA |
 | provenance | source (PAPER, BACKTEST, HISTORICAL, ENGINE, USER, NONE), engine version, symbol, timeframe, period, record ids, sample size, method |
-| status | CURRENT, REVIEW REQUIRED, STALE, SUPERSEDED, RETIRED |
+| status | CURRENT, WATCH, REVIEW REQUIRED, STALE, CONTRADICTED, SUPERSEDED, RETIRED (WATCH and CONTRADICTED are set by the decay monitor, `src/knowledge/decayMonitor.ts`) |
 | created_at, last_reviewed, review_due | the clock; items expire into review after 30 days unreviewed |
 | new_evidence_count, contradictory_evidence_count | counted apart |
 | version, history | every event with its detail |
