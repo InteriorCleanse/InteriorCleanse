@@ -51,18 +51,21 @@ function ring(trust) {
 
 /* ---------- the evidence strip: how much has actually been earned ---------- */
 function evidence(d) {
-  const met = d.floor.evidence === 'GATES MET'
-  const total = 9
-  const done = Math.max(0, Math.min(total, Number((d.floor.evidenceDetail.match(/^(\d+)\//) || [])[1] ?? 0)))
-  const pips = Array.from({ length: total }, (_, i) =>
-    `<span class="dk-pip${i < done ? ' on' : ''}"></span>`).join('')
+  // Numbers come from the payload, never from parsing the sentence next to them
+  // and never from a total hardcoded here. Both of those were true until the
+  // flaw hunt; either one drifts the moment a gate is added or reworded.
+  const { met: done, total } = d.floor.gates
+  const passed = total > 0 && done >= total
+  const pips = total > 0
+    ? Array.from({ length: total }, (_, i) => `<span class="dk-pip${i < done ? ' on' : ''}"></span>`).join('')
+    : ''
   return `
-  <div class="dk-evidence${met ? ' met' : ''}">
+  <div class="dk-evidence${passed ? ' met' : ''}">
     <div class="dk-evidence-head">
       <span class="dk-evidence-title">Track record</span>
-      <span class="dk-evidence-count">${done} of ${total} checks</span>
+      <span class="dk-evidence-count">${total > 0 ? `${done} of ${total} checks` : 'no checks readable'}</span>
     </div>
-    <div class="dk-pips">${pips}</div>
+    ${pips ? `<div class="dk-pips">${pips}</div>` : ''}
     <p class="dk-evidence-line">${esc(d.voice.evidence)}</p>
   </div>`
 }
@@ -139,11 +142,46 @@ async function loadDesk() {
     out.innerHTML = render(j.data)
     out.dataset.spoken = [j.data.voice.floor, j.data.voice.trust, j.data.voice.evidence].join(' ')
     if (status) status.textContent = `updated ${new Date(j.data.generatedAt).toLocaleTimeString()}`
+    if (deskVisible()) startDeskRefresh(); else stopDeskRefresh()
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't read the desk just now: ${esc(e.message)}. Showing you nothing rather than making something up.</div>`
     if (status) status.textContent = 'failed'
   }
 }
+
+/**
+ * KEEP IT LIVE, BUT ONLY WHILE SOMEONE IS LOOKING.
+ *
+ * The desk loaded once and then sat there. Every panel shows how old its reading
+ * is, so a screen left open quietly drifted to "300s old" while presenting
+ * itself as a live floor — the numbers were honest, the impression was not.
+ *
+ * It now refreshes on a timer, and stops when the tab is hidden or you navigate
+ * away: `/api/desk` is ~5ms, but polling a background tab forever is how a
+ * dashboard earns a reputation for melting laptops. A hidden tab resumes with an
+ * immediate fetch so it is never showing a stale frame on return.
+ */
+const REFRESH_MS = 15_000
+let timer = null
+
+function deskVisible() {
+  const section = document.getElementById('tab-desk')
+  return !!section && !section.classList.contains('hidden') && document.visibilityState === 'visible'
+}
+
+function stopDeskRefresh() { if (timer) { clearInterval(timer); timer = null } }
+
+function startDeskRefresh() {
+  stopDeskRefresh()
+  timer = setInterval(() => {
+    if (!deskVisible()) { stopDeskRefresh(); return }
+    loadDesk()
+  }, REFRESH_MS)
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (deskVisible()) { loadDesk(); startDeskRefresh() } else stopDeskRefresh()
+})
 
 window.loadDesk = loadDesk
 /** What he'd say if you asked him to read the desk aloud. */

@@ -94,6 +94,16 @@ export type DeskReport = {
     /** The validation verdict, carried onto the desk so it cannot be forgotten. */
     evidence: string
     evidenceDetail: string
+    /**
+     * The gate tally as NUMBERS.
+     *
+     * The dashboard used to recover these by running a regex over
+     * `evidenceDetail` and pairing the result with its own hardcoded total of 9
+     * — data derived from presentation, plus a third copy of a number that
+     * lives in config. Reword the sentence and the progress bar silently reads
+     * zero; add a gate and it silently reads the wrong denominator.
+     */
+    gates: { met: number; total: number }
   }
   /** The same state, said the way he'd say it. Phrasing only — never new facts. */
   voice: { floor: string; trust: string; evidence: string }
@@ -415,6 +425,7 @@ export function buildDesk(input: DeskInput): DeskReport {
       evidenceDetail: v
         ? `${v.metCount}/${v.total} validation gates on ${v.trades} paper trades.`
         : 'No validation report could be read.',
+      gates: { met: v?.metCount ?? 0, total: v?.total ?? 0 },
     },
     voice: {
       floor: floorLine(facts),

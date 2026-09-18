@@ -157,3 +157,59 @@ test('the desk cannot reach the order path, the executor, or anything that mutat
   // Positive: it is allowed to read types and the day key, nothing that acts.
   assert.match(src, /READ-ONLY/)
 })
+
+/**
+ * NUMBERS COME FROM THE PAYLOAD, NOT FROM PARSING THE SENTENCE BESIDE THEM.
+ *
+ * The dashboard recovered the gate tally by running a regex over
+ * `evidenceDetail` — a prose string — and paired the result with its own
+ * hardcoded total of 9. Two failures in one line: reword the sentence and the
+ * progress bar silently reads zero, add a gate and the denominator is silently
+ * wrong. It agreed with config on the day it was written, which is exactly how
+ * this class of bug survives.
+ */
+test('the gate tally is on the payload as numbers', () => {
+  const d = buildDesk(input({ validation: { verdict: 'INSUFFICIENT SAMPLE', metCount: 3, total: 11, trades: 5, decaying: 1, retired: 0 } }))
+  assert.equal(d.floor.gates.met, 3)
+  assert.equal(d.floor.gates.total, 11, 'the total must follow config, not a constant in the UI')
+  // And it must agree with the sentence, rather than the sentence being the source.
+  assert.match(d.floor.evidenceDetail, /^3\/11 /)
+})
+
+test('an unreadable validation report reports no gates rather than a fake denominator', () => {
+  const d = buildDesk(input({ validation: null }))
+  assert.deepEqual(d.floor.gates, { met: 0, total: 0 })
+  assert.equal(d.floor.evidence, 'NO EVIDENCE')
+})
+
+test('the dashboard never parses numbers back out of prose', () => {
+  const js = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
+  assert.equal(
+    /evidenceDetail\s*\.\s*match|\.match\(\s*\/\^\(\\d/.test(js), false,
+    'desk.js is scraping a figure out of a sentence again — put it on the payload instead',
+  )
+  assert.equal(
+    /const total = \d+/.test(js), false,
+    'desk.js has hardcoded a count that belongs to config',
+  )
+})
+
+/**
+ * A LIVE FLOOR HAS TO ACTUALLY BE LIVE — AND HAS TO STOP.
+ *
+ * The desk loaded once and then sat there. Every panel prints how old its
+ * reading is, so a screen left open drifted to "300s old" while presenting
+ * itself as a live floor: the numbers stayed honest, the impression did not.
+ *
+ * The fix has a second half that matters as much as the first. Polling that
+ * never stops is how a dashboard earns a reputation for draining batteries, so
+ * the timer is cleared when the tab is hidden or navigated away from. Verified
+ * in a browser: two polls across 32 seconds while open, zero after leaving.
+ */
+test('the desk refreshes itself, and stops when nobody is looking', () => {
+  const js = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
+  assert.match(js, /setInterval/, 'the desk never refreshes — its "seconds ago" would grow for ever')
+  assert.match(js, /clearInterval/, 'a timer with no clearInterval keeps polling a tab nobody is on')
+  assert.match(js, /visibilitychange/, 'a hidden tab must stop polling')
+  assert.match(js, /visibilityState/, 'the desk must check whether it is actually on screen')
+})
