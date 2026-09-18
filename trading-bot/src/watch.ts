@@ -25,7 +25,10 @@ import { MarketDataError } from './market.ts'
 import { toET, sessionLabel } from './sessions.ts'
 import { consultMemory } from './adaptiveFilter.ts'
 import { appendLedgerRow, memoryIsEmpty } from './memory.ts'
-import { managePositions, openPosition, recordMissedSignal, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
+import { managePositions, openPosition, recordMissedSignal, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats, newsProximity } from './paperTrader.ts'
+import type { DecisionSnapshot } from './paperTrader.ts'
+import { VERSION } from './version.ts'
+import { FEATURE_VERSION } from './features/types.ts'
 import { entriesAllowed } from './killswitch.ts'
 import { assess, toRiskDecision } from './riskEngine.ts'
 import type { RiskState } from './riskEngine.ts'
@@ -173,7 +176,27 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
         const tk = marketFeed.latestTicker
         // The regime the engine read at decision time, when the tape was trusted enough to classify it. Recorded for the validation regime breakdown; undefined stays honest as "unavailable".
         const regime = a.features?.regime?.value?.state
-        const obs = { bid: tk?.bid, ask: tk?.ask, strategyId, regime }
+        // The decision-time snapshot: what the engine could see, written down
+        // NOW so the analyst layer never has to recover it after the outcome is
+        // known. Everything here is already in scope; nothing is computed for it.
+        const snapshot: DecisionSnapshot = {
+          signalId: `${tradeSignal.setupKey}@${tradeSignal.time}`,
+          symbol: config.symbol,
+          interval: config.interval,
+          engineVersion: VERSION,
+          featureVersion: FEATURE_VERSION,
+          volatility: a.features?.volatility?.value?.label ?? null,
+          fusedScore: snap.decision?.score ?? null,
+          fusedAction: snap.decision?.action ?? null,
+          confirms: snap.decision?.confirms ?? [],
+          invalidates: snap.decision?.invalidates ?? [],
+          contributors: (snap.decision?.contributors ?? []).map((c) => ({ id: c.id, action: c.action, confidence: c.confidence })),
+          evidence: tradeSignal.evidence ?? [],
+          riskChecks: verdict.checks,
+          riskVetoedBy: verdict.vetoedBy,
+          ...newsProximity(snap.news?.blackouts, a.time),
+        }
+        const obs = { bid: tk?.bid, ask: tk?.ask, strategyId, regime, snapshot }
         if (!verdict.approved) {
           if (!routineOpen && once(`veto-${a.time}-${verdict.vetoedBy}`)) {
             eventLog.push('info', `Paper trade not taken — ${verdict.vetoedBy}`, verdict.reason, verdict.vetoedBy === 'Kill switch' ? 'warn' : 'info')

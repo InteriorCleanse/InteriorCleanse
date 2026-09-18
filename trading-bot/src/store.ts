@@ -42,6 +42,9 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 export const DATA_DIR = process.env.MRCASH_DATA_DIR ? resolve(process.env.MRCASH_DATA_DIR) : join(HERE, '..', 'data')
 export const DB_PATH = join(DATA_DIR, 'mrcash.db')
 
+/** The only fields anything may change on a closed paper position. */
+export const RECONCILIATION_FIELDS: ReadonlySet<string> = new Set(['mae', 'mfe', 'reconciledAt', 'reconciliationNote'])
+
 export function ensureDataDir(): void {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
 }
@@ -118,7 +121,27 @@ export class Store {
   }
 
   // ---- paper positions ---------------------------------------------
+  /**
+   * A CLOSED POSITION IS IMMUTABLE, except in the fields designated for
+   * reconciliation.
+   *
+   * The paper record is the evidence the whole validation stage rests on. A
+   * blind upsert meant any later code path could rewrite a closed trade's R,
+   * exit or outcome and nothing would notice. It now refuses: once a record is
+   * closed, the only fields anything may change are the ones walked from stored
+   * candles after the fact (`mae`, `mfe`) and the reconciliation stamp. An
+   * identical rewrite is allowed (idempotent); a different one throws and names
+   * the fields.
+   */
   savePosition(pos: { id: string; status: string; openedAt: number; closedAt?: number }): void {
+    const prior = this.db.prepare('SELECT status, json FROM positions WHERE id = ?').get(pos.id) as { status: string; json: string } | undefined
+    if (prior && prior.status === 'closed') {
+      const before = JSON.parse(prior.json) as Record<string, unknown>
+      const after = pos as unknown as Record<string, unknown>
+      const keys = new Set([...Object.keys(before), ...Object.keys(after)])
+      const illegal = [...keys].filter((k) => !RECONCILIATION_FIELDS.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k]))
+      if (illegal.length) throw new Error(`position ${pos.id} is closed and immutable — refusing to rewrite ${illegal.sort().join(', ')}`)
+    }
     this.db.prepare('INSERT INTO positions(id, status, opened_at, closed_at, json) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status = excluded.status, closed_at = excluded.closed_at, json = excluded.json')
       .run(pos.id, pos.status, pos.openedAt, pos.closedAt ?? null, JSON.stringify(pos))
   }

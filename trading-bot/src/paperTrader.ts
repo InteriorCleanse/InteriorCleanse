@@ -94,6 +94,16 @@ export type PaperPosition = {
   candlesHeld?: number
   /** Why it was missed, when it was. */
   note?: string
+  /** What the engine could see when it decided. Absent on positions opened before this field existed. */
+  snapshot?: DecisionSnapshot
+  /**
+   * RECONCILIATION FIELDS — the only fields the store will let anything change on
+   * a closed record. Excursions are walked from stored candles after the fact.
+   */
+  mae?: number | null
+  mfe?: number | null
+  reconciledAt?: number
+  reconciliationNote?: string
 }
 
 type Store = { open: PaperPosition[]; closed: PaperPosition[] }
@@ -162,8 +172,87 @@ export function evaluateExit(pos: PaperPosition, candles: Candle[], a: Execution
 // ---------------------------------------------------------------
 
 /** Queues a paper order. It fills on the next candle, or is missed. */
+/**
+ * THE DECISION-TIME SNAPSHOT.
+ *
+ * Everything the analyst layer will later attribute a result to has to be
+ * written down at the moment the order is decided — not recovered afterwards
+ * from a feature engine that has since seen the outcome. This is that record.
+ * It is captured by the watch loop from state already in scope at the decision
+ * (the features, the fused decision, the signal's evidence, the risk verdict,
+ * the news read) and stored on the position verbatim.
+ *
+ * It is observability, not behaviour: nothing in entry, exit, sizing, fill or
+ * risk reads it, and a position opened with or without one is the same
+ * position. A test pins that.
+ *
+ * By construction it contains NO outcome field. `sanitizeSnapshot` copies only
+ * the keys declared here, so an exit price, an R or a close time smuggled in
+ * under any name cannot survive into the stored record.
+ */
+export type DecisionSnapshot = {
+  /** Deterministic: `${setupKey}@${signal time}`. The same signal always has the same id. */
+  signalId: string
+  symbol: string
+  interval: string
+  engineVersion: string
+  featureVersion: number
+  volatility: 'quiet' | 'normal' | 'wild' | null
+  fusedScore: number | null
+  fusedAction: string | null
+  confirms: string[]
+  invalidates: string[]
+  contributors: Array<{ id: string; action: string; confidence: number }>
+  /** The winning signal's own evidence steps, as the strategy wrote them. */
+  evidence: Array<{ step: string; passed: boolean; detail: string }>
+  riskChecks: Array<{ rule: string; passed: boolean; detail: string }>
+  riskVetoedBy: string | null
+  /** Minutes until the next high-impact blackout begins; null when none is scheduled ahead. */
+  newsMinutes: number | null
+  inBlackout: boolean | null
+}
+
+const isFiniteNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
+const str = (x: unknown): string => (typeof x === 'string' ? x : '')
+
+/** Keep only the declared snapshot fields, each type-checked. Anything else — including any outcome field — is dropped. */
+export function sanitizeSnapshot(raw: unknown): DecisionSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const r = raw as Record<string, unknown>
+  const steps = (xs: unknown): Array<{ step: string; passed: boolean; detail: string }> =>
+    Array.isArray(xs) ? xs.filter((e) => e && typeof e === 'object').map((e) => ({ step: str((e as Record<string, unknown>).step), passed: (e as Record<string, unknown>).passed === true, detail: str((e as Record<string, unknown>).detail) })) : []
+  return {
+    signalId: str(r.signalId),
+    symbol: str(r.symbol),
+    interval: str(r.interval),
+    engineVersion: str(r.engineVersion),
+    featureVersion: isFiniteNum(r.featureVersion) ? r.featureVersion : 0,
+    volatility: r.volatility === 'quiet' || r.volatility === 'normal' || r.volatility === 'wild' ? r.volatility : null,
+    fusedScore: isFiniteNum(r.fusedScore) ? r.fusedScore : null,
+    fusedAction: typeof r.fusedAction === 'string' ? r.fusedAction : null,
+    confirms: Array.isArray(r.confirms) ? r.confirms.filter((x): x is string => typeof x === 'string') : [],
+    invalidates: Array.isArray(r.invalidates) ? r.invalidates.filter((x): x is string => typeof x === 'string') : [],
+    contributors: Array.isArray(r.contributors)
+      ? r.contributors.filter((c) => c && typeof c === 'object').map((c) => ({ id: str((c as Record<string, unknown>).id), action: str((c as Record<string, unknown>).action), confidence: isFiniteNum((c as Record<string, unknown>).confidence) ? ((c as Record<string, unknown>).confidence as number) : 0 }))
+      : [],
+    evidence: steps(r.evidence),
+    riskChecks: Array.isArray(r.riskChecks) ? r.riskChecks.filter((c) => c && typeof c === 'object').map((c) => ({ rule: str((c as Record<string, unknown>).rule), passed: (c as Record<string, unknown>).passed === true, detail: str((c as Record<string, unknown>).detail) })) : [],
+    riskVetoedBy: typeof r.riskVetoedBy === 'string' ? r.riskVetoedBy : null,
+    newsMinutes: isFiniteNum(r.newsMinutes) ? r.newsMinutes : null,
+    inBlackout: typeof r.inBlackout === 'boolean' ? r.inBlackout : null,
+  }
+}
+
+/** How close the next high-impact blackout is, at the decision instant. Pure. */
+export function newsProximity(blackouts: Array<{ start: number; end: number }> | null | undefined, at: number): { newsMinutes: number | null; inBlackout: boolean | null } {
+  if (!blackouts) return { newsMinutes: null, inBlackout: null }
+  const inBlackout = blackouts.some((b) => at >= b.start && at <= b.end)
+  const ahead = blackouts.map((b) => b.start - at).filter((d) => d >= 0)
+  return { newsMinutes: ahead.length ? Math.round(Math.min(...ahead) / 60_000) : null, inBlackout }
+}
+
 /** What the market looked like at the moment the order was decided. Recorded for honesty about spread and slippage. */
-export type DecisionObservation = { bid?: number; ask?: number; strategyId?: string; regime?: string }
+export type DecisionObservation = { bid?: number; ask?: number; strategyId?: string; regime?: string; snapshot?: DecisionSnapshot }
 
 export function openPosition(signal: Signal, risk: RiskDecision, session: string, atr = 0, obs: DecisionObservation = {}): PaperPosition {
   const plan = signal.plan as TradePlan
@@ -191,6 +280,7 @@ export function openPosition(signal: Signal, risk: RiskDecision, session: string
     observedAsk: obs.ask,
     observedSpreadPct: spreadPct,
     assumedSlippageBps: config.execution.slippageBps,
+    snapshot: sanitizeSnapshot(obs.snapshot),
   }
   savePosition(pos)
   return pos
@@ -252,6 +342,7 @@ export function recordMissedSignal(signal: Signal, reason: string, obs: Decision
     quantity: 0, riskUsd: 0, quality: signal.quality ?? 0, reason: signal.reason, atr: 0,
     status: 'closed', closedAt: signal.time, exitReason: 'missed', rMultiple: 0, pnlUsd: 0, feesUsd: 0, candlesHeld: 0,
     note: reason, strategyId: obs.strategyId, regime: obs.regime, observedBid: obs.bid, observedAsk: obs.ask, observedSpreadPct: spreadPct,
+    snapshot: sanitizeSnapshot(obs.snapshot),
   }
   savePosition(missed)
   appendLedgerRow({ timestamp: new Date(signal.time).toISOString(), symbol: config.symbol, action: 'SKIP', price: plan.entry, quantity: 0, reason: `${signal.setupKey} — MISSED: ${reason}`, mode: 'live-paper', outcome: 'MISSED', pnl: 0 })

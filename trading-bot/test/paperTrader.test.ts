@@ -180,3 +180,117 @@ test('an order the venue would reject at the fill price is missed, not invented'
     assert.equal(p.pnlUsd, 0, 'a rejected order cannot have made or lost anything')
   })
 })
+
+// ---------------------------------------------------------------
+// THE DECISION-TIME SNAPSHOT
+// ---------------------------------------------------------------
+
+const SNAP = {
+  signalId: 'k@1', symbol: 'BTCUSDT', interval: '5m', engineVersion: '2.3.0', featureVersion: 1,
+  volatility: 'wild' as const, fusedScore: 72, fusedAction: 'LONG', confirms: ['Structure agrees.'], invalidates: [],
+  contributors: [{ id: 'silver-bullet', action: 'BUY', confidence: 80 }],
+  evidence: [{ step: 'Sweep of the session low', passed: true, detail: 'took 99.4' }],
+  riskChecks: [{ rule: 'Kill switch', passed: true, detail: 'off' }], riskVetoedBy: null,
+  newsMinutes: 95, inBlackout: false,
+}
+
+/**
+ * OBSERVABILITY, NOT BEHAVIOUR.
+ *
+ * The snapshot exists so the analyst layer never has to recover the engine's
+ * view after the outcome is known. It must not be able to change what the
+ * engine does: a position opened with a snapshot and one opened without are
+ * the same position in every field the engine reads.
+ */
+test('a position opened with a snapshot is identical to one opened without, in every engine field', () => {
+  const t = T0 + 70 * STEP
+  const bare = pt.openPosition(sigAt(t), risk, 'London', 1, { bid: 99.99, ask: 100.01, strategyId: 'session-ifvg', regime: 'ranging' })
+  const withSnap = pt.openPosition(sigAt(t), risk, 'London', 1, { bid: 99.99, ask: 100.01, strategyId: 'session-ifvg', regime: 'ranging', snapshot: SNAP })
+  const strip = (p: Record<string, unknown>) => { const { id: _id, snapshot: _s, ...rest } = p; return rest }
+  assert.deepEqual(strip(withSnap as never), strip(bare as never))
+  assert.equal(bare.snapshot, undefined)
+  assert.deepEqual(withSnap.snapshot, SNAP)
+  pt.closeManually(bare.id, 100); pt.closeManually(withSnap.id, 100)
+})
+
+test('the snapshot is written before the outcome exists and survives fill and close unchanged', () => {
+  const t = T0 + 80 * STEP
+  const queued = pt.openPosition(sigAt(t), risk, 'London', 1, { snapshot: SNAP })
+  assert.equal(queued.status, 'pending')
+  assert.deepEqual(queued.snapshot, SNAP, 'captured at queue time, when nothing about the outcome is knowable')
+  pt.managePositions([signalCandle(t), nextCandle(t)])
+  const open = pt.readPositions().open.find((p) => p.id === queued.id)!
+  assert.equal(open.status, 'open')
+  assert.deepEqual(open.snapshot, SNAP)
+  const closed = pt.closeManually(queued.id, 101.5)!
+  assert.equal(closed.status, 'closed')
+  assert.deepEqual(closed.snapshot, SNAP, 'the close must not touch the decision-time record')
+})
+
+/**
+ * ADVERSARIAL: NOTHING FROM THE FUTURE CAN RIDE IN ON THE SNAPSHOT.
+ *
+ * A caller — or a bug — that stuffs an exit price, an R or a close time into
+ * the observation must not be able to get it stored as decision-time state.
+ * The sanitiser copies only the declared fields, so the smuggled keys vanish
+ * whatever they are called.
+ */
+test('outcome fields smuggled into the snapshot are dropped, under any name', () => {
+  const smuggled = { ...SNAP, exit: 105, rMultiple: 4, closedAt: 1, outcome: 'WIN', pnlUsd: 99, futureCandles: [1, 2, 3], evidence: [...SNAP.evidence, { step: 'x', passed: true, detail: 'y', exitPrice: 105 }] }
+  const clean = pt.sanitizeSnapshot(smuggled)!
+  for (const k of ['exit', 'rMultiple', 'closedAt', 'outcome', 'pnlUsd', 'futureCandles']) assert.equal(k in clean, false, `"${k}" survived sanitisation`)
+  assert.equal('exitPrice' in (clean.evidence[1] as object), false, 'nested extras are dropped too')
+  assert.deepEqual(Object.keys(clean).sort(), Object.keys(SNAP).sort())
+  // And the stored record carries only the clean shape.
+  const t = T0 + 90 * STEP
+  const p = pt.openPosition(sigAt(t), risk, 'London', 1, { snapshot: smuggled as never })
+  assert.deepEqual(Object.keys(p.snapshot!).sort(), Object.keys(SNAP).sort())
+  pt.closeManually(p.id, 100)
+})
+
+test('a malformed snapshot is normalised field by field, never trusted', () => {
+  const s = pt.sanitizeSnapshot({ signalId: 7, volatility: 'loud', fusedScore: 'high', confirms: 'yes', contributors: [{ id: 'a', confidence: 'b' }], newsMinutes: Number.NaN })!
+  assert.equal(s.signalId, '')
+  assert.equal(s.volatility, null)
+  assert.equal(s.fusedScore, null)
+  assert.deepEqual(s.confirms, [])
+  assert.deepEqual(s.contributors, [{ id: 'a', action: '', confidence: 0 }])
+  assert.equal(s.newsMinutes, null)
+  assert.equal(pt.sanitizeSnapshot(null), undefined)
+  assert.equal(pt.sanitizeSnapshot('x'), undefined)
+})
+
+test('news proximity is the minutes to the next blackout, and null when none is ahead or none is known', () => {
+  const at = 1_000_000
+  assert.deepEqual(pt.newsProximity(null, at), { newsMinutes: null, inBlackout: null })
+  assert.deepEqual(pt.newsProximity([], at), { newsMinutes: null, inBlackout: false })
+  assert.deepEqual(pt.newsProximity([{ start: at + 30 * 60_000, end: at + 60 * 60_000 }, { start: at + 5 * 60_000, end: at + 6 * 60_000 }], at), { newsMinutes: 5, inBlackout: false })
+  assert.deepEqual(pt.newsProximity([{ start: at - 60_000, end: at + 60_000 }], at), { newsMinutes: null, inBlackout: true })
+})
+
+// ---------------------------------------------------------------
+// A CLOSED RECORD IS IMMUTABLE
+// ---------------------------------------------------------------
+
+test('a closed position cannot be rewritten except in the reconciliation fields', async () => {
+  const { store, RECONCILIATION_FIELDS } = await import('../src/store.ts')
+  const t = T0 + 100 * STEP
+  const p = pt.openPosition(sigAt(t), risk, 'London', 1)
+  const closed = pt.closeManually(p.id, 100)!
+  assert.equal(closed.status, 'closed')
+
+  // Rewriting the evidence is refused, and the refusal names the fields.
+  assert.throws(() => store().savePosition({ ...closed, rMultiple: 9, exit: 200 } as never), /closed and immutable — refusing to rewrite exit, rMultiple/)
+  assert.throws(() => store().savePosition({ ...closed, status: 'open' } as never), /refusing to rewrite status/)
+  // The stored record is untouched by the refused writes.
+  const stored = pt.readPositions().closed.find((x) => x.id === p.id)!
+  assert.equal(stored.rMultiple, closed.rMultiple)
+
+  // An identical rewrite is idempotent, and reconciliation fields are allowed.
+  store().savePosition(closed as never)
+  store().savePosition({ ...closed, mae: -0.4, mfe: 1.2, reconciledAt: 1, reconciliationNote: 'walked from stored candles' } as never)
+  const reconciled = pt.readPositions().closed.find((x) => x.id === p.id)!
+  assert.equal(reconciled.mae, -0.4)
+  assert.equal(reconciled.mfe, 1.2)
+  assert.deepEqual([...RECONCILIATION_FIELDS].sort(), ['mae', 'mfe', 'reconciledAt', 'reconciliationNote'])
+})

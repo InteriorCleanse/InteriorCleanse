@@ -43,7 +43,7 @@ import { toET } from '../sessions.ts'
 import { paperOutcome } from '../paperTrader.ts'
 import { strategyOf } from '../paper/metrics.ts'
 import { metaById } from '../strategies/registry.ts'
-import type { PaperPosition } from '../paperTrader.ts'
+import type { PaperPosition, DecisionSnapshot } from '../paperTrader.ts'
 import type { Candle, ReplayTrade, SessionName } from '../types.ts'
 import type { StrategyFamily } from '../strategies/types.ts'
 
@@ -197,7 +197,7 @@ export function fromPaperPosition(p: PaperPosition): EvidenceRecord {
   const missed = p.exitReason === 'missed'
   const kp = keyParts(p.setupKey)
   const strategyId = strategyOf(p)
-  const snap = (p as PaperPosition & { snapshot?: PaperSnapshot }).snapshot
+  const snap: DecisionSnapshot | undefined = p.snapshot
 
   const symbol = kp.symbol ?? snap?.symbol ?? null
   const interval = kp.interval ?? snap?.interval ?? null
@@ -206,7 +206,7 @@ export function fromPaperPosition(p: PaperPosition): EvidenceRecord {
   if (p.regime === undefined || p.regime === 'unavailable') missing.push('regime')
   if (!snap?.volatility) missing.push('volatility')
   if (snap?.fusedScore === undefined || snap?.fusedScore === null) missing.push('fusedScore')
-  if (snap?.mtfAligned === undefined || snap?.mtfAligned === null) missing.push('mtfAligned')
+  missing.push('mtfAligned') // no alignment scalar exists in the engine; not invented here
   if (snap?.newsMinutes === undefined || snap?.newsMinutes === null) missing.push('newsMinutes')
   if (!snap?.engineVersion) missing.push('engineVersion')
   if (p.observedSpreadPct === undefined) missing.push('spreadPct')
@@ -241,7 +241,7 @@ export function fromPaperPosition(p: PaperPosition): EvidenceRecord {
     missed,
     quality: isNum(p.quality) ? p.quality : null,
     fusedScore: isNum(snap?.fusedScore) ? snap!.fusedScore! : null,
-    mtfAligned: typeof snap?.mtfAligned === 'boolean' ? snap.mtfAligned : null,
+    mtfAligned: null,
     newsMinutes: isNum(snap?.newsMinutes) ? snap!.newsMinutes! : null,
     spreadPct: isNum(p.observedSpreadPct) ? p.observedSpreadPct : null,
     durationMs: isNum(p.filledAt) && isNum(p.closedAt) && !missed ? Math.max(0, p.closedAt - p.filledAt) : null,
@@ -257,22 +257,6 @@ export function fromPaperPosition(p: PaperPosition): EvidenceRecord {
 
 const REGIMES = new Set<string>(['trending-up', 'trending-down', 'ranging', 'breakout', 'transition'])
 
-/**
- * The decision-time snapshot a paper position may carry (written by the
- * engine's observation at order time — see `paperTrader.DecisionObservation`).
- * Declared here as the READ shape so this module compiles before and after the
- * writer exists; every field is optional because older records have none.
- */
-export type PaperSnapshot = {
-  symbol?: string
-  interval?: string
-  volatility?: Volatility | null
-  fusedScore?: number | null
-  mtfAligned?: boolean | null
-  newsMinutes?: number | null
-  engineVersion?: string
-  featureVersion?: number
-}
 
 // ---------------------------------------------------------------
 // BACKTEST
@@ -350,7 +334,9 @@ function provenanceOf(records: EvidenceRecord[], source: Source): Provenance {
   const period = times.length ? { from: Math.min(...times), to: Math.max(...times) } : null
   const symbols = [...new Set(usable.map((r) => r.symbol))].sort()
   const intervals = [...new Set(usable.map((r) => r.interval))].sort()
-  const when = period ? `${new Date(period.from).toISOString().slice(0, 10)} → ${new Date(period.to).toISOString().slice(0, 10)}` : 'no period'
+  // New York calendar days, like every other date on the page — a period that
+  // began on a UTC date would disagree with the trading-day key beside it.
+  const when = period ? `${toET(period.from).dateKey} → ${toET(period.to).dateKey}` : 'no period'
   return {
     source, dataType, period, trades: trades.length, missed: usable.length - trades.length, corrupt: records.length - usable.length,
     symbols, intervals,
