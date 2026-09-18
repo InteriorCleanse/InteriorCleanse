@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**488 tests, 488 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**492 tests, 492 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -28,7 +28,7 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 488/488 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 492/492 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
 | Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 
@@ -213,6 +213,62 @@ Locked by two tests in `test/paper/validation.test.ts`: one pinning the header t
 the trading day at 18:30 ET in both DST regimes, and one **class guard** that
 fails if any file under `src/` cuts a day with `toISOString().slice(0, 10)`
 again. Both were verified to fail against the old code.
+
+---
+
+## Strategy-logic audit — does each strategy do what its doc says?
+
+A different question from the duplicate-concept one, and it needed different
+tools. Findings, stated as verified or not:
+
+**Read and checked against their documented ICT definitions — all correct.**
+Turtle soup fades the right way (high raided → short), requires a *close* back
+inside as documented, and stops beyond the raiding wick. Unicorn maps a broken
+*bearish* block to a long and a broken *bullish* one to a short, uses a true
+interval intersection for the overlap zone, and stops beyond the breaker. Silver
+bullet's window test (`hour ∈ {3, 10, 14}`) matches the documented 03:00–04:00 /
+10:00–11:00 / 14:00–15:00 hours.
+
+**The ET/time layer is sound.** Probed at every boundary that usually breaks:
+midnight renders `00:00` with the correct date (the `% 24` in `toET` handles the
+engines that print midnight as "24"), the 18:00 roll is exact (17:59 → same day,
+18:00 → next), spring-forward skips 02:00 → 03:00, and fall-back handles the
+repeated hour consistently.
+
+**`atrPlan` does not validate its inputs.** `risk = Math.abs(entry - stop)`, so a
+stop on the *wrong side* of the entry yields a positive risk and a target placed
+a multiple of it away — a plan that is the wrong way round but passes every type
+check and every test that only asserts a vote fired. Seven of the ten strategies
+pass an explicit `stopPrice` derived from a *zone* (gap edge, breaker, sweep
+wick, VWAP band) rather than from the entry, and `meanReversion` passes an
+explicit `targetPrice` too.
+
+Whether those always land correctly is a property of each strategy's own guards,
+so it was **exercised rather than reasoned about**:
+`test/strategies/planInvariants.test.ts` drives every registered strategy through
+the real `IctEngine` over six seeded market shapes — **8,133 plans, all correct**.
+Coverage is reported honestly: that sweep fires only five of the ten strategies
+(a random walk rarely builds a breaker-plus-gap overlap), so the three
+zone-stopped ones are additionally swept by hand across the entire retest
+tolerance at ATRs spanning four orders of magnitude.
+
+**What protects them is a margin**: the retest band reaches 0.1 ATR past the
+zone, the stop is placed 0.2 ATR past it, so the stop is always 0.1 ATR beyond
+the furthest price that can still fire — for any ATR **above zero**.
+
+**The one case that breaks it, and why it cannot matter.** At ATR exactly zero
+the margin vanishes: the stop lands on the zone edge and a price sitting there
+fires a plan whose stop *equals* its entry (`rr` 0). Contrived — it needs a live
+gap in a market whose ATR window is flat — but real. `sizeForStop` refuses a
+zero stop distance and returns quantity 0, and `applyFilters` rejects a zero
+quantity, so it can never become a position.
+
+That guard is quieter than it looks, which is why it is now pinned by a test.
+Deleting the `stopDistance > 0` line does **not** blow up: `wantedRiskUsd / 0` is
+Infinity, the position cap clamps it immediately, and what comes out is an
+ordinary-looking **0.25 quantity at a reported risk of $0** — a full-size
+position on a trade whose stop is its entry, which nothing downstream would
+flag. Measured by deleting the line and re-running the test.
 
 ---
 
