@@ -89,6 +89,22 @@
   </section>
 
   <section id="tab-tv" class="hidden">
+    <div class="card" id="tv-sessions">
+      <h2>Mark the sessions on your chart</h2>
+      <p class="plain" style="margin-top:0">This draws <b>Asia</b>, <b>London</b>, <b>New York AM</b> and <b>New York PM</b> on TradingView — each session's box, its high and its low, the killzones shaded, yesterday's high and low, and a triangle wherever one of those levels gets swept. The times come straight from your config, so the chart and Mr. Cash always mean the same thing by "London".</p>
+      <div id="tv-session-times" class="muted" style="font-size:12.5px;margin-bottom:12px"></div>
+      <div class="row" style="margin-bottom:0">
+        <button class="btn" id="btn-pine-copy">Copy the script</button>
+        <a class="btn ghost" id="btn-pine-dl" href="/api/pine/sessions?download=1">Download .pine</a>
+        <a class="btn ghost" href="/api/pine/sessions" target="_blank" rel="noopener">View it</a>
+        <span class="muted" id="pine-status"></span>
+      </div>
+      <ol style="padding-left:18px;font-size:13.5px;color:var(--dim);margin-bottom:0">
+        <li>Copy the script, then in TradingView open <b>Pine Editor</b> (bottom of the chart).</li>
+        <li>Paste over whatever is there, press <b>Save</b>, then <b>Add to chart</b>.</li>
+        <li>The session boxes appear straight away. Killzones are the shaded ones — the only windows Mr. Cash will enter in.</li>
+      </ol>
+    </div>
     <div class="card" style="padding:8px"><div id="tv-container" style="height:560px"></div></div>
     <div id="tv-out"></div>
   </section>
@@ -264,7 +280,7 @@ function showTab(id, push=true) {
   if (id === 'flow' && !$('flow-out').innerHTML) loadFlow(false)
   if (id === 'news' && !$('news-out').innerHTML) loadNews()
   if (id === 'journal' && !$('j-out').innerHTML) loadJournal()
-  if (id === 'tv') loadTV()
+  if (id === 'tv') { loadTV(); showSessionTimes() }
   if (id === 'playbook' && !document.querySelector('#playbook-out .strat')) loadPlaybook()
   if (id === 'factory' && !$('factory-strategy').options.length) loadFactory()
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
@@ -1157,6 +1173,30 @@ function speak(text) {
   const clean = String(text).replace(/[*_#`>]/g, '').replace(/\$([\d,]+)/g, '$1 dollars').replace(/\bR\b/g, 'R').replace(/\s+/g, ' ').trim().slice(0, 1500)
   const u = new SpeechSynthesisUtterance(clean); const v = pickVoice(); if (v) u.voice = v; u.rate = SPEECH_RATE; u.pitch = SPEECH_PITCH
   speechSynthesis.speak(u)
+}
+async function showSessionTimes() {
+  const el = $('tv-session-times')
+  if (!el || el.dataset.done) return
+  try {
+    const txt = await (await fetch('/api/pine/sessions')).text()
+    // Read the windows back out of the served script, so what is shown here and
+    // what lands on the chart are the same four strings by construction.
+    const rows = [...txt.matchAll(/input\.session\("(\d{4})-(\d{4})", "([^"]+)"\)/g)]
+      .map(([, a, b, label]) => `<b>${label.replace(' (ET)','')}</b> ${a.slice(0,2)}:${a.slice(2)}–${b.slice(0,2)}:${b.slice(2)}`)
+    el.innerHTML = rows.length ? 'New York time — ' + rows.join(' · ') : ''
+    el.dataset.done = '1'
+  } catch { el.textContent = 'Could not read the session times.' }
+}
+$('btn-pine-copy').onclick = async () => {
+  const st = $('pine-status')
+  try {
+    const txt = await (await fetch('/api/pine/sessions')).text()
+    await navigator.clipboard.writeText(txt)
+    st.textContent = 'Copied — paste it into the Pine Editor.'
+  } catch {
+    st.textContent = 'Could not copy automatically — use Download or View it.'
+  }
+  setTimeout(() => { st.textContent = '' }, 6000)
 }
 window.speakAs = speak
 $('btn-voice').onclick = () => { voiceOn = !voiceOn; try { localStorage.setItem('mrcash-voice', voiceOn ? '1' : '0') } catch {}; voiceUI(); if (voiceOn) speak("Voice on. I'll read the alerts and the answers out loud. No rush — press the microphone whenever you want to talk.") ; else speechSynthesis.cancel() }

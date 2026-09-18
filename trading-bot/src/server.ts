@@ -58,6 +58,7 @@ import { paperStats, closeManually, readPositions, equity, equityPeak, openNotio
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
+import { renderSessionScript } from './tv/sessionScript.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
 import { intelEnabled, intelFlags, disabledPayload } from './intel/flags.ts'
@@ -729,6 +730,27 @@ const server = createServer(async (req, res) => {
      * expensive AI narration the validation route runs is deliberately NOT part
      * of this — the desk is meant to be cheap enough to poll.
      */
+    /**
+     * The TradingView session script, with its session times generated from
+     * config so the chart and the bot can never disagree about when London is.
+     * Plain text, GET only, read-only.
+     */
+    if (path === '/api/pine/sessions') {
+      let script: string
+      try {
+        script = renderSessionScript(readFileSync(join(HERE, '..', 'pine', 'ict-sessions.pine'), 'utf8'))
+      } catch (e) {
+        json(res, 200, { ok: false, error: `The session script could not be built: ${(e as Error).message}` })
+        return
+      }
+      res.writeHead(200, {
+        'content-type': 'text/plain; charset=utf-8',
+        'content-disposition': url.searchParams.get('download') === '1' ? 'attachment; filename="mr-cash-sessions.pine"' : 'inline',
+      })
+      res.end(script)
+      return
+    }
+
     if (path === '/api/desk') {
       const snap = await safely(() => snapshot())
       if (!snap.ok) { json(res, 200, snap); return }
