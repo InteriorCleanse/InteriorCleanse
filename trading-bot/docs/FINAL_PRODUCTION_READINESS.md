@@ -413,7 +413,20 @@ here reaches the engine; `news.isBlackout` remains the only thing risk consults.
 
 ---
 
-## The stability gate is unreachable — **OPEN, needs an operator decision**
+## The stability gate is unreachable — **RESOLVED (option 1, operator-approved)**
+
+> **Resolution.** Option 1 below was chosen and implemented: the gate now also
+> accepts an out-of-sample expectancy from a stored **backtest reference** for
+> the strategy that is actually trading (`src/paper/oosReference.ts`), consulted
+> only when no passport exists — a passport still wins. The reference is
+> computed only on an explicit `POST /api/validation/oos-reference` (never on a
+> GET; the desk polls every 15 s), stored with full provenance (BACKTEST /
+> SIMULATED, window, fill assumptions, engine version), and ignored when its OOS
+> segment is under `config.replay.minSetupsForConfidence`. The gate's threshold
+> did not move. Verified: the same flawless sample now reaches `GATES MET` with a
+> usable reference and still fails when the reference says paper is far below
+> the floor. The analysis below is kept as the record of why.
+
 
 **This is the most serious open finding in the repo.** Under the frozen
 `PAPER_VALIDATION-1` profile, the paper validation stage **can never report
