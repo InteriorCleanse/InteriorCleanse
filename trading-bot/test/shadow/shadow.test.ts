@@ -8,6 +8,8 @@ import assert from 'node:assert/strict'
 import { tempDataDir } from '../helpers.ts'
 import { filtersForSymbol } from '../../src/exchange/filters.ts'
 import { scoreShadowOrder } from '../../src/shadow/scorer.ts'
+import { tradeMetrics } from '../../src/sim/trades.ts'
+import { defaultAssumptions } from '../../src/sim/fills.ts'
 import type { ExchangeInfo } from '../../src/exchange/types.ts'
 import type { Signal } from '../../src/types.ts'
 
@@ -93,4 +95,51 @@ test('an un-placeable order is not scored', () => {
   const score = scoreShadowOrder(o, [{ price: 30600, time: 1100 }])
   assert.equal(score.entryFilled, false)
   assert.match(score.note, /Not placeable/)
+})
+
+/**
+ * SHADOW R AND PAPER R MUST BE THE SAME NUMBER.
+ *
+ * The scorer used to return a bare price ratio — a GROSS R sitting next to
+ * paper's NET R under the same name and the same unit. At the configured 0.1%
+ * taker / 0.1% maker that overstates every score by 0.2R on a 1% stop and 0.8R
+ * on a 0.25% stop, win or lose, so a 40%-win 2R strategy reads +0.20R in shadow
+ * and −0.20R in paper. Shadow is the last checkpoint before real capital, and it
+ * was the optimistic one.
+ *
+ * The old tests only asserted the SIGN of the R, which a uniform upward shift
+ * leaves intact — which is exactly how it survived. These pin the value.
+ */
+test('a shadow R equals the paper R for the same trade, fees and all', () => {
+  const f = filtersForSymbol(INFO, 'BTCUSDT')!
+  for (const [leg, prints] of [
+    ['takeProfit', [{ price: 30100, time: 1100 }, { price: 30650, time: 1200 }]],
+    ['stop', [{ price: 29650, time: 1100 }]],
+  ] as const) {
+    const o = buildShadowOrder({ signal: longSignal(), quantity: 0.01, filters: f, bid: 29999.5, ask: 30000.5, strategyId: 'crossover', now: 1000 })
+    const score = scoreShadowOrder(o, [...prints])
+    assert.equal(score.exitLeg, leg)
+
+    const paper = tradeMetrics({
+      direction: 'long',
+      fill: score.entryFillPrice!,
+      stop: o.oco!.stop,
+      exit: score.exitPrice!,
+      exitReason: leg === 'takeProfit' ? 'target' : 'stop',
+      quantity: o.quantity,
+    }, defaultAssumptions()).rMultiple
+
+    assert.equal(score.rMultiple, paper, `shadow scored ${score.rMultiple}R where paper scores ${paper}R for the identical ${leg} trade`)
+  }
+})
+
+test('the shadow R is net of fees, not the raw price ratio', () => {
+  const f = filtersForSymbol(INFO, 'BTCUSDT')!
+  const o = buildShadowOrder({ signal: longSignal(), quantity: 0.01, filters: f, bid: 29999.5, ask: 30000.5, strategyId: 'crossover', now: 1000 })
+  const score = scoreShadowOrder(o, [{ price: 30100, time: 1100 }, { price: 30650, time: 1200 }])
+  const gross = (score.exitPrice! - score.entryFillPrice!) / Math.abs(score.entryFillPrice! - o.oco!.stop)
+  assert.ok(
+    score.rMultiple! < gross,
+    `a winning shadow trade must cost something to trade: scored ${score.rMultiple}R against a gross ${gross}R`,
+  )
 })

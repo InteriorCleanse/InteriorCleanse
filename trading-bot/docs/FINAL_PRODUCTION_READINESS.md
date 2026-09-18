@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**479 tests, 479 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**484 tests, 484 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -28,7 +28,7 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 479/479 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 484/484 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
 | Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 
@@ -51,11 +51,12 @@ included — is preserved exactly. The suite now reports **0 todo**.
 
 ---
 
-## Cross-source consistency audit — one defect found and fixed
+## Cross-source consistency audit — two defects found and fixed
 
 The Phase 22 audit found a bug by asking *"is this concept computed in more than
 one place, and do those places agree?"*. Applying the same question to the rest
-of the system found a second one.
+of the system found a second one (win rate, below) and then a third (shadow R,
+further below).
 
 **`sim/trades.ts` opens by promising it is "the one place trade results are
 worked out … so a number on one screen can never disagree with the same number
@@ -90,9 +91,48 @@ if any reporting module compares `rMultiple` against a local numeric threshold
 again.
 
 **Also noted, not yet changed:** the spread-percent formula
-`((ask − bid) / mid) × 100` is duplicated in 7 places. All seven are currently
-*identical*, so this is a drift risk rather than a defect — recorded here so it
-is a known item rather than a surprise later.
+`((ask − bid) / mid) × 100` is duplicated in 7 places, and the current-drawdown
+formula `peak > 0 ? ((peak − eq) / peak) × 100 : 0` (over
+`const eq = equity(); const peak = Math.max(equityPeak(), eq)`) in 6. Every copy
+of both is currently *byte-identical*, so these are drift risks rather than
+defects — recorded here so they are known items rather than surprises later.
+(`paper/validation.ts`'s `drawdownPercent` is deliberately a *different*
+measure: the worst peak-to-trough of the closed-trade equity curve, which feeds
+the `maxDrawdownPercent` gate, versus the risk rule's *current* distance below
+the peak.)
+
+### Shadow R was gross where paper R is net
+
+Same question asked of the shadow scorer — *is this concept computed twice, and
+do the two agree?* — and it did not. `shadow/scorer.ts` returned a bare price
+ratio, `(exit − fill) / risk`, while every other R in the system comes from
+`sim/trades.ts`'s `tradeMetrics` and is **net of fees**. Two numbers, one name,
+one unit, side by side.
+
+At the configured 0.1% taker / 0.1% maker the gap is not cosmetic. Measured:
+
+| Stop distance | Shadow (gross) | Paper (net) | Overstated by |
+|---|---|---|---|
+| 0.25% | +2.000R / −1.000R | +1.200R / −1.800R | **0.800R** |
+| 0.5%  | +2.000R / −1.000R | +1.600R / −1.400R | **0.400R** |
+| 1.0%  | +2.000R / −1.000R | +1.800R / −1.200R | **0.200R** |
+
+It is a uniform upward shift on winners *and* losers, so it moves expectancy,
+not just individual scores: a 40%-win, 2R strategy reads **+0.20R** gross and
+**−0.20R** net. Shadow is the last checkpoint before real capital, and it was
+the optimistic one — the direction that matters.
+
+Fixed by routing the scorer through `tradeMetrics` with `defaultAssumptions()`,
+the same call paper makes, mapping the take-profit limit to the maker fee and
+the stop-market to the taker fee (the split `exitFeePercent` already encodes).
+Shadow is inactive and no gate reads shadow R today, so nothing downstream
+moved; what changed is that a shadow R and a paper R now mean the same thing.
+
+The two existing scorer tests asserted only the **sign** of the R, which a
+uniform upward shift leaves intact — that is how it survived. Locked now by two
+tests in `test/shadow/shadow.test.ts` that pin shadow R to paper R for the
+identical trade; both were verified to fail against the old formula while all
+seven original tests passed either way.
 
 ---
 
