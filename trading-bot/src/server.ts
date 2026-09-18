@@ -52,6 +52,7 @@ import { tradeTape } from './features/trades.ts'
 import { tapeSpeed } from './features/tape.ts'
 import { largeTrades } from './features/largeTrades.ts'
 import { startWatch, eventLog } from './watch.ts'
+import { startResearchOps } from './learning/ops.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
@@ -1305,6 +1306,13 @@ marketFeed.start()
 const watcher = startWatch(config.app.watchEveryMinutes, (e) => {
   const mark = e.severity === 'action' ? ui.good('●') : e.severity === 'warn' ? ui.warn('●') : ui.dim('●')
   console.log(`${ui.dim(new Date(e.time).toLocaleTimeString())}  ${mark} ${ui.bold(e.title)} ${ui.dim('— ' + e.body.slice(0, 110))}`)
+})
+// Phase 24: research ops — observes each cycle off the bus and runs one bounded
+// research tick on its own timer. It reads the watcher's snapshot for the
+// current regime and nothing else; the watcher never reads it back.
+startResearchOps({
+  deps: { currentRegime: () => watcher.current()?.snap.analysis?.features.regime.value?.state ?? null },
+  log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
 })
 
 server.listen(PORT, host, () => {

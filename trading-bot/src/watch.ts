@@ -338,9 +338,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (boots.starts > 1) console.log(ui.dim(`  Start #${boots.starts}; the soak clock restarts from zero now.`))
   console.log(ui.dim(`  Reacting to every candle close (prices: ${marketFeed.describe()}); a safety poll runs every ${config.app.watchEveryMinutes} minutes. Ctrl+C to stop.`))
   console.log('')
-  startWatch(undefined, (e) => {
+  const watcher = startWatch(undefined, (e) => {
     const mark = e.severity === 'action' ? ui.good('●') : e.severity === 'warn' ? ui.warn('●') : ui.dim('●')
     console.log(`${ui.dim(new Date(e.time).toLocaleTimeString())}  ${mark} ${ui.bold(e.title)}`)
     console.log(ui.dim('    ' + ui.wrap(e.body, 72).replace(/\n/g, '\n    ')))
+  })
+  // Phase 24: research ops beside the loop, loaded here (not at the top) so the
+  // engine module itself imports nothing from the learning layers.
+  const { startResearchOps } = await import('./learning/ops.ts')
+  startResearchOps({
+    deps: { currentRegime: () => watcher.current()?.snap.analysis?.features.regime.value?.state ?? null },
+    log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
   })
 }
