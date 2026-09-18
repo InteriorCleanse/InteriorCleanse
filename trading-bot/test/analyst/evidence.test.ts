@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import { tempDataDir } from '../helpers.ts'
 import type { PaperPosition } from '../../src/paperTrader.ts'
 import type { Candle, ReplayTrade } from '../../src/types.ts'
+import type { BacktestCache, EvidenceInputs } from '../../src/analyst/evidence.ts'
 
 const tmp = tempDataDir('mrcash-evidence-')
 process.env.MRCASH_DATA_DIR = tmp.dir
@@ -32,11 +33,11 @@ const rt = (i: number, r = 2): ReplayTrade => ({
   index: i, time: T0 + i * 3_600_000, action: 'BUY', intendedEntry: 100, entryPrice: 100, entryTime: T0 + i * 3_600_000 + STEP, exitPrice: 100 + r, exitTime: T0 + i * 3_600_000 + 6 * STEP,
   exitReason: 'target', costsUsd: 0, pnlPercent: r, pnlUsd: r, rMultiple: r, outcome: 'WIN', setupKey: 'BTCUSDT|5m|silver-bullet|BUY', session: 'london', regime: 'ranging',
 } as ReplayTrade)
-const bt = (trades: ReplayTrade[]): ev.BacktestCache => ({
+const bt = (trades: ReplayTrade[]): BacktestCache => ({
   strategyId: 'silver-bullet', symbol: 'BTCUSDT', interval: '5m', source: 'BACKTEST', dataType: 'SIMULATED', computedAt: T0, engineVersion: 'x',
   window: { from: T0, to: T0 + 40 * 3_600_000 }, fillModel: 'realistic', assumptions: { spreadBps: 5, slippageBps: 3, takerFeePercent: 0.1 }, trades, notes: [],
 })
-const inputs = (closed: PaperPosition[], backtest: ev.BacktestCache | null): ev.EvidenceInputs => ({ closed, backtest, candlesBetween: reader, stepMs: STEP, feed: { ageSec: 30, maxAgeSec: 900 }, now: T0 + 50 * 3_600_000 })
+const inputs = (closed: PaperPosition[], backtest: BacktestCache | null): EvidenceInputs => ({ closed, backtest, candlesBetween: reader, stepMs: STEP, feed: { ageSec: 30, maxAgeSec: 900 }, now: T0 + 50 * 3_600_000 })
 
 test('zero paper trades and no backtest: NOT ENOUGH DATA on both sides, INSUFFICIENT SAMPLE comparison, nothing estimated', () => {
   const o = ev.overview(inputs([], null))
