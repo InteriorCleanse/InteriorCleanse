@@ -59,6 +59,7 @@ import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
+import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
 import { intelEnabled, intelFlags, disabledPayload } from './intel/flags.ts'
@@ -144,7 +145,8 @@ function isLocal(req: IncomingMessage): boolean {
 
 function hasSession(req: IncomingMessage): boolean {
   const cookie = req.headers.cookie ?? ''
-  return cookie.split(';').some((c) => c.trim() === `mrcash=${SESSION_TOKEN}`)
+  // Constant-time: an attacker can hammer this one freely.
+  return cookie.split(';').some((c) => safeEqual(c.trim(), `mrcash=${SESSION_TOKEN}`))
 }
 
 function authed(req: IncomingMessage): boolean {
@@ -255,6 +257,11 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
   const path = url.pathname
   const client = req.socket.remoteAddress ?? 'unknown'
+  // Security headers go on EVERY response, including 404s, redirects and the
+  // login page. setHeader before writeHead, so each route's own headers merge on
+  // top rather than replacing these. The nonce is per request and never reused.
+  const nonce = newNonce()
+  for (const [k, v] of Object.entries(securityHeaders(nonce))) res.setHeader(k, v)
   try {
     // Files every device may fetch before logging in
     const st = STATIC[path]
@@ -282,7 +289,7 @@ const server = createServer(async (req, res) => {
       let body: Record<string, unknown> = {}
       try { body = JSON.parse(raw) } catch { body = { message: raw } }
       const secret = String(body.secret ?? req.headers['x-mrcash-secret'] ?? url.searchParams.get('secret') ?? '')
-      if (secret !== WEBHOOK_SECRET) { json(res, 403, { ok: false, error: 'bad secret' }); return }
+      if (!safeEqual(secret, WEBHOOK_SECRET)) { json(res, 403, { ok: false, error: 'bad secret' }); return }
       const event = String(body.event ?? body.message ?? 'alert').slice(0, 120)
       const symbol = String(body.symbol ?? '').slice(0, 30)
       const price = Number(body.price)
@@ -300,7 +307,7 @@ const server = createServer(async (req, res) => {
         const form = new URLSearchParams(await readBody(req, 4096))
         const allowed = pinThrottle.allowed(client)
         if (!allowed.ok) { res.writeHead(429, { 'content-type': 'text/html; charset=utf-8' }); res.end(LOGIN_PAGE(`Too many tries from this device. Wait ${Math.ceil(allowed.retryInMs / 60_000)} minute(s).`)); return }
-        if ((form.get('pin') ?? '').trim() === PIN) {
+        if (safeEqual((form.get('pin') ?? '').trim(), PIN)) {
           pinThrottle.succeeded(client)
           res.writeHead(302, { 'set-cookie': `mrcash=${SESSION_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`, location: '/' })
           res.end()
@@ -324,7 +331,9 @@ const server = createServer(async (req, res) => {
 
     if (path === '/' || path === '/index.html') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
-      res.end(readFileSync(join(WEB_DIR, 'index.html'), 'utf8'))
+      // The page's inline script runs because it carries this request's nonce.
+      // Anything injected into the markup later cannot guess it, so it cannot run.
+      res.end(withNonce(readFileSync(join(WEB_DIR, 'index.html'), 'utf8'), nonce))
       return
     }
 

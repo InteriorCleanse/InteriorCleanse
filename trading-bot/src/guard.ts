@@ -15,6 +15,7 @@
  * without a server.
  */
 
+import { safeEqual } from './security/harden.ts'
 export type GuardVerdict = { ok: true } | { ok: false; status: number; reason: string }
 
 type Headers = Record<string, string | string[] | undefined>
@@ -36,7 +37,7 @@ function header(h: Headers, name: string): string | undefined {
  */
 export function checkStateChange(headers: Headers, expectedToken: string, hostHeader: string | undefined): GuardVerdict {
   const token = header(headers, 'x-mrcash-csrf')
-  if (!token || token !== expectedToken) {
+  if (!token || !safeEqual(token, expectedToken)) {
     return { ok: false, status: 403, reason: 'This action needs the app\'s own token. Reload Mr. Cash and try again.' }
   }
   const site = header(headers, 'sec-fetch-site')
