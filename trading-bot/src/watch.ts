@@ -298,9 +298,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   ui.safetyBanner()
   console.log('')
   // Startup recovery (Phase 21): re-adopt any positions that were live when we stopped.
-  const { recoverOpenPositions } = await import('./recovery.ts')
+  const { recoverOpenPositions, recordStart } = await import('./recovery.ts')
   const recovery = recoverOpenPositions()
+  // Record the start before anything else can fail: the soak gate wants 168
+  // CONTINUOUS hours and resets on restart, so how often that has happened is
+  // the one piece of context that makes a low uptime figure readable.
+  const boots = recordStart(recovery.positions.length > 0)
   console.log(ui.dim(`  ${recovery.summary}`))
+  if (boots.starts > 1) console.log(ui.dim(`  Start #${boots.starts}; the soak clock restarts from zero now.`))
   console.log(ui.dim(`  Reacting to every candle close (prices: ${marketFeed.describe()}); a safety poll runs every ${config.app.watchEveryMinutes} minutes. Ctrl+C to stop.`))
   console.log('')
   startWatch(undefined, (e) => {

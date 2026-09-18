@@ -450,17 +450,47 @@ export function aiEngineConsistency(engineDecision: string, aiDecision: string, 
 // System soak
 // ---------------------------------------------------------------
 
-export type SoakMetrics = { uptimeHours: number; feedOk: boolean; storeOk: boolean; recoveries: number; met: boolean; note: string }
+export type SoakMetrics = {
+  uptimeHours: number
+  feedOk: boolean
+  storeOk: boolean
+  /** Process starts on record. 1 means never restarted. Null when the boot log is unreadable. */
+  starts: number | null
+  /** Starts that had to re-adopt a live position. Null when not tracked. */
+  recoveries: number | null
+  met: boolean
+  note: string
+}
 
-/** How the 24/7 process is holding up: continuous uptime, feed and store health, and recovery adoptions. */
-export function soakMetrics(input: { uptimeSec: number; feedOk: boolean; storeOk: boolean; recoveries?: number }): SoakMetrics {
+/**
+ * How the 24/7 process is holding up: continuous uptime, feed and store health,
+ * and how many times the soak clock has been reset.
+ *
+ * `recoveries` used to default to 0 when no caller supplied it — and no caller
+ * ever did, so it serialised out of the API as a permanent zero that looked
+ * measured. It is now `null` when unknown, because "we did not track this" and
+ * "it never happened" are different facts and only one of them was true.
+ *
+ * The restart count matters more than it looks. This gate wants 168 CONTINUOUS
+ * hours and measures uptime from process start, so a single restart on day six
+ * sends it back to zero. An operator staring at "12h of the 168h soak" after a
+ * month of running needs to be told why.
+ */
+export function soakMetrics(input: { uptimeSec: number; feedOk: boolean; storeOk: boolean; starts?: number; recoveries?: number }): SoakMetrics {
   const uptimeHours = input.uptimeSec / 3600
   const need = config.paperValidation.gates.minSoakHours
   const met = uptimeHours >= need && input.feedOk && input.storeOk
+  const starts = input.starts ?? null
+  const restarts = starts === null ? null : Math.max(0, starts - 1)
+  const resets = restarts === null
+    ? ' Restarts are not being counted on this run.'
+    : restarts === 0
+      ? ' Never restarted.'
+      : ` The clock has been reset ${restarts} time${restarts === 1 ? '' : 's'} by a restart.`
   const note = met
-    ? `Soaking cleanly: ${uptimeHours.toFixed(1)}h continuous, feed and store healthy.`
-    : `Up ${uptimeHours.toFixed(1)}h of the ${need}h soak${!input.feedOk ? ', feed unhealthy' : ''}${!input.storeOk ? ', store unhealthy' : ''}. Uptime resets on restart.`
-  return { uptimeHours, feedOk: input.feedOk, storeOk: input.storeOk, recoveries: input.recoveries ?? 0, met, note }
+    ? `Soaking cleanly: ${uptimeHours.toFixed(1)}h continuous, feed and store healthy.${resets}`
+    : `Up ${uptimeHours.toFixed(1)}h of the ${need}h soak${!input.feedOk ? ', feed unhealthy' : ''}${!input.storeOk ? ', store unhealthy' : ''}. Uptime resets on restart.${resets}`
+  return { uptimeHours, feedOk: input.feedOk, storeOk: input.storeOk, starts, recoveries: input.recoveries ?? null, met, note }
 }
 
 // ---------------------------------------------------------------

@@ -500,6 +500,51 @@ true low-water mark would need that added first.
 
 ---
 
+## `SoakMetrics.recoveries` was a permanent zero — **fixed, now measured**
+
+`SoakMetrics` has carried a `recoveries` field since Phase 21, typed `number`,
+serialised out of `/api/validation` on every request. **No caller ever supplied
+it.** `soakMetrics()` defaulted it to `0`, so every consumer saw a number that
+looked measured and was a constant — the same class of defect as the desk
+scraping its own prose, and the reason the soak gate's config comment ("the
+process must have run this many hours continuously **with recovery intact**")
+described something nothing measured. `grep -rn "recoveries" src/ web/` returned
+hits only inside `validation.ts` itself: the field had no producer.
+
+Nothing in the repo counted restarts at all, which matters more than the dead
+field does. The soak gate wants **168 continuous hours** and measures uptime as
+`Date.now() - STARTED_AT`, so one restart on day six silently sends it back to
+zero. An operator looking at *"Up 12.0h of the 168h soak"* after a month of
+running had no way to tell whether the process kept dying or had simply been
+started yesterday.
+
+**What was added.** A durable boot log in `src/recovery.ts` (`recordStart()` /
+`bootLog()`), one kv row — the store is durable, so it survives exactly the event
+it exists to count. It separates **starts** from **recoveries**: a start that had
+to re-adopt a live open or pending position is a real recovery; a clean start is
+not. `soakMetrics()` now takes both and its note says how many times the clock
+has been reset.
+
+**`recoveries` is now `number | null`, and defaults to `null`.** "We did not
+track this" and "it never happened" are different facts and only one of them was
+ever true. An unsupplied count reads as unknown.
+
+**A second thing this surfaced:** the **server never ran `recoverOpenPositions()`
+at all** — only the `npm run watch` CLI did. Nothing was ever orphaned (the store
+is durable and `managePositions` reads from it), but a restart re-adopted live
+positions with no record and no line on screen. The server now runs startup
+recovery and reports it.
+
+Verified across three real server restarts against one data dir:
+
+```
+run 1: starts=1 … Never restarted.
+run 2: starts=2 … The clock has been reset 1 time by a restart.
+run 3: starts=3 … The clock has been reset 2 times by a restart.
+```
+
+---
+
 ## Next validation stage
 
 Proceed to **extended paper trading** (≥ `minSetupsForConfidence` fused trades

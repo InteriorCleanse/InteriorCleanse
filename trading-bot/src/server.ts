@@ -62,6 +62,7 @@ import { renderSessionScript } from './tv/sessionScript.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
 import { newsRead, renderNewsRead } from './news/brain.ts'
 import { pastInstances, historyDepth, allSeries } from './news/history.ts'
+import { recoverOpenPositions, recordStart, bootLog } from './recovery.ts'
 import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
@@ -711,7 +712,7 @@ const server = createServer(async (req, res) => {
         aiConsistency = aiEngineConsistency(decisionLabel(call), decisionLabel(call), narration.valid)
       } catch { /* the report stands without the live snapshot */ }
       const stats = paperStats(price)
-      const soak = soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok' })
+      const soak = soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok', starts: bootLog()?.starts, recoveries: bootLog()?.recoveries })
       const hasReadOnlyKey = !!(process.env.EXCHANGE_API_KEY && process.env.EXCHANGE_API_SECRET)
       const report = buildValidationReport({
         closed: readPositions().closed,
@@ -870,7 +871,7 @@ const server = createServer(async (req, res) => {
       const passports = listPassports()
       const gates = evaluateGates({
         closed: positions.closed, passports, curve: stats.curve, startUsd: stats.startUsd,
-        soak: soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok' }),
+        soak: soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok', starts: bootLog()?.starts, recoveries: bootLog()?.recoveries }),
         quality: dataQuality(positions.closed),
       })
       const decay = decayByStrategy(positions.closed, passports)
@@ -1131,6 +1132,18 @@ server.on('error', (err: NodeJS.ErrnoException) => {
   throw err
 })
 
+/**
+ * Startup recovery, and the record that it happened.
+ *
+ * The server never ran `recoverOpenPositions()` — only the `npm run watch` CLI
+ * did — so a restart re-adopted positions silently (the store is durable and
+ * `managePositions` reads from it, so nothing was ever orphaned, but nothing was
+ * reported either). More to the point, nothing counted restarts at all, which is
+ * why the soak gate's `recoveries` had been a permanent zero.
+ */
+const startupRecovery = recoverOpenPositions()
+const boots = recordStart(startupRecovery.positions.length > 0)
+
 // The market feed (live stream + REST heartbeat) starts first so the watch
 // loop has candle closes to react to. Then the loop, declared before
 // listen() so the routes can read it.
@@ -1159,6 +1172,8 @@ server.listen(PORT, host, () => {
   console.log(`  TradingView webhook secret: ${ui.dim(WEBHOOK_SECRET)}  ${ui.dim('(the TradingView tab explains where it goes)')}`)
   console.log('')
   console.log(ui.dim(`  Prices: ${marketFeed.describe()}. Reacting to every candle close, with a safety poll every ${config.app.watchEveryMinutes} minutes; alerts show here and in the app's bell.`))
+  if (startupRecovery.positions.length) console.log(ui.dim(`  ${startupRecovery.summary}`))
+  if (boots.starts > 1) console.log(ui.dim(`  Start #${boots.starts}${boots.recoveries ? `, ${boots.recoveries} of them recovering a live position` : ''} — the ${config.paperValidation.gates.minSoakHours}h soak clock restarts from zero now.`))
   bus.on('stream:up', (h) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ● live stream connected (${h.host})`)))
   bus.on('stream:down', (_h, reason) => console.log(ui.warn(`${new Date().toLocaleTimeString()}  ● live stream down — ${reason}. Polling over REST until it is back.`)))
   console.log(ui.dim('  To stop: press Ctrl+C in this window.'))
