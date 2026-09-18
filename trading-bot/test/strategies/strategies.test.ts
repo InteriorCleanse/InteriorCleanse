@@ -11,7 +11,7 @@ import { setupDay } from '../fixtures/candles.ts'
 import { IctEngine } from '../../src/ictStrategy.ts'
 import { sessionIfvg } from '../../src/strategies/sessionIfvg.ts'
 import type { Candle } from '../../src/types.ts'
-import type { FeatureSnapshot } from '../../src/features/types.ts'
+import type { FeatureSnapshot, Feature } from '../../src/features/types.ts'
 import type { StrategyContext } from '../../src/strategies/types.ts'
 
 // Isolate the data directory before loading anything that captures DATA_DIR.
@@ -25,10 +25,24 @@ const STEP = 300_000
 const t0 = Date.UTC(2026, 0, 15, 14, 0)
 const mk = (i: number, o: number, h: number, l: number, c: number): Candle => ({ openTime: t0 + i * STEP, closeTime: t0 + i * STEP + STEP - 1, open: o, high: h, low: l, close: c, volume: 5 })
 
-function feat<T>(value: T | null): FeatureSnapshot['atr'] { return { value: value as never, available: value !== null, source: value === null ? 'none' : 'candles', asOf: 0, approximate: false } }
+// Generic in T: the old signature returned Feature<number> whatever it was
+// handed, so a Feature<RegimeReading> fixture typechecked as a number and the
+// mistake only ever showed up at runtime.
+function feat<T>(value: T | null): Feature<T> { return { value: value as T, available: value !== null, source: value === null ? 'none' : 'candles', asOf: 0, approximate: false } }
 
 /** A full but mostly-empty feature snapshot; override the pieces a test needs. */
-function snapshot(over: Partial<FeatureSnapshot> = {}): FeatureSnapshot {
+/**
+ * These fixtures build DELIBERATELY PARTIAL readings — a regime with four of its
+ * fields, a structure with the two a strategy actually looks at. Typing `over`
+ * as Partial<FeatureSnapshot> would demand each one be complete and exact, which
+ * would make every fixture three times the size for no extra coverage.
+ *
+ * So the looseness is confined to this one parameter, with an honest cast, and
+ * `feat` itself stays generic and truthful. The alternative — a `feat` that
+ * claims everything is a Feature<number> — is what let a Feature<RegimeReading>
+ * fixture typecheck as a number until the tests were first typechecked.
+ */
+function snapshot(over: Record<string, unknown> = {}): FeatureSnapshot {
   const empty = feat(null)
   return {
     version: 1, index: 5, openTime: 0, closeTime: 0, price: 100, asOf: 0, dayKey: 'D', session: 'newYork',
@@ -37,7 +51,7 @@ function snapshot(over: Partial<FeatureSnapshot> = {}): FeatureSnapshot {
     flow: { delta: empty, cvd: empty, cvdSinceGap: empty, tapeSpeed: empty, largeTrades: empty, bookImbalance: empty, footprint: empty, absorption: empty, stream: { trusted: false, trustedSince: null } },
     tape: { exact: false, note: '' },
     ...over,
-  } as FeatureSnapshot
+  } as unknown as FeatureSnapshot
 }
 
 function ctx(candles: Candle[], index: number, features: FeatureSnapshot): StrategyContext {
@@ -111,7 +125,8 @@ test('trend pullback: fires in a trend, in discount, on a support order block', 
   assert.equal(fires.action, 'BUY')
   assert.ok(fires.evidence.map((e) => e.step).includes('Order block'))
   // In premium (wrong half) it holds.
-  const structPrem = feat({ ...structure.value, dealingRange: { ...structure.value.dealingRange, zone: 'premium', position: 80 } })
+  const base = structure.value!
+  const structPrem = feat({ ...base, dealingRange: { ...base.dealingRange, zone: 'premium', position: 80 } })
   assert.equal(s.evaluate(ctx(c, 1, snapshot({ regime: feat(regime('trending-up', 'up', 80)), structure: structPrem }))).action, 'HOLD')
 })
 

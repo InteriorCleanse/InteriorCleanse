@@ -20,7 +20,9 @@ import { genomeId } from '../../src/factory/genome.ts'
 const DAY = 86_400_000
 
 function mk(i: number, r: number): TradeLike {
-  return { time: i * DAY, rMultiple: r, pnlPercent: r, outcome: r > 0 ? 'WIN' : r < 0 ? 'LOSS' : 'FLAT' } as TradeLike
+  // pnlUsd, not pnlPercent — TradeLike has no pnlPercent, and the `as TradeLike`
+  // cast hid that for as long as the tests went untypechecked.
+  return { time: i * DAY, rMultiple: r, pnlUsd: r, outcome: r > 0 ? 'WIN' : r < 0 ? 'LOSS' : 'FLAT' }
 }
 
 /** n trades alternating to give a positive mean with real variance. */

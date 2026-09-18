@@ -7,3 +7,6 @@ for (let i = 0; i < n; i++) {
   appendLedgerRow({ timestamp: new Date(i).toISOString(), symbol: 'BTCUSDT', action: 'BUY', price: i, quantity: 1, reason: `${label} row ${i}, with a comma`, mode: 'test', outcome: 'WIN', pnl: 0 })
 }
 process.stdout.write(`${label} done\n`)
+
+// Top-level await needs this file to be a module.
+export {}

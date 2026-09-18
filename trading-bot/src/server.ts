@@ -59,7 +59,7 @@ import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
-import { attributionReport, renderAttribution } from './analyst/attribution.ts'
+import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
 import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
@@ -767,7 +767,10 @@ const server = createServer(async (req, res) => {
      * numbers, and nothing it produces reaches a trading decision.
      */
     if (path === '/api/analyst') {
-      const report = attributionReport(readPositions().closed, { now: Date.now() })
+      // PAPER by default. `?source=backtest` runs the same analysis over the
+      // last replay instead — populated immediately, worth strictly less, and
+      // labelled as such on every rendering so the two can never be confused.
+      const report = attributionReport(fromPaper(readPositions().closed), { now: Date.now(), source: 'PAPER' })
       if (url.searchParams.get('format') === 'text') {
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
         res.end(renderAttribution(report))

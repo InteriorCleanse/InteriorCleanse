@@ -39,11 +39,74 @@
 import { paperOutcome } from '../paperTrader.ts'
 import { toET } from '../sessions.ts'
 import type { PaperPosition } from '../paperTrader.ts'
+import type { ReplayTrade } from '../types.ts'
 import { invNorm } from '../factory/stats.ts'
 import { multipleTesting } from '../factory/ic.ts'
 
 /** Below this, a bucket is not allowed to state a result at all. */
 export const MIN_BUCKET_TRADES = 10
+
+/**
+ * Where the numbers came from. Carried on the report and printed on every
+ * rendering, because the two are not interchangeable and a reader who forgets
+ * which they are looking at will draw the wrong conclusion from either.
+ *
+ *   PAPER    — the live paper run against real market data. Honest, and empty
+ *              until it has actually traded.
+ *   BACKTEST — a simulation over historical candles. Populated immediately, and
+ *              worth strictly less: it never queued behind a real spread, never
+ *              missed a fill to a fast market, and knows the period it was
+ *              tuned on.
+ *
+ * The two are NEVER mixed in one report. Blending a simulation into a live
+ * record is the most direct way to launder an assumption into a fact.
+ */
+export type TradeSource = 'PAPER' | 'BACKTEST'
+
+/** The neutral shape attribution works on, so either source can feed it. */
+export type AttributableTrade = {
+  rMultiple: number | null
+  session: string
+  direction: 'long' | 'short'
+  regime: string | null
+  /** Entry time, for slicing by hour. 0 when unrecorded. */
+  at: number
+  /** MISSED trades were never trades and are excluded everywhere. */
+  missed: boolean
+  outcome: 'WIN' | 'LOSS' | 'FLAT' | 'MISSED'
+}
+
+/** Closed paper positions, as attributable trades. */
+export function fromPaper(closed: PaperPosition[]): AttributableTrade[] {
+  return closed.map((p) => ({
+    rMultiple: p.rMultiple ?? null,
+    session: p.session || 'outside a session',
+    direction: p.direction,
+    regime: p.regime ?? null,
+    at: p.filledAt ?? p.openedAt ?? 0,
+    missed: p.exitReason === 'missed',
+    outcome: paperOutcome(p),
+  }))
+}
+
+/**
+ * Backtest trades, as attributable trades.
+ *
+ * A replay trade carries no regime — the regime engine reads a live feature
+ * snapshot that a historical replay does not reconstruct — so that dimension
+ * reports "unrecorded" rather than being filled in with a guess.
+ */
+export function fromReplay(trades: ReplayTrade[]): AttributableTrade[] {
+  return trades.map((t) => ({
+    rMultiple: t.rMultiple,
+    session: t.session ?? 'outside a session',
+    direction: t.action === 'BUY' ? 'long' : 'short',
+    regime: null,
+    at: t.entryTime || t.time || 0,
+    missed: false,
+    outcome: t.outcome,
+  }))
+}
 
 export type Interval = { lo: number; hi: number }
 
@@ -143,7 +206,7 @@ function hourKey(ms: number): string {
   return `${String(toET(ms).hour).padStart(2, '0')}:00`
 }
 
-function rsOf(list: PaperPosition[]): number[] {
+function rsOf(list: AttributableTrade[]): number[] {
   return list.map((p) => p.rMultiple ?? 0)
 }
 
@@ -155,15 +218,15 @@ function rsOf(list: PaperPosition[]): number[] {
  * top of the page and look like a finding.
  */
 export function attributeBy(
-  closed: PaperPosition[],
-  keyFn: (p: PaperPosition) => string,
+  closed: AttributableTrade[],
+  keyFn: (p: AttributableTrade) => string,
   minTrades = MIN_BUCKET_TRADES,
 ): AttributedBucket[] {
-  const taken = closed.filter((p) => p.exitReason !== 'missed')
+  const taken = closed.filter((p) => !p.missed)
   const totalTrades = taken.length
   const grandTotalR = taken.reduce((s, p) => s + (p.rMultiple ?? 0), 0)
 
-  const byKey = new Map<string, PaperPosition[]>()
+  const byKey = new Map<string, AttributableTrade[]>()
   for (const p of taken) {
     const k = keyFn(p) || '—'
     byKey.set(k, [...(byKey.get(k) ?? []), p])
@@ -174,8 +237,8 @@ export function attributeBy(
     const rs = rsOf(list)
     const { mean, stdErr, ci95 } = meanWithInterval(rs)
     const totalR = rs.reduce((s, x) => s + x, 0)
-    const wins = list.filter((p) => paperOutcome(p) === 'WIN').length
-    const losses = list.filter((p) => paperOutcome(p) === 'LOSS').length
+    const wins = list.filter((p) => p.outcome === 'WIN').length
+    const losses = list.filter((p) => p.outcome === 'LOSS').length
     const decided = wins + losses
     const sd = sampleSd(rs)
 
@@ -295,6 +358,8 @@ export type Dimension = { name: string; buckets: AttributedBucket[]; comparisons
 
 export type AttributionReport = {
   generatedAt: number
+  /** PAPER or BACKTEST. Never both — see TradeSource. */
+  source: TradeSource
   trades: number
   minBucketTrades: number
   dimensions: Dimension[]
@@ -304,9 +369,9 @@ export type AttributionReport = {
   caveats: string[]
 }
 
-function dimension(name: string, closed: PaperPosition[], keyFn: (p: PaperPosition) => string, minTrades: number): Dimension {
+function dimension(name: string, closed: AttributableTrade[], keyFn: (p: AttributableTrade) => string, minTrades: number): Dimension {
   const buckets = attributeBy(closed, keyFn, minTrades)
-  const taken = closed.filter((p) => p.exitReason !== 'missed')
+  const taken = closed.filter((p) => !p.missed)
   const rsByKey = new Map<string, number[]>()
   for (const p of taken) {
     const k = keyFn(p) || '—'
@@ -316,9 +381,10 @@ function dimension(name: string, closed: PaperPosition[], keyFn: (p: PaperPositi
 }
 
 /** Attribution across every dimension that is recorded on a paper trade. */
-export function attributionReport(closed: PaperPosition[], opts: { now?: number; minTrades?: number } = {}): AttributionReport {
+export function attributionReport(closed: AttributableTrade[], opts: { now?: number; minTrades?: number; source?: TradeSource } = {}): AttributionReport {
   const minTrades = opts.minTrades ?? MIN_BUCKET_TRADES
-  const taken = closed.filter((p) => p.exitReason !== 'missed')
+  const source: TradeSource = opts.source ?? 'PAPER'
+  const taken = closed.filter((p) => !p.missed)
 
   const dimensions: Dimension[] = [
     dimension('Session', closed, (p) => p.session || 'outside a session', minTrades),
@@ -331,7 +397,7 @@ export function attributionReport(closed: PaperPosition[], opts: { now?: number;
     // course targets average about +2R and stops about −1R; that is the
     // definition of a target and a stop, not a finding, and printing it invites
     // the useless conclusion "take more targets".
-    dimension('Hour (New York)', closed, (p) => hourKey(p.openedAt), minTrades),
+    dimension('Hour (New York)', closed, (p) => hourKey(p.at), minTrades),
   ]
 
   const tests = dimensions.reduce((s, d) => s + d.comparisons.filter((c) => c.verdict !== 'TOO FEW').length, 0)
@@ -339,6 +405,7 @@ export function attributionReport(closed: PaperPosition[], opts: { now?: number;
 
   return {
     generatedAt: opts.now ?? Date.now(),
+    source,
     trades: taken.length,
     minBucketTrades: minTrades,
     dimensions,
@@ -350,7 +417,12 @@ export function attributionReport(closed: PaperPosition[], opts: { now?: number;
         : `${tests} comparisons were run. Testing that many at once, roughly one set in ${Math.max(2, Math.round(1 / (1 - Math.pow(0.95, tests))))} throws up a false positive by chance, so a single "better" result here is weaker than it looks. The Bonferroni-corrected threshold is ${mt.bonferroni.toFixed(4)}.`,
     },
     caveats: [
-      'These are PAPER results. They are validation data, not a target to tune against — a breakdown used to pick settings is overfitting with extra steps.',
+      ...(source === 'BACKTEST'
+        ? [
+          'These are BACKTEST results — a simulation over historical candles, not trades that happened. They never queued behind a real spread and never lost a fill to a fast market, so treat every number here as an upper bound.',
+          'The backtest has seen this period before. Anything tuned on it will look better here than it will live, which is the entire reason the paper stage exists.',
+        ]
+        : ['These are PAPER results. They are validation data, not a target to tune against — a breakdown used to pick settings is overfitting with extra steps.']),
       'Every interval assumes trades are independent. Trades clustered in one week of one regime are not, so the true uncertainty is wider than shown.',
       'A bucket is a slice of an already small sample. Slicing further makes each piece less certain, not more informative.',
       'Nothing here predicts the next trade. It describes what already happened, with the error bars that description deserves.',
@@ -364,12 +436,13 @@ export function renderAttribution(r: AttributionReport): string {
   const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(0)}%`)
   const R = (x: number | null) => (x === null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + 'R')
 
-  L.push(`ATTRIBUTION — ${r.trades} paper trade${r.trades === 1 ? '' : 's'}`)
+  L.push(`ATTRIBUTION — ${r.source} — ${r.trades} trade${r.trades === 1 ? '' : 's'}`)
+  if (r.source === 'BACKTEST') L.push('Simulated over historical candles. These trades did not happen.')
   L.push(`A bucket needs ${r.minBucketTrades} trades before it is allowed to claim anything.`)
   L.push('')
   if (r.trades === 0) {
-    L.push('No paper trades yet, so there is nothing to attribute. This page will stay empty')
-    L.push('until the paper run has actually traded — which is the correct thing for it to do.')
+    L.push('No trades yet, so there is nothing to attribute. This stays empty until there')
+    L.push('is something real to describe — which is the correct thing for it to do.')
     L.push('')
   }
   for (const d of r.dimensions) {

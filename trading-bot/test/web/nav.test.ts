@@ -72,3 +72,26 @@ test('the More button carries no data-tab, so it opens the panel instead of navi
   assert.ok(more, 'the More button is gone')
   assert.equal(/data-tab/.test(more), false, 'the More button must not look like a tab')
 })
+
+/**
+ * THE TESTS THEMSELVES MUST BE TYPECHECKED.
+ *
+ * `tsconfig.json` used to include only `src/**` and `config.ts`, so all 553
+ * tests were invisible to `tsc`. That is not a theoretical gap: changing
+ * `attributionReport` to take a different argument type did not fail typecheck,
+ * it failed at runtime — and a fixture in `test/factory/gate.test.ts` had been
+ * building `pnlPercent` where `TradeLike` wants `pnlUsd`, hidden behind a cast,
+ * for as long as the file has existed.
+ *
+ * A test suite the compiler never looks at drifts away from the code it is
+ * meant to be testing, silently.
+ */
+test('the test suite is inside the typecheck, not outside it', () => {
+  const raw = readFileSync(join(ROOT, 'tsconfig.json'), 'utf8').replace(/\/\/.*$/gm, '')
+  const cfg = JSON.parse(raw) as { include?: string[] }
+  assert.ok(cfg.include, 'tsconfig has no include list')
+  assert.ok(
+    cfg.include!.some((p) => p.startsWith('test/')),
+    `tsc only looks at ${cfg.include!.join(', ')} — the tests would not be typechecked`,
+  )
+})

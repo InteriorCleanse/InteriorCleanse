@@ -17,7 +17,7 @@ import assert from 'node:assert/strict'
 import type { PaperPosition } from '../../src/paperTrader.ts'
 import {
   tCritical95, sampleSd, meanWithInterval, tradesNeededToDecide,
-  attributeBy, compareBuckets, attributionReport, renderAttribution, MIN_BUCKET_TRADES,
+  attributeBy, compareBuckets, attributionReport, renderAttribution, fromPaper, MIN_BUCKET_TRADES,
 } from '../../src/analyst/attribution.ts'
 
 let n = 0
@@ -81,7 +81,7 @@ test('the sample size needed is quoted, and no sample size rescues an edge of ze
 
 test('a three-trade bucket REFUSES to claim a result, however good it looks', () => {
   const closed = [trade(2.0), trade(1.5), trade(1.2)]
-  const [b] = attributeBy(closed, (p) => p.session)
+  const [b] = attributeBy(fromPaper(closed), (p) => p.session)
   assert.equal(b.trades, 3)
   assert.ok(b.avgR! > 1.5, 'the average really is high')
   assert.equal(b.verdict, 'TOO FEW', 'but three trades may not state a result')
@@ -91,7 +91,7 @@ test('a three-trade bucket REFUSES to claim a result, however good it looks', ()
 test('a big sample of coin flips is reported as inconclusive, not as a small edge', () => {
   // +1 / −1 alternating: a true mean of zero with a lot of spread.
   const closed = Array.from({ length: 40 }, (_, i) => trade(i % 2 ? 1 : -1))
-  const [b] = attributeBy(closed, (p) => p.session)
+  const [b] = attributeBy(fromPaper(closed), (p) => p.session)
   assert.equal(b.verdict, 'INCONCLUSIVE')
   assert.ok(b.ci95!.lo < 0 && b.ci95!.hi > 0, 'the interval must straddle zero')
   assert.match(b.note, /straddles zero/)
@@ -99,7 +99,7 @@ test('a big sample of coin flips is reported as inconclusive, not as a small edg
 
 test('a genuinely losing bucket is called losing, not unlucky', () => {
   const closed = Array.from({ length: 30 }, () => trade(-0.9))
-  const [b] = attributeBy(closed, (p) => p.session)
+  const [b] = attributeBy(fromPaper(closed), (p) => p.session)
   assert.equal(b.verdict, 'NEGATIVE')
   assert.match(b.note, /losing, not unlucky/)
 })
@@ -107,7 +107,7 @@ test('a genuinely losing bucket is called losing, not unlucky', () => {
 test('a large consistent edge is allowed to be called positive', () => {
   // The module must not be so cautious that it can never say anything.
   const closed = Array.from({ length: 30 }, (_, i) => trade(i % 5 === 0 ? 0.6 : 1.1))
-  const [b] = attributeBy(closed, (p) => p.session)
+  const [b] = attributeBy(fromPaper(closed), (p) => p.session)
   assert.equal(b.verdict, 'POSITIVE')
   assert.ok(b.ci95!.lo > 0)
 })
@@ -117,7 +117,7 @@ test('buckets sort by sample size, so a lucky small one never tops the page', ()
     ...Array.from({ length: 25 }, () => trade(0.05, { session: 'New York' })),
     ...Array.from({ length: 3 }, () => trade(3.0, { session: 'London' })),
   ]
-  const buckets = attributeBy(closed, (p) => p.session)
+  const buckets = attributeBy(fromPaper(closed), (p) => p.session)
   assert.equal(buckets[0].key, 'New York', 'the bigger sample comes first even though it earned less per trade')
   assert.equal(buckets[1].verdict, 'TOO FEW')
 })
@@ -129,8 +129,8 @@ test('buckets sort by sample size, so a lucky small one never tops the page', ()
 test('a large-looking gap between two noisy buckets is reported as noise', () => {
   const aRs = Array.from({ length: 12 }, (_, i) => (i % 2 ? 2.5 : -2.0))   // mean ~+0.25, huge spread
   const bRs = Array.from({ length: 12 }, (_, i) => (i % 2 ? 2.0 : -2.0))   // mean ~0
-  const [a] = attributeBy(aRs.map((r) => trade(r, { session: 'A' })), (p) => p.session)
-  const [b] = attributeBy(bRs.map((r) => trade(r, { session: 'B' })), (p) => p.session)
+  const [a] = attributeBy(fromPaper(aRs.map((r) => trade(r, { session: 'A' }))), (p) => p.session)
+  const [b] = attributeBy(fromPaper(bRs.map((r) => trade(r, { session: 'B' }))), (p) => p.session)
   const c = compareBuckets(a, b, aRs, bRs)
   assert.equal(c.verdict, 'INDISTINGUISHABLE')
   assert.match(c.note, /inside the noise/)
@@ -139,8 +139,8 @@ test('a large-looking gap between two noisy buckets is reported as noise', () =>
 test('a comparison against a tiny bucket refuses rather than guessing', () => {
   const aRs = Array.from({ length: 20 }, () => 0.5)
   const bRs = [2.0, 1.0]
-  const [a] = attributeBy(aRs.map((r) => trade(r, { session: 'A' })), (p) => p.session)
-  const [b] = attributeBy(bRs.map((r) => trade(r, { session: 'B' })), (p) => p.session)
+  const [a] = attributeBy(fromPaper(aRs.map((r) => trade(r, { session: 'A' }))), (p) => p.session)
+  const [b] = attributeBy(fromPaper(bRs.map((r) => trade(r, { session: 'B' }))), (p) => p.session)
   const c = compareBuckets(a, b, aRs, bRs)
   assert.equal(c.verdict, 'TOO FEW')
   assert.equal(c.ci95, null)
@@ -152,20 +152,20 @@ test('a comparison against a tiny bucket refuses rather than guessing', () => {
 // ---------------------------------------------------------------
 
 test('with no trades it says there is nothing to attribute, and invents nothing', () => {
-  const r = attributionReport([])
+  const r = attributionReport(fromPaper([]))
   assert.equal(r.trades, 0)
   for (const d of r.dimensions) {
     assert.deepEqual(d.buckets, [], `${d.name} invented a bucket from no data`)
     assert.deepEqual(d.comparisons, [])
   }
   const text = renderAttribution(r)
-  assert.match(text, /No paper trades yet/)
+  assert.match(text, /No trades yet/)
   assert.match(text, /correct thing for it to do/)
 })
 
 test('a missed order is never counted as a trade', () => {
   const closed = [trade(1), trade(1), trade(0, { exitReason: 'missed', rMultiple: 0 })]
-  const r = attributionReport(closed)
+  const r = attributionReport(fromPaper(closed))
   assert.equal(r.trades, 2, 'a missed order was not a trade and must not dilute the attribution')
 })
 
@@ -174,14 +174,14 @@ test('the report states how many comparisons were run and what that costs', () =
     ...Array.from({ length: 14 }, (_, i) => trade(i % 2 ? 1 : -0.8, { session: 'London' })),
     ...Array.from({ length: 14 }, (_, i) => trade(i % 2 ? 1 : -0.9, { session: 'New York' })),
   ]
-  const r = attributionReport(closed)
+  const r = attributionReport(fromPaper(closed))
   assert.ok(r.multipleComparisons.tests >= 1)
   assert.ok(r.multipleComparisons.correctedAlpha <= 0.05)
   assert.match(renderAttribution(r), /MULTIPLE COMPARISONS/)
 })
 
 test('the caveats name the specific ways these numbers mislead', () => {
-  const r = attributionReport([trade(1)])
+  const r = attributionReport(fromPaper([trade(1)]))
   const joined = r.caveats.join(' ')
   assert.match(joined, /validation data, not a target to tune against/i)
   assert.match(joined, /independent/i, 'clustered trades break the interval maths and that must be said')
