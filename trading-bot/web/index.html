@@ -29,6 +29,7 @@
   <span class="safe">PAPER · no real money</span>
 </header>
 <nav id="tabs"></nav>
+<div id="morepanel" class="hidden"></div>
 <div class="bottomnav" id="bottomnav"></div>
 <div class="events hidden" id="events"></div>
 <main>
@@ -193,7 +194,25 @@
 
 <script>
 const $ = (id) => document.getElementById(id)
-const TABS = [['today','Today','🏠'],['desk','Desk','🛰'],['chart','Chart','📈'],['intel','Intel','🧭'],['flow','Flow','📊'],['news','News','📰'],['journal','Journal','📓'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['validation','Validation','✅'],['memory','Memory','🧠'],['ask','Ask','💬']]
+/**
+ * Every tab, most-used first. The order sets the 1–9 shortcuts, so the five a
+ * person opens daily are 1–5.
+ *
+ * Sixteen tabs in one flat bar was the navigation problem: the last one was
+ * scrolled off the edge on a 1280px screen and phone users saw seven of them.
+ * The bar now shows PRIMARY and folds the rest into a grouped "More" panel, so
+ * the top level answers "where do I go" instead of listing everything that
+ * exists. Nothing is hidden — the groups are named for what you want, not for
+ * which subsystem built them.
+ */
+const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['validation','Validation','✅'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const PRIMARY = ['desk','today','chart','journal','ask']
+const GROUPS = [
+  ['Markets', 'what price is doing right now', ['flow','news','intel','tv']],
+  ['Is it working?', 'the honest scoreboard', ['validation','test','replay']],
+  ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
+]
+const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -212,10 +231,32 @@ async function call(path, opts) { const r = await fetch(path, withToken(opts)); 
 const errBox = (e) => `<div class="card"><h2>Stopped</h2><div class="err">${esc(e)}</div></div>`
 
 // ---------- navigation ----------
-$('tabs').innerHTML = TABS.map(([id,label],i) => `<button data-tab="${id}">${label}<kbd>${i+1}</kbd></button>`).join('')
-$('bottomnav').innerHTML = TABS.map(([id,label,icon]) => `<button data-tab="${id}"><span>${icon}</span>${label}</button>`).join('')
+const navBtn = (id, i) => `<button data-tab="${id}">${TAB[id].label}${i < 9 ? `<kbd>${i+1}</kbd>` : ''}</button>`
+$('tabs').innerHTML = PRIMARY.map(navBtn).join('') + `<button id="btn-more" class="more">More<kbd>M</kbd></button>`
+$('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${TAB[id].icon}</span>${TAB[id].label}</button>`).join('')
+  + `<button id="btn-more-b" class="more"><span>⋯</span>More</button>`
+$('morepanel').innerHTML = GROUPS.map(([title, blurb, ids]) => `
+  <div class="mp-group">
+    <h4>${title}<span>${blurb}</span></h4>
+    <div class="mp-items">${ids.map(id => `<button data-tab="${id}"><span>${TAB[id].icon}</span>${TAB[id].label}</button>`).join('')}</div>
+  </div>`).join('')
+
+const IN_MORE = new Set(GROUPS.flatMap(([, , ids]) => ids))
+function toggleMore(open) {
+  const p = $('morepanel')
+  const next = open === undefined ? p.classList.contains('hidden') : open
+  p.classList.toggle('hidden', !next)
+  document.querySelectorAll('.more').forEach(b => b.classList.toggle('open', next))
+}
+$('btn-more').onclick = (e) => { e.stopPropagation(); toggleMore() }
+$('btn-more-b').onclick = (e) => { e.stopPropagation(); toggleMore() }
+document.addEventListener('click', (e) => { if (!$('morepanel').contains(e.target)) toggleMore(false) })
 function showTab(id, push=true) {
-  document.querySelectorAll('nav button, .bottomnav button').forEach(x => x.classList.toggle('active', x.dataset.tab === id))
+  document.querySelectorAll('nav button, .bottomnav button, #morepanel button').forEach(x => x.classList.toggle('active', x.dataset.tab === id))
+  // The More button stays lit while you are on one of the tabs it holds, so the
+  // top level never looks like nothing is selected.
+  document.querySelectorAll('.more').forEach(b => b.classList.toggle('active', IN_MORE.has(id)))
+  toggleMore(false)
   document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hidden', s.id !== 'tab-' + id))
   if (push) history.replaceState(null, '', '#' + id)
   try { localStorage.setItem('mrcash-tab', id) } catch {}
@@ -234,11 +275,15 @@ function showTab(id, push=true) {
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
   window.scrollTo({top:0})
 }
-document.querySelectorAll('nav button, .bottomnav button').forEach(b => b.onclick = () => showTab(b.dataset.tab))
+// Only buttons that name a tab navigate. The More button carries no data-tab —
+// wiring it here would call showTab(undefined), which hides every section and
+// leaves a blank page. (It did exactly that until this guard was added.)
+document.querySelectorAll('nav button[data-tab], .bottomnav button[data-tab], #morepanel button[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab))
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, textarea, select')) return
   const i = Number(e.key) - 1
   if (i >= 0 && i < TABS.length) showTab(TABS[i][0])
+  if ((e.key === 'm' || e.key === 'M') && !e.metaKey && !e.ctrlKey) toggleMore()
   if (e.key === 'r') loadToday(true)
   if (e.key === '?') openTour()
 })

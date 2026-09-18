@@ -1,0 +1,74 @@
+/**
+ * NAVIGATION — every tab has to be reachable, and every button has to mean one.
+ *
+ * The nav was a flat list of sixteen tabs: the last one scrolled off the edge of
+ * a 1280px screen and phone users saw seven. It is now five in the bar plus a
+ * grouped "More" panel, which is easier to use and introduces two ways to
+ * silently break it. Both are guarded here rather than left to a person noticing.
+ *
+ *   1. A tab added to TABS but forgotten in PRIMARY and GROUPS is ORPHANED —
+ *      it exists, it has a section, and nothing on screen can reach it.
+ *   2. A nav button without a `data-tab` gets wired to `showTab(undefined)`,
+ *      which matches no section, hides all of them and leaves a blank page.
+ *      That is not hypothetical: the More button did exactly that, and the bug
+ *      only surfaced because a screenshot came back empty.
+ */
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ROOT } from '../helpers.ts'
+
+const html = readFileSync(join(ROOT, 'web', 'index.html'), 'utf8')
+
+/** The tab ids the app declares, in order. */
+function tabIds(): string[] {
+  const line = html.match(/^const TABS = \[.*$/m)?.[0] ?? ''
+  return [...line.matchAll(/\['([a-z]+)',/g)].map((m) => m[1])
+}
+function primaryIds(): string[] {
+  const line = html.match(/^const PRIMARY = \[(.*?)\]$/m)?.[1] ?? ''
+  return [...line.matchAll(/'([a-z]+)'/g)].map((m) => m[1])
+}
+function groupedIds(): string[] {
+  const block = html.slice(html.indexOf('const GROUPS = ['), html.indexOf('const TAB = '))
+  return [...block.matchAll(/'([a-z]+)'/g)].map((m) => m[1])
+}
+
+test('every tab is reachable — none orphaned between the bar and the More panel', () => {
+  const tabs = tabIds()
+  assert.ok(tabs.length >= 10, `only parsed ${tabs.length} tabs — the parser is wrong, not the app`)
+  const reachable = new Set([...primaryIds(), ...groupedIds()])
+  const orphans = tabs.filter((id) => !reachable.has(id))
+  assert.deepEqual(orphans, [], `these tabs exist but nothing can reach them: ${orphans.join(', ')}`)
+})
+
+test('every tab has a section, and every section has a tab', () => {
+  const tabs = tabIds()
+  const sections = [...html.matchAll(/<section id="tab-([a-z]+)"/g)].map((m) => m[1])
+  assert.deepEqual([...tabs].sort(), [...sections].sort(), 'the tab list and the page sections disagree')
+})
+
+test('nothing is listed in both the bar and the More panel', () => {
+  const both = primaryIds().filter((id) => groupedIds().includes(id))
+  assert.deepEqual(both, [], `these appear twice in the navigation: ${both.join(', ')}`)
+})
+
+test('the bar stays short enough to fit — that was the whole problem', () => {
+  assert.ok(primaryIds().length <= 6, `${primaryIds().length} primary tabs will start scrolling off again`)
+})
+
+test('only buttons that name a tab are wired to navigate', () => {
+  // showTab(undefined) hides every section. The selector must require data-tab.
+  const wiring = html.match(/document\.querySelectorAll\((.*?)\)\.forEach\(b => b\.onclick = \(\) => showTab\(b\.dataset\.tab\)\)/)
+  assert.ok(wiring, 'the nav wiring line has moved — this guard needs updating, not deleting')
+  for (const part of wiring[1].split(',')) {
+    assert.match(part, /\[data-tab\]/, `"${part.trim()}" would wire buttons with no data-tab to showTab(undefined)`)
+  }
+})
+
+test('the More button carries no data-tab, so it opens the panel instead of navigating', () => {
+  const more = html.match(/<button id="btn-more"[^>]*>/)?.[0] ?? ''
+  assert.ok(more, 'the More button is gone')
+  assert.equal(/data-tab/.test(more), false, 'the More button must not look like a tab')
+})

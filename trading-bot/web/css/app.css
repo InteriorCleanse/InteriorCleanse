@@ -271,3 +271,35 @@
     .dk-state.pulse::before { animation:none; }
     .dk-card, .dk-card:hover { transition:none; transform:none; }
   }
+
+  /* ---------- grouped navigation ----------
+     Sixteen tabs in one bar meant the last was scrolled off a 1280px screen.
+     Five live in the bar; the rest are grouped behind More, named for what a
+     person wants rather than for the subsystem that built them. */
+  nav button.more { color:var(--text); }
+  nav button.more.active, nav button.more.open { border-bottom-color:var(--blue); }
+  #morepanel {
+    position:sticky; top:calc(53px + 38px); z-index:19; margin:0; padding:16px 18px 18px;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:18px;
+    box-shadow:0 18px 32px -22px rgba(0,0,0,.9);
+  }
+  #morepanel.hidden { display:none; }
+  .mp-group h4 { font-size:12px; margin:0 0 9px; font-weight:700; display:flex; flex-direction:column; gap:2px; }
+  .mp-group h4 span { font-size:11px; font-weight:400; color:var(--dim); }
+  .mp-items { display:flex; flex-direction:column; gap:2px; }
+  .mp-items button {
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    background:transparent; border:1px solid transparent; border-radius:9px; padding:8px 10px;
+    color:var(--text); font:600 13px inherit; font-family:inherit; cursor:pointer;
+  }
+  .mp-items button:hover { background:var(--panel2); border-color:var(--line); }
+  .mp-items button.active { background:color-mix(in srgb, var(--blue) 14%, transparent); border-color:color-mix(in srgb, var(--blue) 40%, transparent); }
+  .mp-items button span { font-size:15px; width:19px; text-align:center; }
+
+  @media (max-width:720px) {
+    #morepanel { position:fixed; inset:auto 0 calc(var(--nav-h) + env(safe-area-inset-bottom)) 0; top:auto;
+      grid-template-columns:1fr 1fr; gap:14px; max-height:62vh; overflow-y:auto; z-index:26;
+      border-top:1px solid var(--line); border-radius:16px 16px 0 0; }
+    .bottomnav button.more.open { color:var(--blue); }
+  }

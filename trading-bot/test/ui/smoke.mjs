@@ -9,7 +9,21 @@ import { chromium } from 'playwright-core'
 
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:4173'
 const EXEC = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const TABS = ['today', 'chart', 'intel', 'flow', 'news', 'journal', 'tv', 'test', 'replay', 'playbook', 'factory', 'vault', 'validation', 'memory', 'ask']
+/**
+ * The tabs are READ FROM THE PAGE, never listed here.
+ *
+ * This used to be a hardcoded array, and it had already drifted: the `desk` tab
+ * shipped without ever being smoke-tested, because nobody remembered to add it
+ * in two places. A smoke test whose coverage silently shrinks when the app grows
+ * is worse than no smoke test, so the list now comes from the DOM and cannot
+ * fall behind.
+ */
+async function tabsOf(page) {
+  const ids = await page.evaluate(() =>
+    [...document.querySelectorAll('main > section[id^="tab-"]')].map((s) => s.id.replace(/^tab-/, '')))
+  if (ids.length < 10) throw new Error(`only found ${ids.length} tabs in the page — the selector is wrong, not the app`)
+  return ids
+}
 
 function ignorable(text) {
   // The TradingView widget and blocked external hosts are expected to fail in QA.
@@ -30,7 +44,9 @@ async function run(width, height) {
   // instead), so wait for the app's showTab to be defined rather than for the nav.
   await page.waitForFunction(() => typeof window.showTab === 'function', { timeout: 60000 })
 
-  for (const tab of TABS) {
+  const tabs = await tabsOf(page)
+  console.log(`  ${width}px — checking ${tabs.length} tabs: ${tabs.join(', ')}`)
+  for (const tab of tabs) {
     await page.evaluate((t) => window.showTab(t), tab)
     await page.waitForSelector(`#tab-${tab}:not(.hidden)`, { timeout: 30000 })
     await page.waitForTimeout(150)
