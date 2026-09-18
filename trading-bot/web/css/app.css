@@ -145,38 +145,129 @@
   .evi { font-size:12px; color:var(--dim); }
   .evi .ok { color:var(--green); } .evi .no { color:var(--red); }
 
-  /* ---------- THE DESK — six agents on one surface ---------- */
-  /* A panel that cannot see must LOOK like it cannot see: .desk-blind dims the
-     whole card and its waiting-on line is the loudest thing on it. A dashboard
-     that reads the same whether or not its feeds are alive is the failure this
-     styling exists to prevent. */
-  .desk-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
-  .desk-bar > div { background:var(--panel); padding:13px 15px; }
-  .desk-bar-label { font:10.5px ui-monospace,monospace; letter-spacing:.14em; color:var(--dim); margin-bottom:5px; }
-  .desk-bar-value { font:700 21px/1.15 ui-monospace,monospace; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-  .desk-bar-unit { font-size:12px; color:var(--dim); font-weight:400; }
-  .desk-bar-detail { font-size:11.5px; color:var(--dim); margin-top:6px; line-height:1.45; }
+  /* ============================================================
+     THE DESK — the crew, on one screen
+     ------------------------------------------------------------
+     Hierarchy is the whole design: one warm sentence, then one
+     number, then the track record, then the detail. Colour carries
+     meaning — each crew member owns a hue, so you learn the desk by
+     colour and shape instead of by reading labels every time.
 
-  .desk-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:10px; }
-  .desk-card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px; display:flex; flex-direction:column; }
-  .desk-card.desk-blind { opacity:.62; border-style:dashed; }
-  .desk-card-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .desk-name { font:700 12.5px ui-monospace,monospace; letter-spacing:.1em; display:inline-flex; align-items:center; gap:7px; }
-  .desk-dot { width:7px; height:7px; border-radius:999px; display:inline-block; flex:0 0 auto; }
-  .desk-status { font:700 10px ui-monospace,monospace; letter-spacing:.12em; }
-  .desk-role { font-size:11px; color:var(--dim); margin-top:3px; }
-  .desk-headline { font:700 25px/1.1 ui-monospace,monospace; letter-spacing:-.02em; margin:11px 0 3px; font-variant-numeric:tabular-nums; word-break:break-word; }
-  .desk-meta { display:flex; gap:9px; font:10.5px ui-monospace,monospace; letter-spacing:.08em; }
-  .desk-age { color:var(--dim); }
-  .desk-rows { margin:11px 0 0; border-top:1px solid var(--line); }
-  .desk-row { display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px solid var(--line); font-size:12px; }
-  .desk-row-label { color:var(--dim); }
-  .desk-row-value { font-family:ui-monospace,monospace; font-variant-numeric:tabular-nums; }
-  .desk-detail { font-size:12px; color:var(--dim); line-height:1.5; margin-top:10px; flex:1; }
-  .desk-waiting { margin-top:9px; font:10.5px/1.45 ui-monospace,monospace; letter-spacing:.06em; color:var(--amber); border-left:2px solid var(--amber); padding-left:8px; }
-  .desk-foot { margin-top:12px; font-size:11.5px; color:var(--dim); text-align:center; }
+     The rule that outranks the aesthetics: a panel that cannot see
+     must LOOK like it cannot see. `.dk-card.blind` desaturates the
+     whole card, drops its glow and dashes its border, so a dead feed
+     is obvious from across the room instead of hiding behind a
+     confident-looking zero.
+     ============================================================ */
 
-  @media (max-width:520px) {
-    .desk-grid { grid-template-columns:1fr; }
-    .desk-headline { font-size:22px; }
+  .dk { --dk-r:18px; }
+
+  /* ---------- hero: what's going on, in his words ---------- */
+  .dk-hero {
+    display:flex; gap:26px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    padding:26px 28px; margin-bottom:14px; border-radius:var(--dk-r);
+    border:1px solid var(--line);
+    background:
+      radial-gradient(120% 140% at 0% 0%, rgba(88,166,255,.10), transparent 58%),
+      radial-gradient(120% 140% at 100% 100%, rgba(188,140,255,.10), transparent 58%),
+      linear-gradient(180deg, var(--panel2), var(--panel));
+  }
+  .dk-hero-say { flex:1 1 380px; min-width:0; }
+  .dk-chips { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
+  .dk-chip {
+    font-size:11px; font-weight:700; letter-spacing:.03em; padding:4px 10px; border-radius:999px;
+    border:1px solid var(--line); color:var(--dim); background:rgba(255,255,255,.02); white-space:nowrap;
+  }
+  .dk-chip.paper { color:var(--green); border-color:color-mix(in srgb, var(--green) 45%, transparent); background:color-mix(in srgb, var(--green) 10%, transparent); }
+  .dk-headline { font-size:24px; line-height:1.34; font-weight:600; letter-spacing:-.015em; margin:0 0 9px; text-wrap:balance; }
+  .dk-sub { font-size:13.5px; line-height:1.55; color:var(--dim); margin:0; max-width:62ch; }
+
+  /* ---------- the trust ring ---------- */
+  .dk-ring { position:relative; width:128px; height:128px; flex:0 0 auto; }
+  .dk-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .dk-ring-track { fill:none; stroke:var(--line); stroke-width:9; }
+  .dk-ring-fill { fill:none; stroke-width:9; stroke-linecap:round; animation:dk-draw .9s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes dk-draw { from { stroke-dashoffset:327; } }
+  .dk-ring-mid { position:absolute; inset:0; display:grid; place-content:center; text-align:center; }
+  .dk-ring-num { font:700 34px/1 ui-monospace,monospace; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+  .dk-ring-cap { font-size:10.5px; color:var(--dim); letter-spacing:.09em; text-transform:uppercase; margin-top:4px; }
+
+  /* ---------- evidence strip ---------- */
+  .dk-evidence { border:1px solid var(--line); border-radius:var(--dk-r); padding:16px 20px; margin-bottom:20px; background:var(--panel); }
+  .dk-evidence.met { border-color:color-mix(in srgb, var(--green) 40%, transparent); }
+  .dk-evidence-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .dk-evidence-title { font-size:13px; font-weight:700; }
+  .dk-evidence-count { font:600 12px ui-monospace,monospace; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .dk-pips { display:flex; gap:5px; margin:11px 0 10px; }
+  .dk-pip { flex:1; height:7px; border-radius:999px; background:var(--line); transition:background .3s; }
+  .dk-pip.on { background:linear-gradient(90deg, var(--green), color-mix(in srgb, var(--green) 55%, var(--blue))); }
+  .dk-evidence-line { font-size:13px; line-height:1.55; color:var(--dim); margin:0; max-width:78ch; }
+
+  /* ---------- the crew ---------- */
+  .dk-crew-title { font-size:14px; font-weight:700; margin:0 0 11px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .dk-crew-title span { font-size:12px; font-weight:400; color:var(--dim); }
+  .dk-crew { display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:13px; }
+
+  .dk-card {
+    position:relative; overflow:hidden; border-radius:var(--dk-r); padding:0 20px 18px;
+    display:flex; flex-direction:column;
+    border:1px solid color-mix(in srgb, hsl(var(--hue) 70% 55%) 24%, var(--line));
+    background:
+      radial-gradient(130% 90% at 50% -12%, hsl(var(--hue) 70% 55% / .13), transparent 62%),
+      var(--panel);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .dk-card:hover { transform:translateY(-2px); box-shadow:0 10px 30px -12px hsl(var(--hue) 70% 40% / .55); border-color:color-mix(in srgb, hsl(var(--hue) 70% 55%) 45%, var(--line)); }
+  .dk-card-top { height:3px; margin:0 -20px 16px; background:linear-gradient(90deg, hsl(var(--hue) 80% 58%), hsl(var(--hue) 80% 58% / 0)); }
+
+  .dk-card-head { display:flex; align-items:flex-start; gap:11px; }
+  .dk-icon { flex:0 0 auto; width:34px; height:34px; border-radius:11px; display:grid; place-items:center;
+    color:hsl(var(--hue) 80% 66%); background:hsl(var(--hue) 70% 55% / .14); border:1px solid hsl(var(--hue) 70% 55% / .25); }
+  .dk-icon svg { width:19px; height:19px; }
+  .dk-card-titles { flex:1; min-width:0; }
+  .dk-card-titles h3 { font-size:14.5px; font-weight:700; margin:1px 0 2px; letter-spacing:-.01em; }
+  .dk-card-titles p { font-size:11.5px; color:var(--dim); margin:0; line-height:1.4; }
+  .dk-state { flex:0 0 auto; font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px;
+    color:hsl(var(--hue) 80% 70%); background:hsl(var(--hue) 70% 55% / .14); white-space:nowrap; }
+  .dk-state.pulse::before { content:''; display:inline-block; width:5px; height:5px; border-radius:999px; background:currentColor; margin-right:6px; vertical-align:middle; animation:dk-pulse 2s ease-in-out infinite; }
+  @keyframes dk-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.75); } }
+
+  .dk-value { font:700 30px/1.12 ui-monospace,monospace; letter-spacing:-.025em; margin:15px 0 7px;
+    font-variant-numeric:tabular-nums; word-break:break-word; color:hsl(var(--hue) 85% 72%); }
+  .dk-value.none { font:600 17px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; letter-spacing:0; color:var(--dim); opacity:.8; }
+  .dk-say { font-size:13px; line-height:1.55; color:var(--text); opacity:.86; margin:0; }
+  .dk-wait { font-size:12px; line-height:1.5; margin:10px 0 0; padding-left:10px; color:var(--amber);
+    border-left:2px solid color-mix(in srgb, var(--amber) 60%, transparent); }
+
+  .dk-more { margin-top:auto; padding-top:11px; border-top:1px solid var(--line); }
+  .dk-say + .dk-more, .dk-wait + .dk-more { margin-top:14px; }
+  .dk-more summary { font-size:12px; color:var(--dim); cursor:pointer; list-style:none; user-select:none; }
+  .dk-more summary::-webkit-details-marker { display:none; }
+  .dk-more summary::before { content:'▸ '; display:inline-block; transition:transform .15s; }
+  .dk-more[open] summary::before { content:'▾ '; }
+  .dk-more summary:hover { color:var(--text); }
+  .dk-rows { margin:10px 0 0; }
+  .dk-row { display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-bottom:1px solid var(--line); font-size:12.5px; color:var(--dim); }
+  .dk-row b { color:var(--text); font-family:ui-monospace,monospace; font-weight:600; font-variant-numeric:tabular-nums; }
+  .dk-detail { font-size:12.5px; line-height:1.55; color:var(--dim); margin:11px 0 0; }
+  .dk-prov { font-size:11px; color:var(--dim); opacity:.75; margin:8px 0 0; }
+
+  /* A crew member who cannot see looks like one. */
+  .dk-card.blind { filter:saturate(.16); border-style:dashed; background:var(--panel); }
+  .dk-card.blind:hover { transform:none; box-shadow:none; }
+  .dk-card.blind .dk-value { color:var(--dim); }
+
+  .dk-foot { font-size:11.5px; color:var(--dim); text-align:center; margin:20px 0 0; }
+
+  @media (max-width:560px) {
+    .dk-hero { padding:20px; gap:18px; }
+    .dk-headline { font-size:20px; }
+    .dk-ring { width:104px; height:104px; margin:0 auto; }
+    .dk-ring-num { font-size:28px; }
+    .dk-crew { grid-template-columns:1fr; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .dk-ring-fill { animation:none; }
+    .dk-state.pulse::before { animation:none; }
+    .dk-card, .dk-card:hover { transition:none; transform:none; }
   }

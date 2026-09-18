@@ -131,7 +131,7 @@
   </section>
 
   <section id="tab-desk" class="hidden">
-    <div class="row"><button class="btn ghost" id="btn-desk">Reload desk</button><a class="btn ghost" href="/api/desk?format=text" target="_blank" rel="noopener">Desk (text)</a><span class="muted" id="desk-status"></span></div>
+    <div class="row"><button class="btn ghost" id="btn-desk">Reload desk</button><button class="btn ghost" id="btn-desk-read">Read it to me</button><a class="btn ghost" href="/api/desk?format=text" target="_blank" rel="noopener">Desk (text)</a><span class="muted" id="desk-status"></span></div>
     <div id="desk-out"><div class="plain">Six agents on one surface. <b>BOOK</b> reads the order book and the tape, <b>TAPE</b> organises structure, <b>SIGNAL</b> runs the strategy panel and fuses the votes, <b>RISK</b> holds the veto, <b>REGIME</b> classifies the market and re-weights the panel — and <b>PROOF</b> watches the other five and reports how much they have earned. Every panel carries where its number came from, how old it is, and what it is waiting on when it cannot speak. A blind agent looks blind rather than showing a zero. Read-only: the desk reports state and can never place, size or shape an order.</div></div>
   </section>
 
@@ -1090,15 +1090,31 @@ async function ask(withJournal=false) {
 // ---------- Jarvis: voice out, voice in ----------
 let voiceOn = (()=>{ try { return localStorage.getItem('mrcash-voice') === '1' } catch { return false } })()
 function voiceUI() { $('btn-voice').textContent = voiceOn ? 'Voice on' : 'Voice'; $('btn-voice').style.borderColor = voiceOn ? 'var(--green)' : '' }
-function pickVoice() { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_](US|GB)/i.test(v.lang) && /Daniel|Google UK English Male|Alex|Samantha|Aaron|Microsoft (Guy|Ryan|George)/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || vs[0] }
+// His voice: unhurried and warm rather than clipped and formal. These three
+// values mirror SPEECH in src/voice/persona.ts, and test/voice/persona.test.ts
+// fails if the two ever drift apart — one voice, defined once.
+const SPEECH_RATE = 0.86, SPEECH_PITCH = 1.06
+const SPEECH_NAMES = /Karen|\bLee\b|Daniel|Alex|Google UK English Male|Samantha|Aaron/i
+function pickVoice() {
+  const vs = speechSynthesis.getVoices()
+  // Relaxed accents first, then any English voice, then whatever exists. Which
+  // voices are installed is entirely up to the listener's OS, so every step
+  // degrades instead of failing.
+  for (const lang of ['en-AU', 'en-GB', 'en-US']) {
+    const named = vs.find(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(lang.toLowerCase()) && SPEECH_NAMES.test(v.name))
+    if (named) return named
+  }
+  return vs.find(v => /^en[-_]AU/i.test(v.lang)) || vs.find(v => SPEECH_NAMES.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || vs[0]
+}
 function speak(text) {
   if (!('speechSynthesis' in window) || !text) return
   speechSynthesis.cancel()
   const clean = String(text).replace(/[*_#`>]/g, '').replace(/\$([\d,]+)/g, '$1 dollars').replace(/\bR\b/g, 'R').replace(/\s+/g, ' ').trim().slice(0, 1500)
-  const u = new SpeechSynthesisUtterance(clean); const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02; u.pitch = 0.95
+  const u = new SpeechSynthesisUtterance(clean); const v = pickVoice(); if (v) u.voice = v; u.rate = SPEECH_RATE; u.pitch = SPEECH_PITCH
   speechSynthesis.speak(u)
 }
-$('btn-voice').onclick = () => { voiceOn = !voiceOn; try { localStorage.setItem('mrcash-voice', voiceOn ? '1' : '0') } catch {}; voiceUI(); if (voiceOn) speak("Voice on. I'll read alerts and answers out loud. Press the microphone to talk to me.") ; else speechSynthesis.cancel() }
+window.speakAs = speak
+$('btn-voice').onclick = () => { voiceOn = !voiceOn; try { localStorage.setItem('mrcash-voice', voiceOn ? '1' : '0') } catch {}; voiceUI(); if (voiceOn) speak("Voice on. I'll read the alerts and the answers out loud. No rush — press the microphone whenever you want to talk.") ; else speechSynthesis.cancel() }
 voiceUI()
 $('btn-read').onclick = () => {
   if (!data || !data.analysis) return

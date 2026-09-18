@@ -29,6 +29,7 @@
 
 import { LIVE_TRADING_ENABLED } from '../../config.ts'
 import { tradingDayKey } from '../sessions.ts'
+import { floorLine, trustLine, evidenceLine, agentLine, AGENT_NAMES } from '../voice/persona.ts'
 import type { FeatureSnapshot, Feature } from '../features/types.ts'
 import type { FusedDecision } from '../fusion.ts'
 import type { StrategyVote } from '../strategies/types.ts'
@@ -50,6 +51,12 @@ export type DeskRow = { label: string; value: string; provenance?: Provenance }
 export type DeskAgent = {
   id: 'book' | 'tape' | 'signal' | 'risk' | 'regime' | 'proof'
   name: string
+  /** The plain-English name a person reads first ("Order flow", not "BOOK"). */
+  title: string
+  /** One line a beginner can understand, explaining what this panel is for. */
+  plain: string
+  /** How he'd describe this panel's state out loud. Never adds confidence. */
+  line: string
   /** One line: what this agent owns. Fixed, not generated. */
   role: string
   status: AgentStatus
@@ -63,6 +70,9 @@ export type DeskAgent = {
   waitingOn: string | null
   rows: DeskRow[]
 }
+
+/** What an agent builder produces. `buildDesk` adds the friendly name and his line. */
+export type AgentCore = Omit<DeskAgent, 'title' | 'plain' | 'line'>
 
 export type DeskReport = {
   generatedAt: number
@@ -85,6 +95,8 @@ export type DeskReport = {
     evidence: string
     evidenceDetail: string
   }
+  /** The same state, said the way he'd say it. Phrasing only — never new facts. */
+  voice: { floor: string; trust: string; evidence: string }
 }
 
 export type DeskInput = {
@@ -127,7 +139,7 @@ function signed(v: number | null | undefined, digits = 2, suffix = ''): string {
 // ---------------------------------------------------------------
 
 /** BOOK — the order book and the tape. The agent most often blind, and it says so. */
-export function bookAgent(input: DeskInput): DeskAgent {
+export function bookAgent(input: DeskInput): AgentCore {
   const f = input.features
   const flow = f?.flow
   const stream = flow?.stream
@@ -167,7 +179,7 @@ export function bookAgent(input: DeskInput): DeskAgent {
 }
 
 /** TAPE — market structure. What the chart is actually made of. */
-export function tapeAgent(input: DeskInput): DeskAgent {
+export function tapeAgent(input: DeskInput): AgentCore {
   const s = input.structure
   const f = input.features
   const asOf = f?.asOf ?? null
@@ -195,7 +207,7 @@ export function tapeAgent(input: DeskInput): DeskAgent {
 }
 
 /** SIGNAL — the strategy panel and what the fusion made of it. */
-export function signalAgent(input: DeskInput): DeskAgent {
+export function signalAgent(input: DeskInput): AgentCore {
   const d = input.decision
   const votes = input.votes
   const backing = votes.filter((v) => v.action !== 'HOLD')
@@ -228,7 +240,7 @@ export function signalAgent(input: DeskInput): DeskAgent {
 }
 
 /** RISK — the veto chain. Shows what WOULD stop the next order, before it exists. */
-export function riskAgent(input: DeskInput): DeskAgent {
+export function riskAgent(input: DeskInput): AgentCore {
   const v = input.risk
   const asOf = input.features?.asOf ?? null
   if (!v) {
@@ -254,7 +266,7 @@ export function riskAgent(input: DeskInput): DeskAgent {
 }
 
 /** REGIME — what kind of market this is, and therefore whose vote counts more. */
-export function regimeAgent(input: DeskInput): DeskAgent {
+export function regimeAgent(input: DeskInput): AgentCore {
   const r = input.features?.regime
   const prov = provenanceOf(r as Feature<unknown> | undefined)
   const asOf = r?.asOf ?? input.features?.asOf ?? null
@@ -292,7 +304,7 @@ export function regimeAgent(input: DeskInput): DeskAgent {
  * gates are met, what is decaying. It is the panel that says "not yet" while
  * everything else on the screen looks alive.
  */
-export function proofAgent(input: DeskInput): DeskAgent {
+export function proofAgent(input: DeskInput): AgentCore {
   const v = input.validation
   const asOf = input.now
   if (!v) {
@@ -339,7 +351,7 @@ export function proofAgent(input: DeskInput): DeskAgent {
  * and letting "no track record yet" drag down a number that means "can the feeds
  * see" would blur two different kinds of ignorance.
  */
-export function trustScore(agents: DeskAgent[]): number {
+export function trustScore(agents: Pick<DeskAgent, 'id' | 'status'>[]): number {
   const watchers = agents.filter((a) => a.id !== 'proof')
   if (!watchers.length) return 0
   const points = watchers.reduce((s, a) => s + (a.status === 'LIVE' || a.status === 'WAITING' ? 1 : a.status === 'PARTIAL' ? 0.5 : 0), 0)
@@ -347,8 +359,14 @@ export function trustScore(agents: DeskAgent[]): number {
 }
 
 /** The whole desk. Pure over its input; the server assembles the input. */
+/** Give an agent its plain-English name and the line he'd say about it. */
+function dress(a: AgentCore): DeskAgent {
+  const n = AGENT_NAMES[a.id] ?? { title: a.name, plain: a.role }
+  return { ...a, title: n.title, plain: n.plain, line: agentLine(a) }
+}
+
 export function buildDesk(input: DeskInput): DeskReport {
-  const agents = [bookAgent(input), tapeAgent(input), signalAgent(input), riskAgent(input), regimeAgent(input), proofAgent(input)]
+  const agents = [bookAgent(input), tapeAgent(input), signalAgent(input), riskAgent(input), regimeAgent(input), proofAgent(input)].map(dress)
   const decision = input.decision
   const risk = input.risk
 
@@ -375,6 +393,14 @@ export function buildDesk(input: DeskInput): DeskReport {
   }
 
   const v = input.validation
+  const trust = trustScore(agents)
+  const blind = agents.filter((a) => a.status === 'BLIND').map((a) => a.title)
+  const facts = {
+    verdict, verdictDetail, trust, blind,
+    evidence: v?.verdict ?? 'NO EVIDENCE',
+    gatesMet: v?.metCount ?? 0, gatesTotal: v?.total ?? 0, paperTrades: v?.trades ?? 0,
+    symbol: input.symbol,
+  }
   return {
     generatedAt: input.now,
     tradingDay: tradingDayKey(input.now),
@@ -384,13 +410,16 @@ export function buildDesk(input: DeskInput): DeskReport {
     liveTradingEnabled: LIVE_TRADING_ENABLED as boolean,
     agents,
     floor: {
-      verdict, verdictDetail,
-      trust: trustScore(agents),
-      blind: agents.filter((a) => a.status === 'BLIND').map((a) => a.name),
+      verdict, verdictDetail, trust, blind,
       evidence: v?.verdict ?? 'NO EVIDENCE',
       evidenceDetail: v
         ? `${v.metCount}/${v.total} validation gates on ${v.trades} paper trades.`
         : 'No validation report could be read.',
+    },
+    voice: {
+      floor: floorLine(facts),
+      trust: trustLine(facts.trust, facts.blind),
+      evidence: evidenceLine(facts),
     },
   }
 }
@@ -401,14 +430,19 @@ export function renderDesk(d: DeskReport): string {
   L.push(`THE DESK — ${d.symbol} ${d.interval} — trading day ${d.tradingDay} (rolls 18:00 ET)`)
   L.push(`${d.mode} · live trading ${d.liveTradingEnabled ? 'ENABLED(!)' : 'disabled'}`)
   L.push('')
+  L.push(d.voice.floor)
+  L.push(d.voice.trust)
+  L.push(d.voice.evidence)
+  L.push('')
   L.push(`FLOOR: ${d.floor.verdict} — ${d.floor.verdictDetail}`)
   L.push(`TRUST: ${d.floor.trust}/100 of the desk can see${d.floor.blind.length ? ` · blind: ${d.floor.blind.join(', ')}` : ''}`)
   L.push(`EVIDENCE: ${d.floor.evidence} — ${d.floor.evidenceDetail}`)
   L.push('')
   for (const a of d.agents) {
     const age = a.ageSec === null ? '' : ` · ${a.ageSec}s old`
-    L.push(`[${a.status.padEnd(7)}] ${a.name.padEnd(6)} ${a.headline.padEnd(16)} ${a.provenance}${age}`)
-    L.push(`          ${a.role}`)
+    L.push(`[${a.status.padEnd(7)}] ${a.title.padEnd(13)} ${a.headline.padEnd(16)} ${a.provenance}${age}`)
+    L.push(`          ${a.plain}`)
+    L.push(`          ${a.line}`)
     L.push(`          ${a.detail}`)
     if (a.waitingOn) L.push(`          WAITING ON: ${a.waitingOn}`)
     L.push('')

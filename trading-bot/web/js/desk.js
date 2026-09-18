@@ -1,84 +1,129 @@
 /**
- * THE DESK — six agents on one dark surface.
+ * THE DESK — the crew, on one screen.
  *
- * Every panel here is a projection of state the engine already produced. This
- * file reads `/api/desk` and draws it. It has no trading logic, no thresholds
- * of its own, and no way to place, size or influence an order — if a number is
- * not in the payload, it is not on the screen.
+ * Design brief, in order of priority:
+ *   1. A person who has never traded should understand the top of this screen
+ *      in about three seconds. One warm sentence, then one number, then the
+ *      track record. Everything else is detail and stays folded away.
+ *   2. A panel that cannot see must LOOK like it cannot see — desaturated,
+ *      dashed, with what it is waiting on written on it. Never a zero standing
+ *      in for "we don't know".
+ *   3. Colour carries meaning, not decoration. Each crew member owns one hue so
+ *      you learn the desk by shape and colour instead of by reading labels.
  *
- * The design rule that matters: a panel that cannot see must LOOK like it
- * cannot see. Dead feeds are dimmed and struck through with what they are
- * waiting on, not quietly shown as zero. A dashboard that looks equally
- * confident whether or not its feeds are alive is worse than no dashboard.
+ * This file draws `/api/desk` and nothing else. No trading logic, no thresholds
+ * of its own, no way to place or shape an order. Every word and number comes
+ * from the payload — including his voice lines, which are composed server-side
+ * so there is exactly one place they can be got wrong.
  */
 
-const STATUS = {
-  LIVE:    { dot: 'var(--green)', label: 'LIVE' },
-  PARTIAL: { dot: 'var(--amber)', label: 'PARTIAL' },
-  WAITING: { dot: 'var(--blue)',  label: 'WAITING' },
-  BLIND:   { dot: 'var(--red)',   label: 'BLIND' },
+const CREW = {
+  book:   { hue: 187, glyph: 'M3 12h3l2-5 3 10 3-8 2 3h5' },                       // a tape reading
+  tape:   { hue: 262, glyph: 'M4 18V7m0 0 5 5 4-4 7 7M4 7h0' },                    // structure
+  signal: { hue: 38,  glyph: 'M13 2 4 14h6l-1 8 9-12h-6z' },                       // the spark
+  risk:   { hue: 152, glyph: 'M12 3 4 6v6c0 4 3.5 7.5 8 9 4.5-1.5 8-5 8-9V6z' },   // a shield
+  regime: { hue: 206, glyph: 'M3 15a4 4 0 0 1 4-4 5 5 0 0 1 9.5-1.5A3.5 3.5 0 0 1 20 15z' }, // weather
+  proof:  { hue: 345, glyph: 'M5 21V9m7 12V3m7 18v-8' },                           // a scoreboard
 }
-const PROV = { REAL: 'var(--green)', APPROXIMATE: 'var(--amber)', UNAVAILABLE: 'var(--dim)' }
+
+const STATUS_LABEL = { LIVE: 'reading', PARTIAL: 'estimating', WAITING: 'standing by', BLIND: "can't see" }
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
-function agentCard(a) {
-  const st = STATUS[a.status] ?? STATUS.BLIND
-  const blind = a.status === 'BLIND'
-  const age = a.ageSec === null || a.ageSec === undefined ? '' : `${a.ageSec}s`
-  const rows = (a.rows || []).map((r) => `
-    <div class="desk-row">
-      <span class="desk-row-label">${esc(r.label)}</span>
-      <span class="desk-row-value"${r.provenance ? ` style="color:${PROV[r.provenance] || 'var(--text)'}"` : ''}>${esc(r.value)}</span>
-    </div>`).join('')
-
+/* ---------- the trust ring: the one number worth a picture ---------- */
+function ring(trust) {
+  const R = 52, C = 2 * Math.PI * R
+  const hue = trust >= 80 ? 152 : trust >= 50 ? 38 : 4
   return `
-  <div class="desk-card${blind ? ' desk-blind' : ''}">
-    <div class="desk-card-head">
-      <span class="desk-name"><span class="desk-dot" style="background:${st.dot}"></span>${esc(a.name)}</span>
-      <span class="desk-status" style="color:${st.dot}">${esc(st.label)}</span>
+  <div class="dk-ring">
+    <svg viewBox="0 0 128 128" aria-label="${trust} out of 100 of the desk can see">
+      <circle class="dk-ring-track" cx="64" cy="64" r="${R}" />
+      <circle class="dk-ring-fill" cx="64" cy="64" r="${R}"
+        stroke="hsl(${hue} 85% 58%)"
+        stroke-dasharray="${C}" stroke-dashoffset="${C - (C * trust) / 100}" />
+    </svg>
+    <div class="dk-ring-mid">
+      <div class="dk-ring-num" style="color:hsl(${hue} 85% 62%)">${trust}</div>
+      <div class="dk-ring-cap">can see</div>
     </div>
-    <div class="desk-role">${esc(a.role)}</div>
-    <div class="desk-headline">${esc(a.headline)}</div>
-    <div class="desk-meta">
-      <span style="color:${PROV[a.provenance] || 'var(--dim)'}">${esc(a.provenance)}</span>
-      ${age ? `<span class="desk-age">${esc(age)} old</span>` : ''}
-    </div>
-    <div class="desk-rows">${rows}</div>
-    <div class="desk-detail">${esc(a.detail)}</div>
-    ${a.waitingOn ? `<div class="desk-waiting">WAITING ON — ${esc(a.waitingOn)}</div>` : ''}
   </div>`
 }
 
-function render(d) {
-  const trustColour = d.floor.trust >= 80 ? 'var(--green)' : d.floor.trust >= 50 ? 'var(--amber)' : 'var(--red)'
-  const proven = d.floor.evidence === 'GATES MET'
+/* ---------- the evidence strip: how much has actually been earned ---------- */
+function evidence(d) {
+  const met = d.floor.evidence === 'GATES MET'
+  const total = 9
+  const done = Math.max(0, Math.min(total, Number((d.floor.evidenceDetail.match(/^(\d+)\//) || [])[1] ?? 0)))
+  const pips = Array.from({ length: total }, (_, i) =>
+    `<span class="dk-pip${i < done ? ' on' : ''}"></span>`).join('')
   return `
-  <div class="desk">
-    <div class="desk-bar">
-      <div>
-        <div class="desk-bar-label">FLOOR</div>
-        <div class="desk-bar-value">${esc(d.floor.verdict)}</div>
-        <div class="desk-bar-detail">${esc(d.floor.verdictDetail)}</div>
-      </div>
-      <div>
-        <div class="desk-bar-label">TRUST</div>
-        <div class="desk-bar-value" style="color:${trustColour}">${d.floor.trust}<span class="desk-bar-unit">/100</span></div>
-        <div class="desk-bar-detail">${d.floor.blind.length ? `blind: ${esc(d.floor.blind.join(', '))}` : 'every agent can see'} — this is how much of the desk is reading something, <b>not</b> a confidence in any trade</div>
-      </div>
-      <div>
-        <div class="desk-bar-label">EVIDENCE</div>
-        <div class="desk-bar-value" style="color:${proven ? 'var(--green)' : 'var(--amber)'}">${esc(d.floor.evidence)}</div>
-        <div class="desk-bar-detail">${esc(d.floor.evidenceDetail)}</div>
-      </div>
-      <div>
-        <div class="desk-bar-label">MODE</div>
-        <div class="desk-bar-value" style="color:var(--blue)">${esc(d.mode)}</div>
-        <div class="desk-bar-detail">${d.liveTradingEnabled ? '<b style="color:var(--red)">LIVE TRADING ENABLED</b>' : 'no real money · live path dormant'} · ${esc(d.symbol)} ${esc(d.interval)} · trading day ${esc(d.tradingDay)}</div>
-      </div>
+  <div class="dk-evidence${met ? ' met' : ''}">
+    <div class="dk-evidence-head">
+      <span class="dk-evidence-title">Track record</span>
+      <span class="dk-evidence-count">${done} of ${total} checks</span>
     </div>
-    <div class="desk-grid">${d.agents.map(agentCard).join('')}</div>
-    <div class="desk-foot">The desk reports state. The engine decides, the risk chain vetoes, and nothing on this screen can place, size or shape an order.</div>
+    <div class="dk-pips">${pips}</div>
+    <p class="dk-evidence-line">${esc(d.voice.evidence)}</p>
+  </div>`
+}
+
+/* ---------- one crew member ---------- */
+function card(a) {
+  const c = CREW[a.id] || { hue: 210, glyph: '' }
+  const blind = a.status === 'BLIND'
+  const live = a.status === 'LIVE'
+  const rows = (a.rows || []).map((r) => `
+    <div class="dk-row"><span>${esc(r.label)}</span><b>${esc(r.value)}</b></div>`).join('')
+
+  return `
+  <article class="dk-card${blind ? ' blind' : ''}" style="--hue:${c.hue}">
+    <div class="dk-card-top"></div>
+    <header class="dk-card-head">
+      <span class="dk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${c.glyph}"/></svg></span>
+      <div class="dk-card-titles">
+        <h3>${esc(a.title)}</h3>
+        <p>${esc(a.plain)}</p>
+      </div>
+      <span class="dk-state${live ? ' pulse' : ''}">${esc(STATUS_LABEL[a.status] || a.status)}</span>
+    </header>
+
+    ${a.headline === '—'
+      ? `<div class="dk-value none">No reading</div>`
+      : `<div class="dk-value">${esc(a.headline)}</div>`}
+    <p class="dk-say">${esc(a.line)}</p>
+    ${a.waitingOn ? `<p class="dk-wait">Waiting on ${esc(a.waitingOn)}</p>` : ''}
+
+    <details class="dk-more">
+      <summary>Details</summary>
+      <div class="dk-rows">${rows}</div>
+      <p class="dk-detail">${esc(a.detail)}</p>
+      <p class="dk-prov">${esc(a.provenance === 'REAL' ? 'Read straight from the source' : a.provenance === 'APPROXIMATE' ? 'Estimated from candles, not the live tape' : 'Nothing readable right now')}${a.ageSec === null || a.ageSec === undefined ? '' : ` · ${a.ageSec}s ago`}</p>
+    </details>
+  </article>`
+}
+
+function render(d) {
+  return `
+  <div class="dk">
+    <section class="dk-hero">
+      <div class="dk-hero-say">
+        <div class="dk-chips">
+          <span class="dk-chip paper">${esc(d.mode)} · no real money</span>
+          <span class="dk-chip">${esc(d.symbol)} · ${esc(d.interval)}</span>
+          <span class="dk-chip">${esc(d.floor.verdict)}</span>
+        </div>
+        <p class="dk-headline">${esc(d.voice.floor)}</p>
+        <p class="dk-sub">${esc(d.voice.trust)}</p>
+      </div>
+      ${ring(d.floor.trust)}
+    </section>
+
+    ${evidence(d)}
+
+    <h2 class="dk-crew-title">The crew <span>six of them, each watching one thing</span></h2>
+    <div class="dk-crew">${d.agents.map(card).join('')}</div>
+
+    <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order.</p>
   </div>`
 }
 
@@ -86,18 +131,24 @@ async function loadDesk() {
   const out = document.getElementById('desk-out')
   const status = document.getElementById('desk-status')
   if (!out) return
-  if (status) status.textContent = 'reading the floor…'
+  if (status) status.textContent = 'having a look…'
   try {
     const r = await fetch('/api/desk')
     const j = await r.json()
-    if (!j.ok) throw new Error(j.error || 'the desk could not be read')
+    if (!j.ok) throw new Error(j.error || 'could not read the desk')
     out.innerHTML = render(j.data)
+    out.dataset.spoken = [j.data.voice.floor, j.data.voice.trust, j.data.voice.evidence].join(' ')
     if (status) status.textContent = `updated ${new Date(j.data.generatedAt).toLocaleTimeString()}`
   } catch (e) {
-    out.innerHTML = `<div class="plain">The desk could not be read: ${esc(e.message)}. Nothing is being shown rather than something invented.</div>`
+    out.innerHTML = `<div class="plain">Couldn't read the desk just now: ${esc(e.message)}. Showing you nothing rather than making something up.</div>`
     if (status) status.textContent = 'failed'
   }
 }
 
 window.loadDesk = loadDesk
+/** What he'd say if you asked him to read the desk aloud. */
+window.deskSpoken = () => document.getElementById('desk-out')?.dataset.spoken || ''
 document.getElementById('btn-desk')?.addEventListener('click', loadDesk)
+document.getElementById('btn-desk-read')?.addEventListener('click', () => {
+  if (window.speakAs) window.speakAs(window.deskSpoken())
+})
