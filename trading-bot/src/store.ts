@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS journal (id TEXT PRIMARY KEY, trade_time INTEGER NOT 
 CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, json TEXT NOT NULL, updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS flow_log (id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, price REAL, bid_usd REAL, ask_usd REAL, imbalance REAL, walls TEXT, trades INTEGER, tpm REAL, buy_share REAL, delta_usd REAL, big_buys INTEGER, big_sells INTEGER);
 CREATE TABLE IF NOT EXISTS candles (symbol TEXT NOT NULL, interval TEXT NOT NULL, open_time INTEGER NOT NULL, close_time INTEGER NOT NULL, open REAL NOT NULL, high REAL NOT NULL, low REAL NOT NULL, close REAL NOT NULL, volume REAL NOT NULL, source TEXT NOT NULL, PRIMARY KEY (symbol, interval, open_time));
+CREATE TABLE IF NOT EXISTS observations (id TEXT PRIMARY KEY, time INTEGER NOT NULL, kind TEXT NOT NULL, significance REAL NOT NULL, status TEXT NOT NULL, json TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS observations_time ON observations(time);
+CREATE INDEX IF NOT EXISTS observations_status ON observations(status);
 CREATE INDEX IF NOT EXISTS ledger_mode ON ledger(mode);
 CREATE INDEX IF NOT EXISTS positions_status ON positions(status);
 CREATE INDEX IF NOT EXISTS journal_time ON journal(trade_time);
@@ -148,6 +151,42 @@ export class Store {
   positions<T>(status: 'pending' | 'open' | 'closed'): T[] {
     const rows = this.db.prepare(`SELECT json FROM positions WHERE status = ? ORDER BY ${status === 'closed' ? 'closed_at' : 'opened_at'}`).all(status) as Array<{ json: string }>
     return rows.map((r) => JSON.parse(r.json) as T)
+  }
+
+  // ---- observations (Phase 24: the market observer's record) --------
+  /**
+   * An observation's id is deterministic from its content, so recording the
+   * same event twice — after a restart, or from two code paths — is one row.
+   * Returns true when the row was new.
+   */
+  upsertObservation(row: { id: string; time: number; kind: string; significance: number; status: string }, payload: unknown): boolean {
+    const existed = this.hasObservation(row.id)
+    this.db.prepare('INSERT INTO observations(id, time, kind, significance, status, json) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET significance = excluded.significance, status = excluded.status, json = excluded.json')
+      .run(row.id, row.time, row.kind, row.significance, row.status, JSON.stringify(payload))
+    return !existed
+  }
+  hasObservation(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM observations WHERE id = ?').get(id) !== undefined
+  }
+  getObservation<T>(id: string): T | null {
+    const r = this.db.prepare('SELECT json FROM observations WHERE id = ?').get(id) as { json: string } | undefined
+    return r ? (JSON.parse(r.json) as T) : null
+  }
+  observations<T>(q: { from?: number; to?: number; kind?: string; status?: string; minSignificance?: number; limit?: number } = {}): T[] {
+    const where: string[] = []
+    const args: Array<number | string> = []
+    if (q.from !== undefined) { where.push('time >= ?'); args.push(q.from) }
+    if (q.to !== undefined) { where.push('time <= ?'); args.push(q.to) }
+    if (q.kind) { where.push('kind = ?'); args.push(q.kind) }
+    if (q.status) { where.push('status = ?'); args.push(q.status) }
+    if (q.minSignificance !== undefined) { where.push('significance >= ?'); args.push(q.minSignificance) }
+    const sql = `SELECT json FROM observations${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY time DESC LIMIT ?`
+    args.push(Math.max(1, Math.min(5000, q.limit ?? 200)))
+    return (this.db.prepare(sql).all(...args) as Array<{ json: string }>).map((r) => JSON.parse(r.json) as T)
+  }
+  observationCount(status?: string): number {
+    const r = (status ? this.db.prepare('SELECT COUNT(*) AS n FROM observations WHERE status = ?').get(status) : this.db.prepare('SELECT COUNT(*) AS n FROM observations').get()) as { n: number }
+    return r.n
   }
 
   // ---- equity -----------------------------------------------------

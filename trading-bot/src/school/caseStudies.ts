@@ -144,9 +144,10 @@ function idFor(kind: CaseKind, at: number, extra = ''): string {
 // Raw event detection — a diff of consecutive engine steps
 // ---------------------------------------------------------------
 
-type RawEvent = { kind: CaseKind; index: number; knownAt: number; direction: string | null; detail: string; refId?: string }
+export type RawEvent = { kind: CaseKind; index: number; knownAt: number; direction: string | null; detail: string; refId?: string }
 
-function detectAt(prev: Step | null, cur: Step): RawEvent[] {
+/** The diff of two consecutive engine steps. Exported for the market observer, which runs it on the live cycle. */
+export function detectAt(prev: Step | null, cur: Step): RawEvent[] {
   const out: RawEvent[] = []
   const a = cur.analysis
   const p = prev?.analysis ?? null

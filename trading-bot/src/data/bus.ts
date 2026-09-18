@@ -9,6 +9,10 @@
 
 import { EventEmitter } from 'node:events'
 import type { Book, BookTicker, FeedCandle, StreamHealth, Trade } from './types.ts'
+import type { Snapshot } from '../bot.ts'
+
+/** Emitted by the watch loop after a cycle has finished and positions are final. Observers only; the loop never reads a reply. */
+export type WatchCycle = { at: number; snap: Snapshot }
 
 export type BusEvents = {
   /** A trade hit the tape. */
@@ -27,6 +31,7 @@ export type BusEvents = {
   'stream:down': (h: StreamHealth, reason: string) => void
   /** Something was missed and back-filled, or could not be. */
   'stream:gap': (what: string, at: number) => void
+  'watch:cycle': (c: WatchCycle) => void
 }
 
 export class MarketBus {

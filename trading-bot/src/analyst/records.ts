@@ -138,6 +138,13 @@ export type EvidenceRecord = {
 
 const NOT_COMPUTED: Excursion = { r: null, status: 'NOT COMPUTED', note: 'Excursions are resolved from the candle store on request.' }
 
+/** The labelled excursion a reconciled position carries: a number is OBSERVED, a null after reconciliation is UNAVAILABLE with its reason, nothing is NOT COMPUTED. */
+function storedExcursion(r: number | null | undefined, reconciledAt: number | undefined, note: string | undefined, observedNote: string): Excursion {
+  if (typeof r === 'number' && Number.isFinite(r)) return { r, status: 'OBSERVED', note: observedNote }
+  if (reconciledAt !== undefined) return { r: null, status: 'UNAVAILABLE', note: note ?? 'Unavailable at reconciliation.' }
+  return NOT_COMPUTED
+}
+
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
 
 /** Session label → name, from the same config the engine labels with. */
@@ -245,8 +252,9 @@ export function fromPaperPosition(p: PaperPosition): EvidenceRecord {
     newsMinutes: isNum(snap?.newsMinutes) ? snap!.newsMinutes! : null,
     spreadPct: isNum(p.observedSpreadPct) ? p.observedSpreadPct : null,
     durationMs: isNum(p.filledAt) && isNum(p.closedAt) && !missed ? Math.max(0, p.closedAt - p.filledAt) : null,
-    mae: NOT_COMPUTED,
-    mfe: NOT_COMPUTED,
+    // Reconciled excursions (paper/reconcile.ts) are carried on the record as numbers in R; otherwise not computed until resolved.
+    mae: storedExcursion(p.mae, p.reconciledAt, p.reconciliationNote, 'Worst move against the entry, in R, from stored candles at reconciliation.'),
+    mfe: storedExcursion(p.mfe, p.reconciledAt, p.reconciliationNote, 'Best move in favour, in R, from stored candles at reconciliation.'),
     engineVersion: snap?.engineVersion ?? null,
     featureVersion: isNum(snap?.featureVersion) ? snap!.featureVersion! : null,
     missing,

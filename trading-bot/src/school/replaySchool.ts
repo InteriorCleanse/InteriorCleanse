@@ -74,7 +74,7 @@ function questionFor(c: CaseStudy, rng: () => number): StopQuestion {
   return { type: 'what-happened', prompt: 'Look at the chart as of the previous close. The next candle closes — what does the engine detect on it?', choices }
 }
 
-export type ReplayLessonOptions = { maxStops?: number; kinds?: CaseKind[]; votesTail?: number; horizon?: number; seed?: number }
+export type ReplayLessonOptions = { maxStops?: number; kinds?: CaseKind[]; votesTail?: number; horizon?: number; seed?: number; /** Only stops at this event close — the replay of one completed live event. */ onlyAt?: number }
 
 export function buildReplayLesson(candles: Candle[], opts: ReplayLessonOptions = {}): ReplayBundle {
   const steps = stepEngine(candles, opts.votesTail ?? 300)
@@ -84,7 +84,7 @@ export function buildReplayLesson(candles: Candle[], opts: ReplayLessonOptions =
   })
   const all = casesFromSteps(steps, candles, { horizon: opts.horizon, kinds: opts.kinds })
   // Only cases with a measured AFTER, spread across the window: oldest first, one per event candle.
-  const usable = all.filter((c) => c.evidenceLevel === 'OBSERVED').sort((a, b) => a.at - b.at)
+  const usable = all.filter((c) => c.evidenceLevel === 'OBSERVED' && (opts.onlyAt === undefined || c.at === opts.onlyAt)).sort((a, b) => a.at - b.at)
   const seen = new Set<number>()
   const picked: CaseStudy[] = []
   for (const c of usable) { if (!seen.has(c.at)) { seen.add(c.at); picked.push(c) } }

@@ -50,7 +50,7 @@ test('NO engine module imports the intelligence layer', () => {
       // layer). The arrow still points one way: the test below pins that
       // nothing in src/analyst/ can reach the engine, and
       // test/learning/observer.test.ts pins the same for the learning layers.
-      if (file.endsWith('server.ts') || ['analyst', 'school', 'research', 'knowledge', 'learning'].some((d) => file.includes(`${'/'}${d}${'/'}`))) continue
+      if (file.endsWith('server.ts') || ['analyst', 'school', 'research', 'knowledge', 'learning', 'observer'].some((d) => file.includes(`${'/'}${d}${'/'}`))) continue
       offenders.push(file.replace(SRC, 'src'))
     }
   }

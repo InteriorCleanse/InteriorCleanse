@@ -131,7 +131,7 @@ function walk(dir: string): string[] {
   return out
 }
 
-const LEARNING_DIRS = ['school', 'research', 'knowledge', 'learning']
+const LEARNING_DIRS = ['school', 'research', 'knowledge', 'learning', 'observer']
 
 test('BOUNDARY — no engine module imports the school, research, knowledge or learning layers, except the watch loop\'s single observer call', () => {
   const offenders: string[] = []

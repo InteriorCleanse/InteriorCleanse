@@ -290,6 +290,9 @@ export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e:
     try {
       state = await watchOnce(state)
       lastError = null
+      // Phase 24: observers (the market observer, research ops) run AFTER the cycle, off the bus.
+      // Nothing here awaits or reads them; a throwing listener cannot reach this loop.
+      try { bus.emit('watch:cycle', { at: state.at, snap: state.snap }) } catch { /* observers are best-effort */ }
     } catch (err) {
       const msg = err instanceof MarketDataError ? 'Could not download prices this cycle — will try again next candle.' : err instanceof Error ? err.message : String(err)
       lastError = { time: Date.now(), message: msg }
