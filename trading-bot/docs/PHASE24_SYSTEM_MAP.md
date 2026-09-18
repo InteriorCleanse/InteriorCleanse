@@ -58,3 +58,14 @@ and the failure mode to guard. Nothing here changes the engine.
 - No file under the learning layers value-imports a deciding module, calls a position / order / passport / parameter writer, or assigns to `config` (test/learning/observer.test.ts). `src/paper/reconcile.ts` is the one new writer and it may write only the store's reconciliation fields.
 - Every new record has a deterministic id from its content so a restart cannot duplicate it.
 - The engine reads none of the new stores (acceptance step 23 extended to the new prefixes).
+
+## Delivered
+
+The modules planned above were built in seven parts (commits "Phase 24, P1"
+through "Phase 24, P7"). The operator's map — how to run Mr. Cash 24/7 in
+paper mode, the two entry points, where each store lives, the maturity
+lifecycle, the research boundaries and failure recovery — is
+`AUTONOMOUS_RESEARCH_OPS.md`. The adversarial tests are
+`test/learning/adversarial.test.ts`, the growth stages
+`test/learning/growth.test.ts`, and the 22-step lifecycle demonstration
+`test/learning/lifecycle.test.ts`.

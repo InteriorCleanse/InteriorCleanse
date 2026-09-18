@@ -135,12 +135,19 @@ export type TickDeps = {
   challenge?: (e: Experiment, oos: import('../analyst/records.ts').EvidenceRecord[], fromObservation: boolean) => unknown
 }
 
-function specFor(q: QueueItem, hypothesisId: string): ExperimentSpec {
-  return { hypothesisId, kind: 'cohort', strategyId: q.dataset.strategyId ?? 'fused', source: q.dataset.source, filters: q.dataset.filters, direction: q.direction, method: `cohort experiment from queue item ${q.id}: ${q.question}`, note: q.note }
+/** The strategy an experiment belongs to: the item's own, else the one strategy the dataset holds, else the fused record. */
+function strategyOf(q: QueueItem, dataset: Dataset): string {
+  if (q.dataset.strategyId) return q.dataset.strategyId
+  const ids = new Set(dataset.records.filter((r) => !r.corrupt && !r.missed).map((r) => r.strategyId))
+  return ids.size === 1 ? [...ids][0] : 'fused'
+}
+
+function specFor(q: QueueItem, hypothesisId: string, strategyId: string): ExperimentSpec {
+  return { hypothesisId, kind: 'cohort', strategyId, source: q.dataset.source, filters: q.dataset.filters, direction: q.direction, method: `cohort experiment from queue item ${q.id}: ${q.question}`, note: q.note }
 }
 
 /** Make sure the queue item has a hypothesis on record, drafting one from the question when it has none. */
-function ensureHypothesis(q: QueueItem, now: number): string {
+function ensureHypothesis(q: QueueItem, now: number, strategyId: string): string {
   if (q.hypothesisId && getHypothesis(q.hypothesisId)) return q.hypothesisId
   const filters = q.dataset.filters.map((f) => `${f.dimension} in {${f.values.join(', ')}}`).join(' and ') || 'the whole record'
   const h = createHypothesis({
@@ -149,7 +156,7 @@ function ensureHypothesis(q: QueueItem, now: number): string {
     hypothesis: q.hypothesis ?? (q.direction === 'difference' ? `The cohort (${filters}) has a mean R different from the rest of the ${q.dataset.source} record.` : `The cohort (${filters}) has a mean R ${q.direction === 'positive' ? 'above' : 'below'} the rest of the ${q.dataset.source} record.`),
     nullHypothesis: `The cohort's mean R is not distinguishable from the rest of the ${q.dataset.source} record at this sample.`,
     direction: q.direction, dataset: { source: q.dataset.source, label: q.dataset.source === 'PAPER' ? 'PAPER — live market, simulated execution' : 'BACKTEST — simulated' },
-    cohortFilters: q.dataset.filters, method: 'cohort mean with 95% t-interval; Welch comparison against the complement; chronological 60/40 in-sample / out-of-sample', strategy: q.dataset.strategyId, now,
+    cohortFilters: q.dataset.filters, method: 'cohort mean with 95% t-interval; Welch comparison against the complement; chronological 60/40 in-sample / out-of-sample', strategy: strategyId === 'fused' ? null : strategyId, now,
   })
   linkHypothesis(q.id, h.id, now)
   return h.id
@@ -168,8 +175,9 @@ async function runOneExperiment(paper: Dataset, backtest: (id: string) => Datase
   let queueItemId: string
   if (stranded) { id = stranded.experimentId; queueItemId = stranded.method.match(/queue item (\S+):/)?.[1] ?? '' }
   else {
-    const hid = ensureHypothesis(q!, now)
-    const reg = registerExperiment(specFor(q!, hid), dataset, now)
+    const sid = strategyOf(q!, dataset)
+    const hid = ensureHypothesis(q!, now, sid)
+    const reg = registerExperiment(specFor(q!, hid, sid), dataset, now)
     id = reg.experiment.experimentId
     queueItemId = q!.id
     if (reg.experiment.status === 'DONE') { setQueueStatus(q!.id, 'TESTED', `Experiment ${id} already on record (${reg.experiment.result}).`, now); return { id, result: reg.experiment.result, queueItemId } }

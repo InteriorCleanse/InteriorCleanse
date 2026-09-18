@@ -5,7 +5,7 @@
  */
 import { getJson, esc } from './api.js'
 
-const VIEWS = [['overview', 'Overview'], ['questions', 'Questions'], ['hypotheses', 'Hypotheses'], ['overfitting', 'Overfitting'], ['atlas', 'Regime atlas'], ['diffusion', 'News diffusion'], ['proposals', 'Proposals']]
+const VIEWS = [['overview', 'Overview'], ['questions', 'Questions'], ['hypotheses', 'Hypotheses'], ['overfitting', 'Overfitting'], ['atlas', 'Regime atlas'], ['diffusion', 'News diffusion'], ['proposals', 'Proposals'], ['sandbox', 'Sandbox'], ['experiments', 'Experiments']]
 let view = 'overview'
 let atlasDim = 'volatility'
 let atlasSource = 'paper'
@@ -89,6 +89,19 @@ async function renderProposals() {
     <div class="muted">${esc(p.history[p.history.length - 1].detail)}</div></div>`).join('') + form
 }
 
+async function renderSandbox() {
+  const { data: school } = await getJson('/api/school')
+  const ids = [...new Set(school.concepts.flatMap((c) => c.strategies))]
+  return `<div class="ev-note">The paper experiment sandbox: what would restricting a strategy to a session, regime, volatility or confluence bucket have done to its paper record? What would a parameter variant have done in the backtest against the defaults? Each request registers an experiment with a frozen dataset, a baseline, an out-of-sample stage, robustness and the challenger. The production strategy and its parameters are untouched; nothing here changes a decision the engine will make.</div>
+    <div class="card"><h2>Request a sandbox experiment</h2><form id="rs-sandbox"><select name="kind"><option value="session-restriction">session restriction</option><option value="regime-restriction">regime restriction</option><option value="volatility-restriction">volatility restriction</option><option value="confluence-requirement">confluence requirement (quality bucket)</option><option value="filter">whole strategy vs the rest</option><option value="parameter">parameter variant (backtest)</option></select> <select name="strategyId">${ids.map((id) => `<option>${esc(id)}</option>`).join('')}</select> <select name="source"><option>PAPER</option><option>BACKTEST</option></select> <input name="values" placeholder="values kept, comma-separated (london,newYork · ranging · wild · 80–100)" size="44"> <input name="params" placeholder='params JSON for a variant e.g. {"rr":2.5}' size="30"> <button class="btn" type="submit">Register and run</button></form><div id="rs-sandbox-out" class="plain"></div></div>`
+}
+
+async function renderExperiments() {
+  const { data } = await getJson('/api/research/experiments')
+  if (!data.items.length) return notEnough('No experiment on record. The research scheduler runs at most one testable queue item per tick; the sandbox registers one on request.')
+  return `<div class="ev-note">${esc(data.note)}</div>` + data.items.map((e) => `<div class="card"><h2>${pill(e.status === 'DONE' ? e.result : e.status)} ${esc(e.kind)} · ${esc(e.strategyId)} <span class="ev-src ${e.source === 'PAPER' ? 'paper' : 'sim'}">${esc(e.source)}</span></h2><div>${esc(e.method)}</div><div class="muted">baseline: ${esc(e.baseline.label)}</div><table><tr><th></th><th class="num">treatment OOS</th><th class="num">baseline OOS</th><th>Welch</th><th>robustness</th><th>challenger</th><th class="num">trials</th></tr><tr><td>out of sample</td><td class="num">${e.oos ? `${fx(e.oos.meanR)}R (n=${e.oos.trades})${e.oos.ci95 ? `<br><small class="muted">${fx(e.oos.ci95.lo)} to ${fx(e.oos.ci95.hi)}</small>` : ''}` : '—'}</td><td class="num">${e.baselineOos ? `${fx(e.baselineOos.meanR)}R (n=${e.baselineOos.trades})` : '—'}</td><td>${e.comparison ? pill(e.comparison) : '—'}</td><td>${e.robustness ? pill(e.robustness) : '—'}</td><td>${e.challenger ? pill(e.challenger) : '—'}</td><td class="num">${e.trials}</td></tr></table><div class="muted">${e.finishedAt ? `finished ${when(e.finishedAt)}` : `registered ${when(e.createdAt)}`}${e.nextTest ? ` · reassessment ${when(e.nextTest)}` : ''}${e.error ? ` · error: ${esc(e.error)}` : ''} · <a href="/api/research/experiment?id=${encodeURIComponent(e.experimentId)}" target="_blank" rel="noopener">full record</a></div></div>`).join('')
+}
+
 async function renderView() {
   const out = document.getElementById('research-out')
   const status = document.getElementById('research-status')
@@ -103,6 +116,8 @@ async function renderView() {
       case 'atlas': html = await renderAtlas(); break
       case 'diffusion': html = await renderDiffusion(); break
       case 'proposals': html = await renderProposals(); break
+      case 'sandbox': html = await renderSandbox(); break
+      case 'experiments': html = await renderExperiments(); break
     }
     out.innerHTML = html
     if (status) status.textContent = `updated ${new Date().toLocaleTimeString()}`
@@ -140,6 +155,13 @@ document.addEventListener('submit', async (e) => {
     try { await postJson('/api/research/hypothesis', { question: f.get('question'), hypothesis: f.get('hypothesis'), nullHypothesis: f.get('nullHypothesis'), direction: f.get('direction'), cohortFilters: filters, source: 'PAPER' }); await loadResearch() } catch (err) { out.textContent = err.message }
   }
   if (e.target.id === 'rs-trial') { e.preventDefault(); const f = new FormData(e.target); try { await postJson('/api/research/trial', { count: Number(f.get('count')), note: f.get('note') }); await loadResearch() } catch (err) { alert(err.message) } }
+  if (e.target.id === 'rs-sandbox') {
+    e.preventDefault(); const f = new FormData(e.target); const out = document.getElementById('rs-sandbox-out')
+    let params = undefined; try { params = f.get('params') ? JSON.parse(f.get('params')) : undefined } catch { out.textContent = 'params must be JSON'; return }
+    const values = String(f.get('values') || '').split(',').map((s) => s.trim()).filter(Boolean)
+    out.textContent = 'Running… (a backtest variant takes a few seconds)'
+    try { const r = await postJson('/api/research/sandbox', { kind: f.get('kind'), strategyId: f.get('strategyId'), source: f.get('source'), values, params }); out.textContent = `${r.isNew ? 'Registered and ran' : 'Already on record'}: ${r.experiment.experimentId} — ${r.experiment.result}\n\n${r.text}` } catch (err) { out.textContent = err.message }
+  }
   if (e.target.id === 'rs-prop') {
     e.preventDefault(); const f = new FormData(e.target); const out = document.getElementById('rs-prop-out')
     let params = null; try { params = f.get('params') ? JSON.parse(f.get('params')) : null } catch { out.textContent = 'params must be JSON'; return }

@@ -941,7 +941,7 @@ const server = createServer(async (req, res) => {
      * reassessment sweep — all guarded by the same state-change check as every
      * other POST. None of them reaches the engine.
      */
-    if (path.startsWith('/api/school') || path.startsWith('/api/research') || path.startsWith('/api/knowledge')) {
+    if (path.startsWith('/api/school') || path.startsWith('/api/research') || path.startsWith('/api/knowledge') || path.startsWith('/api/observer') || path.startsWith('/api/ops')) {
       const q = (k: string) => url.searchParams.get(k)
       const body = async () => JSON.parse((await readBody(req, 64 * 1024)) || '{}') as Record<string, unknown>
       const snapOrNull = async () => { const s = await safely(() => snapshot()); return s.ok ? s.data : null }
@@ -986,6 +986,40 @@ const server = createServer(async (req, res) => {
         'POST /api/knowledge/reassess': () => learn.knowledgeReassess(),
         'POST /api/knowledge/backfill': () => learn.knowledgeBackfill(),
         'GET /api/knowledge/graph': () => learn.knowledgeGraph(),
+        // Phase 24 — the live observer, research ops and the panels that read them. Every POST is a research-store write; none reaches the engine.
+        'GET /api/observer': () => learn.observerIndex(),
+        'GET /api/observer/replay': () => learn.observerReplay(q('id') || ''),
+        'GET /api/observer/observations': () => learn.observerObservations({ type: q('type'), status: q('status'), min: q('min'), limit: q('limit'), from: q('from') }),
+        'POST /api/observer/resolve': () => learn.observerResolve(),
+        'GET /api/ops': () => learn.opsStatus(marketFeed.health()),
+        'GET /api/ops/state': () => learn.opsState(),
+        'POST /api/ops/run': () => learn.opsRun(),
+        'GET /api/research/queue': () => learn.researchQueue({ status: q('status'), origin: q('origin'), maturity: q('maturity'), limit: q('limit') }),
+        'POST /api/research/queue/generate': () => learn.researchQueueGenerate(),
+        'POST /api/research/queue/status': async () => learn.researchQueueStatus(await body()),
+        'GET /api/research/experiments': () => learn.researchExperiments({ strategy: q('strategy'), status: q('status'), result: q('result'), hypothesis: q('hypothesis'), limit: q('limit') }),
+        'GET /api/research/experiment': () => learn.researchExperiment(q('id') || ''),
+        'POST /api/research/sandbox': async () => learn.researchSandbox(await body()),
+        'GET /api/research/champion': () => learn.researchChampion(q('strategy')),
+        'GET /api/research/recommend': () => learn.researchRecommend(),
+        'GET /api/research/drift': () => learn.researchDrift(q('strategy')),
+        'GET /api/research/review': () => learn.researchReviewQueue(),
+        'GET /api/research/review/card': () => learn.researchReviewCard(q('id') || ''),
+        'POST /api/research/review/decide': async () => learn.researchReviewDecide(await body()),
+        'GET /api/knowledge/memory': () => learn.knowledgeMemory({ class: q('class'), tag: q('tag'), limit: q('limit') }),
+        'GET /api/knowledge/recall': () => learn.knowledgeRecall({ q: q('q'), limit: q('limit') }),
+        'GET /api/knowledge/failures': () => learn.knowledgeFailures({ kind: q('kind'), strategy: q('strategy'), limit: q('limit') }),
+        'GET /api/knowledge/decay': () => learn.knowledgeDecay(),
+        'POST /api/knowledge/decay/run': () => learn.knowledgeDecayRun(),
+        'GET /api/knowledge/digests': () => learn.knowledgeDigests(),
+        'GET /api/knowledge/digest': () => learn.knowledgeDigest(q('id') || ''),
+        'GET /api/knowledge/digest/today': () => learn.knowledgeDigestToday(),
+        'GET /api/knowledge/research-week': () => learn.knowledgeResearchWeek(),
+        'GET /api/knowledge/audit': () => learn.knowledgeAudit(),
+        'GET /api/school/exercises': () => learn.schoolExercises({ concept: q('concept'), limit: q('limit') }),
+        'POST /api/school/exercise': async () => learn.schoolExerciseAnswer(await body()),
+        'GET /api/school/lesson/versions': () => learn.schoolLessonVersions(q('id')),
+        'GET /api/school/changes': () => learn.schoolCurriculumChanges({ since: q('since') }),
       }
       const has = (k: string) => Object.prototype.hasOwnProperty.call(routes, k)
       if (!has(`${req.method} ${path}`)) {

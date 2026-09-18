@@ -222,8 +222,30 @@ export function superseded(item: KnowledgeItem, byId: string, now = Date.now()):
 
 const PREFIX = 'knowledge:'
 
+/**
+ * A stored value is a knowledge item only if it has the shape of one. A row
+ * that does not (a truncated write, a hand edit, an older schema) is left in
+ * place — never deleted — and skipped by every reader, and counted as corrupt
+ * in the summary so the gap is visible instead of silently absent.
+ */
+export function isKnowledgeItem(x: unknown): x is KnowledgeItem {
+  if (!x || typeof x !== 'object') return false
+  const it = x as Partial<KnowledgeItem>
+  return typeof it.id === 'string' && typeof it.kind === 'string' && typeof it.title === 'string' && typeof it.body === 'string' && typeof it.status === 'string'
+    && Array.isArray(it.tags) && Array.isArray(it.history) && Array.isArray(it.links) && typeof it.created_at === 'number' && typeof it.version === 'number'
+    && !!it.provenance && typeof it.provenance === 'object'
+}
+
 export function getItem(id: string): KnowledgeItem | null {
-  return store().getJson<KnowledgeItem>(PREFIX + id)
+  const raw = store().getJson<unknown>(PREFIX + id)
+  return isKnowledgeItem(raw) ? raw : null
+}
+
+/** Rows under the knowledge prefix that are not readable as items. Kept, listed, never deleted. */
+export function corruptItems(): string[] {
+  const out: string[] = []
+  for (const key of store().keysWithPrefix(PREFIX)) if (!isKnowledgeItem(store().getJson<unknown>(key))) out.push(key.slice(PREFIX.length))
+  return out
 }
 
 export function saveItem(item: KnowledgeItem): KnowledgeItem {
@@ -241,8 +263,8 @@ export function addItem(input: NewItem): KnowledgeItem {
 export function listItems(filter: { kind?: KnowledgeKind; status?: KnowledgeStatus; tag?: string } = {}): KnowledgeItem[] {
   const out: KnowledgeItem[] = []
   for (const key of store().keysWithPrefix(PREFIX)) {
-    const it = store().getJson<KnowledgeItem>(key)
-    if (!it) continue
+    const it = store().getJson<unknown>(key)
+    if (!isKnowledgeItem(it)) continue
     if (filter.kind && it.kind !== filter.kind) continue
     if (filter.status && it.status !== filter.status) continue
     if (filter.tag && !it.tags.includes(filter.tag)) continue
@@ -272,13 +294,13 @@ export function sweepStale(now = Date.now()): KnowledgeItem[] {
 }
 
 /** What the vault remembers, by kind and status — including what did not work. */
-export function vaultSummary(): { total: number; byKind: Record<string, number>; byStatus: Record<string, number>; dueForReview: number; failed: number } {
+export function vaultSummary(): { total: number; byKind: Record<string, number>; byStatus: Record<string, number>; dueForReview: number; failed: number; corrupt: number } {
   const items = listItems()
   const byKind: Record<string, number> = {}
   const byStatus: Record<string, number> = {}
   for (const it of items) { byKind[it.kind] = (byKind[it.kind] ?? 0) + 1; byStatus[it.status] = (byStatus[it.status] ?? 0) + 1 }
   return {
-    total: items.length, byKind, byStatus,
+    total: items.length, byKind, byStatus, corrupt: corruptItems().length,
     dueForReview: items.filter((i) => i.status === 'REVIEW REQUIRED' || i.status === 'STALE' || i.status === 'CONTRADICTED').length,
     failed: items.filter((i) => i.kind === 'failed-hypothesis' || i.kind === 'counterexample').length,
   }

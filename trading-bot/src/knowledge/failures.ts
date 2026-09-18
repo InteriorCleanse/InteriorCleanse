@@ -26,6 +26,7 @@ import { listHypotheses } from '../research/hypotheses.ts'
 import type { Hypothesis } from '../research/hypotheses.ts'
 import { listProposals } from '../research/lab.ts'
 import type { Proposal } from '../research/lab.ts'
+import { toET } from '../sessions.ts'
 import { store } from '../store.ts'
 import { VERSION } from '../version.ts'
 import { addItem } from './vault.ts'
@@ -134,7 +135,7 @@ function fromExperiment(e: Experiment): NewFailure[] {
       kind: 'experiment-not-supported', ref: e.experimentId, title: `Experiment not supported: ${e.method}`,
       what: `${e.kind} experiment on ${e.strategyId} (${e.source}) — ${e.method}; baseline ${e.baseline.label}.`,
       why: `${e.oosResult ? `Out-of-sample ${e.oosResult.trades} trade(s), mean ${fx(e.oosResult.meanR)}R` : 'No out-of-sample stage'}; ${e.comparison.oos?.note ?? 'no baseline comparison'}.`,
-      lesson: `Against its frozen baseline and dataset ${e.datasetHash}, this experiment did not support the hypothesis at this sample. Parameters were not moved afterwards; a retest waits for the reassessment date (${e.nextTest ? new Date(e.nextTest).toISOString().slice(0, 10) : 'unset'}) or new data.`,
+      lesson: `Against its frozen baseline and dataset ${e.datasetHash}, this experiment did not support the hypothesis at this sample. Parameters were not moved afterwards; a retest waits for the reassessment date (${e.nextTest ? toET(e.nextTest).dateKey : 'unset'}) or new data.`,
       strategyId: e.strategyId, filters: [], refs: { experimentId: e.experimentId, ...(e.hypothesisId ? { hypothesisId: e.hypothesisId } : {}) }, source: e.source, sampleSize: e.oosResult?.trades ?? e.inSampleResult?.trades ?? null, at,
     })
   }

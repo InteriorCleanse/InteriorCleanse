@@ -5,15 +5,17 @@
  */
 import { getJson, esc } from './api.js'
 
-const VIEWS = [['vault', 'Vault'], ['passport', 'Passport'], ['brief', 'Daily brief'], ['eod', 'End of day'], ['weekly', 'Weekly review'], ['graph', 'Knowledge graph']]
+const VIEWS = [['vault', 'Vault'], ['passport', 'Passport'], ['brief', 'Daily brief'], ['eod', 'End of day'], ['weekly', 'Weekly review'], ['graph', 'Knowledge graph'], ['memory', 'Memory'], ['digests', 'Digests & audits']]
 let view = 'vault'
 let kindFilter = ''
 let statusFilter = ''
 let strategy = ''
+let memoryClass = ''
+let digestId = ''
 
 const fx = (n, d = 2) => (n === null || n === undefined ? '—' : `${n >= 0 ? '+' : ''}${Number(n).toFixed(d)}`)
 const when = (ms) => { try { return new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms)) } catch { return '' } }
-const pill = (s) => `<span class="ev-st ${/STALE|RETIRED|INSUFFICIENT|NOT ENOUGH/.test(s) ? 'none' : /REVIEW|INFERRED|HYPOTHESIS/.test(s) ? 'early' : /SUPERSEDED|SIMULATED/.test(s) ? 'dev' : 'large'}">${esc(s)}</span>`
+const pill = (s) => `<span class="ev-st ${/STALE|RETIRED|INSUFFICIENT|NOT ENOUGH|CONTRADICTED/.test(s) ? 'none' : /REVIEW|INFERRED|HYPOTHESIS|WATCH/.test(s) ? 'early' : /SUPERSEDED|SIMULATED/.test(s) ? 'dev' : 'large'}">${esc(s)}</span>`
 const notEnough = (what) => `<div class="ev-empty"><div class="ev-empty-big">NOT ENOUGH DATA</div><div class="muted">${esc(what)}</div></div>`
 async function postJson(path, body) {
   const cfg = await getJson('/api/config')
@@ -104,6 +106,27 @@ async function renderGraph() {
     ${Object.entries(byTrack).map(([t, ns]) => `<div class="card"><h2>${esc(t)}</h2>${ns.map((n) => `<div class="kn-node"><b>${esc(n.title)}</b> <span class="muted">${esc(n.level)}</span><div class="muted">${edgesOf(n.id).map((e) => `<span class="badge">${esc(e.kind)}: ${esc(e.to)}</span>`).join(' ')}</div></div>`).join('')}</div>`).join('')}`
 }
 
+async function renderMemory() {
+  const { data: s } = await getJson('/api/knowledge/memory')
+  const chips = `<div class="ev-chips"><button data-memclass="" class="${memoryClass ? '' : 'on'}">all classes</button>${s.classes.map((c) => `<button data-memclass="${esc(c.class)}" class="${memoryClass === c.class ? 'on' : ''}">${esc(c.class)} ${c.total}</button>`).join('')}</div><form id="kn-recall" class="row"><input name="q" placeholder="recall… (words that must all appear)" size="36"><button class="btn ghost" type="submit">Recall</button></form><div id="kn-recall-out"></div>`
+  if (!memoryClass) return `<div class="ev-note">${esc(s.note)}</div>${chips}<div class="card"><table><tr><th>class</th><th class="num">total</th><th>by status</th></tr>${s.classes.map((c) => `<tr><td><b>${esc(c.class)}</b></td><td class="num">${c.total}</td><td class="muted">${Object.entries(c.byStatus).map(([k, v]) => `${pill(k)} ${v}`).join(' ') || '—'}</td></tr>`).join('')}</table></div>`
+  const { data: m } = await getJson(`/api/knowledge/memory?class=${encodeURIComponent(memoryClass)}`)
+  return `<div class="ev-note">${esc(m.note)}</div>${chips}${m.entries.length ? `<div class="card"><table><tr><th>when</th><th>record</th><th>title</th><th>status</th><th>label</th><th>source</th></tr>${m.entries.map((e) => `<tr class="${e.record === 'knowledge' ? 'kn-item' : ''}" data-item="${e.record === 'knowledge' ? esc(e.id) : ''}"><td class="muted">${when(e.at)}</td><td>${esc(e.record)}</td><td>${esc(e.title)}<div class="muted">${esc(e.summary)}</div></td><td>${pill(e.status)}</td><td>${pill(e.evidenceLabel)}</td><td>${esc(e.source)}</td></tr>`).join('')}</table></div>` : notEnough(`No ${memoryClass} memories yet.`)}`
+}
+
+async function renderDigests() {
+  const { data: d } = await getJson('/api/knowledge/digests')
+  const list = (title, items) => `<div class="card"><h2>${title}</h2>${items.length ? items.map((x) => `<div><button class="btn ghost" data-digest="${esc(x.id)}">${esc(x.key)}</button> <span class="muted">${when(x.at)}</span></div>`).join('') : '<div class="muted">none stored yet — written when the period ends</div>'}</div>`
+  let open = ''
+  if (digestId) {
+    const { data: g } = await getJson(`/api/knowledge/digest?id=${encodeURIComponent(digestId)}`)
+    const sections = (g.sections || []).map((s) => `<div class="card"><h2>${esc(s.heading)} ${pill(s.evidenceLabel)}</h2>${s.lines.map((l) => `<div>· ${esc(l)}</div>`).join('')}<div class="muted sc-prov">source: ${esc(s.source)}</div></div>`).join('')
+    const lesson = g.lessonOfTheDay ? `<div class="card"><h2>LESSON OF THE DAY ${pill(g.lessonOfTheDay.evidenceLabel)}</h2><div class="sc-frame"><div class="sc-frame-t">BEFORE</div>${esc(g.lessonOfTheDay.before)}</div><div class="sc-frame"><div class="sc-frame-t">DECISION</div>${esc(g.lessonOfTheDay.decision)}</div><div class="sc-frame"><div class="sc-frame-t">AFTER</div>${esc(g.lessonOfTheDay.after)}</div><div>${esc(g.lessonOfTheDay.teaches)}</div><div class="muted">${g.lessonOfTheDay.doesNotTeach.map(esc).join(' ')}</div></div>` : ''
+    open = `<div class="ev-head"><div><div class="ev-title">${esc(g.kind)} — ${esc(g.dayKey || g.weekKey || g.monthKey || '')}</div><div class="muted">${when(g.at)} · engine ${esc(g.engineVersion)}</div></div></div>${(g.notes || []).map((n) => `<div class="ev-note">${esc(n)}</div>`).join('')}${lesson}${sections}${g.doNotTouch ? `<div class="card"><h2>WHAT SHOULD NOT BE TOUCHED</h2>${g.doNotTouch.map((l) => `<div>· ${esc(l)}</div>`).join('')}</div>` : ''}${g.strategies ? `<div class="card"><h2>STRATEGIES</h2><table><tr><th>strategy</th><th class="num">paper n</th><th>band</th><th class="num">mean R</th><th>drift</th><th class="num">experiments</th><th class="num">failures</th><th>would change</th></tr>${g.strategies.map((s) => `<tr><td>${esc(s.strategyId)}${s.enabled ? '' : ' <span class="muted">(disabled)</span>'}</td><td class="num">${s.paper.n}</td><td>${esc(s.paper.band)}</td><td class="num">${s.paper.meanR === null ? '—' : `${fx(s.paper.meanR)}R`}</td><td class="muted">${esc(s.drift)}</td><td class="num">${s.experiments.total}</td><td class="num">${s.failures}</td><td class="muted">${esc(s.wouldChange)}</td></tr>`).join('')}</table></div>` : ''}`
+  }
+  return `<div class="ev-note">${esc(d.note)}</div><div class="row"><a class="btn ghost" href="/api/knowledge/digest/today" target="_blank" rel="noopener">Today (assembled now)</a><a class="btn ghost" href="/api/knowledge/research-week" target="_blank" rel="noopener">This week's research review (now)</a><a class="btn ghost" href="/api/knowledge/audit" target="_blank" rel="noopener">Model audit (now)</a></div>${list('Daily learning digests', d.daily)}${list('Weekly research reviews', d.weekly)}${list('Monthly model audits', d.monthly)}${open}`
+}
+
 async function renderView() {
   const out = document.getElementById('knowledge-out')
   const status = document.getElementById('knowledge-status')
@@ -117,6 +140,8 @@ async function renderView() {
       case 'eod': html = await renderEod(); break
       case 'weekly': html = await renderWeekly(); break
       case 'graph': html = await renderGraph(); break
+      case 'memory': html = await renderMemory(); break
+      case 'digests': html = await renderDigests(); break
     }
     out.innerHTML = html
     if (status) status.textContent = `updated ${new Date().toLocaleTimeString()}`
@@ -137,7 +162,9 @@ document.addEventListener('click', async (e) => {
   const k = e.target.closest('#tab-knowledge [data-kind]'); if (k) { kindFilter = k.dataset.kind; await loadKnowledge(); return }
   const st = e.target.closest('#tab-knowledge [data-status]'); if (st) { statusFilter = st.dataset.status; await loadKnowledge(); return }
   const sg = e.target.closest('#tab-knowledge [data-strategy]'); if (sg) { strategy = sg.dataset.strategy; await loadKnowledge(); return }
-  const it = e.target.closest('#tab-knowledge [data-item]'); if (it) { await showItem(it.dataset.item).catch((err) => { document.getElementById('knowledge-out').innerHTML = `<div class="plain">${esc(err.message)}</div>` }); return }
+  const mc = e.target.closest('#tab-knowledge [data-memclass]'); if (mc) { memoryClass = mc.dataset.memclass; await loadKnowledge(); return }
+  const dg = e.target.closest('#tab-knowledge [data-digest]'); if (dg) { digestId = dg.dataset.digest; await loadKnowledge(); return }
+  const it = e.target.closest('#tab-knowledge [data-item]'); if (it && it.dataset.item) { await showItem(it.dataset.item).catch((err) => { document.getElementById('knowledge-out').innerHTML = `<div class="plain">${esc(err.message)}</div>` }); return }
   if (e.target.closest('#kn-back')) { await loadKnowledge(); return }
   const rv = e.target.closest('#tab-knowledge [data-review]')
   if (rv) {
@@ -150,6 +177,14 @@ document.addEventListener('click', async (e) => {
   }
   if (e.target.closest('#kn-reassess')) { const out = document.getElementById('kn-action-out'); try { const r = await postJson('/api/knowledge/reassess', {}); if (out) out.textContent = r.note } catch (err) { if (out) out.textContent = err.message } await loadKnowledge(); return }
   if (e.target.closest('#kn-backfill')) { const out = document.getElementById('kn-action-out'); try { const r = await postJson('/api/knowledge/backfill', {}); if (out) out.textContent = r.note } catch (err) { if (out) out.textContent = err.message } await loadKnowledge(); return }
+})
+
+document.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'kn-recall') return
+  e.preventDefault()
+  const q = new FormData(e.target).get('q') || ''
+  const out = document.getElementById('kn-recall-out')
+  try { const { data } = await getJson(`/api/knowledge/recall?q=${encodeURIComponent(q)}`); out.innerHTML = `<div class="ev-note">${esc(data.note)}</div>${data.entries.map((r) => `<div>${pill(r.class)} ${esc(r.title)} <span class="muted">${esc(r.record)} · ${pill(r.status)} · ${when(r.at)}</span><div class="muted">${esc(r.summary)}</div></div>`).join('')}` } catch (err) { out.textContent = err.message }
 })
 
 document.getElementById('btn-knowledge')?.addEventListener('click', () => loadKnowledge())

@@ -51,6 +51,31 @@ import type { Candle } from '../types.ts'
 import { observePaperClose, reassessAll } from './observer.ts'
 import { livingPassport } from './passport.ts'
 import { dailyBrief, endOfDay, weeklyReview } from './reviews.ts'
+// Phase 24 — autonomous observation and research operations.
+import type { FeedHealth } from '../data/feed.ts'
+import { knowledgeRequiringReview, runDecayMonitor } from '../knowledge/decayMonitor.ts'
+import { failureSummary, listFailures } from '../knowledge/failures.ts'
+import type { FailureKind } from '../knowledge/failures.ts'
+import { MEMORY_CLASSES, memory, memorySummary, recall } from '../knowledge/memory.ts'
+import type { MemoryClass } from '../knowledge/memory.ts'
+import { listObservations } from '../observer/events.ts'
+import type { ObservationStatus, ObservationType } from '../observer/events.ts'
+import { liveView, replayForObservation } from '../observer/live.ts'
+import { resolveCandidates } from '../observer/observer.ts'
+import { getExperiment, listExperiments, renderExperiment } from '../research/experiments.ts'
+import type { ExperimentResult, ExperimentStatus } from '../research/experiments.ts'
+import { generateQueue, listQueue, nextTestable, queueSummary, setQueueStatus } from '../research/queue.ts'
+import type { Maturity, QueueOrigin, QueueStatus } from '../research/queue.ts'
+import { recommendations } from '../research/recommend.ts'
+import { decideReview, reviewCard, reviewQueue } from '../research/review.ts'
+import type { ReviewDecision } from '../research/review.ts'
+import { championChallengerView, runSandbox } from '../research/sandbox.ts'
+import type { SandboxKind, SandboxRequest } from '../research/sandbox.ts'
+import { caseExercises, curriculumChanges, gradeCaseExercise, latestLessonVersion, lessonVersions, publicExercise, snapshotLesson } from '../school/updates.ts'
+import { buildDailyDigest, buildMonthlyModelAudit, buildWeeklyResearchReview, getDigest, listDigests } from './digest.ts'
+import { driftAll, driftFor } from './drift.ts'
+import { readOps, researchTick } from './ops.ts'
+import { systemStatus } from './status.ts'
 
 const DAY = 86_400_000
 export const SCAN_DAYS = 14
@@ -121,7 +146,10 @@ export function schoolIndex() {
 export function schoolLesson(conceptId: string, now = Date.now()) {
   const l = buildLesson(conceptId, { cases: allCases(now), dataset: paperData(), now })
   if (!l) throw new ApiError(404, `no concept "${conceptId}"`)
-  return l
+  // A lesson served is a lesson versioned: a snapshot is appended only when its content has moved, and earlier versions stay.
+  let version = null
+  try { version = snapshotLesson(l, now).version } catch { version = latestLessonVersion(conceptId) }
+  return { ...l, version: version ? { version: version.version, at: version.at, diff: version.diff, hash: version.hash } : null }
 }
 
 export function schoolQuiz(body: { conceptId?: unknown; answers?: unknown }, now = Date.now()) {
@@ -406,3 +434,149 @@ export function knowledgeBackfill(now = Date.now()) {
   for (const p of closed) { if (!seen.has(`lesson:post-mortem:${p.id}`)) { observePaperClose(p, now); observed++ } }
   return { closed: closed.length, observed, note: observed ? `${observed} closed record(s) observed for the first time.` : 'Every closed record already has a post-mortem.' }
 }
+
+// ---------------------------------------------------------------
+// PHASE 24 — LIVE OBSERVER, RESEARCH OPS, QUEUE, EXPERIMENTS, SANDBOX,
+// CHAMPION / CHALLENGERS, RECOMMENDATIONS, REVIEW, MEMORY, FAILURES,
+// DECAY, DRIFT, DIGESTS, EXERCISES
+// ---------------------------------------------------------------
+
+function driftInputs(now: number) {
+  return driftAll(readPositions().closed, strategyIds(), now)
+}
+
+export function observerIndex(now = Date.now()) { return liveView(now) }
+
+export function observerReplay(id: string) {
+  const r = replayForObservation(str(id, 120))
+  if (!r) throw new ApiError(404, 'no replay for this observation: it is not resolved yet, or the candles around it are not stored')
+  const stop = stopView(r.bundle, 0)
+  return { observation: r.observation, lesson: r.bundle.lesson, stop, note: 'The replay stops at the event; the outcome is revealed only by answering the stop, as in Replay School.' }
+}
+
+export function observerObservations(q: { type?: string | null; status?: string | null; min?: string | null; limit?: string | null; from?: string | null }) {
+  const limit = Math.min(500, Math.max(1, Number(q.limit) || 100))
+  const items = listObservations({ type: (q.type || undefined) as ObservationType | undefined, status: (q.status || undefined) as ObservationStatus | undefined, minSignificance: q.min ? Number(q.min) : undefined, from: q.from ? Number(q.from) : undefined, limit })
+  return { total: items.length, items, note: 'Every observation carries the time it happened, the candle close at which it was knowable, and the evidence its significance rests on. None is manufactured; each is what the engine saw.' }
+}
+
+export function observerResolve(now = Date.now()) { return resolveCandidates(now, { max: 20 }) }
+
+export function opsStatus(feed: FeedHealth | null = null, now = Date.now()) { return systemStatus({ feed, now }) }
+export function opsState() { return readOps() }
+export async function opsRun(now = Date.now()) { return researchTick({ now }) }
+
+const QUEUE_STATUSES: QueueStatus[] = ['QUEUED', 'BLOCKED', 'UNDER TEST', 'TESTED', 'PARKED', 'DONE']
+export function researchQueue(q: { status?: string | null; origin?: string | null; maturity?: string | null; limit?: string | null }) {
+  const items = listQueue({ status: (q.status || undefined) as QueueStatus | undefined, origin: (q.origin || undefined) as QueueOrigin | undefined, maturity: (q.maturity || undefined) as Maturity | undefined })
+  const limit = Math.min(500, Math.max(1, Number(q.limit) || 100))
+  return { summary: queueSummary(), items: items.slice(0, limit), nextTestable: nextTestable()?.id ?? null, note: items.length ? 'Priority carries its reasons; the size of an observed edge is never one of them. BLOCKED items say what data is missing.' : 'The queue is empty. Questions are drafted from cohorts at the 50-trade bar, from observation clusters, from drift and from reassessment dates; paper trading fills it.' }
+}
+export function researchQueueGenerate(now = Date.now()) {
+  const d = driftInputs(now)
+  const g = generateQueue({ paper: paperData(), signals: d.signals, now })
+  return { created: g.created, updated: g.updated, total: g.items.length, driftSignals: d.signals.length, note: `${g.created} created, ${g.updated} regenerated in place. Ids are content-addressed; running this twice changes nothing.` }
+}
+export function researchQueueStatus(body: { id?: unknown; status?: unknown; note?: unknown }, now = Date.now()) {
+  const status = str(body.status, 20) as QueueStatus
+  if (!['QUEUED', 'PARKED'].includes(status)) throw new ApiError(400, 'a person may set QUEUED or PARKED; the other statuses are derived from the record')
+  const q = setQueueStatus(str(body.id, 120), status, `${status} by hand: ${str(body.note, 300) || 'no note'}.`, now)
+  if (!q) throw new ApiError(404, 'no such queue item')
+  return q
+}
+
+export function researchExperiments(q: { strategy?: string | null; status?: string | null; result?: string | null; hypothesis?: string | null; limit?: string | null }) {
+  const items = listExperiments({ strategyId: q.strategy || undefined, status: (q.status || undefined) as ExperimentStatus | undefined, result: (q.result || undefined) as ExperimentResult | undefined, hypothesisId: q.hypothesis || undefined })
+  const limit = Math.min(500, Math.max(1, Number(q.limit) || 100))
+  return { total: items.length, items: items.slice(0, limit).map((e) => ({ experimentId: e.experimentId, hypothesisId: e.hypothesisId, kind: e.kind, strategyId: e.strategyId, source: e.source, method: e.method, baseline: e.baseline, result: e.result, status: e.status, oos: e.oosResult ? { trades: e.oosResult.trades, meanR: e.oosResult.meanR, ci95: e.oosResult.ci95 } : null, baselineOos: e.baselineOos ? { trades: e.baselineOos.trades, meanR: e.baselineOos.meanR } : null, comparison: e.comparison.oos?.verdict ?? null, robustness: e.robustnessResult?.verdict ?? null, challenger: (e.challenge as { overall?: string } | null)?.overall ?? null, trials: e.multipleTestingContext.trials, createdAt: e.createdAt, finishedAt: e.finishedAt, nextTest: e.nextTest, error: e.error })), note: 'Every experiment froze its dataset, strategy version and parameters before it ran, measured a defined baseline, and is reproducible from its record.' }
+}
+export function researchExperiment(id: string) {
+  const e = getExperiment(str(id, 120))
+  if (!e) throw new ApiError(404, 'no such experiment')
+  return { experiment: e, text: renderExperiment(e) }
+}
+
+const SANDBOX_KINDS: SandboxKind[] = ['filter', 'session-restriction', 'regime-restriction', 'volatility-restriction', 'confluence-requirement', 'parameter']
+export async function researchSandbox(body: Record<string, unknown>, now = Date.now()) {
+  const kind = str(body.kind, 40) as SandboxKind
+  if (!SANDBOX_KINDS.includes(kind)) throw new ApiError(400, `kind must be one of ${SANDBOX_KINDS.join(', ')}`)
+  const values = Array.isArray(body.values) ? (body.values as unknown[]).slice(0, 12).map((v) => String(v).slice(0, 40)) : undefined
+  const params: Record<string, number> = {}
+  if (body.params && typeof body.params === 'object') for (const [k, v] of Object.entries(body.params as Record<string, unknown>).slice(0, 12)) { const n = Number(v); if (Number.isFinite(n)) params[String(k).slice(0, 40)] = n }
+  const req: SandboxRequest = { kind, strategyId: str(body.strategyId, 40) || tradingId(), source: body.source === 'BACKTEST' ? 'BACKTEST' : 'PAPER', values, qualityBuckets: kind === 'confluence-requirement' ? values : undefined, params: Object.keys(params).length ? params : undefined, hypothesisId: str(body.hypothesisId, 120) || null, note: str(body.note, 300) || undefined }
+  try {
+    const r = await runSandbox(req, readPositions().closed, { now })
+    return { ...r, text: renderExperiment(r.experiment), note: 'A sandbox experiment is a registered experiment: frozen inputs, a baseline, out-of-sample, robustness, the challenger. The production strategy and its parameters are untouched.' }
+  } catch (err) { throw new ApiError(400, (err as Error).message) }
+}
+
+export function researchChampion(strategy: string | null) { return championChallengerView(strategy || tradingId(), readPositions().closed) }
+
+export function researchRecommend(now = Date.now()) { return recommendations({ paper: paperData(), drift: driftInputs(now).forRecommend, now }) }
+
+export function researchDrift(strategy: string | null, now = Date.now()) {
+  const id = strategy || tradingId()
+  const r = driftFor(id, readPositions().closed, now)
+  return r ?? { strategyId: id, verdict: 'NO BACKTEST', rows: [], differences: [], note: 'No cached backtest for this strategy. POST /api/evidence/backtest computes one; the monitor never runs one on a read.' }
+}
+
+export function researchReviewQueue(now = Date.now()) { return reviewQueue(now) }
+export function researchReviewCard(id: string, now = Date.now()) {
+  const c = reviewCard(str(id, 120), now)
+  if (!c) throw new ApiError(404, 'no such proposal')
+  return c
+}
+const DECISIONS: ReviewDecision[] = ['APPROVE FOR PAPER TEST', 'REJECT', 'REQUEST MORE RESEARCH']
+export function researchReviewDecide(body: { id?: unknown; decision?: unknown; by?: unknown; note?: unknown }, now = Date.now()) {
+  const decision = str(body.decision, 40) as ReviewDecision
+  if (!DECISIONS.includes(decision)) throw new ApiError(400, `decision must be one of ${DECISIONS.join(' / ')}`)
+  try { return decideReview(str(body.id, 120), decision, str(body.by, 60), str(body.note, 500), now) } catch (err) { throw new ApiError(400, (err as Error).message) }
+}
+
+export function knowledgeMemory(q: { class?: string | null; tag?: string | null; limit?: string | null }) {
+  if (!q.class) return memorySummary()
+  const cls = String(q.class).toUpperCase() as MemoryClass
+  if (!MEMORY_CLASSES.includes(cls)) throw new ApiError(400, `class must be one of ${MEMORY_CLASSES.join(', ')}`)
+  return memory(cls, { tag: q.tag || undefined, limit: Math.min(500, Math.max(1, Number(q.limit) || 100)) })
+}
+export function knowledgeRecall(q: { q?: string | null; limit?: string | null }) { return recall(str(q.q, 120), { limit: Math.min(200, Math.max(1, Number(q.limit) || 50)) }) }
+
+export function knowledgeFailures(q: { kind?: string | null; strategy?: string | null; limit?: string | null }) {
+  const items = listFailures({ kind: (q.kind || undefined) as FailureKind | undefined, strategyId: q.strategy || undefined })
+  return { summary: failureSummary(), items: items.slice(0, Math.min(500, Math.max(1, Number(q.limit) || 100))), total: items.length }
+}
+
+export function knowledgeDecay() { return knowledgeRequiringReview() }
+export function knowledgeDecayRun(now = Date.now()) { return runDecayMonitor({ now, paper: paperData(), currentRegime: null, drift: driftInputs(now).forRecommend }) }
+
+export function knowledgeDigests() { return { daily: listDigests('daily'), weekly: listDigests('weekly'), monthly: listDigests('monthly'), note: 'Each digest was written once when its period ended and is re-read afterwards. The "today" views are assembled on request and not stored.' } }
+export function knowledgeDigest(id: string) {
+  const key = str(id, 80)
+  if (!/^digest:(daily|weekly|monthly):[A-Za-z0-9-]+$/.test(key)) throw new ApiError(400, 'a digest id looks like digest:daily:2026-01-20')
+  const d = getDigest(key)
+  if (!d) throw new ApiError(404, 'no such digest')
+  return d
+}
+export function knowledgeDigestToday(now = Date.now()) { return buildDailyDigest(readPositions().closed, now, { drift: driftInputs(now).forRecommend }) }
+export function knowledgeResearchWeek(now = Date.now()) { return buildWeeklyResearchReview(readPositions().closed, now, { drift: driftInputs(now).forRecommend }) }
+export function knowledgeAudit(now = Date.now()) { return buildMonthlyModelAudit(readPositions().closed, now) }
+
+export function schoolExercises(q: { concept?: string | null; limit?: string | null }) {
+  const r = caseExercises({ conceptId: q.concept || undefined, limit: Math.min(100, Math.max(1, Number(q.limit) || 20)) })
+  return { exercises: r.exercises.map(publicExercise), note: r.note }
+}
+export function schoolExerciseAnswer(body: { id?: unknown; choice?: unknown }, now = Date.now()) {
+  const id = str(body.id, 160)
+  const ex = caseExercises({ limit: 500 }).exercises.find((x) => x.id === id)
+  if (!ex) throw new ApiError(404, 'no such exercise')
+  const chosen = Number.isInteger(body.choice) ? (body.choice as number) : null
+  const g = gradeCaseExercise(ex, chosen)
+  if (conceptById(ex.conceptId)) recordEngagement({ kind: 'quiz-taken', conceptId: ex.conceptId, detail: { correct: g.correct ? 1 : 0, total: 1, caseId: ex.caseId }, at: now })
+  return { ...g, answer: ex.answer, caseId: ex.caseId }
+}
+export function schoolLessonVersions(concept: string | null) {
+  const id = str(concept, 60)
+  if (!conceptById(id)) throw new ApiError(404, `no concept "${id}"`)
+  return { conceptId: id, versions: lessonVersions(id), note: 'A version is appended when the lesson\'s content moves with the record; earlier versions stay.' }
+}
+export function schoolCurriculumChanges(q: { since?: string | null }) { return curriculumChanges(q.since ? Number(q.since) : undefined) }
