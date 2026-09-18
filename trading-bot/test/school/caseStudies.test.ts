@@ -86,7 +86,7 @@ test('counterexamples pair a case that went the expected way with one that did n
 const T0 = Date.UTC(2026, 0, 13, 13, 30)
 function rec(i: number, over: Partial<EvidenceRecord> = {}): EvidenceRecord {
   return {
-    id: `p${i}`, source: 'PAPER', strategyId: 'silver-bullet', family: 'ict', symbol: 'BTCUSDT', interval: '5m', session: 'london', regime: 'trending-up', volatility: 'normal',
+    id: `p${i}`, source: 'PAPER', strategyId: 'silver-bullet', family: 'session', symbol: 'BTCUSDT', interval: '5m', session: 'london', regime: 'trending-up', volatility: 'normal',
     direction: 'long', decidedAt: T0 + i * 3_600_000, filledAt: T0 + i * 3_600_000 + 300_000, closedAt: T0 + i * 3_600_000 + 1_800_000, hourET: 8, weekdayET: 2,
     intendedEntry: 100, entry: 100, stop: 99, target: 102, exit: 101, exitReason: 'take-profit', rMultiple: 1, outcome: 'WIN', missed: false,
     quality: 85, fusedScore: 80, mtfAligned: null, newsMinutes: null, spreadPct: null, durationMs: 1_500_000,
