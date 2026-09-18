@@ -35,7 +35,7 @@ import { cioDecision, decisionLabel } from './ai/cio.ts'
 import { proposeCampaigns } from './ai/researcher.ts'
 import { STRATEGIES, enabledStrategyIds, metaById, strategyIds } from './strategies/registry.ts'
 import { DATA_DIR, ensureDataDir, lessonLines, memoryIsEmpty, readLedger, resetMemory } from './memory.ts'
-import { MarketDataError, explainMarketDataError } from './market.ts'
+import { MarketDataError, explainMarketDataError, INTERVAL_MS, getCandles } from './market.ts'
 import { getNews, summarizeNews, upcomingEvents } from './news.ts'
 import { buildBrief } from './brief.ts'
 import { readPlan, writePlan, clearPlan } from './plan.ts'
@@ -60,6 +60,7 @@ import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyRep
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
+import { newsRead, renderNewsRead } from './news/brain.ts'
 import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
@@ -766,6 +767,38 @@ const server = createServer(async (req, res) => {
      * description deserves. Read-only; it reads closed positions and returns
      * numbers, and nothing it produces reaches a trading decision.
      */
+    /**
+     * THE NEWS READ — the surprise, and whether this symbol actually moves then.
+     * Read-only; it describes the blackout windows the risk chain enforces, and
+     * has no way to change them.
+     */
+    if (path === '/api/news/read') {
+      const snap = await safely(() => snapshot())
+      if (!snap.ok) { json(res, 200, snap); return }
+      const s2 = snap.data
+      // The window study is only as good as its history: the engine's working
+      // set is a few days, which makes every window TOO FEW. Pull a deeper
+      // window on demand — this route is not polled, so the extra paging is
+      // paid once per look rather than every candle.
+      const days = Math.min(90, Math.max(5, Number(url.searchParams.get('days') ?? 30)))
+      const perDay = Math.round(86_400_000 / (INTERVAL_MS[config.interval] ?? 300_000))
+      const deep = await safely(() => getCandles(config.symbol, config.interval, days * perDay))
+      const read = newsRead({
+        events: s2.news?.calendar ?? [],
+        candles: deep.ok && deep.data.length > s2.candles.length ? deep.data : s2.candles,
+        symbol: config.symbol,
+        now: Date.now(),
+        headlineCount: s2.news?.headlines.length ?? 0,
+      })
+      if (url.searchParams.get('format') === 'text') {
+        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
+        res.end(renderNewsRead(read))
+        return
+      }
+      json(res, 200, { ok: true, data: read })
+      return
+    }
+
     if (path === '/api/analyst') {
       // PAPER by default. `?source=backtest` runs the same analysis over the
       // last replay instead — populated immediately, worth strictly less, and
