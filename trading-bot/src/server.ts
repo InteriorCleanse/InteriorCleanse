@@ -59,6 +59,7 @@ import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
+import { attributionReport, renderAttribution } from './analyst/attribution.ts'
 import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
@@ -757,6 +758,22 @@ const server = createServer(async (req, res) => {
         'content-disposition': url.searchParams.get('download') === '1' ? 'attachment; filename="mr-cash-sessions.pine"' : 'inline',
       })
       res.end(script)
+      return
+    }
+
+    /**
+     * ATTRIBUTION — where the paper result came from, with the error bars that
+     * description deserves. Read-only; it reads closed positions and returns
+     * numbers, and nothing it produces reaches a trading decision.
+     */
+    if (path === '/api/analyst') {
+      const report = attributionReport(readPositions().closed, { now: Date.now() })
+      if (url.searchParams.get('format') === 'text') {
+        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
+        res.end(renderAttribution(report))
+        return
+      }
+      json(res, 200, { ok: true, data: report })
       return
     }
 
