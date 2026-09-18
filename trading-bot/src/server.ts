@@ -68,6 +68,8 @@ import type { CohortDimension, CohortDefinition } from './analyst/cohorts.ts'
 import { newsRead, renderNewsRead } from './news/brain.ts'
 import { pastInstances, historyDepth, allSeries } from './news/history.ts'
 import { recoverOpenPositions, recordStart, bootLog } from './recovery.ts'
+import * as learn from './learning/api.ts'
+import { recordTrials } from './research/overfitting.ts'
 import { safeEqual, securityHeaders, newNonce, withNonce } from './security/harden.ts'
 import { intelAnnotations, intelTrade, intelTimeline, intelChanges, intelAlerts, intelPine, intelExplainContext, intelTradeStages } from './intel/service.ts'
 import type { IntelSnapshot } from './intel/service.ts'
@@ -430,6 +432,7 @@ const server = createServer(async (req, res) => {
       const id = body.strategyId || (config.fusion.driveTrading ? 'fused' : config.strategy === 'crossover' ? 'crossover' : 'session-ifvg')
       if (id !== 'fused' && !strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
       const r = await safely(() => refreshOosReference(id))
+      if (r.ok) { try { recordTrials({ strategyId: id, source: 'oos-reference', count: 1, note: 'OOS reference backtest' }) } catch { /* the registry is best-effort */ } }
       if (r.ok) eventLog.push('info', `Out-of-sample reference computed for ${id}`, r.data.usable ? `${r.data.oosTrades} simulated OOS trades, expectancy ${r.data.oosAvgR === null ? '—' : r.data.oosAvgR.toFixed(3)}R. The stability gate now has a number to compare paper against.` : r.data.reason, 'info')
       json(res, 200, r.ok ? { ok: true, data: r.data } : r)
       return
@@ -890,6 +893,7 @@ const server = createServer(async (req, res) => {
         const id = body.strategyId || tradingStrategyId()
         if (id !== 'fused' && !strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
         const r = await safely(() => refreshBacktestCache(id))
+        if (r.ok) { try { recordTrials({ strategyId: id, source: 'evidence-backtest', count: 1, note: 'Evidence tab backtest refresh' }) } catch { /* the registry is best-effort */ } }
         if (r.ok) eventLog.push('info', `Backtest evidence refreshed for ${id}`, `${r.data.trades.length} SIMULATED trades cached for the Evidence tab.`, 'info')
         json(res, 200, r.ok ? { ok: true, data: { strategyId: r.data.strategyId, trades: r.data.trades.length, computedAt: r.data.computedAt, window: r.data.window } } : r)
         return
@@ -926,6 +930,74 @@ const server = createServer(async (req, res) => {
         return
       }
       json(res, 404, { ok: false, error: 'unknown evidence view' })
+      return
+    }
+
+    /**
+     * THE SCHOOL / RESEARCH / KNOWLEDGE TABS (Phase 23). Every handler lives in
+     * src/learning/api.ts; this is dispatch only. GETs read; the POSTs are the
+     * learner's own actions, hypothesis/proposal/knowledge decisions and the
+     * reassessment sweep — all guarded by the same state-change check as every
+     * other POST. None of them reaches the engine.
+     */
+    if (path.startsWith('/api/school') || path.startsWith('/api/research') || path.startsWith('/api/knowledge')) {
+      const q = (k: string) => url.searchParams.get(k)
+      const body = async () => JSON.parse((await readBody(req, 64 * 1024)) || '{}') as Record<string, unknown>
+      const snapOrNull = async () => { const s = await safely(() => snapshot()); return s.ok ? s.data : null }
+      const teacherAi = async (): Promise<learn.Ai> => { const s = await aiStatus(); return s.available ? async (prompt: string, system: string) => (await askAI(prompt, '', [], () => {}, undefined, { name: 'Teacher', system })).text : undefined }
+      const routes: Record<string, () => unknown> = {
+        'GET /api/school': () => learn.schoolIndex(),
+        'GET /api/school/lesson': () => learn.schoolLesson(q('id') || ''),
+        'POST /api/school/quiz': async () => learn.schoolQuiz(await body()),
+        'POST /api/school/engage': async () => learn.schoolEngage(await body()),
+        'GET /api/school/cases': () => learn.schoolCases({ kind: q('kind'), concept: q('concept'), limit: q('limit') }),
+        'GET /api/school/case': () => learn.schoolCase(q('id') || ''),
+        'GET /api/school/counterexamples': () => learn.schoolCounterexamples(q('kind')),
+        'GET /api/school/replay': () => learn.schoolReplay(),
+        'GET /api/school/replay/stop': () => learn.schoolReplayStop(Number(q('k'))),
+        'POST /api/school/replay/answer': async () => learn.schoolReplayAnswer(await body()),
+        'GET /api/school/debate': async () => { const s = await snapOrNull(); if (!s) throw new learn.ApiError(503, 'no market snapshot yet'); return learn.schoolDebate(s) },
+        'POST /api/school/teach': async () => learn.schoolTeach(await body(), await snapOrNull(), await teacherAi()),
+        'GET /api/school/why': () => learn.schoolWhy({ type: q('type'), strategy: q('strategy') }),
+        'GET /api/school/progress': () => learn.schoolIndex().progress,
+        'GET /api/school/prediction-market': () => learn.schoolPredictionMarket({ yes: q('yes'), no: q('no'), fee: q('fee'), slip: q('slip'), p: q('p') }),
+        'GET /api/research': () => learn.researchIndex(q('strategy')),
+        'GET /api/research/questions': () => learn.researchIndex(q('strategy')).questions,
+        'POST /api/research/hypothesis': async () => learn.researchCreateHypothesis(await body()),
+        'GET /api/research/hypotheses': () => learn.researchHypotheses({ status: q('status'), strategy: q('strategy') }),
+        'GET /api/research/hypothesis': () => learn.researchHypothesis(q('id') || ''),
+        'POST /api/research/hypothesis/test': async () => learn.researchTestHypothesis(await body()),
+        'POST /api/research/hypothesis/review': async () => learn.researchReviewHypothesis(await body()),
+        'GET /api/research/overfitting': () => learn.researchOverfitting(q('strategy')),
+        'GET /api/research/atlas': () => learn.researchAtlas({ source: q('source'), dim: q('dim'), strategy: q('strategy') }),
+        'GET /api/research/diffusion': () => learn.researchDiffusion(),
+        'GET /api/research/proposals': () => learn.researchProposals({ status: q('status'), strategy: q('strategy') }),
+        'POST /api/research/proposal': async () => learn.researchCreateProposal(await body()),
+        'POST /api/research/proposal/decide': async () => learn.researchDecideProposal(await body()),
+        'POST /api/research/trial': async () => learn.researchRecordTrial(await body()),
+        'GET /api/knowledge': () => learn.knowledgeIndex({ kind: q('kind'), status: q('status'), tag: q('tag'), limit: q('limit') }),
+        'GET /api/knowledge/item': () => learn.knowledgeItem(q('id') || ''),
+        'POST /api/knowledge/review': async () => learn.knowledgeReview(await body()),
+        'GET /api/knowledge/passport': () => learn.knowledgePassport(q('strategy')),
+        'GET /api/knowledge/brief': () => learn.knowledgeBrief(),
+        'GET /api/knowledge/eod': () => learn.knowledgeEndOfDay(),
+        'GET /api/knowledge/weekly': () => learn.knowledgeWeekly(),
+        'POST /api/knowledge/reassess': () => learn.knowledgeReassess(),
+        'POST /api/knowledge/backfill': () => learn.knowledgeBackfill(),
+        'GET /api/knowledge/graph': () => learn.knowledgeGraph(),
+      }
+      const has = (k: string) => Object.prototype.hasOwnProperty.call(routes, k)
+      if (!has(`${req.method} ${path}`)) {
+        const otherMethod = req.method === 'POST' ? 'GET' : 'POST'
+        const other = has(`${otherMethod} ${path}`)
+        json(res, other ? 405 : 404, { ok: false, error: other ? `${path} is ${otherMethod}-only` : 'unknown learning view' })
+        return
+      }
+      const handler = routes[`${req.method} ${path}`]
+      try { json(res, 200, { ok: true, data: await handler() }) } catch (err) {
+        const e = err as Error
+        json(res, e instanceof learn.ApiError ? e.status : 500, { ok: false, error: e.message })
+      }
       return
     }
 

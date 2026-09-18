@@ -122,7 +122,11 @@ export type WeeklyReview = {
   notes: string[]
 }
 
-export function weeklyReview(closed: PaperPosition[], now = Date.now()): WeeklyReview {
+/**
+ * `reassess` runs the scheduled sweep (a write: records expire into review).
+ * A plain read of the weekly review does not; the API's POST /api/knowledge/reassess does.
+ */
+export function weeklyReview(closed: PaperPosition[], now = Date.now(), opts: { reassess?: boolean } = {}): WeeklyReview {
   const from = now - 7 * DAY
   const records = closed.filter((p) => p.exitReason !== 'missed').map(fromPaperPosition).filter((r) => !r.corrupt && r.rMultiple !== null)
   const week = records.filter((r) => (r.closedAt ?? r.decidedAt) >= from && (r.closedAt ?? r.decidedAt) < now)
@@ -134,7 +138,7 @@ export function weeklyReview(closed: PaperPosition[], now = Date.now()): WeeklyR
   for (const h of hyps) hypCounts[h.status] = (hypCounts[h.status] ?? 0) + 1
   const propCounts: Record<string, number> = {}
   for (const p of listProposals()) propCounts[p.status] = (propCounts[p.status] ?? 0) + 1
-  const reassessment = reassessAll(now)
+  const reassessment: Reassessment = opts.reassess ? reassessAll(now) : { at: now, staleItems: [], staleHypotheses: [], expiredProposals: [], note: 'Reassessment not run on a read. POST /api/knowledge/reassess (or the weekly job) runs it and reports what expired into review.' }
   const prog = progressSummary()
   const w = stats(week), p = stats(prior)
   return {

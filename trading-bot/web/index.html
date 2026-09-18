@@ -164,6 +164,27 @@
     <div id="evidence-out"><div class="plain">Loading the evidence…</div></div>
   </section>
 
+  <section id="tab-school" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-school">Reload school</button><a class="btn ghost" href="/api/school" target="_blank" rel="noopener">School (JSON)</a><span class="muted" id="school-status"></span></div>
+    <div class="ev-head"><div><div class="ev-title">MR. CASH — MARKET SCHOOL</div><div class="muted">How this engine reads the market, taught from its own case studies and its own paper record. Nothing here is a recommendation; mastery is engagement, not skill.</div></div></div>
+    <div class="ev-views" id="school-views"></div>
+    <div id="school-out"><div class="plain">Loading the school…</div></div>
+  </section>
+
+  <section id="tab-research" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-research">Reload lab</button><a class="btn ghost" href="/api/research" target="_blank" rel="noopener">Research (JSON)</a><span class="muted" id="research-status"></span></div>
+    <div class="ev-head"><div><div class="ev-title">MR. CASH — RESEARCH LAB</div><div class="muted">Questions the record raises, hypotheses with their statuses, the overfitting detector, the regime atlas, news-to-price diffusion, and proposals that wait for a human. The engine reads none of it.</div></div></div>
+    <div class="ev-views" id="research-views"></div>
+    <div id="research-out"><div class="plain">Loading the lab…</div></div>
+  </section>
+
+  <section id="tab-knowledge" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-knowledge">Reload vault</button><a class="btn ghost" href="/api/knowledge" target="_blank" rel="noopener">Knowledge (JSON)</a><span class="muted" id="knowledge-status"></span></div>
+    <div class="ev-head"><div><div class="ev-title">MR. CASH — KNOWLEDGE VAULT</div><div class="muted">What it remembers, including what did not work; every item versioned, with provenance, and expiring into review. The living passport, the daily brief, end of day and the weekly review.</div></div></div>
+    <div class="ev-views" id="knowledge-views"></div>
+    <div id="knowledge-out"><div class="plain">Loading the vault…</div></div>
+  </section>
+
   <section id="tab-validation" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-validation">Reload validation</button><a class="btn ghost" id="btn-validation-report" href="/api/validation?format=text" target="_blank" rel="noopener">Daily report (text)</a><span class="muted" id="validation-status"></span></div>
     <div id="validation-out"><div class="plain">Extended paper validation measures the live paper run against real market data — it never tunes anything. Paper is validation data, not a fitting target. The verdict stays <b>INSUFFICIENT SAMPLE</b> until every explicit gate is met; each gate shows exactly how far it has to go. Below: progress to the gates, per-strategy performance vs the backtest, breakdowns by regime and session, decay, strategy correlation, order-flow honesty, system soak and shadow readiness.</div></div>
@@ -228,11 +249,12 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['validation','Validation','✅'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['validation','Validation','✅'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','journal','ask']
 const GROUPS = [
   ['Markets', 'what price is doing right now', ['flow','news','intel','tv']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','test','replay']],
+  ['Learn', 'the school, the lab and what it remembers', ['school','research','knowledge']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
 ]
 const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
@@ -294,6 +316,9 @@ function showTab(id, push=true) {
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
   if (id === 'desk' && window.loadDesk) window.loadDesk()
   if (id === 'evidence' && window.loadEvidence) window.loadEvidence()
+  if (id === 'school' && window.loadSchool) window.loadSchool()
+  if (id === 'research' && window.loadResearch) window.loadResearch()
+  if (id === 'knowledge' && window.loadKnowledge) window.loadKnowledge()
   if (id === 'intel' && window.loadIntel) window.loadIntel()
   if (id === 'replay' && window.loadReplay) window.loadReplay()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
@@ -1283,6 +1308,9 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/replay.js"></script>
 <script type="module" src="/js/desk.js"></script>
 <script type="module" src="/js/evidence.js"></script>
+<script type="module" src="/js/school.js"></script>
+<script type="module" src="/js/research.js"></script>
+<script type="module" src="/js/knowledge.js"></script>
 <script type="module" src="/js/intel.js"></script>
 </body>
 </html>

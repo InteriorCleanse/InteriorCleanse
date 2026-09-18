@@ -314,6 +314,7 @@ function inspectorPanel() {
     <div class="scroll"><table>
       ${row('WHAT', `<b>${esc(a.annotationType)}</b> <span class="muted">(${esc(a.layer)})</span>`)}
       ${row('WHY', esc(a.rationale))}
+      ${row('SCHOOL', `<button class="btn ghost" data-why-type="${esc(a.annotationType)}">Why is this here?</button><div class="intel-why" data-why-out hidden></div>`)}
       ${row('WHEN', `event ${esc(nyTime(a.eventTime))} · knowable ${esc(nyTime(a.knownAt))}`)}
       ${row('SOURCE', `${esc(a.source)}${a.sourceFeature ? ` · <code>${esc(a.sourceFeature)}</code>` : ''}`)}
       ${row('TIMEFRAME', esc(a.timeframe))}
@@ -526,3 +527,20 @@ window.addEventListener('resize', () => { if (state.loaded) drawChart() })
 // Exposed for index.html's tab switcher.
 window.loadIntel = () => load(false)
 window.reloadIntel = () => load(true)
+
+// "WHY IS THIS HERE" — the Market School concept behind a chart object, read from
+// /api/school/why. Text only; nothing here changes what the chart draws.
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-why-type]')
+  if (!b) return
+  const out = b.parentElement.querySelector('[data-why-out]')
+  if (!out) return
+  out.hidden = false
+  out.textContent = 'looking it up…'
+  try {
+    const { data } = await getJson(`/api/school/why?type=${encodeURIComponent(b.dataset.whyType)}`)
+    out.innerHTML = data.concepts.length
+      ? data.concepts.map((c) => `<div><b>${esc(c.title)}</b><div>${esc(c.summary)}</div><div class="muted">Engine checks: ${c.engineChecks.map(esc).join(' ')}</div><div class="muted">Misreads: ${c.misreads.map(esc).join(' ')}</div></div>`).join('')
+      : `<span class="muted">${esc(data.note)}</span>`
+  } catch (err) { out.textContent = err.message }
+})

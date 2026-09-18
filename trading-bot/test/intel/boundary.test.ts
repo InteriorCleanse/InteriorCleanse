@@ -44,10 +44,13 @@ test('NO engine module imports the intelligence layer', () => {
     const body = readFileSync(file, 'utf8')
     if (/from '\.{1,2}\/(?:\.\.\/)*intel\//.test(body) || /from '\.\/intel\//.test(body)) {
       // Permitted consumers: the server (it serves the read-only routes) and
-      // the analyst layer, which is itself observation — it reuses whyTrade and
-      // tradeStages to explain a stored record. The arrow still points one way:
-      // the test below pins that nothing in src/analyst/ can reach the engine.
-      if (file.endsWith('server.ts') || file.includes(`${'/'}analyst${'/'}`)) continue
+      // the observation layers — analyst (reuses whyTrade and tradeStages to
+      // explain a stored record), school / research / knowledge / learning
+      // (Phase 23: case studies and the replay school read the annotation
+      // layer). The arrow still points one way: the test below pins that
+      // nothing in src/analyst/ can reach the engine, and
+      // test/learning/observer.test.ts pins the same for the learning layers.
+      if (file.endsWith('server.ts') || ['analyst', 'school', 'research', 'knowledge', 'learning'].some((d) => file.includes(`${'/'}${d}${'/'}`))) continue
       offenders.push(file.replace(SRC, 'src'))
     }
   }
