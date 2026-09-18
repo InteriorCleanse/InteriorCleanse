@@ -124,10 +124,23 @@ export type PaperVsOos = {
  * the edge survive contact with the real spread, real slippage and real
  * missed fills, or was the backtest flattering it?
  */
-export function comparePaperToOos(byStrategy: PaperStrategyMetrics[], passports: Passport[], minTrades = config.replay.minSetupsForConfidence, minWeeks = 4): PaperVsOos[] {
+export function comparePaperToOos(
+  byStrategy: PaperStrategyMetrics[],
+  passports: Passport[],
+  minTrades = config.replay.minSetupsForConfidence,
+  minWeeks = 4,
+  /**
+   * A second source of out-of-sample expectancy, consulted only when no
+   * passport exists for the strategy: the stored out-of-sample backtest of the
+   * strategy that is actually trading (`paper/oosReference.ts`). A built-in
+   * strategy has no genome and so no passport, and without this the gate was
+   * unreachable for the frozen profile.
+   */
+  reference: (strategyId: string) => number | null = () => null,
+): PaperVsOos[] {
   const oosFor = (id: string): number | null => {
     const ps = passports.filter((p) => p.strategyId === id && p.oos.avgR !== null)
-    if (!ps.length) return null
+    if (!ps.length) return reference(id)
     // The best (furthest-along) passport's OOS is the reference.
     return ps.slice().sort((a, b) => (b.oos.avgR ?? -Infinity) - (a.oos.avgR ?? -Infinity))[0].oos.avgR
   }
@@ -137,7 +150,7 @@ export function comparePaperToOos(byStrategy: PaperStrategyMetrics[], passports:
     const delta = m.avgR !== null && oosAvgR !== null ? m.avgR - oosAvgR : null
     let note: string
     if (!enough) note = `Only ${m.taken} paper trade(s) over ${m.spanDays ? (m.spanDays / 7).toFixed(1) : '0'} week(s) — under the ${minTrades} trades / ${minWeeks} weeks needed to trust the comparison.`
-    else if (oosAvgR === null) note = 'No out-of-sample passport to compare against; run the factory and mint one first.'
+    else if (oosAvgR === null) note = 'No out-of-sample number to compare against: no vault passport, and no stored out-of-sample backtest reference for this strategy. Compute one (POST /api/validation/oos-reference) or mint a passport from the factory.'
     else if (delta !== null && delta < -0.05) note = 'Paper is materially worse than the backtest promised — the edge is not surviving real spread and slippage.'
     else if (delta !== null && delta >= -0.05) note = 'Paper is holding up against the out-of-sample expectancy.'
     else note = 'Comparison pending.'

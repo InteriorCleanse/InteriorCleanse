@@ -548,11 +548,13 @@ export function evaluateGates(input: {
   startUsd: number
   soak: SoakMetrics
   quality: DataQuality
+  /** Out-of-sample expectancy from a stored backtest reference, for strategies with no passport. */
+  oosReference?: (strategyId: string) => number | null
 }): GatesResult {
   const g = config.paperValidation.gates
   const taken = input.closed.filter((p) => p.exitReason !== 'missed')
   const byStrategy = paperByStrategy(input.closed).filter((m) => m.taken > 0)
-  const comparison = comparePaperToOos(byStrategy, input.passports)
+  const comparison = comparePaperToOos(byStrategy, input.passports, undefined, undefined, input.oosReference)
 
   // Span in weeks across all taken trades.
   const times = taken.map((p) => p.closedAt ?? p.openedAt).filter((t) => t > 0)
@@ -591,7 +593,7 @@ export function evaluateGates(input: {
   const stabilityDetail = worstShortfall !== null
     ? `Worst shortfall below the out-of-sample floor is ${worstShortfall.toFixed(3)}R (allowed ${g.maxPaperVsOosShortfallR}R).`
     : stuck
-      ? `${tradingIds.join(', ')} ${tradingIds.length === 1 ? 'is' : 'are'} trading on paper with no out-of-sample passport to be measured against, so THIS GATE CANNOT PASS however long the run continues — waiting will not resolve it. An out-of-sample expectancy has to exist for the strategy that is actually trading. See docs/FINAL_PRODUCTION_READINESS.md, "The stability gate is unreachable".`
+      ? `${tradingIds.join(', ')} ${tradingIds.length === 1 ? 'is' : 'are'} trading on paper with no out-of-sample number to be measured against — no vault passport and no stored out-of-sample backtest reference — so THIS GATE CANNOT PASS until one exists; waiting will not resolve it. Compute the reference for the trading strategy (POST /api/validation/oos-reference) or mint a passport from the factory. See docs/FINAL_PRODUCTION_READINESS.md, "The stability gate is unreachable".`
       : 'No strategy has traded yet, so there is nothing to compare against out-of-sample.'
 
   // Smallest per-strategy trade count among strategies that have traded.
@@ -685,12 +687,14 @@ export type ValidationReportInput = {
   hasReadOnlyKey: boolean
   shadowScoredOrders: number
   aiConsistency: AiConsistency | null
+  /** Out-of-sample expectancy from a stored backtest reference, for strategies with no passport. */
+  oosReference?: (strategyId: string) => number | null
 }
 
 /** Assemble the whole validation report from already-collected, real data. Pure. */
 export function buildValidationReport(input: ValidationReportInput): ValidationReport {
   const quality = dataQuality(input.closed)
-  const gates = evaluateGates({ closed: input.closed, passports: input.passports, curve: input.curve, startUsd: input.startUsd, soak: input.soak, quality })
+  const gates = evaluateGates({ closed: input.closed, passports: input.passports, curve: input.curve, startUsd: input.startUsd, soak: input.soak, quality, oosReference: input.oosReference })
   const byStrategy = paperByStrategy(input.closed).filter((m) => m.taken > 0 || m.missed > 0)
   const journal = perTradeJournal(input.closed)
   const noTrade = noTradeJournal(input.closed)
@@ -701,7 +705,7 @@ export function buildValidationReport(input: ValidationReportInput): ValidationR
     profile: validationProfile(input.version),
     gates,
     byStrategy,
-    comparison: comparePaperToOos(byStrategy.filter((m) => m.taken > 0), input.passports),
+    comparison: comparePaperToOos(byStrategy.filter((m) => m.taken > 0), input.passports, undefined, undefined, input.oosReference),
     bySession: bySession(input.closed),
     byRegime: byRegime(input.closed),
     byOutcome: byOutcome(input.closed),

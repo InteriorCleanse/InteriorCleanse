@@ -56,6 +56,7 @@ import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
+import { refreshOosReference, oosReferenceFor, usableOosAvgR } from './paper/oosReference.ts'
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
@@ -413,6 +414,27 @@ const server = createServer(async (req, res) => {
       json(res, 200, { ok: true, data: s })
       return
     }
+    /**
+     * COMPUTE THE OUT-OF-SAMPLE REFERENCE for the strategy that is trading.
+     *
+     * Explicit and slow on purpose: it runs a full backtest, which is seconds,
+     * and the gate only ever READS the stored result. Never triggered by a GET —
+     * the desk polls every fifteen seconds and must never pay for a backtest.
+     */
+    if (path === '/api/validation/oos-reference' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req, 4096)) || '{}') as { strategyId?: string }
+      const id = body.strategyId || (config.fusion.driveTrading ? 'fused' : config.strategy === 'crossover' ? 'crossover' : 'session-ifvg')
+      if (id !== 'fused' && !strategyIds().includes(id)) { json(res, 400, { ok: false, error: `Unknown strategy "${id}"` }); return }
+      const r = await safely(() => refreshOosReference(id))
+      if (r.ok) eventLog.push('info', `Out-of-sample reference computed for ${id}`, r.data.usable ? `${r.data.oosTrades} simulated OOS trades, expectancy ${r.data.oosAvgR === null ? '—' : r.data.oosAvgR.toFixed(3)}R. The stability gate now has a number to compare paper against.` : r.data.reason, 'info')
+      json(res, 200, r.ok ? { ok: true, data: r.data } : r)
+      return
+    }
+    if (path === '/api/validation/oos-reference') {
+      const id = url.searchParams.get('id') || (config.fusion.driveTrading ? 'fused' : config.strategy === 'crossover' ? 'crossover' : 'session-ifvg')
+      json(res, 200, { ok: true, data: oosReferenceFor(id) })
+      return
+    }
     if (path === '/api/resume' && req.method === 'POST') {
       const s = releaseStop()
       eventLog.push('info', 'Kill switch released', 'Entries are allowed again.', 'info')
@@ -670,7 +692,7 @@ const server = createServer(async (req, res) => {
       try { price = (await snapshot()).signal.price } catch { /* stats without unrealized */ }
       const closed = readPositions().closed
       const byStrategy = paperByStrategy(closed)
-      const comparison = comparePaperToOos(byStrategy, listPassports())
+      const comparison = comparePaperToOos(byStrategy, listPassports(), undefined, undefined, usableOosAvgR)
       json(res, 200, { ok: true, data: { ...paperStats(price), byStrategy, comparison } })
       return
     }
@@ -724,6 +746,7 @@ const server = createServer(async (req, res) => {
         hasReadOnlyKey,
         shadowScoredOrders: listShadowOrders().length,
         aiConsistency,
+        oosReference: usableOosAvgR,
       })
       if (url.searchParams.get('format') === 'text') {
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
@@ -873,6 +896,7 @@ const server = createServer(async (req, res) => {
         closed: positions.closed, passports, curve: stats.curve, startUsd: stats.startUsd,
         soak: soakMetrics({ uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), feedOk: !!marketFeed.health(), storeOk: store().integrity() === 'ok', starts: bootLog()?.starts, recoveries: bootLog()?.recoveries }),
         quality: dataQuality(positions.closed),
+        oosReference: usableOosAvgR,
       })
       const decay = decayByStrategy(positions.closed, passports)
       const a = s.analysis

@@ -96,3 +96,31 @@ test('paper is compared to the strategy OOS, and a thin sample is flagged not-en
   assert.equal(thin[0].enoughSample, false)
   assert.match(thin[0].note, /under the/)
 })
+
+/**
+ * THE SECOND SOURCE OF AN OUT-OF-SAMPLE NUMBER.
+ *
+ * A built-in strategy has no genome and so no passport, which left the
+ * stability gate unreachable for the frozen profile. The comparison now takes
+ * a reference lookup — the stored out-of-sample backtest of the strategy that
+ * is actually trading — consulted only when no passport exists. A passport,
+ * when there is one, still wins.
+ */
+test('with no passport, the stored out-of-sample reference supplies the number; a passport still wins when present', () => {
+  const closed = Array.from({ length: 25 }, (_, i) => pos({ strategyId: 'session-ifvg', exitReason: i % 3 ? 'target' : 'stop', rMultiple: i % 3 ? 1 : -1, closedAt: i * 1.5 * DAY }))
+  const none = comparePaperToOos(paperByStrategy(closed), [])
+  assert.equal(none[0].oosAvgR, null)
+  assert.match(none[0].note, /no stored out-of-sample backtest reference/)
+
+  const withRef = comparePaperToOos(paperByStrategy(closed), [], undefined, undefined, (id) => (id === 'session-ifvg' ? 0.35 : null))
+  assert.equal(withRef[0].oosAvgR, 0.35)
+  assert.ok(withRef[0].delta !== null)
+
+  const passports: Passport[] = [{
+    id: 'p1', strategyId: 'session-ifvg', genome: { strategyId: 'session-ifvg', params: {} }, createdAt: 0, origin: 't', status: 'paper',
+    oos: { trades: 30, avgR: 0.6, totalR: 18, sharpeR: 0.5, maxDrawdownR: 2, walkForward: null, monteCarlo: null }, oosLowerAvgR: 0.1,
+    regimeFit: [], results: [], events: [], decay: { decaying: false, reason: '', rollingExpectancy: null, cusumLow: 0, trades: 0 }, reason: 't',
+  }]
+  const both = comparePaperToOos(paperByStrategy(closed), passports, undefined, undefined, () => 0.35)
+  assert.equal(both[0].oosAvgR, 0.6, 'a passport outranks the backtest reference')
+})

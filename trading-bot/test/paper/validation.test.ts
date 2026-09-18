@@ -216,7 +216,7 @@ test('a flawless run with no passport is stuck at 8/9, and the gate says so inst
   assert.equal(g.metCount, g.total - 1, `only the stability gate should be short; unmet: ${g.gates.filter((x) => !x.met).map((x) => x.id).join(', ')}`)
   assert.equal(g.verdict, 'INSUFFICIENT SAMPLE')
   // The wording has to distinguish "not yet" from "not ever on this path".
-  assert.match(stability.detail, /CANNOT PASS however long the run continues/)
+  assert.match(stability.detail, /CANNOT PASS until one exists; waiting will not resolve it/)
   assert.match(stability.detail, /crossover/, 'the blocked strategy must be named')
   assert.equal(/\byet\b/.test(stability.detail), false, 'a permanent blocker must not be described as a wait')
 })
@@ -335,4 +335,33 @@ test('no source file buckets a day by UTC instead of the trading day', () => {
   }
   walk(join(ROOT, 'src'))
   assert.deepEqual(offenders, [], `these files cut a day on UTC midnight; the trading day rolls at 18:00 ET — use tradingDayKey()`)
+})
+
+/**
+ * THE GATE IS REACHABLE AGAIN — on its own terms.
+ *
+ * Same flawless sample as the "stuck at 8/9" test above, no passport, but now
+ * with a stored out-of-sample reference for the strategy that traded. The
+ * gate compares against it like it would a passport, and the run can complete.
+ * Nothing about the threshold changed.
+ */
+test('with an out-of-sample backtest reference and no passport, a flawless run reaches GATES MET', () => {
+  const closed = gatesMetClosed()
+  const g = evaluateGates({
+    closed, passports: [], curve: closed.map((_, i) => ({ equity: 25 + i })), startUsd: 25,
+    soak: soakMetrics({ uptimeSec: 200 * 3600, feedOk: true, storeOk: true }), quality: dataQuality(closed),
+    oosReference: (id) => (id === 'crossover' ? 0.9 : null),
+  })
+  assert.equal(g.verdict, 'GATES MET', `unmet: ${g.gates.filter((x) => !x.met).map((x) => x.id).join(', ')}`)
+  const stability = g.gates.find((x) => x.id === 'stability')!
+  assert.equal(stability.met, true)
+  assert.match(stability.detail, /Worst shortfall below the out-of-sample floor/)
+
+  // And a reference that says paper is far below the floor still fails it — the bar did not move.
+  const worse = evaluateGates({
+    closed, passports: [], curve: closed.map((_, i) => ({ equity: 25 + i })), startUsd: 25,
+    soak: soakMetrics({ uptimeSec: 200 * 3600, feedOk: true, storeOk: true }), quality: dataQuality(closed),
+    oosReference: () => 5,
+  })
+  assert.equal(worse.gates.find((x) => x.id === 'stability')!.met, false)
 })
