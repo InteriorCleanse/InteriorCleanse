@@ -35,6 +35,7 @@ import type { RiskState } from './riskEngine.ts'
 import { marketFeed } from './data/feed.ts'
 import type { AppEvent } from './types.ts'
 import * as ui from './ui.ts'
+import { observePaperClose } from './learning/observer.ts'
 
 const EVENTS_PATH = join(DATA_DIR, 'events.jsonl')
 
@@ -132,6 +133,9 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
     const r = p.rMultiple ?? 0
     eventLog.push('setup', `Paper ${p.direction} closed at ${r >= 0 ? '+' : ''}${r.toFixed(2)}R (${p.exitReason})`,
       `Filled ${p.entry.toFixed(2)}, out ${p.exit?.toFixed(2)} after ${p.candlesHeld} candle(s). ${r >= 0 ? 'Made' : 'Lost'} $${Math.abs(p.pnlUsd ?? 0).toFixed(3)} after $${(p.feesUsd ?? 0).toFixed(3)} of fees. Memory has recorded it; a journal entry is waiting for how you felt.`, r >= 0 ? 'action' : 'warn')
+    // The learning loop observes the close AFTER the position is final. Its
+    // result is not read here; a failure in it cannot affect the cycle.
+    try { observePaperClose(p, now) } catch (err) { eventLog.push('info', 'Learning loop skipped', String((err as Error)?.message ?? err), 'warn') }
   }
 
   if (a) {
