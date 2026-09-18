@@ -9,6 +9,7 @@
  */
 
 import { config } from '../../config.ts'
+import type { ReplayTrade } from '../types.ts'
 import { runStrategyReplay, runFusedReplay } from '../replay.ts'
 import { strategyIds, metaById } from '../strategies/registry.ts'
 import { withParamsAsync } from '../paramOverrides.ts'
@@ -20,15 +21,25 @@ export type RunBacktestOptions = BacktestOptions & { params?: Record<string, num
 
 /** `id` is a strategy id or the pseudo-id `fused`. */
 export async function runBacktest(id: string, opts: RunBacktestOptions = {}): Promise<BacktestReport> {
+  return (await runBacktestDetailed(id, opts)).report
+}
+
+/**
+ * The same backtest, returning the trades beside the report. The research
+ * layer's experiment runner needs the per-trade R series to compare a
+ * variant against its baseline with an interval, not just two summary
+ * numbers. Same replay, same fill model, same parameter scoping.
+ */
+export async function runBacktestDetailed(id: string, opts: RunBacktestOptions = {}): Promise<{ report: BacktestReport; trades: ReplayTrade[] }> {
   if (id !== 'fused' && !strategyIds().includes(id)) throw new Error(`Unknown strategy "${id}". Known: ${strategyIds().join(', ')}, fused`)
 
   // Order-flow strategies read the live trade tape, which historical candles
   // cannot reconstruct. Rather than backtest them on a candle approximation and
   // quote a number that never happened, we say so plainly and score nothing.
   if (id !== 'fused' && metaById().get(id)?.needsTape) {
-    return buildReport(id, [], {
+    return { trades: [], report: buildReport(id, [], {
       notBacktestable: 'This is an order-flow strategy — it can only vote with the live trade tape, and historical candles cannot reconstruct it. It is not backtestable outside a recorded tape window, so no out-of-sample number is quoted here (a candle approximation would be a number that never happened).',
-    })
+    }) }
   }
 
   const { params, ...reportOpts } = opts
@@ -36,13 +47,14 @@ export async function runBacktest(id: string, opts: RunBacktestOptions = {}): Pr
   const result = await withParamsAsync(params ?? null, () =>
     id === 'fused' ? runFusedReplay({ useMemory: false, writeMemory: false }) : runStrategyReplay(id, { useMemory: false, writeMemory: false }),
   )
-  return buildReport(id, result.trades, {
+  const report = buildReport(id, result.trades, {
     trainPct: config.backtest.trainPct,
     validationPct: config.backtest.validationPct,
     walkForward: config.backtest.walkForward,
     monteCarloSamples: config.backtest.monteCarloSamples,
     ...reportOpts,
   })
+  return { report, trades: result.trades }
 }
 
 /** Every enabled strategy plus the fused decision, backtested over the same window. */

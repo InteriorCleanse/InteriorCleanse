@@ -91,12 +91,12 @@ test('paper events flow automatically: entry, exit with reconciled excursions, r
   const p = pos(0)
   store().savePosition(p)
   ob.observeCycle(snapAt(last), NOW + 2)
-  store().savePosition({ ...p, status: 'open', filledAt: p.openedAt + STEP })
+  store().savePosition({ ...p, status: 'open', filledAt: p.openedAt + STEP } as PaperPosition)
   const entry = ob.observeCycle(snapAt(last), NOW + 3)
   assert.ok(entry.recorded.some((o) => o.type === 'PAPER ENTRY' && o.recordId === p.id))
   const closedAt = p.openedAt + 20 * STEP
-  store().savePosition({ ...p, status: 'open', filledAt: p.openedAt + STEP })
-  store().savePosition({ ...p, status: 'closed', filledAt: p.openedAt + STEP, closedAt, exit: p.entry * 1.004, exitReason: 'time', rMultiple: 0.8, outcome: 'WIN', candlesHeld: 19 })
+  store().savePosition({ ...p, status: 'open', filledAt: p.openedAt + STEP } as PaperPosition)
+  store().savePosition({ ...p, status: 'closed', filledAt: p.openedAt + STEP, closedAt, exit: p.entry * 1.004, exitReason: 'time', rMultiple: 0.8, outcome: 'WIN', candlesHeld: 19 } as PaperPosition)
   const exit = ob.observeCycle(snapAt(last), NOW + 4)
   const x = exit.recorded.find((o) => o.type === 'PAPER EXIT')!
   assert.ok(x, 'an exit is observed')
@@ -106,7 +106,7 @@ test('paper events flow automatically: entry, exit with reconciled excursions, r
   assert.equal(typeof stored.mae, 'number')
   assert.ok(stored.reconciledAt)
   assert.equal(rec.reconcileExcursions(stored)!.changed, false, 'reconciliation is idempotent')
-  assert.throws(() => store().savePosition({ ...stored, rMultiple: 5 }), /immutable/, 'nothing but the reconciliation fields may change')
+  assert.throws(() => store().savePosition({ ...stored, rMultiple: 5 } as PaperPosition), /immutable/, 'nothing but the reconciliation fields may change')
 
   const veto = pos(1, { id: 'obs-veto', status: 'closed', closedAt: candles[candles.length - 59].openTime + STEP, exitReason: 'missed', note: 'risk veto: daily loss limit reached' })
   store().savePosition(veto)
