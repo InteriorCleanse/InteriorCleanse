@@ -30,7 +30,7 @@ function pos(i: number, over: Partial<PaperPosition> = {}): PaperPosition {
   return {
     id: `pp${i}`, openedAt, dayKey: '2026-01-13', session: 'London', setupKey: `BTCUSDT|5m|silver-bullet|long`, direction: 'long',
     intendedEntry: 100, entry: 100, stop: 99, target: 102, quantity: 0.01, riskUsd: 1, quality: 85, reason: 'test', atr: 0.5, status: 'closed',
-    filledAt: openedAt + 300_000, strategyId: 'silver-bullet', regime: 'trending-up', closedAt: openedAt + 1_800_000, exit: 102, exitReason: 'target', rMultiple: 1.9, pnlUsd: 1.9, feesUsd: 0.01, outcome: 'win', candlesHeld: 5,
+    filledAt: openedAt + 300_000, strategyId: 'silver-bullet', regime: 'trending-up', closedAt: openedAt + 1_800_000, exit: 102, exitReason: 'target', rMultiple: 1.9, pnlUsd: 1.9, feesUsd: 0.01, outcome: 'WIN', candlesHeld: 5,
     snapshot: { signalId: `sig${i}`, symbol: 'BTCUSDT', interval: '5m', engineVersion: '2.3.0', featureVersion: 1, volatility: 'normal', fusedScore: 80, fusedAction: 'LONG', confirms: [], invalidates: [], contributors: [{ id: 'silver-bullet', action: 'BUY', confidence: 80 }], evidence: [], riskChecks: [], riskVetoedBy: null, newsMinutes: null, inBlackout: false },
     ...over,
   }
@@ -48,10 +48,10 @@ test('a post-mortem is observations with a list of what it cannot conclude; a lo
   assert.equal(item.provenance.sampleSize, 1)
   assert.ok(item.tags.includes('silver-bullet'))
 
-  const loss = obs.observePaperClose(pos(1, { exit: 99, exitReason: 'stop', rMultiple: -1, pnlUsd: -1, outcome: 'loss' }), T0 + 11)
+  const loss = obs.observePaperClose(pos(1, { exit: 99, exitReason: 'stop', rMultiple: -1, pnlUsd: -1, outcome: 'LOSS' }), T0 + 11)
   assert.equal(loss.kind, 'loss-on-full-checklist')
   assert.ok(loss.observations.some((o) => /not evidence that a condition is missing/.test(o)))
-  const weak = obs.observePaperClose(pos(2, { exit: 99, exitReason: 'stop', rMultiple: -1, outcome: 'loss', snapshot: undefined }), T0 + 12)
+  const weak = obs.observePaperClose(pos(2, { exit: 99, exitReason: 'stop', rMultiple: -1, outcome: 'LOSS', snapshot: undefined }), T0 + 12)
   assert.equal(weak.kind, 'loss')
   assert.ok(weak.observations.some((o) => /No decision-time snapshot/.test(o)))
   assert.ok(weak.observations.some((o) => /not computed until reconciliation/.test(o)), 'excursions are not estimated')
@@ -61,10 +61,10 @@ test('a post-mortem is observations with a list of what it cannot conclude; a lo
 
 test('observing the same close twice writes one item and counts the evidence once', () => {
   const item = vault.addItem({ kind: 'strategy-observation', title: 'Silver Bullet positive', body: 'Observed positive over 60 PAPER trades.', evidenceLabel: 'OBSERVED', provenance: { source: 'PAPER', sampleSize: 60 }, payload: { direction: 'positive', filters: [{ dimension: 'strategyId', values: ['silver-bullet'] }] }, now: T0 })
-  const first = obs.observePaperClose(pos(10, { exit: 99, exitReason: 'stop', rMultiple: -1, outcome: 'loss' }), T0 + 20)
+  const first = obs.observePaperClose(pos(10, { exit: 99, exitReason: 'stop', rMultiple: -1, outcome: 'LOSS' }), T0 + 20)
   assert.ok(first.itemsTouched.includes(item.id))
   assert.equal(vault.getItem(item.id)!.contradictory_evidence_count, 1, 'a loss contradicts a positive observation')
-  const again = obs.observePaperClose(pos(10, { exit: 99, exitReason: 'stop', rMultiple: -1, outcome: 'loss' }), T0 + 21)
+  const again = obs.observePaperClose(pos(10, { exit: 99, exitReason: 'stop', rMultiple: -1, outcome: 'LOSS' }), T0 + 21)
   assert.deepEqual(again.itemsTouched, [])
   assert.equal(vault.getItem(item.id)!.contradictory_evidence_count, 1)
   assert.equal(vault.listItems({ kind: 'lesson' }).filter((i) => i.id === first.vaultItemId).length, 1)
@@ -77,7 +77,7 @@ test('observing the same close twice writes one item and counts the evidence onc
 test('a PAPER hypothesis in the cohort is flagged UNDER REVIEW after ten new closes, with the tally in the reason', () => {
   const h = H.createHypothesis({ question: 'Silver bullet in London positive?', observation: 'x', hypothesis: 'positive', nullHypothesis: 'zero', direction: 'positive', dataset: { source: 'PAPER', label: 'PAPER' }, cohortFilters: [{ dimension: 'strategyId', values: ['silver-bullet'] }, { dimension: 'session', values: ['london'] }], method: 'm', strategy: 'silver-bullet', session: 'london', now: T0 })
   H.saveHypothesis(H.recordStage(h, 'inSample', { at: T0, source: 'PAPER', dataType: 'LIVE MARKET / SIMULATED EXECUTION', trades: 40, sampleStatus: 'EARLY SAMPLE', meanR: 0.5, ci95: { lo: 0.1, hi: 0.9 }, method: 'm', recordIds: [], note: 'n' }, T0))
-  for (let i = 0; i < obs.HYPOTHESIS_REVIEW_AFTER - 1; i++) obs.observePaperClose(pos(100 + i, { rMultiple: i % 3 ? 1 : -1, outcome: i % 3 ? 'win' : 'loss' }), T0 + 100 + i)
+  for (let i = 0; i < obs.HYPOTHESIS_REVIEW_AFTER - 1; i++) obs.observePaperClose(pos(100 + i, { rMultiple: i % 3 ? 1 : -1, outcome: i % 3 ? 'WIN' : 'LOSS' }), T0 + 100 + i)
   assert.equal(H.getHypothesis(h.id)!.status, 'OBSERVED IN SAMPLE')
   obs.observePaperClose(pos(200), T0 + 200)
   const flagged = H.getHypothesis(h.id)!
@@ -102,7 +102,7 @@ test('the living passport says NOT ENOUGH DATA under the bar and assembles the r
   assert.ok(none.wouldChange.some((w) => /more closed paper trade/.test(w)))
   assert.ok(none.concepts.some((c) => c.id === 'order-block'))
   assert.equal(none.oosReference, null)
-  const closed = Array.from({ length: 12 }, (_, i) => pos(300 + i, { rMultiple: i % 4 === 0 ? -1 : 1.5, outcome: i % 4 === 0 ? 'loss' : 'win' }))
+  const closed = Array.from({ length: 12 }, (_, i) => pos(300 + i, { rMultiple: i % 4 === 0 ? -1 : 1.5, outcome: i % 4 === 0 ? 'LOSS' : 'WIN' }))
   const some = lp.livingPassport('silver-bullet', closed, { now: T0 })
   assert.ok('cohort' in some.paper)
   if ('cohort' in some.paper) {
@@ -172,7 +172,7 @@ test('BOUNDARY — the learning layers value-import nothing that decides, sizes,
       // The one permitted exception: the case-study engine steps the REAL engine over stored candles,
       // which means calling the pure fuse() over historical votes. It is the only learning-layer file
       // that may import fusion, and it may import nothing else from the banned list.
-      const hits = body.match(/from '\.\.\/(fusion|riskEngine|execution|watch)\.ts'/g) ?? []
+      const hits = [...new Set(body.match(/from '\.\.\/(fusion|riskEngine|execution|watch)\.ts'/g) ?? [])]
       assert.deepEqual(hits, ["from '../fusion.ts'"], `${rel} may value-import fusion (pure, over stored candles) and nothing else that decides`)
     } else assert.equal(banned.test(body), false, `${rel} imports a deciding or acting module`)
     assert.equal(writers.test(body), false, `${rel} calls something that writes a position, an order, a passport or a parameter`)
