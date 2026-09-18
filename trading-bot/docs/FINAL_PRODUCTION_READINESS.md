@@ -566,3 +566,17 @@ assumptions from observed spreads), then **testnet** (≥ 20 reconciled trades)
 — all before any real-money consideration, and each behind the existing gate
 chain. Do **not** enable live, add credentials, or deploy capital until those
 samples exist and are reviewed.
+
+## Phase 23 — Continuous learning (added after this report)
+
+The Market School, the Research Lab, the Knowledge Vault and the learning
+loop sit beside the engine as observation layers. They read the stores; the
+engine reads none of them, and reaches them through one call after a paper
+close whose result it does not use. Nothing in this phase changed the
+strategy rules, fusion, risk, execution, the validation gates, the OOS /
+walk-forward / Monte Carlo machinery, decay, shadow or live gates, or
+`config.ts`. See `docs/CONTINUOUS_LEARNING_ACCEPTANCE.md` for the 23-step
+acceptance workflow, the security regression and the start-up steps, and
+`docs/MARKET_SCHOOL.md`, `docs/CASE_STUDY_ENGINE.md`, `docs/RESEARCH_LAB.md`,
+`docs/HYPOTHESIS_ENGINE.md`, `docs/KNOWLEDGE_VAULT.md`, `docs/LEARNING_LOOP.md`
+and `docs/AI_TEACHER_AND_DEBATE.md` for each subsystem.
