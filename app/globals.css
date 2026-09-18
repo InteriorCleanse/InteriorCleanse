@@ -3357,9 +3357,12 @@ textarea {
 .globe-cursor-hint[data-shown='true'] { opacity: 1; }
 
 @media (max-width: 900px) {
-  .featured-slot { position: static; margin: 0 auto; padding: 0 5vw 3rem; }
-  .featured-card { width: 100%; max-width: 340px; }
-  .residence-copy { padding-bottom: 3rem; margin-left: 0; padding-left: 5vw; }
+  /* The hero is a flex row; once the featured card goes static it must take
+     its own row, or it sits beside the headline and clips it. */
+  .residence-hero { flex-wrap: wrap; }
+  .featured-slot { position: static; flex: 0 0 100%; margin: 0 auto; padding: 0 5vw 3rem; }
+  .featured-card { width: 100%; max-width: 340px; margin: 0 auto; }
+  .residence-copy { flex: 0 0 100%; max-width: none; padding-bottom: 3rem; margin-left: 0; padding-left: 5vw; }
 }
 
 @media (max-width: 767px) {
@@ -4541,4 +4544,128 @@ textarea {
 
 @media (max-width: 767px) {
   .reel-image { inset: 8%; width: 84%; height: 84%; }
+}
+
+/* ── LIVING LAYER ───────────────────────────────────────────────────
+   One curve, three durations (tokens at :root). Everything here is
+   transform or opacity; nothing lays out or paints per frame. */
+
+/* The browser stack: one product reads at a time. Cards behind keep their
+   silhouette for depth and lose their words, so no two names ever overlap. */
+.browser-card:not([data-active='true']) .browser-card-name,
+.browser-card:not([data-active='true']) .browser-card-desc,
+.browser-card:not([data-active='true']) .browser-card-price,
+.browser-card:not([data-active='true']) .browser-card-actions {
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease);
+}
+.browser-card[data-active='true'] .browser-card-name,
+.browser-card[data-active='true'] .browser-card-desc,
+.browser-card[data-active='true'] .browser-card-price,
+.browser-card[data-active='true'] .browser-card-actions {
+  opacity: 1;
+  transition: opacity var(--dur-slow) var(--ease) 120ms;
+}
+
+/* The scene behind the stack: dim, soft-edged, and it breathes very slowly. */
+.browser-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 30%, transparent 100%);
+}
+.browser-scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.38;
+  filter: saturate(0.85);
+  transform: scale(1.04);
+  animation: browser-scene-breathe 26s var(--ease) infinite alternate;
+  will-change: transform;
+}
+@keyframes browser-scene-breathe {
+  from { transform: scale(1.04) translate3d(0, 0, 0); }
+  to { transform: scale(1.09) translate3d(0, -1.5%, 0); }
+}
+.browser-stack,
+.browser-controls,
+.browser-escape { position: relative; z-index: 1; }
+
+/* A soft pool of light behind the active product. */
+.browser-card[data-active='true'] .browser-card-image {
+  filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.55));
+}
+
+/* Triptych columns give the parallax room to travel. */
+.triptych-col img {
+  height: 130%;
+  margin-top: -15%;
+  will-change: transform;
+}
+
+/* Cards: the image answers the pointer, the title underlines itself. */
+.product-card:hover .product-card-image img,
+.product-card:focus-within .product-card-image img {
+  transform: scale(1.04);
+}
+.article-card-image:hover img { transform: scale(1.04); }
+.product-card-name a,
+.book-card-title a,
+.article-card-title a {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  transition: background-size var(--dur-slow) var(--ease);
+}
+.product-card:hover .product-card-name a,
+.book-card:hover .book-card-title a,
+.article-card-title a:hover {
+  background-size: 100% 1px;
+}
+
+/* Press feedback: quick in, slow out, on every primary control. */
+.add-to-cart-btn,
+.btn-primary,
+.btn-ghost,
+.btn-residence-primary,
+.btn-residence-ghost,
+.browser-details,
+.browser-controls button,
+.gallery-dot,
+.header-icon-btn {
+  transition-property: background, color, border-color, transform, box-shadow, gap;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease);
+}
+.add-to-cart-btn:active:not(:disabled),
+.btn-primary:active,
+.btn-ghost:active,
+.btn-residence-primary:active,
+.btn-residence-ghost:active,
+.browser-details:active,
+.browser-controls button:active {
+  transform: scale(0.98);
+  transition-duration: var(--dur-quick);
+}
+.add-to-cart-btn:hover:not(:disabled) {
+  box-shadow: 0 10px 30px -12px rgba(169, 137, 90, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .browser-scene img { animation: none; transform: none; }
+  .triptych-col img { height: 100%; margin-top: 0; }
+  .product-card:hover .product-card-image img,
+  .article-card-image:hover img { transform: none; }
+  .add-to-cart-btn:active:not(:disabled),
+  .btn-primary:active,
+  .btn-ghost:active,
+  .btn-residence-primary:active,
+  .btn-residence-ghost:active,
+  .browser-details:active,
+  .browser-controls button:active { transform: none; }
 }

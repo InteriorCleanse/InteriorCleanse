@@ -89,6 +89,23 @@ export function GSAPAnimations() {
             )
           })
 
+          // Triptych: three columns, three speeds. The images are taller than
+          // their frames (CSS), so the travel never exposes an edge. Transform
+          // only, scrubbed to scroll — no layout, no paint.
+          gsap.utils.toArray<HTMLElement>('.triptych-col img').forEach((img, i) => {
+            const travel = [14, 8, 11][i % 3]
+            gsap.fromTo(
+              img,
+              { yPercent: -travel },
+              {
+                yPercent: travel,
+                ease: 'none',
+                immediateRender: false,
+                scrollTrigger: { trigger: '.triptych', start: 'top bottom', end: 'bottom top', scrub: 0.6 },
+              }
+            )
+          })
+
           // Hero: drift the 3D stage as the headline scrolls away.
           const heroCanvas = document.querySelector('.hero-canvas')
           if (heroCanvas) {
