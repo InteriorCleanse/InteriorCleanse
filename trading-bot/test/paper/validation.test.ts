@@ -7,6 +7,10 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ROOT } from '../helpers.ts'
+import { tradingDayKey } from '../../src/sessions.ts'
 import type { PaperPosition } from '../../src/paperTrader.ts'
 import type { Passport } from '../../src/vault/passport.ts'
 import {
@@ -218,4 +222,54 @@ test('the full report and daily text hold together and keep the no-overfit remin
   assert.match(text, /PAPER VALIDATION REPORT/)
   assert.match(text, /VERDICT: GATES MET/)
   assert.match(text, /paper is validation data/i)
+})
+
+/**
+ * THE REPORT'S DATE IS THE TRADING DAY, NOT UTC.
+ *
+ * The header used to read `new Date(generatedAt).toISOString().slice(0, 10)`
+ * while every trade inside it is bucketed by `tradingDayKey`, which rolls at
+ * 18:00 ET. The two disagree for 18:00–19:59 ET in summer and 18:00–18:59 ET in
+ * winter — exactly the "end of the day, run the report" window for a system
+ * whose day rolls at 18:00. A report run then carried the PREVIOUS day's date
+ * over the current trading day's trades. Same defect shape as the two
+ * previous-day calculations that sat $279.56 apart.
+ */
+test('the daily report is headed with the trading day, not the UTC day', () => {
+  const closed = gatesMetClosed()
+  const base = {
+    closed, passports: [passport({})], curve: closed.map((_, i) => ({ equity: 25 + i })), startUsd: 25,
+    soak: soakMetrics({ uptimeSec: 200 * 3600, feedOk: true, storeOk: true }), version: '1.2.3',
+    hasReadOnlyKey: true, shadowScoredOrders: 0, aiConsistency: aiEngineConsistency('NO TRADE', 'NO TRADE', true),
+  }
+  // 18:30 ET on a summer evening: the trading day has rolled, UTC has not.
+  for (const at of [Date.UTC(2026, 6, 15, 22, 30), Date.UTC(2026, 0, 15, 23, 30)]) {
+    const report = { ...buildValidationReport(base), generatedAt: at }
+    const utcDay = new Date(at).toISOString().slice(0, 10)
+    const tradingDay = tradingDayKey(at)
+    assert.notEqual(tradingDay, utcDay, 'the fixture must sit in the window where the two calendars disagree')
+    const text = renderDailyReport(report)
+    assert.match(text, new RegExp(`PAPER VALIDATION REPORT — trading day ${tradingDay}`))
+    assert.equal(text.includes(`— trading day ${utcDay}`), false, 'the report is still headed with the UTC day')
+  }
+})
+
+/**
+ * A class guard. `toISOString().slice(0, 10)` is a UTC calendar day, and this
+ * system's day is the ICT trading day. Every place that needed one had reached
+ * for the other: the report header, and the MCP plan fallback — where `planFor`
+ * matches by exact string equality, so a UTC key silently armed a plan that
+ * could never apply.
+ */
+test('no source file buckets a day by UTC instead of the trading day', () => {
+  const offenders: string[] = []
+  const walk = (dir: string): void => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) walk(full)
+      else if (e.name.endsWith('.ts') && /toISOString\(\)\.slice\(0,\s*10\)/.test(readFileSync(full, 'utf8'))) offenders.push(full)
+    }
+  }
+  walk(join(ROOT, 'src'))
+  assert.deepEqual(offenders, [], `these files cut a day on UTC midnight; the trading day rolls at 18:00 ET — use tradingDayKey()`)
 })

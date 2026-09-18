@@ -20,6 +20,7 @@
 
 import { config, LIVE_TRADING_ENABLED } from '../../config.ts'
 import { paperOutcome } from '../paperTrader.ts'
+import { tradingDayKey } from '../sessions.ts'
 import type { PaperPosition } from '../paperTrader.ts'
 import type { Passport } from '../vault/passport.ts'
 import { paperByStrategy, comparePaperToOos, strategyOf } from './metrics.ts'
@@ -655,11 +656,22 @@ export function buildValidationReport(input: ValidationReportInput): ValidationR
 const fmtR = (r: number | null): string => (r === null ? '—' : (r >= 0 ? '+' : '') + r.toFixed(3) + 'R')
 const fmtPct = (p: number | null): string => (p === null ? '—' : p.toFixed(1) + '%')
 
-/** The daily PAPER VALIDATION REPORT, as plain text — for the runbook, a cron, or a glance. */
+/**
+ * The daily PAPER VALIDATION REPORT, as plain text — for the runbook, a cron, or
+ * a glance.
+ *
+ * The date is the ICT TRADING day (`tradingDayKey`, rolling at 18:00 ET), the
+ * same calendar every trade in the report is bucketed by. It used to be the UTC
+ * date of `generatedAt`, which disagrees for two hours a day in summer and one
+ * in winter — 18:00–19:59 ET and 18:00–18:59 ET respectively, which is exactly
+ * the "end of the day, run the report" window for a system whose day rolls at
+ * 18:00. A report run then was headed with the PREVIOUS day's date while
+ * containing the current trading day's trades.
+ */
 export function renderDailyReport(r: ValidationReport): string {
-  const d = new Date(r.generatedAt).toISOString().slice(0, 10)
+  const d = tradingDayKey(r.generatedAt)
   const L: string[] = []
-  L.push(`PAPER VALIDATION REPORT — ${d}`)
+  L.push(`PAPER VALIDATION REPORT — trading day ${d} (rolls 18:00 ET)`)
   L.push(`Profile ${r.profile.profile} · ${r.profile.market.symbol} ${r.profile.market.interval} · live trading ${r.profile.liveTradingEnabled ? 'ENABLED(!)' : 'disabled'}`)
   L.push('')
   L.push(`VERDICT: ${r.gates.verdict}  (${r.gates.metCount}/${r.gates.total} gates, ${r.gates.progressPct}%)`)

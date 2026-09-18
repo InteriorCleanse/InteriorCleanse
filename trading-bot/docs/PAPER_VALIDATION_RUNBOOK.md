@@ -92,9 +92,19 @@ or a scheduled session):
 
 ```bash
 mkdir -p data/validation-reports
-curl -s "localhost:4173/api/validation?format=text" \
-  > "data/validation-reports/$(date +%F).txt"
+report=$(curl -s "localhost:4173/api/validation?format=text")
+# Name the file by the TRADING day the report is headed with, not the host's
+# local date. The trading day rolls at 18:00 ET, so the two disagree for the
+# 1–2 hours between the roll and UTC midnight — which is exactly when an
+# end-of-day cron would fire. Taking the day from the report itself means the
+# filename and the contents can never drift apart.
+day=$(printf '%s' "$report" | sed -n '1s/.*trading day \([0-9-]*\).*/\1/p')
+printf '%s' "$report" > "data/validation-reports/${day:-unknown}.txt"
 ```
+
+The report header reads `PAPER VALIDATION REPORT — trading day YYYY-MM-DD
+(rolls 18:00 ET)`. If you schedule the capture, prefer a time well away from
+18:00 ET so a late run cannot land on the next trading day.
 
 Append the day's verdict line and anything notable to
 `docs/PAPER_VALIDATION_RESULTS.md`.

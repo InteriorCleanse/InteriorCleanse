@@ -23,6 +23,7 @@ import { buildBrief } from './brief.ts'
 import { summarizeNews } from './news.ts'
 import { getFlow } from './orderflow.ts'
 import { readPlan, writePlan } from './plan.ts'
+import { tradingDayKey } from './sessions.ts'
 import { readJournal, journalSummaryForAI } from './journal.ts'
 import { runDoctor } from './doctor.ts'
 import { paperStats } from './paperTrader.ts'
@@ -167,7 +168,11 @@ const TOOLS: Tool[] = [
     },
     run: async (args) => {
       const s = await analyzeNow({ withNews: false, withFlow: false })
-      const dayKey = s.analysis?.dayKey ?? new Date().toISOString().slice(0, 10)
+      // `planFor` matches this by exact string equality against the trading day
+      // key, so the fallback has to use the SAME calendar. A UTC date agrees 22
+      // hours a day and silently disagrees for the other two (18:00-19:59 ET),
+      // which would arm a plan that never applies.
+      const dayKey = s.analysis?.dayKey ?? tradingDayKey(Date.now())
       const plan = {
         dayKey, armedAt: Date.now(),
         allow: (['long', 'short', 'both', 'none'] as const).includes(args.allow as never) ? (args.allow as 'long' | 'short' | 'both' | 'none') : 'both',

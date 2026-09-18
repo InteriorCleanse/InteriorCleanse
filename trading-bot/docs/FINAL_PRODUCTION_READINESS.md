@@ -12,7 +12,7 @@ sizes* (weeks of paper, weeks of shadow, ≥20 reconciled testnet trades), which
 by design cannot be satisfied inside this audit.
 
 Checks run: `typecheck` (clean), `selftest` (exit 0), full suite
-(**486 tests, 486 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
+(**488 tests, 488 pass, 0 todo, 0 fail, 0 skipped**), `ui:smoke` (pass at 1180px
 and 400px, no console errors). No `lint`/`build` scripts exist — the project runs
 TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml`,
 22 green runs) runs typecheck + selftest + the full suite.
@@ -28,7 +28,7 @@ TypeScript directly under Node 22; `typecheck` is the type gate and CI (`bot.yml
 | Recovery | **PASS** (with WARNING on soak) | Durable store; startup re-adoption of open positions (`recovery.ts`, wired in `watch.ts`); reconciliation from the venue's `myTrades` recovers a position / a flat (`test/live/reconcile.test.ts`). **WARNING:** the 7-day-unattended soak is a deployment-time property, not yet demonstrated. |
 | AI | **PASS** | Context is built only from the feature snapshot + fused decision + risk verdict (`ai/context.ts`); a validator rejects a missing section or a number outside the context (`ai/narrator.ts`); a deterministic narration is the offline fallback; the CIO decision is **exactly** the fused decision after risk (`ai/cio.ts`, `test/ai/cio.test.ts`). No fabricated certainty. |
 | UI | **PASS** | Smoke passes at desktop and phone widths with zero page/console errors across all 13 tabs; header shows `PAPER · no real money`; panels have loading/error states; no live-order control exists. |
-| Testing | **PASS** | 486/486 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
+| Testing | **PASS** | 488/488 pass, 0 todo (the stale marker is retired — see below); selftest ≥80 checks incl. the hand-built baseline day; deterministic (seeded) factory/Monte-Carlo/campaign tests; an order-path guard that was verified to fail on a deliberate violation; Playwright UI smoke as a separate `npm run ui:smoke`. |
 | Observability | **PASS** | Structured JSON-lines logging with size rotation that never throws (`log.ts`); deep `/api/health` (store, dataDir, feed, kill switch, `healthy` flag); store backups with integrity check (`scripts/backup.ts`). |
 | Documentation | **PASS** | README (incl. a "Real money" gate-chain chapter), `docs/DEPLOY.md`, `trading_bot_instructions.md`, `.env.example` all match the current code. Both previously-open recommendations (the CI import-guard and the stale todo marker) are now closed. |
 
@@ -51,12 +51,13 @@ included — is preserved exactly. The suite now reports **0 todo**.
 
 ---
 
-## Cross-source consistency audit — three defects found and fixed
+## Cross-source consistency audit — five defects found and fixed
 
 The Phase 22 audit found a bug by asking *"is this concept computed in more than
 one place, and do those places agree?"*. Applying the same question to the rest
-of the system found a second one (win rate, below) and then a third (shadow R,
-further below).
+of the system found a second (win rate), a third (shadow R), a fourth (the fee
+knob and a fourth copy of the R formula) and a fifth (two calendars for "the
+day") — each in its own section below.
 
 **`sim/trades.ts` opens by promising it is "the one place trade results are
 worked out … so a number on one screen can never disagree with the same number
@@ -172,6 +173,46 @@ actually drives and points at `execution.*`.
 — one pinning journal R to engine R, one asserting the journal *follows the
 execution fees*. The second was verified to fail against the old formula; the
 first passes either way, which is precisely why the wiring bug was invisible.
+
+### Two calendars for "the day"
+
+The system's day is the **ICT trading day**, which rolls at **18:00 ET**
+(`tradingDayKey`, `config.ict.dayStartHour`). Two places cut the day on **UTC
+midnight** instead. Measured, hour by hour across a full day:
+
+| | disagreement window | hours/day |
+|---|---|---|
+| summer (EDT) | 18:00–19:59 ET | 2 of 24 |
+| winter (EST) | 18:00–18:59 ET | 1 of 24 |
+
+That window is not arbitrary — it is the gap between the trading-day roll and
+UTC midnight, i.e. exactly when an "end of the day" run happens.
+
+1. **`paper/validation.ts` — the daily report header.** Headed with the UTC date
+   of `generatedAt` while every trade inside is bucketed by the trading day, so a
+   report run at 18:30 ET carried the *previous* day's date over the *current*
+   trading day's trades. A label, not a computation — no gate or metric moved —
+   but the run is meant to accumulate weeks of dated evidence, and a mislabelled
+   day corrupts the record it is there to produce.
+
+2. **`mcp.ts` — the day-plan fallback.** `s.analysis?.dayKey ?? new
+   Date().toISOString().slice(0, 10)`. This one is **behavioural**, not
+   cosmetic: `planFor` matches by *exact string equality*
+   (`plan.ts:48`), so a plan armed through this fallback inside the window gets a
+   key that can never match the trading day — the plan is silently ignored, with
+   no error. It agrees 22 hours a day, which is why it looked fine.
+
+**Fix.** Both use `tradingDayKey`. The report header now states the calendar
+outright: `PAPER VALIDATION REPORT — trading day YYYY-MM-DD (rolls 18:00 ET)`.
+The runbook's capture snippet used a *third* calendar — `$(date +%F)`, the
+host's local date — for the filename; it now takes the day from the report's own
+header, so the name and the contents cannot drift apart, and it warns against
+scheduling near 18:00 ET.
+
+Locked by two tests in `test/paper/validation.test.ts`: one pinning the header to
+the trading day at 18:30 ET in both DST regimes, and one **class guard** that
+fails if any file under `src/` cuts a day with `toISOString().slice(0, 10)`
+again. Both were verified to fail against the old code.
 
 ---
 
