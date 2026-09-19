@@ -37,6 +37,8 @@ npm run verify   # lint → typecheck → test → build
 | `tests/prompt.test.ts` | The assistant's standing rules pinned: demo marking, notes are not figures, pipeline is not revenue, who can approve, the spoken reply's formatting | 7 passing |
 | `tests/pipeline.test.ts` | Pipeline totalled per currency and never across them, stages in the vendor's labels ordered by the vendor's probability, overdue and closing-soon from the expected date, nothing weighted | 13 passing |
 | `tests/demo-sources.test.ts` | The demo CRM and notes: fixed, one currency, every stage the pipeline page shows has a deal in it, the closed window bites, and a search for a target finds the plan rather than a figure | 11 passing |
+| `tests/cors.test.ts` | The client allowlist: extension and web origins only, no wildcard however spelled, exact match with `Vary: Origin`, and only the two client routes | 9 passing |
+| `tests/extension-stream.test.ts` | The extension's reader of the assistant stream: torn NDJSON lines reassembled, malformed ones dropped, turns reduced the way the web dock does, citations and speech labelled the same | 7 passing |
 | `tests/citations.test.ts` | Source chips: a cited record shows its title and link, a metric key its dictionary label, and no chip ever follows a `javascript:` or relative link | 4 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a

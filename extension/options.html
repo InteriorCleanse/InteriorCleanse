@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Aurelis — settings</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body class="options">
+    <main class="options-main">
+      <h1>Aurelis</h1>
+      <p class="muted">
+        The extension talks to your own Aurelis deployment and signs in with the session you
+        already have there. Nothing is stored here except the address below.
+      </p>
+
+      <label for="app-url">Aurelis address</label>
+      <input id="app-url" type="url" placeholder="https://app.yourcompany.com" spellcheck="false" />
+      <p class="muted small">
+        The extension asks Chrome for permission to reach only this address.
+      </p>
+      <button id="save" class="primary">Save and grant access</button>
+      <p id="status" class="small" role="status"></p>
+
+      <h2>Allow this extension on the server</h2>
+      <p class="muted small">
+        Your deployment refuses cross-origin calls unless the origin is on its allowlist. Add
+        this exact value to the <code>CLIENT_ORIGINS</code> environment variable in Vercel,
+        then redeploy:
+      </p>
+      <pre id="origin" class="origin"></pre>
+
+      <h2>Voice</h2>
+      <p class="muted small">
+        Chrome needs microphone permission once before a side panel can listen.
+        <button id="mic" class="link">Grant microphone access</button>
+      </p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aurelis</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <span class="dot" aria-hidden="true"></span>
+      <div class="who">
+        <p id="title" class="title">Aurelis</p>
+        <p id="subtitle" class="subtitle"></p>
+      </div>
+      <select id="workspace" class="workspace" aria-label="Workspace" hidden></select>
+      <button id="speak" class="toggle" aria-pressed="false" title="Read replies aloud">Voice off</button>
+    </header>
+
+    <section id="gate" class="gate" hidden>
+      <p id="gate-text"></p>
+      <button id="gate-action" class="primary"></button>
+    </section>
+
+    <main id="transcript" class="transcript" aria-live="polite"></main>
+
+    <footer class="composer">
+      <textarea id="draft" rows="1" placeholder="Ask about this workspace…" aria-label="Question"></textarea>
+      <button id="mic" class="hold" title="Hold to talk">Hold</button>
+      <button id="send" class="primary">Ask</button>
+    </footer>
+    <p id="notice" class="notice" role="status" hidden></p>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

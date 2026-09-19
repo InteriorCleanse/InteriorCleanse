@@ -1,0 +1,87 @@
+name: Desktop app
+
+# Builds the tray app for every platform and attaches the installers to a
+# GitHub release. Runs on a `desktop-v*` tag, or by hand.
+#
+# Unsigned builds work but every OS warns on first launch. To sign, add the
+# secrets electron-builder reads — CSC_LINK / CSC_KEY_PASSWORD for an Apple
+# Developer ID or Windows certificate, and APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD
+# / APPLE_TEAM_ID for notarisation — and the same workflow signs. See
+# docs/CLIENTS.md.
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: 'Aurelis address to bake into the build (https://…)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Bake the app address
+        if: ${{ github.event.inputs.app_url != '' }}
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.aurelis = { ...(pkg.aurelis ?? {}), appUrl: process.argv[1] };
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          ' "${{ github.event.inputs.app_url }}"
+
+      - run: npm install --no-audit --no-fund
+
+      - name: Build installers
+        run: npx electron-builder --publish never
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Without a certificate, skip signing rather than fail.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aurelis-desktop-${{ matrix.os }}
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.exe
+            desktop/dist/*.AppImage
+          if-no-files-found: error
+
+  release:
+    name: Attach to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: installers/*
+          generate_release_notes: true

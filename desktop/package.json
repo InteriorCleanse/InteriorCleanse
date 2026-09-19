@@ -1,0 +1,54 @@
+{
+  "name": "aurelis-desktop",
+  "productName": "Aurelis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aurelis in the menu bar: your business, one shortcut away.",
+  "main": "main.js",
+  "license": "UNLICENSED",
+  "author": "Aurelis",
+  "aurelis": {
+    "appUrl": "https://aurelis.example.com"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.aurelis.desktop",
+    "productName": "Aurelis",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": ["main.js", "assets/**/*", "package.json"],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "icon": "assets/icon.png",
+      "hardenedRuntime": true,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Office",
+      "icon": "assets/icon.png"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { clientOrigins, corsHeaders, isClientApiPath } from '@/lib/cors'
 import { updateSession } from '@/lib/supabase/middleware'
 
 /**
@@ -20,8 +21,21 @@ const PROTECTED_PREFIXES = ['/app', '/owner-admin']
 const AUTH_PAGES = ['/login', '/signup']
 
 export async function middleware(request: NextRequest) {
-  const { response, user, configured } = await updateSession(request)
   const { pathname } = request.nextUrl
+
+  // The product's own browser extension calls two API routes from another
+  // origin. Only origins on the operator's allowlist get CORS headers; anyone
+  // else gets a response the browser refuses to hand over. A preflight is
+  // answered here without touching the session.
+  const cors = isClientApiPath(pathname)
+    ? corsHeaders(request.headers.get('origin'), clientOrigins())
+    : null
+  if (request.method === 'OPTIONS' && isClientApiPath(pathname)) {
+    return new NextResponse(null, { status: 204, headers: cors ?? {} })
+  }
+
+  const { response, user, configured } = await updateSession(request)
+  if (cors) for (const [name, value] of Object.entries(cors)) response.headers.set(name, value)
 
   // Without Supabase configured there is no auth to enforce; let the public
   // site render and let protected pages show their own Not Configured state.
