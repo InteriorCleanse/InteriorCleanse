@@ -27,7 +27,21 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 export function tempDataDir(prefix = 'mrcash-test-'): { dir: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), prefix))
-  return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) }
+  // On Windows a folder that still holds the open SQLite database cannot be removed (EPERM/EBUSY), and the
+  // store handle lives for the whole test process. A leftover temp folder is a tidiness problem, never a
+  // correctness one, so the failure must not mark an otherwise green file as failed: retry once the process
+  // has released its handles, and otherwise leave it to the OS temp reaper.
+  const remove = () => rmSync(dir, { recursive: true, force: true })
+  return {
+    dir,
+    cleanup: () => {
+      try { remove() } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code
+        if (code !== 'EPERM' && code !== 'EBUSY' && code !== 'ENOTEMPTY') throw err
+        process.once('exit', () => { try { remove() } catch { /* the OS reaps its temp folder */ } })
+      }
+    },
+  }
 }
 
 // ---------------------------------------------------------------
