@@ -68,6 +68,32 @@ Every paper figure on the desk is therefore SIMULATED EXECUTION on LIVE DATA, an
 | Alerts exist for market events only | ops alerts through the same `eventLog`, deduplicated per hour |
 | No operations screen | the Operations tab and `/api/ops/health` |
 
+## Delivered (Phase 25, after this audit)
+
+| Area | Module | Route / view | Tests |
+|---|---|---|---|
+| Ops log (component, event, severity, correlation id, repeat suppression, error counters) | `src/ops/log.ts` on `src/log.ts` | `/api/ops/log`; `<data dir>/ops.log` | `test/ops/ops.test.ts` |
+| One process per data directory | `src/ops/lock.ts`; wired in `server.ts` and the `watch` CLI | refusal message at start; `lock` on `/api/ops/health` | `ops.test.ts`, `secondProcess.test.ts` (real second server) |
+| Heartbeat with explicit thresholds | `src/ops/heartbeat.ts` | `/api/ops/heartbeat`; Operations → Overview | `ops.test.ts`, `resilience.test.ts` |
+| Feed health and counters | `src/ops/feedHealth.ts` | `/api/ops/feed`; Operations → Market data | `ops.test.ts`, `resilience.test.ts` |
+| Trade reconciliation | `src/ops/reconcile.ts` (research tick step) | `/api/ops/reconciliation`; Operations → Reconciliation | `records.test.ts`, `performance.test.ts` |
+| Daily data integrity | `src/ops/integrity.ts` (monitor, once per trading day) | `/api/ops/integrity`; Operations → Database | `records.test.ts`, `performance.test.ts` |
+| Checkpoints and review gates | `src/ops/checkpoints.ts` (on each watch cycle) | `/api/ops/checkpoints`; Operations → Paper engine | `records.test.ts`, `resilience.test.ts` |
+| Soak counters that survive restarts | `src/ops/soak.ts` | `/api/ops/soak`; Operations → Soak | `records.test.ts`, `secondProcess.test.ts` |
+| Retryable learning writes | `src/ops/retry.ts`; handlers in `learning/ops.ts`; hooks in `watch.ts` and the digest step | `/api/ops/retries`; Operations → Research | `resilience.test.ts` |
+| Alerts through the bell | `src/ops/alerts.ts` | bell, events table, ops log | `resilience.test.ts` |
+| The monitor (one 60 s timer) and the health document | `src/ops/monitor.ts` | `/api/ops/health`; `ops` on `/api/health` | `resilience.test.ts`, `server.test.ts` |
+| Operations tab | `web/js/ops.js` | 22nd tab, "Is it working?" group | `npm run ui:smoke` |
+| SIMULATED EXECUTION labels | desk chip, paper account card, Operations banner | | UI smoke |
+| Runbook | `docs/PAPER_SOAK_RUNBOOK.md` | | |
+
+Performance profile from `test/ops/performance.test.ts` on the CI-class
+container (ms): candle load of 11,520 rows 35 · daily integrity 51 ·
+heartbeat 2 · health document 6 · reconciliation of 140 trades 5 · first
+research tick over 140 trades 58 · repeated tick ≤ 46 · database growth over
+five ticks ≈ 1.5 MB (the first tick's experiment and queue writes) · 3,000
+ops-log lines 7.
+
 ## Things this audit could not verify here
 
 The development container cannot reach the exchange or news hosts (HTTP 403
