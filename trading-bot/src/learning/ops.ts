@@ -71,7 +71,12 @@ export const RETRY_HANDLERS: Record<string, RetryHandler> = {
     observePaperClose(p, at)
     return `post-mortem and evidence for ${id}`
   },
-  'knowledge-item': (payload) => addItem(payload as Parameters<typeof addItem>[0]).id,
+  'knowledge-item': (payload) => {
+    const p = payload as { id?: unknown; now?: unknown } | null
+    // The vault id is derived from kind, title and created time; a payload that fixes neither would mint a second record on retry.
+    if (!p || (typeof p.id !== 'string' && typeof p.now !== 'number')) throw new Error('a knowledge-item retry payload must carry a fixed id or created time, or a retry could mint a second record')
+    return addItem(payload as Parameters<typeof addItem>[0]).id
+  },
 }
 
 export const RESEARCH_TICK_MS = 15 * 60_000

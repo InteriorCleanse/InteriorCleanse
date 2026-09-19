@@ -192,6 +192,8 @@ export function startOpsMonitor(deps: MonitorDeps): { stop: () => void; tick: ()
     }
     const ms = Math.round(performance.now() - t0)
     tickMs.push(ms); if (tickMs.length > 200) tickMs.shift()
+    // The document was built before this tick's duration was known; stamp it now so the API shows the tick it came from.
+    doc = { ...doc, performance: performanceNow() }
     lastHealth = doc
     return doc
   }
