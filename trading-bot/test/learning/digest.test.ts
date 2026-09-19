@@ -31,7 +31,7 @@ const FORECAST = /\b(will (rise|fall|rally|drop|reverse|continue)|expect a|forec
 test('zero data: every digest is produced, stored once under its period id, labelled INSUFFICIENT DATA where it must be, and forecasts nothing', () => {
   const d = D.buildDailyDigest([], NOW)
   assert.equal(d.kind, 'DAILY LEARNING DIGEST')
-  assert.equal(d.sections.length, 12)
+  assert.equal(d.sections.length, 15)
   assert.ok(d.sections.every((s) => s.lines.length >= 1 && s.source))
   assert.ok(d.sections.filter((s) => s.evidenceLabel === 'INSUFFICIENT DATA').length >= 8, 'with nothing recorded, most sections say so')
   assert.equal(d.lessonOfTheDay, null)

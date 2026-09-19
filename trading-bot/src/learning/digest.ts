@@ -171,6 +171,19 @@ export function buildDailyDigest(closed: PaperPosition[], now = Date.now(), opts
     ...(missed.length ? [`${missed.length} decision(s) refused before a fill: ${missed.slice(0, 4).map((p) => p.note ?? 'refused').join('; ')}.`] : []),
     ...obs.filter((o) => o.type === 'RISK VETO').slice(0, 3).map((o) => `Risk veto: ${o.detail}`),
   ]
+  // Behaviour by strategy, regime and session — counts of what was observed and what closed, never a rating.
+  const count = <T,>(xs: T[], key: (x: T) => string | null): Array<[string, number]> => { const m: Record<string, number> = {}; for (const x of xs) { const k = key(x); if (k) m[k] = (m[k] ?? 0) + 1 } return Object.entries(m).sort((a, b) => b[1] - a[1]) }
+  const stratObs = obs.filter((o) => o.type === 'STRATEGY ACTIVATION' || o.type === 'STRATEGY REJECTION' || o.type === 'RISK VETO')
+  const strategyLines = [
+    ...count(closes, (p) => p.strategyId ?? null).map(([id, n]) => { const rr = closes.filter((p) => p.strategyId === id).map((p) => p.rMultiple ?? 0); return `${id}: ${n} close(s), ${fx(rr.reduce((a, b) => a + b, 0))}R in total (a day, not a sample).` }),
+    ...(stratObs.length ? [`${stratObs.filter((o) => o.type === 'STRATEGY ACTIVATION').length} activation(s), ${stratObs.filter((o) => o.type === 'STRATEGY REJECTION').length} rejection(s), ${stratObs.filter((o) => o.type === 'RISK VETO').length} risk veto(es) observed.`] : []),
+    ...stratObs.filter((o) => o.significance.selected).slice(0, 3).map((o) => `${o.type.toLowerCase()}: ${o.detail.slice(0, 120)}`),
+  ]
+  const regimeLines = [
+    ...count(obs, (o) => o.regime).map(([r, n]) => `${r}: ${n} observation(s)${closes.filter((p) => p.regime === r).length ? `, ${closes.filter((p) => p.regime === r).length} close(s)` : ''}.`),
+    ...regimes.slice(0, 3).map((o) => `Transition at ${iso(o.time)}: ${o.detail}`),
+  ]
+  const sessionLines = count([...obs.map((o) => o.session), ...closes.map((p) => p.session?.toLowerCase() ?? null)], (s) => s).map(([s, n]) => `${s}: ${n} observation(s) and close(s) combined; ${closes.filter((p) => (p.session ?? '').toLowerCase() === s).length} close(s).`)
   const sigLines = selected.sort((a, b) => b.significance.score - a.significance.score).slice(0, 8).map((o) => `${o.significance.score}/100 ${o.type.toLowerCase()} at ${iso(o.time)} — ${o.significance.reasons.slice(0, 2).join('; ')} [${o.status}]`)
   const resolved = listObservations({ status: 'RESOLVED', from, to, limit: 500 }).filter((o) => (o.resolvedAt ?? 0) >= from)
   const caseLines = resolved.slice(0, 10).map((o) => `${o.type.toLowerCase()} at ${iso(o.time)} → case ${o.caseId} (${o.resolutionNote ?? 'resolved'})`)
@@ -205,6 +218,9 @@ export function buildDailyDigest(closed: PaperPosition[], now = Date.now(), opts
   const sections: DigestSection[] = [
     S('WHAT THE MARKET DID', marketLines, 'OBSERVED', 'observer table — engine events on stored candles'),
     S('WHAT THE PAPER ENGINE DID', paperLines, 'OBSERVED', 'PAPER — live market, simulated execution'),
+    S('STRATEGY BEHAVIOR', strategyLines, 'OBSERVED', 'paper closes and strategy observations — counts, not ratings'),
+    S('REGIME BEHAVIOR', regimeLines, 'OBSERVED', 'observations carry the regime the engine read at the close'),
+    S('SESSION BEHAVIOR', sessionLines, 'OBSERVED', 'observations and closes by session'),
     S('WHICH EVENTS WERE SIGNIFICANT AND WHY', sigLines, 'OBSERVED', 'significance engine — measurable properties, no return prediction'),
     S('WHICH CASE STUDIES WERE CREATED', caseLines, 'OBSERVED', 'case-study engine — BEFORE from what was knowable, AFTER from stored candles'),
     S('WHICH RESEARCH QUESTIONS WERE GENERATED', qLines, 'HYPOTHESIS', 'research queue'),
@@ -297,22 +313,43 @@ export function buildWeeklyResearchReview(closed: PaperPosition[], now = Date.no
     ...by('OOS SUPPORTED').map((e) => `${e.strategyId}: "${e.method}" is OOS SUPPORTED at one stage; that is not a reason to change the strategy — robustness review and the challenger come first, then a proposal, then a human.`),
     `Live execution gate: ${config.live.enabled ? 'ENABLED' : 'disabled'}; shadow: ${config.shadow.enabled ? 'enabled' : 'disabled'}. The research layer cannot reach either.`,
   ]
+  const weekObs = listObservations({ from, to, limit: 5000 })
+  const obsByType: Record<string, number> = {}
+  for (const o of weekObs) obsByType[o.type] = (obsByType[o.type] ?? 0) + 1
+  const resolvedWeek = weekObs.filter((o) => o.status === 'RESOLVED')
+  const observed = [
+    ...(weekObs.length ? [`${weekObs.length} observation(s): ${Object.entries(obsByType).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => `${k.toLowerCase()} ×${v}`).join(', ')}.`] : []),
+    ...(weekObs.filter((o) => o.significance.selected).length ? [`${weekObs.filter((o) => o.significance.selected).length} selected for study; ${resolvedWeek.length} resolved into case studies.`] : []),
+    ...resolvedWeek.sort((a, b) => b.significance.score - a.significance.score).slice(0, 5).map((o) => `${o.significance.score}/100 ${o.type.toLowerCase()} at ${iso(o.time)} → ${o.caseId}`),
+  ]
+  const tested = finished.map((e) => `${e.result}: ${e.method} — OOS ${e.oosResult ? `${e.oosResult.trades} trade(s), ${fx(e.oosResult.meanR)}R` : 'not run'} vs baseline ${e.baselineOos ? `${fx(e.baselineOos.meanR)}R` : '—'}; ${e.comparison.oos?.verdict ?? 'TOO FEW'}`)
+  const survived = by('OOS SUPPORTED').map((e) => `${e.method} — ${e.comparison.oos?.note ?? ''} Robustness ${e.robustnessResult?.verdict ?? 'UNTESTED'}; challenger ${(e.challenge as { overall?: string } | null)?.overall ?? 'not run'}. A stage, not a conclusion.`)
+  const failed = [
+    ...by('NOT SUPPORTED').map((e) => `NOT SUPPORTED: ${e.method} — ${e.comparison.oos?.note ?? ''}`),
+    ...finished.filter((e) => (e.challenge as { overall?: string } | null)?.overall === 'DISPROVED').map((e) => `DISPROVED by the challenger: ${e.method}`),
+    ...failures.map((f) => `Failure memory: ${f.title}${f.replicated ? ` (replicated ×${f.occurrences})` : ''}`),
+  ]
+  const staleItems = [...listItems({ status: 'STALE' }), ...listItems({ status: 'REVIEW REQUIRED' }), ...listItems({ status: 'WATCH' })]
+  const staleHyps = listHypotheses({ status: 'STALE' })
+  const stale = [
+    ...staleItems.slice(0, 10).map((i) => `${i.status}: ${i.title} (last reviewed ${iso(i.last_reviewed)})`),
+    ...staleHyps.slice(0, 5).map((h) => `STALE hypothesis: ${h.question}`),
+  ]
   const sections: DigestSection[] = [
     S('WHAT CHANGED', [
       `${finished.length} experiment(s) finished; ${newQ.length} queue item(s) created; queue now ${q.total} (${Object.entries(q.byStatus).map(([k, v]) => `${k} ${v}`).join(', ')}).`,
       `${created.length} knowledge item(s) created, ${moved.length} moved status; vault ${vaultSummary().total} item(s).`,
-      `${listObservations({ from, to, limit: 5000 }).length} observation(s) recorded, ${observationCounts().resolved} resolved in total.`,
+      `${weekObs.length} observation(s) recorded, ${observationCounts().resolved} resolved in total.`,
       `Paper: ${closed.filter((p) => (p.closedAt ?? p.openedAt) >= from && p.exitReason !== 'missed').length} close(s) this week; record ${paper.provenance.trades} trade(s) (${dataGrowth(paper.provenance.trades).band}).`,
     ], 'OBSERVED', 'registries and stores'),
-    S('WHAT WAS LEARNED', [
-      ...by('OOS SUPPORTED').map((e) => `OOS SUPPORTED: ${e.method} — ${e.comparison.oos?.note ?? ''} (robustness ${e.robustnessResult?.verdict ?? 'UNTESTED'})`),
-      ...by('NOT SUPPORTED').map((e) => `NOT SUPPORTED: ${e.method} — ${e.comparison.oos?.note ?? ''}`),
-      ...failures.map((f) => `Failure memory: ${f.title}`),
-    ], 'OBSERVED', 'experiment registry, failure memory'),
-    S('WHAT WAS CONTRADICTED', [...contradicted.map((i) => `${i.title} — ${i.history.filter((x) => x.event === 'contradicted').at(-1)?.detail ?? ''}`), ...hypsContra.map((h) => `${h.status}: ${h.question}`)], 'OBSERVED', 'decay monitor, hypothesis store'),
-    S('WHAT REMAINS UNCERTAIN', uncertain, 'INSUFFICIENT DATA', 'experiments and cohorts whose intervals span zero'),
-    S('WHAT NEEDS MORE DATA', moreData, 'INSUFFICIENT DATA', 'sample bars'),
-    S('WHAT SHOULD BE TESTED NEXT', testNext, 'HYPOTHESIS', 'research queue, recommendations'),
+    S('WHAT WE OBSERVED', observed, 'OBSERVED', 'observer table, case-study engine'),
+    S('WHAT WE TESTED', tested, 'OBSERVED', 'experiment registry — frozen dataset, baseline, out-of-sample'),
+    S('WHAT SURVIVED', survived, 'OBSERVED', 'out-of-sample stage, robustness, challenger'),
+    S('WHAT FAILED', failed, 'OBSERVED', 'experiment registry, challenger, failure memory'),
+    S('WHAT CONTRADICTED PREVIOUS BELIEFS', [...contradicted.map((i) => `${i.title} — ${i.history.filter((x) => x.event === 'contradicted').at(-1)?.detail ?? ''}`), ...hypsContra.map((h) => `${h.status}: ${h.question}`)], 'OBSERVED', 'decay monitor, hypothesis store'),
+    S('WHAT NEEDS MORE DATA', [...moreData, ...uncertain], 'INSUFFICIENT DATA', 'sample bars; experiments and cohorts whose intervals span zero'),
+    S('WHAT IS STALE', stale, 'OBSERVED', 'knowledge vault and hypothesis store — expired into review, never deleted'),
+    S('WHAT SHOULD BE RESEARCHED NEXT', testNext, 'HYPOTHESIS', 'research queue, recommendations'),
     S('WHAT SHOULD NOT BE TOUCHED', doNotTouch, 'OBSERVED', 'config, vault passports, review queue'),
   ]
   return {
@@ -406,7 +443,32 @@ export function buildMonthlyModelAudit(closed: PaperPosition[], now = Date.now()
     `Research reads the record and writes only its own stores: observations, experiments, queue, knowledge, failures, digests.`,
     `Strategy / feature version ${sv}${prev ? prev.strategyVersion === sv ? ' — unchanged since the last audit.' : ` — changed from ${prev.strategyVersion}; every data-derived knowledge item carries a version flag from the decay monitor.` : ' — first audit.'}`,
   ]
+  const monthFrom = now - 31 * DAY
+  const allExps = listExperiments()
+  const monthExps = allExps.filter((e) => e.status === 'DONE' && (e.finishedAt ?? 0) >= monthFrom)
+  const allHyps = listHypotheses()
+  const wf = monthExps.filter((e) => e.walkForwardResult)
+  const wfPositive = wf.filter((e) => (e.walkForwardResult!.positiveShare ?? 0) >= 0.5).length
+  const overfit = allExps.filter((e) => ((e.challenge as { attacks?: Array<{ question: string; verdict: string }> } | null)?.attacks ?? []).some((a) => /overfitting/i.test(a.question) && (a.verdict === 'WEAKENED' || a.verdict === 'DISPROVED')))
+  const duplicates = listQueue().filter((x) => x.duplicateOf !== null)
+  const trials = trialRegistry()
+  const heaviest = Object.entries(trials.byStrategy).sort((a, b) => b[1] - a[1])[0]
+  const decayCounts = ['WATCH', 'REVIEW REQUIRED', 'STALE', 'CONTRADICTED'].map((s) => [s, vs.byStatus[s] ?? 0] as const)
+  const activity = [
+    `Hypotheses created this month: ${allHyps.filter((h) => h.created >= monthFrom).length}; rejected or not supported: ${allHyps.filter((h) => (h.status === 'REJECTED' || h.status === 'NOT SUPPORTED') && h.history.some((x) => x.at >= monthFrom && /reject|not-supported/i.test(x.event))).length}.`,
+    `Experiments finished this month: ${monthExps.length} — ${['OOS SUPPORTED', 'NOT SUPPORTED', 'INCONCLUSIVE', 'INSUFFICIENT DATA'].map((r) => `${r} ${monthExps.filter((e) => e.result === r).length}`).join(', ')}.`,
+    `Walk-forward: ${wf.length} experiment(s) walked forward, ${wfPositive} with at least half the folds positive. A fold count is a description of that window, not a probability.`,
+    `Overfitting warnings: ${overfit.length} experiment(s) where the challenger's overfitting attack came back WEAKENED or DISPROVED.`,
+    `Duplicate research: ${duplicates.length} queue item(s) parked as duplicates of an earlier question.`,
+    `Multiple-testing exposure: ${trials.total} trial(s) registered${heaviest ? `, heaviest on ${heaviest[0]} (${heaviest[1]})` : ''}. The deflation bar rises with every trial, the ones discarded as much as the ones kept.`,
+  ]
+  const decayLines = [
+    `${decayCounts.map(([s, n]) => `${s} ${n}`).join(', ')} of ${vs.total} item(s); ${vs.corrupt} unreadable row(s) skipped and kept.`,
+    `Hypotheses past their review date: ${allHyps.filter((h) => h.status !== 'REJECTED' && h.nextReview <= now).length}. Experiments due for reassessment: ${allExps.filter((e) => e.status === 'DONE' && e.nextTest !== null && e.nextTest <= now).length}.`,
+  ]
   const sections: DigestSection[] = [
+    S('RESEARCH ACTIVITY', activity, 'OBSERVED', 'hypothesis store, experiment registry, challenger, queue, trial registry'),
+    S('KNOWLEDGE DECAY', decayLines, 'OBSERVED', 'decay monitor'),
     S('STRATEGIES', strategies.map((s) => `${s.strategyId}${s.enabled ? '' : ' (disabled)'}: ${s.paper.n} paper trade(s) [${s.paper.band}]${s.paper.meanR !== null ? `, mean ${fx(s.paper.meanR)}R (${fx(s.paper.ci95?.lo)} to ${fx(s.paper.ci95?.hi)})` : ', no result stated'}; drift ${s.drift}; ${s.experiments.total} experiment(s) (${s.experiments.supported} supported, ${s.experiments.notSupported} not); ${s.failures} failure(s). ${s.wouldChange}`), 'OBSERVED', 'PAPER record, drift monitor, experiment registry, failure memory'),
     S('KNOWLEDGE', [`${vs.total} item(s): ${Object.entries(vs.byStatus).map(([k, v]) => `${k} ${v}`).join(', ')}; ${vs.failed} record what did not work; ${rr.contradicted.length + rr.reviewRequired.length + rr.stale.length} need review.`], 'OBSERVED', 'knowledge vault'),
     S('RESEARCH', [`Hypotheses: ${Object.entries(hypCounts).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}. Experiments: ${Object.entries(expCounts).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}. Trials registered: ${trialRegistry().total}. Queue: ${queueSummary().total}.`], 'OBSERVED', 'hypothesis store, experiment registry, trial registry, queue'),

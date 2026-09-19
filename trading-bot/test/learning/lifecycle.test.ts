@@ -272,7 +272,7 @@ test('21 — a proposal waits for a human; approving it for a paper test records
 
 test('22 — the digest, the weekly review (WHAT SHOULD NOT BE TOUCHED), the monthly audit and the status describe it all; the engine read none of it; the gates are off', () => {
   const d = D.buildDailyDigest(closed, NOW + 10)
-  assert.equal(d.sections.length, 12)
+  assert.equal(d.sections.length, 15)
   const w = D.buildWeeklyResearchReview(closed, NOW + 10)
   const dnt = w.sections.find((s) => s.heading === 'WHAT SHOULD NOT BE TOUCHED')!
   assert.ok(dnt.lines.some((l) => /Live execution gate: disabled/.test(l)), dnt.lines.join(' | '))

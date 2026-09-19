@@ -135,7 +135,9 @@ test('failure memory records each failure once with what / why / lesson, mirrors
   const again = fail.harvestFailures(now)
   assert.equal(again.recorded.length, 0, 'a second harvest records nothing twice')
   const f = before.recorded.find((x) => x.kind === 'hypothesis-not-supported')!
-  assert.ok(f.what && f.why && f.lesson)
+  assert.ok(f.what && f.why && f.lesson && f.expected && f.where)
+  assert.equal(f.occurrences, 1); assert.equal(f.replicated, false); assert.equal(f.active, true, 'nothing later overturned it, so the failure still stands')
+  assert.match(f.where, /silver-bullet where session/)
   assert.doesNotMatch(f.lesson, /never (do|try|trade)|always/i, 'a lesson is a statement about the record, not a prohibition')
   assert.equal(vault.getItem(f.vaultItemId)!.kind, 'failed-hypothesis')
   assert.equal(vault.vaultSummary().failed >= 1, true)

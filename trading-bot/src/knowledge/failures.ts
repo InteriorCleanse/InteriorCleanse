@@ -47,6 +47,8 @@ export type FailureRecord = {
   why: string
   /** What the record supports saying. Never a prohibition. */
   lesson: string
+  /** What was expected before the test — the hypothesis, the proposed change, the case study that was to be written. */
+  expected: string
   strategyId: string | null
   filters: CohortFilter[]
   refs: { hypothesisId?: string; experimentId?: string; proposalId?: string; observationId?: string }
@@ -56,9 +58,39 @@ export type FailureRecord = {
   engineVersion: string
   tags: string[]
   vaultItemId: string
+  /** Derived on read: how many failures of the same idea (same strategy, overlapping cohort) are on record, including this one. */
+  occurrences: number
+  /** Derived on read: the same idea failed more than once. */
+  replicated: boolean
+  /** Derived on read: no later experiment on the same strategy and cohort was OOS SUPPORTED, so the failure still stands. */
+  active: boolean
+  /** Derived on read: where it failed — the cohort, in words. */
+  where: string
 }
 
 const PREFIX = 'failure:'
+type StoredFailure = Omit<FailureRecord, 'occurrences' | 'replicated' | 'active' | 'where'>
+
+function filterKey(f: CohortFilter): string { return `${f.dimension}=${[...f.values].map(String).sort().join(',')}` }
+const IDEA_KINDS = new Set<FailureKind>(['hypothesis-rejected', 'hypothesis-not-supported', 'experiment-not-supported', 'challenger-disproved', 'proposal-gates-failed', 'proposal-rejected', 'proposal-expired', 'manual'])
+
+function sameIdea(a: StoredFailure, b: StoredFailure): boolean {
+  if (!IDEA_KINDS.has(a.kind) || !IDEA_KINDS.has(b.kind)) return false
+  if ((a.strategyId ?? null) !== (b.strategyId ?? null)) return false
+  if (!a.filters.length && !b.filters.length) return true
+  const keys = new Set(a.filters.map(filterKey))
+  return b.filters.some((x) => keys.has(filterKey(x)))
+}
+
+/** The derived fields: occurrences, replication and whether the failure still stands, read against the failures and experiments on record. */
+function derive(f: StoredFailure, all: StoredFailure[], experiments: Experiment[]): FailureRecord {
+  const related = all.filter((x) => sameIdea(f, x))
+  const keys = new Set(f.filters.map(filterKey))
+  const overturned = experiments.some((e) => e.status === 'DONE' && e.result === 'OOS SUPPORTED' && (e.finishedAt ?? 0) > f.at && e.strategyId === (f.strategyId ?? 'fused') && (f.filters.length ? e.hypothesisId !== null && (getHypothesisFilters(e.hypothesisId) ?? []).some((x) => keys.has(filterKey(x))) : true))
+  const where = `${f.strategyId ?? 'any strategy'}${f.filters.length ? ` where ${f.filters.map((x) => `${x.dimension} in {${x.values.join(', ')}}`).join(' and ')}` : ''} (${f.source})`
+  return { ...f, occurrences: Math.max(1, related.length), replicated: related.length >= 2, active: !overturned, where }
+}
+function getHypothesisFilters(id: string): CohortFilter[] | null { const h = listHypotheses().find((x) => x.id === id); return h ? h.cohortFilters : null }
 
 function hash(s: string): string {
   let h = 2166136261
@@ -69,21 +101,24 @@ function hash(s: string): string {
 /** Deterministic: the same failure of the same thing is one record. */
 export function failureId(kind: FailureKind, ref: string): string { return `fail-${kind}-${hash(`${kind}|${ref}`)}` }
 
-export function getFailure(id: string): FailureRecord | null { return store().getJson<FailureRecord>(PREFIX + id) }
-
-export function listFailures(filter: { kind?: FailureKind; strategyId?: string } = {}): FailureRecord[] {
-  const out: FailureRecord[] = []
-  for (const key of store().keysWithPrefix(PREFIX)) {
-    const f = store().getJson<FailureRecord>(key)
-    if (!f) continue
-    if (filter.kind && f.kind !== filter.kind) continue
-    if (filter.strategyId && f.strategyId !== filter.strategyId) continue
-    out.push(f)
-  }
-  return out.sort((a, b) => b.at - a.at)
+function readAll(): StoredFailure[] {
+  const out: StoredFailure[] = []
+  for (const key of store().keysWithPrefix(PREFIX)) { const f = store().getJson<StoredFailure>(key); if (f && typeof f.id === 'string') out.push({ ...f, expected: f.expected ?? 'not stated' }) }
+  return out
 }
 
-export type NewFailure = Omit<FailureRecord, 'id' | 'engineVersion' | 'vaultItemId' | 'tags'> & { ref: string; tags?: string[] }
+export function getFailure(id: string): FailureRecord | null {
+  const raw = store().getJson<StoredFailure>(PREFIX + id)
+  return raw ? derive({ ...raw, expected: raw.expected ?? 'not stated' }, readAll(), listExperiments()) : null
+}
+
+export function listFailures(filter: { kind?: FailureKind; strategyId?: string } = {}): FailureRecord[] {
+  const all = readAll()
+  const exps = listExperiments()
+  return all.filter((f) => (!filter.kind || f.kind === filter.kind) && (!filter.strategyId || f.strategyId === filter.strategyId)).map((f) => derive(f, all, exps)).sort((a, b) => b.at - a.at)
+}
+
+export type NewFailure = Omit<StoredFailure, 'id' | 'engineVersion' | 'vaultItemId' | 'tags' | 'expected'> & { ref: string; tags?: string[]; expected?: string }
 
 /** Write a failure once, and its mirror in the vault once. Returns the stored record (the prior one when it already existed). */
 export function recordFailure(input: NewFailure): { record: FailureRecord; isNew: boolean } {
@@ -94,16 +129,16 @@ export function recordFailure(input: NewFailure): { record: FailureRecord; isNew
   const vaultKind = input.kind === 'observation-unresolvable' || input.kind === 'data-quality' ? 'data-quality-warning' : 'failed-hypothesis'
   const item = addItem({
     kind: vaultKind, id: `${vaultKind}:${id}`, title: input.title,
-    body: `WHAT: ${input.what}\nWHY: ${input.why}\nLESSON: ${input.lesson}`,
+    body: `WHAT: ${input.what}\nEXPECTED: ${input.expected ?? 'not stated'}\nWHAT HAPPENED: ${input.why}\nLESSON: ${input.lesson}`,
     evidenceLabel: input.sampleSize !== null && input.sampleSize > 0 ? 'OBSERVED' : 'INSUFFICIENT DATA',
     provenance: { source: input.source, sampleSize: input.sampleSize ?? undefined, method: `failure memory (${input.kind})`, recordIds: [] },
     tags, links: Object.values(input.refs).filter((x): x is string => typeof x === 'string'), now: input.at,
     payload: { failureId: id, kind: input.kind, refs: input.refs, filters: input.filters },
   })
   const { ref: _ref, ...rest } = input
-  const record: FailureRecord = { ...rest, id, tags, engineVersion: VERSION, vaultItemId: item.id }
+  const record: StoredFailure = { ...rest, expected: input.expected ?? 'not stated', id, tags, engineVersion: VERSION, vaultItemId: item.id }
   store().setJson(PREFIX + id, record)
-  return { record, isNew: true }
+  return { record: derive(record, readAll(), listExperiments()), isNew: true }
 }
 
 // ---------------------------------------------------------------
@@ -119,7 +154,7 @@ function fromHypothesis(h: Hypothesis): NewFailure | null {
   const stage = h.outOfSample ?? h.inSample
   return {
     kind, ref: `${h.id}:${h.version}:${h.status}`, title: `${h.status}: ${h.question}`,
-    what: h.hypothesis, why: h.status === 'REJECTED' ? (last?.detail ?? 'rejected') : `${stage ? `${stage.source} ${stage.trades} trade(s), mean ${fx(stage.meanR)}R${stage.ci95 ? ` (${fx(stage.ci95.lo)} to ${fx(stage.ci95.hi)})` : ''}` : 'no stage result'}; the interval did not exclude the null in the direction hypothesised.${h.counterevidence.length ? ` Counterevidence: ${h.counterevidence[h.counterevidence.length - 1]}` : ''}`,
+    what: h.hypothesis, expected: `${h.hypothesis} (null: ${h.nullHypothesis})`, why: h.status === 'REJECTED' ? (last?.detail ?? 'rejected') : `${stage ? `${stage.source} ${stage.trades} trade(s), mean ${fx(stage.meanR)}R${stage.ci95 ? ` (${fx(stage.ci95.lo)} to ${fx(stage.ci95.hi)})` : ''}` : 'no stage result'}; the interval did not exclude the null in the direction hypothesised.${h.counterevidence.length ? ` Counterevidence: ${h.counterevidence[h.counterevidence.length - 1]}` : ''}`,
     lesson: `At ${stage?.trades ?? 0} ${h.dataset.source} trade(s), the record did not support "${h.hypothesis}". It may be retested when the cohort grows; this record marks the retest as a retest, and the trial registry counts it.`,
     strategyId: h.strategy, filters: h.cohortFilters, refs: { hypothesisId: h.id }, source: h.dataset.source, sampleSize: stage?.trades ?? h.sampleSize, at: last?.at ?? h.lastReviewed,
     tags: [...(h.session ? [h.session] : []), ...(h.regime ? [h.regime] : [])],
@@ -134,6 +169,7 @@ function fromExperiment(e: Experiment): NewFailure[] {
     out.push({
       kind: 'experiment-not-supported', ref: e.experimentId, title: `Experiment not supported: ${e.method}`,
       what: `${e.kind} experiment on ${e.strategyId} (${e.source}) — ${e.method}; baseline ${e.baseline.label}.`,
+      expected: `The treatment ${e.direction === 'difference' ? 'differs from' : e.direction === 'positive' ? 'is ahead of' : 'is behind'} the baseline out of sample, with the interval clear of zero.`,
       why: `${e.oosResult ? `Out-of-sample ${e.oosResult.trades} trade(s), mean ${fx(e.oosResult.meanR)}R` : 'No out-of-sample stage'}; ${e.comparison.oos?.note ?? 'no baseline comparison'}.`,
       lesson: `Against its frozen baseline and dataset ${e.datasetHash}, this experiment did not support the hypothesis at this sample. Parameters were not moved afterwards; a retest waits for the reassessment date (${e.nextTest ? toET(e.nextTest).dateKey : 'unset'}) or new data.`,
       strategyId: e.strategyId, filters: [], refs: { experimentId: e.experimentId, ...(e.hypothesisId ? { hypothesisId: e.hypothesisId } : {}) }, source: e.source, sampleSize: e.oosResult?.trades ?? e.inSampleResult?.trades ?? null, at,
@@ -145,6 +181,7 @@ function fromExperiment(e: Experiment): NewFailure[] {
     out.push({
       kind: 'challenger-disproved', ref: e.experimentId, title: `Challenger disproved: ${e.method}`,
       what: `${e.kind} experiment on ${e.strategyId} (${e.source}) — ${e.method}.`,
+      expected: 'The result survives every attack the challenger can mount at this sample.',
       why: disproving.map((a) => `${a.question} — ${a.detail}`).join(' | ') || 'the challenger returned DISPROVED',
       lesson: 'The result did not survive its own challenge. What the attack found is recorded here so the next version of the idea starts from it rather than rediscovering it.',
       strategyId: e.strategyId, filters: [], refs: { experimentId: e.experimentId, ...(e.hypothesisId ? { hypothesisId: e.hypothesisId } : {}) }, source: e.source, sampleSize: e.oosResult?.trades ?? null, at,
@@ -159,7 +196,7 @@ function fromProposal(p: Proposal): NewFailure | null {
   const unmet = p.gates.filter((g) => !g.met)
   return {
     kind, ref: `${p.id}:${p.status}`, title: `${p.status}: ${p.title}`,
-    what: `${p.kind} proposal for ${p.strategyId}: ${p.change}`,
+    what: `${p.kind} proposal for ${p.strategyId}: ${p.change}`, expected: p.rationale,
     why: p.status === 'GATES FAILED' ? unmet.map((g) => `${g.label}: ${g.detail}`).join(' | ') : p.status === 'REJECTED' ? `${p.decidedBy ?? 'a reviewer'}: ${p.decisionNote ?? 'rejected'}` : `Not decided within its ${Math.round((p.expiresAt - p.createdAt) / 86_400_000)}-day window.`,
     lesson: p.status === 'GATES FAILED' ? 'The evidence did not clear the gates that stand between a research result and a proposal. The gates are the lesson; the proposal is not resubmitted with the same evidence.' : p.status === 'REJECTED' ? 'A human read the evidence and declined. The decision and its note are the record.' : 'It expired unreviewed; if the evidence still stands it can be re-proposed, and this record says it once was.',
     strategyId: p.strategyId, filters: [], refs: { proposalId: p.id, ...(p.evidence.hypothesisIds[0] ? { hypothesisId: p.evidence.hypothesisIds[0] } : {}) }, source: 'PAPER', sampleSize: p.evidence.recordIds.length || null, at: p.decidedAt ?? (p.status === 'EXPIRED' ? p.expiresAt : p.createdAt),
@@ -178,7 +215,7 @@ export function harvestFailures(now = Date.now()): Harvest {
   for (const p of props) write(fromProposal(p))
   for (const o of obs) write({
     kind: 'observation-unresolvable', ref: o.id, title: `Unresolvable: ${o.type.toLowerCase()} at ${new Date(o.time).toISOString()}`,
-    what: o.detail, why: o.resolutionNote ?? 'the case could not be rebuilt from the stored candles',
+    what: o.detail, expected: 'A case study with BEFORE / DURING / DECISION / AFTER frames once the horizon was stored.', why: o.resolutionNote ?? 'the case could not be rebuilt from the stored candles',
     lesson: 'A gap in the stored history is a data-quality fact, not a market fact. The event stays on record as observed; no case study was written for it.',
     strategyId: null, filters: [], refs: { observationId: o.id }, source: 'ENGINE', sampleSize: null, at: o.resolvedAt ?? now, tags: [o.type.toLowerCase().replace(/\s+/g, '-')],
   })
@@ -189,8 +226,6 @@ export function harvestFailures(now = Date.now()): Harvest {
 // ---------------------------------------------------------------
 // "Have we tried this before?"
 // ---------------------------------------------------------------
-
-function filterKey(f: CohortFilter): string { return `${f.dimension}=${[...f.values].map(String).sort().join(',')}` }
 
 /**
  * Prior failures that overlap a proposed study: same strategy (or no strategy
@@ -208,10 +243,12 @@ export function priorFailures(strategyId: string | null, filters: CohortFilter[]
   }).sort((a, b) => a.at - b.at)
 }
 
-export function failureSummary(): { total: number; byKind: Record<string, number>; byStrategy: Record<string, number>; latest: FailureRecord | null; note: string } {
+export function failureSummary(): { total: number; active: number; replicated: number; byKind: Record<string, number>; byStrategy: Record<string, number>; latest: FailureRecord | null; note: string } {
   const all = listFailures()
   const byKind: Record<string, number> = {}
   const byStrategy: Record<string, number> = {}
   for (const f of all) { byKind[f.kind] = (byKind[f.kind] ?? 0) + 1; if (f.strategyId) byStrategy[f.strategyId] = (byStrategy[f.strategyId] ?? 0) + 1 }
-  return { total: all.length, byKind, byStrategy, latest: all[0] ?? null, note: all.length ? `${all.length} thing(s) that did not work, each with what, why and what the record supports saying. Nothing here is a rule.` : 'No failures on record yet. That is a statement about how little has been tested, not about how much works.' }
+  const active = all.filter((f) => f.active).length
+  const replicated = all.filter((f) => f.replicated).length
+  return { total: all.length, active, replicated, byKind, byStrategy, latest: all[0] ?? null, note: all.length ? `${all.length} thing(s) that did not work — ${active} still standing, ${replicated} replicated — each with what was tried, what was expected, what happened, where, and what the record supports saying. Nothing here is a rule.` : 'No failures on record yet. That is a statement about how little has been tested, not about how much works.' }
 }

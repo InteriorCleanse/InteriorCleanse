@@ -70,11 +70,11 @@ keys, last experiment, last error, last cycle). `GET /api/ops` shows it;
 | Research queue and maturity lifecycle | `src/research/queue.ts` | kv `queue:` |
 | "What should we study next" | `src/research/recommend.ts` | — |
 | Human approval center | `src/research/review.ts` | kv `review:` |
-| Failure memory | `src/knowledge/failures.ts` | kv `failure:` (+ a vault mirror) |
+| Failure memory (what, where, expected, what happened, how many times, replicated, still active) | `src/knowledge/failures.ts` | kv `failure:` (+ a vault mirror) |
 | Memory classes and recall | `src/knowledge/memory.ts` | index over the other stores |
 | Decay monitor (WATCH / REVIEW REQUIRED / CONTRADICTED) | `src/knowledge/decayMonitor.ts` | vault items |
 | Historical → paper drift | `src/learning/drift.ts` | — |
-| Daily digest, weekly research review, monthly model audit | `src/learning/digest.ts` | kv `digest:daily|weekly|monthly:` |
+| Daily digest (15 sections incl. STRATEGY / REGIME / SESSION BEHAVIOR and the LESSON OF THE DAY), weekly research review (WHAT CHANGED · OBSERVED · TESTED · SURVIVED · FAILED · CONTRADICTED PREVIOUS BELIEFS · NEEDS MORE DATA · IS STALE · SHOULD BE RESEARCHED NEXT · SHOULD NOT BE TOUCHED), monthly model audit (research activity incl. walk-forward, overfitting warnings, duplicate research and multiple-testing exposure; knowledge decay; strategies; data quality; boundaries) | `src/learning/digest.ts` | kv `digest:daily|weekly|monthly:` |
 | Lesson versions and case exercises | `src/school/updates.ts` | kv `lesson-version:` |
 | Scheduler and status | `src/learning/ops.ts`, `src/learning/status.ts` | kv `research:ops` |
 | Routes | `src/learning/api.ts`, `src/server.ts` (`/api/observer`, `/api/ops`, `/api/research/*`, `/api/knowledge/*`, `/api/school/*`) | — |

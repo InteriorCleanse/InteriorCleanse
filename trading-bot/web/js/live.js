@@ -134,8 +134,8 @@ async function renderChampions() {
 async function renderFailures() {
   const { data } = await getJson('/api/knowledge/failures')
   const s = data.summary
-  return `${note(s.note)}<div class="ev-heroes">${hero('did not work', s.total)}${Object.entries(s.byKind).slice(0, 4).map(([k, v]) => hero(k, v)).join('')}</div>
-    ${card('FAILURE MEMORY', data.items.length ? data.items.map((f) => `<div class="sc-frame"><div class="sc-frame-t">${pill(f.kind)} ${esc(f.title)} <span class="muted">${when(f.at)}${f.strategyId ? ` · ${esc(f.strategyId)}` : ''} · ${esc(f.source)}${f.sampleSize ? ` · n=${f.sampleSize}` : ''}</span></div><div><b>What:</b> ${esc(f.what)}</div><div><b>Why:</b> ${esc(f.why)}</div><div><b>Lesson:</b> ${esc(f.lesson)}</div></div>`).join('') : '<div class="muted">Nothing has failed on record yet.</div>', 'what, why and what the record supports saying; never a rule')}`
+  return `${note(s.note)}<div class="ev-heroes">${hero('did not work', s.total)}${hero('still standing', s.active)}${hero('replicated', s.replicated)}${Object.entries(s.byKind).slice(0, 3).map(([k, v]) => hero(k, v)).join('')}</div>
+    ${card('FAILURE MEMORY', data.items.length ? data.items.map((f) => `<div class="sc-frame"><div class="sc-frame-t">${pill(f.kind)} ${esc(f.title)} <span class="muted">${when(f.at)} · ${esc(f.source)}${f.sampleSize ? ` · n=${f.sampleSize}` : ''} · ${f.active ? 'still standing' : 'overturned later'}${f.replicated ? ` · replicated ×${f.occurrences}` : ' · once'}</span></div><div><b>What:</b> ${esc(f.what)}</div><div><b>Where:</b> ${esc(f.where)}</div><div><b>Expected:</b> ${esc(f.expected)}</div><div><b>What happened:</b> ${esc(f.why)}</div><div><b>Lesson:</b> ${esc(f.lesson)}</div></div>`).join('') : '<div class="muted">Nothing has failed on record yet.</div>', 'what, where, expected, what happened, how many times, whether it still stands; never a rule')}`
 }
 
 async function renderNext() {

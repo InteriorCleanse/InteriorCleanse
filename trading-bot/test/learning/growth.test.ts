@@ -54,7 +54,7 @@ for (const n of [0, 1, 10, 50, 200]) {
     if (n < 10) assert.equal('status' in pass.paper ? pass.paper.status : 'x', 'NOT ENOUGH DATA', 'no reading under the bar')
     else assert.ok('cohort' in pass.paper && pass.paper.cohort.stats.n === n)
     const dig = D.buildDailyDigest(closed, now)
-    assert.equal(dig.sections.length, 12)
+    assert.equal(dig.sections.length, 15)
     const recs = R.recommendations({ paper: rec.paperDataset(closed), now })
     if (n < 10) assert.ok(recs.items.some((x) => x.topic === 'missing evidence'))
     const q = Q.listQueue()

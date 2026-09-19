@@ -12,7 +12,7 @@ import { INTERVAL_MS } from '../market.ts'
 import { knowledgeRequiringReview } from '../knowledge/decayMonitor.ts'
 import { failureSummary } from '../knowledge/failures.ts'
 import { memorySummary } from '../knowledge/memory.ts'
-import { vaultSummary } from '../knowledge/vault.ts'
+import { listItems, vaultSummary } from '../knowledge/vault.ts'
 import { observationCounts } from '../observer/events.ts'
 import { readPositions } from '../paperTrader.ts'
 import type { PaperPosition } from '../paperTrader.ts'
@@ -42,6 +42,8 @@ export type SystemStatus = {
   dataQuality: { corruptRecords: number; refusedDecisions: number; unresolvable: number; storeWritable: boolean; note: string }
   lastResearchRun: number | null
   nextResearchRun: number | null
+  /** The headline counts, in the order the status screen prints them. */
+  counts: { paperTrades: number; caseStudies: number; hypotheses: number; experiments: number; itemsRequiringReview: number }
   summary: string
   notes: string[]
 }
@@ -98,6 +100,7 @@ export function systemStatus(input: { feed?: FeedHealth | null; closed?: PaperPo
     knowledgeStore: { health: vs.total ? 'LIVE' : 'NEVER', vault: vs, requiringReview: rr.contradicted.length + rr.reviewRequired.length + rr.stale.length, onWatch: rr.watch.length, failures: fs.total, memories: ms.total, note: rr.note },
     dataQuality: { corruptRecords: paper.provenance.corrupt, refusedDecisions: paper.provenance.missed, unresolvable: oc.unresolvable, storeWritable: writable, note: `${paper.provenance.corrupt} unreadable record(s) excluded from every statistic; ${oc.unresolvable} candidate(s) could not be rebuilt from stored candles.` },
     lastResearchRun: ops.lastRun, nextResearchRun: ops.nextRun,
+    counts: { paperTrades: paper.provenance.trades, caseStudies: listItems({ kind: 'case-study' }).length, hypotheses: listHypotheses().length, experiments: exps.length, itemsRequiringReview: rr.contradicted.length + rr.reviewRequired.length + rr.stale.length },
     summary,
     notes: ['Status is assembled on request; nothing here is a performance figure.', 'The research layer reads the record and writes only its own stores. It cannot reach the signal engine, fusion, risk, sizing or the execution gates.'],
   }
