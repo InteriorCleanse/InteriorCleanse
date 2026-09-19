@@ -62,7 +62,9 @@ test('after the first process dies, a new one takes over the stale lock and beco
   assert.equal(h.data.soak.restarts, 1)
 })
 
-test('a clean stop (SIGTERM) releases the lock instead of leaving it for the next start to take over', async () => {
+// Windows has no graceful SIGTERM: child.kill() terminates the process before any handler can run, so the
+// lock is released there by the next start's dead-owner takeover (tested above), not by the signal handler.
+test('a clean stop (SIGTERM) releases the lock instead of leaving it for the next start to take over', { skip: process.platform === 'win32' ? 'no graceful SIGTERM on Windows' : false }, async () => {
   bot.child.kill('SIGTERM')
   const code = await new Promise<number | null>((r) => bot.child.once('exit', (c) => r(c)))
   assert.equal(code, 0)

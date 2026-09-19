@@ -137,7 +137,7 @@ test('BOUNDARY — no engine module imports the school, research, knowledge or l
   const offenders: string[] = []
   const layerImport = new RegExp(`from '(?:\\.\\.?/)+(?:${LEARNING_DIRS.join('|')})/`)
   for (const file of walk(SRC)) {
-    const rel = file.replace(SRC, 'src')
+    const rel = file.replace(SRC, 'src').replace(/\\/g, '/') // Windows walks with backslashes
     if (LEARNING_DIRS.some((d) => rel.startsWith(`src/${d}/`))) continue
     // The analyst and the ops monitor read the learning layers' state (evidence, research ops) and are held to the
     // read-only rule below; the engine never imports them.
@@ -169,7 +169,7 @@ test('BOUNDARY — the learning layers value-import nothing that decides, sizes,
   const writers = /\b(openPosition|closeManually|recordMissedSignal|savePosition|appendLedgerRow|managePositions|engageStop|releaseStop|withParams|withParamsAsync|recordPaperResult|savePassport|mint)\(/
   for (const d of [...LEARNING_DIRS, 'ops']) for (const file of walk(join(SRC, d))) {
     const body = readFileSync(file, 'utf8')
-    const rel = file.replace(SRC, 'src')
+    const rel = file.replace(SRC, 'src').replace(/\\/g, '/') // Windows walks with backslashes
     if (rel === 'src/school/caseStudies.ts') {
       // The one permitted exception: the case-study engine steps the REAL engine over stored candles,
       // which means calling the pure fuse() over historical votes. It is the only learning-layer file

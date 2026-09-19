@@ -59,10 +59,20 @@ test('the test scripts load the isolation preload', () => {
   }
 })
 
-test('the preload defers to a file that wants its own directory', () => {
-  // Several files still set MRCASH_DATA_DIR themselves (they want a dir they can
-  // wipe mid-test). The preload must not override that, or those tests would
-  // silently share one directory.
-  const setup = readFileSync(join(TEST_ROOT, 'setup.ts'), 'utf8')
-  assert.match(setup, /if \(!process\.env\.MRCASH_DATA_DIR\)/, 'the preload must only fill in a directory when none was chosen')
+test('the preload defers to a file that wants its own temp directory, and replaces a leaked real one', async () => {
+  // Several files set MRCASH_DATA_DIR themselves (a temp dir they can wipe mid-test): the preload must keep that.
+  // An operator's shell still carrying MRCASH_DATA_DIR=./data-soak from a paper run must NOT reach the tests —
+  // on a Windows run it did, and every test file wrote its fixtures into the real soak store.
+  const { execFileSync } = await import('node:child_process')
+  const { tmpdir } = await import('node:os')
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { resolve } = await import('node:path')
+  const probe = (preset: string) => execFileSync(process.execPath, ['--import', join(TEST_ROOT, 'setup.ts'), '-e', 'process.stdout.write(process.env.MRCASH_DATA_DIR)'], { env: { ...process.env, MRCASH_DATA_DIR: preset }, encoding: 'utf8' })
+  const own = mkdtempSync(join(tmpdir(), 'mrcash-own-'))
+  try {
+    assert.equal(resolve(probe(own)), resolve(own), 'a temp directory chosen by the test file is kept')
+    const leaked = probe('./data-soak')
+    assert.notEqual(resolve(leaked), resolve('./data-soak'), 'a real directory leaked from the shell is replaced')
+    assert.ok(resolve(leaked).toLowerCase().startsWith(resolve(tmpdir()).toLowerCase()), `the replacement lives under the OS temp folder: ${leaked}`)
+  } finally { rmSync(own, { recursive: true, force: true }) }
 })

@@ -30,9 +30,14 @@
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
-if (!process.env.MRCASH_DATA_DIR) {
+// A preset value is honoured only when it already points into the OS temp folder (a test file's own
+// throwaway directory). Anything else — an operator's shell still carrying MRCASH_DATA_DIR=./data-soak
+// from a paper run — would send every test file's writes into a real store, so it is replaced.
+const preset = process.env.MRCASH_DATA_DIR
+const presetIsTemp = preset !== undefined && resolve(preset).toLowerCase().startsWith(resolve(tmpdir()).toLowerCase())
+if (!presetIsTemp) {
   const dir = mkdtempSync(join(tmpdir(), 'mrcash-test-'))
   process.env.MRCASH_DATA_DIR = dir
   // Best-effort cleanup. A leftover temp directory is a tidiness problem, never

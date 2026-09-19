@@ -39,9 +39,10 @@ function walk(dir: string): string[] {
 
 test('NO engine module imports the intelligence layer', () => {
   const offenders: string[] = []
-  for (const file of walk(SRC)) {
+  for (const path of walk(SRC)) {
+    const file = path.replace(/\\/g, '/') // Windows walks with backslashes; the checks below are written with '/'
     if (file.includes(`${'/'}intel${'/'}`)) continue // the layer may import itself
-    const body = readFileSync(file, 'utf8')
+    const body = readFileSync(path, 'utf8')
     if (/from '\.{1,2}\/(?:\.\.\/)*intel\//.test(body) || /from '\.\/intel\//.test(body)) {
       // Permitted consumers: the server (it serves the read-only routes) and
       // the observation layers — analyst (reuses whyTrade and tradeStages to
@@ -51,7 +52,7 @@ test('NO engine module imports the intelligence layer', () => {
       // nothing in src/analyst/ can reach the engine, and
       // test/learning/observer.test.ts pins the same for the learning layers.
       if (file.endsWith('server.ts') || ['analyst', 'school', 'research', 'knowledge', 'learning', 'observer'].some((d) => file.includes(`${'/'}${d}${'/'}`))) continue
-      offenders.push(file.replace(SRC, 'src'))
+      offenders.push(file.replace(SRC.replace(/\\/g, '/'), 'src'))
     }
   }
   assert.deepEqual(offenders, [], `these engine modules import src/intel/, which would let observation influence decisions:\n${offenders.join('\n')}`)

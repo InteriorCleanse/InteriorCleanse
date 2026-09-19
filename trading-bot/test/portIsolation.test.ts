@@ -31,7 +31,9 @@ import { join } from 'node:path'
 import { startMockFeeds, startBot, ROOT } from './helpers.ts'
 import type { RunningBot } from './helpers.ts'
 
-test('startBot refuses to hand back a foreign server holding its port', async () => {
+// Windows lets a second process bind a TCP port another process already listens on, so the kernel
+// refusal this guard relies on does not exist there; the guard is a Linux/macOS (and CI) property.
+test('startBot refuses to hand back a foreign server holding its port', { skip: process.platform === 'win32' ? 'Windows allows a second bind on an occupied port' : false }, async () => {
   // Stand in for another mrcash already on this port: it answers /api/health
   // happily, which is precisely what fooled the old probe loop.
   const foreign = createServer((_req, res) => {
