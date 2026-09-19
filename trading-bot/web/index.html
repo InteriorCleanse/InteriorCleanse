@@ -192,6 +192,13 @@
     <div id="observer-out"><div class="plain">Loading the observer…</div></div>
   </section>
 
+  <section id="tab-ops" class="hidden">
+    <div class="row"><button class="btn ghost" id="btn-ops">Reload operations</button><a class="btn ghost" href="/api/ops/health" target="_blank" rel="noopener">Health (JSON)</a><a class="btn ghost" href="/api/ops/log?n=200" target="_blank" rel="noopener">Ops log (JSON)</a><span class="muted" id="ops-status"></span></div>
+    <div class="ev-head"><div><div class="ev-title">MR. CASH — OPERATIONS</div><div class="muted">Is it running, on what data, and is the record whole? PAPER means live market data with <b>SIMULATED EXECUTION</b>; MOCK means a recorded feed and no market evidence. Every mark shows its age and the threshold its status came from. Nothing here changes a strategy.</div></div></div>
+    <div class="ev-views" id="ops-views"></div>
+    <div id="ops-out"><div class="plain">Loading operations…</div></div>
+  </section>
+
   <section id="tab-validation" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-validation">Reload validation</button><a class="btn ghost" id="btn-validation-report" href="/api/validation?format=text" target="_blank" rel="noopener">Daily report (text)</a><span class="muted" id="validation-status"></span></div>
     <div id="validation-out"><div class="plain">Extended paper validation measures the live paper run against real market data — it never tunes anything. Paper is validation data, not a fitting target. The verdict stays <b>INSUFFICIENT SAMPLE</b> until every explicit gate is met; each gate shows exactly how far it has to go. Below: progress to the gates, per-strategy performance vs the backtest, breakdowns by regime and session, decay, strategy correlation, order-flow honesty, system soak and shadow readiness.</div></div>
@@ -256,11 +263,11 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','journal','ask']
 const GROUPS = [
   ['Markets', 'what price is doing right now', ['flow','news','intel','tv']],
-  ['Is it working?', 'the honest scoreboard', ['evidence','validation','test','replay']],
+  ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
   ['Learn', 'the school, the lab, what it remembers, and what it is observing now', ['school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
 ]
@@ -327,6 +334,7 @@ function showTab(id, push=true) {
   if (id === 'research' && window.loadResearch) window.loadResearch()
   if (id === 'knowledge' && window.loadKnowledge) window.loadKnowledge()
   if (id === 'observer' && window.loadObserver) window.loadObserver()
+  if (id === 'ops' && window.loadOps) window.loadOps()
   if (id === 'intel' && window.loadIntel) window.loadIntel()
   if (id === 'replay' && window.loadReplay) window.loadReplay()
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
@@ -479,7 +487,7 @@ function stateCard(s) {
 function paperCard(p) {
   if (!p) return ''
   const eq = p.equityUsd - p.startUsd
-  return `<div class="card"><h2>Paper account — Mr. Cash trading 24/7 on paper</h2>
+  return `<div class="card"><h2>Paper account — Mr. Cash trading 24/7 on paper <span class="muted" title="Live market data; every fill is simulated by the fill model at the next candle open plus spread and slippage.">— live data · SIMULATED EXECUTION</span></h2>
     <div class="stats"><div class="stat"><div class="k">Equity</div><div class="v ${eq>=0?'win':'loss'}">${money(p.equityUsd)}</div></div><div class="stat"><div class="k">Since start</div><div class="v ${eq>=0?'win':'loss'}">${money(eq,3)}</div></div><div class="stat"><div class="k">Closed trades</div><div class="v">${p.trades}</div></div><div class="stat"><div class="k">Win rate</div><div class="v">${p.winRate===null?'—':Math.round(p.winRate*100)+'%'}</div></div><div class="stat"><div class="k">Total</div><div class="v ${p.totalR>=0?'win':'loss'}">${R(p.totalR)}</div></div></div>
     ${p.open.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Queued</th><th>Side</th><th>Status</th><th>Entry</th><th>Stop</th><th>Target</th><th>Now</th><th></th></tr>${p.open.map(o=>`<tr><td>${when(o.openedAt)}</td><td>${esc(o.direction)}</td><td>${o.status==='pending'?'<span class="badge medium">fills next candle</span>':'<span class="badge good">filled</span>'}</td><td class="num">${px(o.entry)}${o.status==='open'&&o.intendedEntry!==o.entry?`<div class="muted" style="font-size:11px">wanted ${px(o.intendedEntry)}</div>`:''}</td><td class="num loss">${px(o.stop)}</td><td class="num win">${px(o.target)}</td><td class="num ${o.unrealized&&o.unrealized.rMultiple>=0?'win':'loss'}">${o.status==='pending'?'—':o.unrealized?R(o.unrealized.rMultiple):'—'}</td><td><button class="chip" data-close="${esc(o.id)}">${o.status==='pending'?'cancel':'close now'}</button></td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No open paper position. Mr. Cash opens one only when the whole checklist passes inside a killzone.</div>'}
     ${p.closed.length ? `<div class="muted" style="font-size:12.5px;margin-top:8px">Last closed: ${p.closed.slice(0,3).map(c=>c.exitReason==='missed'?'<span class="skip">missed</span>':`${c.direction} ${c.exitReason} <b class="${(c.rMultiple||0)>=0?'win':'loss'}">${R(c.rMultiple||0)}</b>`).join(' · ')}.${p.missed?` ${p.missed} missed (price ran away before the fill).`:''} Costs so far: ${money(p.costsUsd,3)}. Full history in the Memory tab.</div>` : ''}
@@ -1320,6 +1328,7 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/research.js"></script>
 <script type="module" src="/js/knowledge.js"></script>
 <script type="module" src="/js/live.js"></script>
+<script type="module" src="/js/ops.js"></script>
 <script type="module" src="/js/intel.js"></script>
 </body>
 </html>

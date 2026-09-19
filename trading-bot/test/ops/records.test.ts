@@ -109,7 +109,7 @@ test('the integrity report is OK on a clean record and names a planted corrupt k
   store().setJson('knowledge:corrupt:row', { not: 'an item' })
   const item = V.addItem({ kind: 'strategy-observation', title: 'dangling test', body: 'x', evidenceLabel: 'OBSERVED', provenance: { source: 'PAPER', recordIds: ['no-such-record'] } })
   V.saveItem({ ...item, links: ['nowhere:missing:0'] })
-  const o = O.makeObservation({ type: 'SESSION CHANGE', time: T0, availableAt: T0, session: 'London', regime: null, volatility: null, source: 'engine-step', detail: 'test', direction: null, evidence: [], caseKind: null, recordId: 'no-such-record', significance: { score: 0, selected: false, reasons: [] }, before: { structureTrend: null, liquidity: null, regime: null, session: null, strategiesActive: 0, strategiesNear: 0, risk: null, price: null } })
+  const o = O.makeObservation({ type: 'SESSION CHANGE', time: T0, availableAt: T0, session: 'London', regime: null, volatility: null, source: 'engine-step', detail: 'test', direction: null, evidence: [], caseKind: null, recordId: 'no-such-record', significance: { score: 0, selected: false, reasons: [], basis: {}, note: 'test' }, before: { structureTrend: null, liquidity: null, regime: null, session: null, strategiesActive: 0, strategiesNear: 0, risk: null, price: null } })
   O.recordObservation(o)
   const dirty = I.dataIntegrityReport(T0 + 2 * STEP)
   assert.equal(dirty.verdict, 'ISSUES')

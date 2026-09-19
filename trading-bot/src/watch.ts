@@ -36,6 +36,7 @@ import { marketFeed } from './data/feed.ts'
 import type { AppEvent } from './types.ts'
 import * as ui from './ui.ts'
 import { observePaperClose } from './learning/observer.ts'
+import { recordFailedWrite } from './ops/retry.ts'
 
 const EVENTS_PATH = join(DATA_DIR, 'events.jsonl')
 
@@ -135,7 +136,7 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
       `Filled ${p.entry.toFixed(2)}, out ${p.exit?.toFixed(2)} after ${p.candlesHeld} candle(s). ${r >= 0 ? 'Made' : 'Lost'} $${Math.abs(p.pnlUsd ?? 0).toFixed(3)} after $${(p.feesUsd ?? 0).toFixed(3)} of fees. Memory has recorded it; a journal entry is waiting for how you felt.`, r >= 0 ? 'action' : 'warn')
     // The learning loop observes the close AFTER the position is final. Its
     // result is not read here; a failure in it cannot affect the cycle.
-    try { observePaperClose(p, now) } catch (err) { eventLog.push('info', 'Learning loop skipped', String((err as Error)?.message ?? err), 'warn') }
+    try { observePaperClose(p, now) } catch (err) { eventLog.push('info', 'Learning loop skipped', String((err as Error)?.message ?? err), 'warn'); try { recordFailedWrite('paper-close', `paper-close:${p.id}`, { positionId: p.id }, err, now) } catch { /* the retry record is best-effort; the ops log has the failure */ } }
   }
 
   if (a) {
@@ -323,6 +324,17 @@ export function startWatch(minutes = config.app.watchEveryMinutes, onEvent?: (e:
 // `npm run watch` — the loop in a terminal, no browser needed.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { marketFeed } = await import('./data/feed.ts')
+  // Phase 25: one process per data directory. A second watch loop on the same
+  // store would queue the same signals twice; it is refused with the owner named.
+  const { holdLock } = await import('./ops/lock.ts')
+  const lock = holdLock({ role: 'watch', force: process.env.MRCASH_FORCE_LOCK === '1', log: (line) => console.log(ui.warn(`  ${line}`)) })
+  if (!lock.ok) {
+    console.log('')
+    console.log(ui.bad(`  ${lock.reason}`))
+    console.log(ui.dim('  Set MRCASH_FORCE_LOCK=1 only if you have already stopped that process yourself.'))
+    console.log('')
+    process.exit(1)
+  }
   marketFeed.start()
   ui.heading('MR. CASH IS WATCHING')
   ui.safetyBanner()
@@ -349,5 +361,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   startResearchOps({
     deps: { currentRegime: () => watcher.current()?.snap.analysis?.features.regime.value?.state ?? null },
     log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
+  })
+  // Phase 25: the ops monitor — heartbeat, feed health, soak counters, daily
+  // integrity and alerts through the bell. It reads; the bell is passed in.
+  const { startOpsMonitor } = await import('./ops/monitor.ts')
+  startOpsMonitor({
+    feed: () => marketFeed.health(),
+    alert: (title, body, severity) => { eventLog.push('info', title, body, severity) },
+    engineError: () => watcher.lastError(),
+    events: eventLog,
+    log: (line) => console.log(ui.warn(`${new Date().toLocaleTimeString()}  ● ${line}`)),
   })
 }

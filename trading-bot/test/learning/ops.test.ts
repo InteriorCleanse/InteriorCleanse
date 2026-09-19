@@ -49,7 +49,7 @@ const closed = population()
 
 test('a research tick at zero data runs every step, writes no digest on the first tick, persists its state and changes nothing', async () => {
   const r = await ops.researchTick({ closed: () => [], now: NOW })
-  assert.equal(r.steps.length, 8, r.steps.map((s) => `${s.name}:${s.ok}`).join(','))
+  assert.equal(r.steps.length, 10, r.steps.map((s) => `${s.name}:${s.ok}`).join(','))
   assert.ok(r.steps.every((s) => s.ok), r.steps.filter((s) => !s.ok).map((s) => `${s.name}: ${s.detail}`).join(' | '))
   assert.equal(r.experiment, null)
   assert.deepEqual(r.digests, [])
@@ -102,7 +102,7 @@ test('restart recovery: a stranded RUNNING experiment is finished first, a stuck
   assert.match(skipped.note, /already running/)
   store().setJson('research:ops', { ...ops.readOps(), running: true, lastRun: NOW - DAY })
   const recovered = await ops.researchTick({ closed: () => closed, now: NOW + 4 * HOUR })
-  assert.equal(recovered.steps.length, 8)
+  assert.equal(recovered.steps.length, 10)
   assert.equal(ops.readOps().running, false)
   // The day rolls: the first tick of the new day writes the digest for the day that ended, once.
   const dayAfter = NOW + DAY + 2 * HOUR

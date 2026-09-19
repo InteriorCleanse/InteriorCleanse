@@ -111,7 +111,7 @@ function render(d) {
     <section class="dk-hero">
       <div class="dk-hero-say">
         <div class="dk-chips">
-          <span class="dk-chip paper">${esc(d.mode)} · no real money</span>
+          <span class="dk-chip paper" title="Live market data; fills are simulated at the next candle open plus spread and slippage.">${esc(d.mode)} · simulated execution · no real money</span>
           <span class="dk-chip">${esc(d.symbol)} · ${esc(d.interval)}</span>
           <span class="dk-chip">${esc(d.floor.verdict)}</span>
         </div>

@@ -100,8 +100,8 @@ export function releaseLock(opts: { dir?: string; pid?: number } = {}): boolean 
  * release on exit. Returns the result; on refusal the caller decides
  * (the app exits with a message).
  */
-export function holdLock(opts: { role?: LockInfo['role']; refreshMs?: number; log?: (line: string) => void } = {}): LockResult & { stop?: () => void } {
-  const r = acquireLock({ role: opts.role })
+export function holdLock(opts: { role?: LockInfo['role']; refreshMs?: number; log?: (line: string) => void; force?: boolean } = {}): LockResult & { stop?: () => void } {
+  const r = acquireLock({ role: opts.role, force: opts.force })
   if (!r.ok) return r
   const timer = setInterval(() => {
     if (!refreshLock()) opts.log?.('lock: the data directory lock is no longer ours — another process took it over; this process should stop.')

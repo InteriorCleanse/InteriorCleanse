@@ -52,7 +52,27 @@ import { store } from '../store.ts'
 import { VERSION } from '../version.ts'
 import { dailyDigest, lessonItem, monthKey, monthlyModelAudit, weekKey, weeklyResearchReview } from './digest.ts'
 import { driftAll } from './drift.ts'
+import { observePaperClose } from './observer.ts'
 import type { DriftInput } from '../research/recommend.ts'
+import { reconciliationReport } from '../ops/reconcile.ts'
+import { attemptWrite, runRetries } from '../ops/retry.ts'
+import type { RetryHandler } from '../ops/retry.ts'
+
+/**
+ * Phase 25: how a failed learning write is re-attempted. Each handler is
+ * idempotent — the observer, the vault and the digest address their records
+ * by content — so a retry after a half-success writes nothing twice.
+ */
+export const RETRY_HANDLERS: Record<string, RetryHandler> = {
+  'paper-close': (payload, at) => {
+    const id = String((payload as { positionId?: unknown })?.positionId ?? '')
+    const p = readPositions().closed.find((x) => x.id === id)
+    if (!p) throw new Error(`position ${id} is not on record`)
+    observePaperClose(p, at)
+    return `post-mortem and evidence for ${id}`
+  },
+  'knowledge-item': (payload) => addItem(payload as Parameters<typeof addItem>[0]).id,
+}
 
 export const RESEARCH_TICK_MS = 15 * 60_000
 export const MAX_EXPERIMENTS_PER_TICK = 1
@@ -220,6 +240,9 @@ export async function researchTick(deps: TickDeps = {}): Promise<OpsReport> {
   await step('research queue', () => { const g = generateQueue({ paper, signals: driftSignals, now }); return `${g.created} created, ${g.updated} updated, ${g.items.length} item(s).` })
   await step('decay monitor', () => { const r: DecayReport = runDecayMonitor({ now, paper, currentRegime: deps.currentRegime?.() ?? null, drift }); return r.note })
   await step('experiment', async () => { out.experiment = await runOneExperiment(paper, backtest, now, deps); return out.experiment ? `${out.experiment.id}: ${out.experiment.result}` : 'nothing testable this tick' })
+  // Phase 25: a failed learning write is retried here, and the paper record is reconciled against itself.
+  await step('retry failed writes', async () => (await runRetries(RETRY_HANDLERS, now)).note)
+  await step('reconciliation', () => reconciliationReport({ now, limit: 200 }).note)
   // Period rolls. The first tick after a roll writes the period that ended; the first tick ever only marks the period.
   const s1 = readOps()
   const dayKey = tradingDayKey(now), wk = weekKey(now), mk = monthKey(now)
@@ -230,9 +253,16 @@ export async function researchTick(deps: TickDeps = {}): Promise<OpsReport> {
     const endOfPrev = tradingDayStart(now) - 1
     const d = dailyDigest(closed, endOfPrev, { drift })
     digests.push(d.digest.id)
-    if (d.digest.lessonOfTheDay) { const li = lessonItem(d.digest.lessonOfTheDay, d.digest.dayKey); addItem({ kind: li.kind, id: li.id, title: li.title, body: li.body, evidenceLabel: li.evidenceLabel, provenance: li.provenance, tags: li.tags, links: li.links, payload: li.payload, now: li.now }) }
+    let lessonNote = ''
+    if (d.digest.lessonOfTheDay) {
+      const li = lessonItem(d.digest.lessonOfTheDay, d.digest.dayKey)
+      const item = { kind: li.kind, id: li.id, title: li.title, body: li.body, evidenceLabel: li.evidenceLabel, provenance: li.provenance, tags: li.tags, links: li.links, payload: li.payload, now: li.now }
+      // A failed lesson write is visible and retried (idempotent by id); the digest itself is already on record.
+      const w = attemptWrite('knowledge-item', `knowledge-item:${li.id}`, item, () => addItem(item), now)
+      lessonNote = w.ok ? `; lesson of the day: ${d.digest.lessonOfTheDay.title}` : `; lesson of the day write FAILED and is queued for retry: ${w.error}`
+    }
     lastDigestDay = dayKey
-    return `${d.digest.id} ${d.isNew ? 'written' : 'already on record'}${d.digest.lessonOfTheDay ? `; lesson of the day: ${d.digest.lessonOfTheDay.title}` : ''}.`
+    return `${d.digest.id} ${d.isNew ? 'written' : 'already on record'}${lessonNote}.`
   })
   await step('weekly review', () => {
     if (lastWeekly === null) { lastWeekly = wk; return `First tick; week ${wk} marked.` }

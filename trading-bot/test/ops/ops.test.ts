@@ -196,7 +196,12 @@ test('heartbeat: nothing recorded → every essential mark STOPPED and the overa
   store().setJson('research:ops', null)
   store().setJson('ops:persistence-probe', null)
   store().setJson('ops:last-health-check', null)
-  const hb = HB.heartbeat({ feed: null, now: NOW, probe: false })
+  // A process that started a day ago and recorded nothing is STOPPED; a fresh start is "pending", not STOPPED.
+  const fresh = HB.heartbeat({ feed: null, now: NOW, probe: false, processStartedAt: NOW - 10_000 })
+  assert.equal(fresh.marks.engineCycle.status, 'HEALTHY', 'ten seconds after start, no cycle yet is not a fault')
+  assert.match(fresh.marks.engineCycle.detail, /never recorded; the process started 10s ago/)
+  assert.equal(fresh.marks.researchTick.status, 'HEALTHY')
+  const hb = HB.heartbeat({ feed: null, now: NOW, probe: false, processStartedAt: NOW - 86_400_000 })
   assert.equal(hb.overall, 'STOPPED')
   for (const m of Object.values(hb.marks)) { assert.ok(m.rule.length > 10, `${m.name} prints its rule`); assert.ok(['HEALTHY', 'DEGRADED', 'STALE', 'STOPPED'].includes(m.status)) }
   assert.equal(hb.marks.marketData.status, 'STOPPED')

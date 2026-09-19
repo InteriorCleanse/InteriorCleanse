@@ -52,7 +52,10 @@ import { tradeTape } from './features/trades.ts'
 import { tapeSpeed } from './features/tape.ts'
 import { largeTrades } from './features/largeTrades.ts'
 import { startWatch, eventLog } from './watch.ts'
-import { startResearchOps } from './learning/ops.ts'
+import { startResearchOps, RETRY_HANDLERS } from './learning/ops.ts'
+import { holdLock } from './ops/lock.ts'
+import { startOpsMonitor } from './ops/monitor.ts'
+import * as opsApi from './ops/api.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
@@ -370,7 +373,9 @@ const server = createServer(async (req, res) => {
         { name: 'killSwitch', ok: !stopState().stopped, detail: stopState().stopped ? 'engaged' : 'clear' },
       ]
       const healthy = checks.filter((c) => c.name === 'store' || c.name === 'dataDir').every((c) => c.ok)
-      json(res, 200, { ok: true, data: { healthy, checks, version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: storeIntegrity, feed, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt, watchStaleSec } })
+      // Phase 25: the ops monitor's last verdict rides along (the full document is /api/ops/health).
+      const oh = opsApi.opsHealthLast(feed, watcher.lastError())
+      json(res, 200, { ok: true, data: { healthy, checks, version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: storeIntegrity, feed, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt, watchStaleSec, ops: { overall: oh.overall, feed: oh.feed.verdict, dataSource: oh.dataSource.label, execution: oh.dataSource.execution, alerts: oh.alerts.length, securityOk: oh.security.ok, at: oh.at } } })
       return
     }
     // "What is the current state of my system?" — one document, from disk and the last watch cycle.
@@ -994,6 +999,19 @@ const server = createServer(async (req, res) => {
         'GET /api/ops': () => learn.opsStatus(marketFeed.health()),
         'GET /api/ops/state': () => learn.opsState(),
         'POST /api/ops/run': () => learn.opsRun(),
+        // Phase 25 — operations: the health document, heartbeat, feed health, soak, performance, integrity, reconciliation, checkpoints, the ops log, retries.
+        'GET /api/ops/health': () => opsApi.opsHealthView(marketFeed.health(), watcher.lastError()),
+        'GET /api/ops/heartbeat': () => opsApi.opsHeartbeat(marketFeed.health()),
+        'GET /api/ops/feed': () => opsApi.opsFeed(marketFeed.health()),
+        'GET /api/ops/soak': () => opsApi.opsSoak(),
+        'GET /api/ops/performance': () => opsApi.opsPerformance(),
+        'GET /api/ops/integrity': () => opsApi.opsIntegrity({ run: q('run'), history: q('history') }),
+        'GET /api/ops/reconciliation': () => opsApi.opsReconciliation({ run: q('run'), limit: q('limit') }),
+        'GET /api/ops/checkpoints': () => opsApi.opsCheckpoints(),
+        'POST /api/ops/checkpoints/reviewed': async () => opsApi.opsCheckpointReviewed(await body()),
+        'GET /api/ops/log': () => opsApi.opsLogView({ severity: q('severity'), component: q('component'), n: q('n') }),
+        'GET /api/ops/retries': () => opsApi.opsRetries(),
+        'POST /api/ops/retries/run': () => opsApi.opsRetriesRun(RETRY_HANDLERS),
         'GET /api/research/queue': () => learn.researchQueue({ status: q('status'), origin: q('origin'), maturity: q('maturity'), limit: q('limit') }),
         'POST /api/research/queue/generate': () => learn.researchQueueGenerate(),
         'POST /api/research/queue/status': async () => learn.researchQueueStatus(await body()),
@@ -1031,7 +1049,7 @@ const server = createServer(async (req, res) => {
       const handler = routes[`${req.method} ${path}`]
       try { json(res, 200, { ok: true, data: await handler() }) } catch (err) {
         const e = err as Error
-        json(res, e instanceof learn.ApiError ? e.status : 500, { ok: false, error: e.message })
+        json(res, e instanceof learn.ApiError || e instanceof opsApi.OpsApiError ? e.status : 500, { ok: false, error: e.message })
       }
       return
     }
@@ -1330,6 +1348,18 @@ server.on('error', (err: NodeJS.ErrnoException) => {
  * reported either). More to the point, nothing counted restarts at all, which is
  * why the soak gate's `recoveries` had been a permanent zero.
  */
+// Phase 25: one process per data directory. A second `npm start` on the same
+// data folder would run a second watch loop and a second research scheduler
+// against one store — two engines, duplicate decisions. It is refused here
+// with the owner named; a lock whose owner is dead or silent is taken over.
+const lock = holdLock({ role: 'app', force: process.env.MRCASH_FORCE_LOCK === '1', log: (line) => console.log(ui.warn(`  ${line}`)) })
+if (!lock.ok) {
+  console.log('')
+  console.log(ui.bad(`  ${lock.reason}`))
+  console.log(ui.dim('  Set MRCASH_FORCE_LOCK=1 only if you have already stopped that process yourself.'))
+  console.log('')
+  process.exit(1)
+}
 const startupRecovery = recoverOpenPositions()
 const boots = recordStart(startupRecovery.positions.length > 0)
 
@@ -1347,6 +1377,15 @@ const watcher = startWatch(config.app.watchEveryMinutes, (e) => {
 startResearchOps({
   deps: { currentRegime: () => watcher.current()?.snap.analysis?.features.regime.value?.state ?? null },
   log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
+})
+// Phase 25: the ops monitor — heartbeat, feed health, soak counters, daily
+// integrity and alerts through the bell. It reads; the bell is passed in.
+startOpsMonitor({
+  feed: () => marketFeed.health(),
+  alert: (title, body, severity) => { eventLog.push('info', title, body, severity) },
+  engineError: () => watcher.lastError(),
+  events: eventLog,
+  log: (line) => console.log(ui.warn(`${new Date().toLocaleTimeString()}  ● ${line}`)),
 })
 
 server.listen(PORT, host, () => {

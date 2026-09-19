@@ -28,7 +28,6 @@ import { config } from '../../config.ts'
 import { findGaps, lastClosedOpenTime } from '../data/candleStore.ts'
 import { readOps } from '../learning/ops.ts'
 import { INTERVAL_MS } from '../market.ts'
-import { observationId } from '../observer/events.ts'
 import type { Observation } from '../observer/events.ts'
 import type { PaperPosition } from '../paperTrader.ts'
 import type { Experiment } from '../research/experiments.ts'
@@ -104,14 +103,16 @@ function observationSection(positions: Map<string, PaperPosition>, knowledgeIds:
   let badId = 0, missingCase = 0, missingRecord = 0, timeOrder = 0
   for (const o of obs) {
     if (!o || typeof o.id !== 'string') { badId++; continue }
-    const want = observationId({ type: o.type, symbol: o.symbol, timeframe: o.timeframe, availableAt: o.availableAt, refId: o.recordId })
-    if (want !== o.id) badId++
+    // The id is content-addressed over type, symbol, timeframe, availableAt and a caller-chosen reference the row does not
+    // carry, so it cannot be recomputed here; the check is structural: the type slug the id must start with, and a hash tail.
+    const slug = `obs-${String(o.type).toLowerCase().replace(/\s+/g, '-')}-`
+    if (!o.id.startsWith(slug) || !/^[0-9a-z]+$/.test(o.id.slice(slug.length))) badId++
     if (o.availableAt < o.time) timeOrder++
     if (o.caseId && !knowledgeIds.has(o.caseId)) missingCase++
     if (o.recordId && !positions.has(o.recordId)) missingRecord++
   }
   const counts = { total: obs.length, candidates: store().observationCount('CANDIDATE'), resolved: store().observationCount('RESOLVED'), unresolvable: store().observationCount('UNRESOLVABLE'), idMismatch: badId, availableBeforeTime: timeOrder, missingCaseStudy: missingCase, missingRecord }
-  if (badId) issues.push(`${badId} observation(s) whose id does not match their content`)
+  if (badId) issues.push(`${badId} observation(s) whose id does not match their type (malformed)`)
   if (timeOrder) issues.push(`${timeOrder} observation(s) available before they happened (look-ahead)`)
   if (missingCase) issues.push(`${missingCase} resolved observation(s) point at a case study the vault does not hold`)
   if (missingRecord) issues.push(`${missingRecord} observation(s) point at a paper record the store does not hold`)
