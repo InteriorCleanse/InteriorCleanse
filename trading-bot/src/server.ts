@@ -1010,6 +1010,8 @@ const server = createServer(async (req, res) => {
         'GET /api/ops/checkpoints': () => opsApi.opsCheckpoints(),
         'POST /api/ops/checkpoints/reviewed': async () => opsApi.opsCheckpointReviewed(await body()),
         'GET /api/ops/log': () => opsApi.opsLogView({ severity: q('severity'), component: q('component'), n: q('n') }),
+        'GET /api/ops/day': () => opsApi.opsDay({ day: q('day'), store: q('store') }, marketFeed.health(), watcher.lastError()),
+        'GET /api/ops/days': () => opsApi.opsDays(),
         'GET /api/ops/retries': () => opsApi.opsRetries(),
         'POST /api/ops/retries/run': () => opsApi.opsRetriesRun(RETRY_HANDLERS),
         'GET /api/research/queue': () => learn.researchQueue({ status: q('status'), origin: q('origin'), maturity: q('maturity'), limit: q('limit') }),

@@ -311,7 +311,18 @@ export async function probeStream(hosts: string[], symbol: string, interval: str
   for (const host of hosts) {
     const result = await new Promise<{ ok: boolean; detail: string }>((resolve) => {
       let ws: WebSocket
-      const timer = setTimeout(() => { try { ws.close() } catch { /* ignore */ } resolve({ ok: false, detail: `no message within ${timeoutMs / 1000}s` }) }, timeoutMs)
+      // Settle exactly once. Node's built-in WebSocket re-fires 'error' when close() is called on a
+      // socket that never connected, so a handler that closes and does not guard recurses until the
+      // stack overflows (seen in `npm run doctor` behind a proxy that blocks WebSockets).
+      let settled = false
+      const settle = (r: { ok: boolean; detail: string }, close: boolean) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        if (close && ws.readyState !== 0) { try { ws.close() } catch { /* ignore */ } }
+        resolve(r)
+      }
+      const timer = setTimeout(() => settle({ ok: false, detail: `no message within ${timeoutMs / 1000}s` }, true), timeoutMs)
       try {
         ws = connect(streamUrl(host, symbol, interval))
       } catch (err) {
@@ -319,9 +330,9 @@ export async function probeStream(hosts: string[], symbol: string, interval: str
         resolve({ ok: false, detail: err instanceof Error ? err.message : String(err) })
         return
       }
-      ws.addEventListener('message', () => { clearTimeout(timer); try { ws.close() } catch { /* ignore */ } resolve({ ok: true, detail: 'first message received' }) })
-      ws.addEventListener('error', () => { clearTimeout(timer); try { ws.close() } catch { /* ignore */ } resolve({ ok: false, detail: 'connection refused or blocked' }) })
-      ws.addEventListener('close', () => { clearTimeout(timer); resolve({ ok: false, detail: 'closed before any message' }) })
+      ws.addEventListener('message', () => settle({ ok: true, detail: 'first message received' }, true))
+      ws.addEventListener('error', () => settle({ ok: false, detail: 'connection refused or blocked' }, true))
+      ws.addEventListener('close', () => settle({ ok: false, detail: 'closed before any message' }, false))
     })
     if (result.ok) return { ok: true, host, detail: result.detail }
   }

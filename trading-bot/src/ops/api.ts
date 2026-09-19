@@ -7,6 +7,7 @@
 
 import type { FeedHealth } from '../data/feed.ts'
 import { checkCheckpoints, listCheckpoints, markCheckpointReviewed } from './checkpoints.ts'
+import { getDayReport, listDayReports, paperDayReport, storeDayReport } from './dayReport.ts'
 import { feedHealthReport } from './feedHealth.ts'
 import { heartbeat } from './heartbeat.ts'
 import { dailyIntegrity, dataIntegrityReport, listIntegrityReports } from './integrity.ts'
@@ -62,6 +63,15 @@ export function opsLogView(q: { severity?: string | null; component?: string | n
   const n = Math.min(500, Math.max(1, Number(q.n) || 100))
   return { entries: recentOps(n, { severity, component }), errors: errorCounts(now), suppressed: suppressedRepeats(), note: 'The last distinct lines written by this process; repeats within ten minutes are counted under "suppressed". The full record is <data dir>/ops.log (JSON lines, rotated).' }
 }
+
+/** The paper day report: today's in progress by default; `?day=YYYY-MM-DD` for a stored day; `?store=1` writes today's now. */
+export function opsDay(q: { day?: string | null; store?: string | null }, feed: FeedHealth | null, engineError: EngineError = null, now = Date.now()) {
+  if (q.day) { const r = getDayReport(q.day); if (!r) throw new OpsApiError(404, `no paper day report for ${q.day}`); return r }
+  const h = opsHealthLast(feed, engineError)
+  const r = paperDayReport({ now, feedVerdict: h.feed.verdict, health: { overall: h.overall, note: h.verdict }, dataSource: h.dataSource.label })
+  return q.store === '1' ? storeDayReport(r) : r
+}
+export function opsDays(limit = 30) { return { reports: listDayReports(limit).map((r) => ({ dayKey: r.dayKey, ended: r.ended, generatedAt: r.generatedAt, signals: r.paper.signals, fills: r.paper.fills, closed: r.paper.closed, candles: r.marketData.candlesInWindow, marketData: r.marketData.verdict, dataQuality: r.dataQuality.verdict, health: r.systemHealth.overall })), note: 'One permanent record per trading day, written by the monitor when the day rolls; ?day=YYYY-MM-DD returns the full report.' } }
 
 export function opsRetries() { return { items: listRetries(), note: 'Failed learning writes waiting for a retry. Each is re-attempted by the research tick after its back-off; handlers are idempotent so a retry cannot duplicate a record.' } }
 export async function opsRetriesRun(handlers: Record<string, RetryHandler>, now = Date.now()) { return runRetries(handlers, now, { force: true }) }

@@ -109,6 +109,11 @@ export function holdLock(opts: { role?: LockInfo['role']; refreshMs?: number; lo
   timer.unref()
   const stop = () => { clearInterval(timer); releaseLock() }
   process.once('exit', () => { try { releaseLock() } catch { /* exiting */ } })
+  // Node ends the process on SIGTERM / SIGINT without running 'exit' handlers, so the lock would outlive the process
+  // (harmless — a dead owner is taken over — but untidy). Release it and exit, only where nothing else handles the signal.
+  for (const sig of ['SIGTERM', 'SIGINT'] as const) {
+    if (process.listenerCount(sig) === 0) process.once(sig, () => { try { releaseLock() } catch { /* exiting */ } process.exit(0) })
+  }
   if (r.tookOver) opts.log?.(`lock: took over a stale lock from pid ${r.tookOver.pid} (heartbeat ${new Date(r.tookOver.heartbeatAt).toISOString()}).`)
   return { ...r, stop }
 }

@@ -160,6 +160,48 @@ test('checkpoints: the first fill fires once with the review chain; the 10-trade
   assert.deepEqual(C.checkCheckpoints(T0 + 201 * STEP).reached, [])
 })
 
+test('paper day report: one permanent record per trading day from durable records, honest at zero and counting the day\'s signals, fills and closes', async () => {
+  const DR = await import('../../src/ops/dayReport.ts')
+  const { tradingDayStart } = await import('../../src/learning/ops.ts')
+  const { tradingDayKey } = await import('../../src/sessions.ts')
+  // A day with nothing in it says so.
+  const quiet = DR.paperDayReport({ now: T0 - 30 * 86_400_000, dataSource: 'PAPER' })
+  assert.equal(quiet.paper.signals, 0)
+  assert.match(quiet.text, /NOT ENOUGH REAL PAPER DATA/)
+  assert.equal(quiet.dataQuality.verdict, 'not run')
+  // The trading day of the last fixture trade: the report counts exactly the trades decided inside that day's window.
+  const closedAll = pt.readPositions().closed.filter((p) => p.exitReason !== 'missed')
+  const end = Math.max(...closedAll.map((p) => p.closedAt!)) + 60_000
+  const expected = closedAll.filter((p) => p.openedAt >= tradingDayStart(end) && p.openedAt <= end).length
+  assert.ok(expected >= 1)
+  const r = DR.paperDayReport({ now: end, feedVerdict: 'OK', health: { overall: 'HEALTHY', note: 'test' }, dataSource: 'PAPER' })
+  assert.equal(r.kind, 'PAPER DAY REPORT')
+  assert.equal(r.dayKey, tradingDayKey(tradingDayStart(end)))
+  assert.equal(r.ended, false)
+  assert.equal(r.paper.signals, expected, JSON.stringify(r.paper))
+  assert.ok(r.paper.fills === r.paper.signals && r.paper.closed === r.paper.signals, JSON.stringify(r.paper))
+  assert.equal(r.paper.wins, r.paper.closed)
+  assert.ok(r.marketData.candlesInWindow >= 3)
+  assert.equal(r.systemHealth.overall, 'HEALTHY')
+  assert.equal(r.dataSource, 'PAPER')
+  assert.match(r.text, /SIMULATED EXECUTION/)
+  assert.match(r.text, new RegExp(`signals: ${r.paper.signals}`))
+  // Stored once per day at the roll; a second roll on the same day writes nothing.
+  assert.equal(DR.listDayReports().length, 0)
+  const S = await import('../../src/ops/soak.ts')
+  S.startSoak(T0 - 3 * 86_400_000)
+  const nextDay = tradingDayStart(end) + 86_400_000 + 60_000
+  const roll = DR.dayRollReport({ now: nextDay, feedVerdict: 'OK', health: { overall: 'HEALTHY', note: 'test' }, dataSource: 'PAPER' })
+  assert.equal(roll.fresh, true)
+  assert.equal(roll.report?.ended, true)
+  assert.equal(roll.report?.dayKey, r.dayKey)
+  assert.equal(roll.report?.paper.closed, r.paper.closed)
+  assert.equal(DR.dayRollReport({ now: nextDay + 1000 }).fresh, false)
+  assert.equal(DR.listDayReports().length, 1)
+  assert.equal(DR.getDayReport(r.dayKey)?.engineCycles.sinceLastReport, null, 'no previous report to diff against')
+  store().deleteJson('ops:soak') // the soak test below starts its own soak from nothing
+})
+
 test('soak: counters derive from the record, accrue feed deltas, and survive a simulated restart without resetting', () => {
   const t = T0 + 300 * STEP
   const s0 = S.startSoak(t)

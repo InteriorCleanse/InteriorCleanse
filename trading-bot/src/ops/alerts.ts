@@ -56,7 +56,9 @@ export function evaluateAlerts(i: AlertInputs): OpsAlert[] {
   else if (i.feed.verdict === 'DATA DEGRADED') out.push({ id: 'degraded-data', severity: 'WARN', title: 'OPS WARN: market data DEGRADED', body: i.feed.note })
   if (i.feed.counters.recentReconnects.length >= 5) out.push({ id: 'repeated-reconnects', severity: 'WARN', title: 'OPS WARN: repeated stream reconnects', body: `${i.feed.counters.recentReconnects.length} reconnects in the last hour (last reason: ${i.feed.counters.lastDownReason ?? '—'}). REST polling covers the gaps; check the network and the exchange status page.` })
   if (m.engineCycle.status === 'STALE' || m.engineCycle.status === 'STOPPED') {
-    if (i.feed.verdict !== 'OFF') out.push({ id: 'watcher-stopped', severity: 'CRITICAL', title: `OPS CRITICAL: watch loop ${m.engineCycle.status}`, body: `${m.engineCycle.detail} Last cycle ${m.engineCycle.ageSec === null ? 'never' : `${m.engineCycle.ageSec}s ago`}; rule: ${m.engineCycle.rule}. Candles are arriving but no cycle ran.` })
+    // Only when candles are actually arriving: with the feed STALE or OFF the stale-data alert already says why no cycle ran
+    // (seen on the real-configuration run behind a blocked network, where this alert would have blamed the watcher).
+    if (i.feed.verdict === 'OK' || i.feed.verdict === 'DATA DEGRADED') out.push({ id: 'watcher-stopped', severity: 'CRITICAL', title: `OPS CRITICAL: watch loop ${m.engineCycle.status}`, body: `${m.engineCycle.detail} Last cycle ${m.engineCycle.ageSec === null ? 'never' : `${m.engineCycle.ageSec}s ago`}; rule: ${m.engineCycle.rule}. Candles are arriving but no cycle ran.` })
   }
   if (m.researchTick.status === 'STALE' || m.researchTick.status === 'STOPPED') {
     if (m.engineCycle.status === 'HEALTHY' || m.engineCycle.status === 'DEGRADED') out.push({ id: 'research-stopped', severity: 'WARN', title: `OPS WARN: research scheduler ${m.researchTick.status}`, body: `${m.researchTick.detail} Rule: ${m.researchTick.rule}. The paper engine is unaffected; learning is downstream.` })

@@ -135,3 +135,17 @@ test('probeStream says yes to a host that talks and no to one that does not', as
   const bad = await probeStream(['ws://127.0.0.1:1'], SYM, '5m', 1500)
   assert.equal(bad.ok, false)
 })
+
+test('probeStream settles once when a blocked socket re-fires error on close (the doctor stack overflow behind a WebSocket-blocking proxy)', async () => {
+  // Node's built-in WebSocket dispatches 'error' again when close() is called on a socket still CONNECTING.
+  let errors = 0
+  class Blocked extends EventTarget {
+    readyState = 0
+    close(): void { if (this.readyState === 0) { errors++; this.dispatchEvent(new Event('error')) } }
+  }
+  const connect = () => { const s = new Blocked(); setTimeout(() => { errors++; s.dispatchEvent(new Event('error')) }, 5); return s as unknown as WebSocket }
+  const r = await probeStream(['wss://blocked.example'], SYM, '5m', 1000, connect)
+  assert.equal(r.ok, false)
+  assert.match(r.detail, /none of 1 host/)
+  assert.equal(errors, 1, 'the probe did not call close() on a socket that never connected')
+})

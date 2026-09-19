@@ -71,7 +71,10 @@ heartbeat is older than two minutes is taken over automatically.
 The JSON is at `/api/ops/health`, `/api/ops/heartbeat`, `/api/ops/feed`,
 `/api/ops/soak`, `/api/ops/performance`, `/api/ops/integrity`,
 `/api/ops/reconciliation`, `/api/ops/checkpoints`, `/api/ops/log`,
-`/api/ops/retries`. The file record is `<data dir>/ops.log` (JSON lines,
+`/api/ops/retries`, and the permanent per-day record at `/api/ops/day`
+(today so far; `?day=YYYY-MM-DD` for a stored day; `?store=1` to write today's
+now) and `/api/ops/days`. The monitor writes each day's report once when the
+trading day rolls. The file record is `<data dir>/ops.log` (JSON lines,
 rotated at 5 MB × 5).
 
 ## 4. Heartbeat thresholds (interval = the configured candle, 5m by default)

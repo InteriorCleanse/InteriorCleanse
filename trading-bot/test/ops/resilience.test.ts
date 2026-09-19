@@ -233,6 +233,7 @@ test('alerts: a duplicate process on the lock, stale data and a stopped watcher 
   assert.ok(ids.includes('duplicate-process'))
   assert.ok(ids.includes('engine-error'))
   assert.ok(ids.includes('stale-data') || ids.includes('degraded-data'), ids.join(','))
+  assert.equal(ids.includes('watcher-stopped'), false, 'with no candles arriving the watcher is not blamed; the stale-data alert says why no cycle ran')
   assert.equal(alerts.find((a) => a.id === 'duplicate-process')?.severity, 'CRITICAL')
   const rung: Array<{ title: string; severity: string }> = []
   const emit = (title: string, _body: string, severity: string) => { rung.push({ title, severity }) }

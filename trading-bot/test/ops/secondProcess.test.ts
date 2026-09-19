@@ -6,7 +6,7 @@
 import { test, after, before } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tempDataDir, startMockFeeds, startBot, ROOT } from '../helpers.ts'
 import type { MockFeeds, RunningBot } from '../helpers.ts'
@@ -60,4 +60,11 @@ test('after the first process dies, a new one takes over the stale lock and beco
   assert.equal(h.data.lock.ours, true)
   assert.equal(h.data.soak.runs, 2, 'the soak counters count the restart instead of resetting')
   assert.equal(h.data.soak.restarts, 1)
+})
+
+test('a clean stop (SIGTERM) releases the lock instead of leaving it for the next start to take over', async () => {
+  bot.child.kill('SIGTERM')
+  const code = await new Promise<number | null>((r) => bot.child.once('exit', (c) => r(c)))
+  assert.equal(code, 0)
+  assert.equal(existsSync(join(tmp.dir, 'mrcash.lock')), false, 'lock file removed on SIGTERM')
 })

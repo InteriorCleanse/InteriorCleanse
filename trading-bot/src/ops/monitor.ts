@@ -26,6 +26,7 @@ import type { AppEvent } from '../types.ts'
 import { evaluateAlerts, liveFlagSet, raiseAlerts } from './alerts.ts'
 import type { AlertEmitter, OpsAlert } from './alerts.ts'
 import { checkCheckpoints, listCheckpoints } from './checkpoints.ts'
+import { dayRollReport } from './dayReport.ts'
 import type { Checkpoint } from './checkpoints.ts'
 import { feedCounters, feedHealthReport, watchFeed } from './feedHealth.ts'
 import type { FeedHealthReport } from './feedHealth.ts'
@@ -182,6 +183,8 @@ export function startOpsMonitor(deps: MonitorDeps): { stop: () => void; tick: ()
       markHealthCheck(now)
       try { const d = dailyIntegrity(now); if (d.fresh) ops.info('store', 'integrity', `daily integrity ${d.report.verdict}: ${d.report.issues.length} issue(s) in ${d.report.durationMs} ms`, { cid, result: d.report.verdict }) } catch (err) { ops.error('store', 'integrity-failed', String((err as Error)?.message ?? err), { cid }) }
       doc = opsHealth({ feed: feedH, engineError, now, probe: false })
+      // The day rolled: write the permanent PAPER DAY REPORT for the day that ended, once.
+      try { const d = dayRollReport({ now, feedVerdict: doc.feed.verdict, health: { overall: doc.overall, note: doc.verdict }, dataSource: doc.dataSource.label }); if (d.fresh && d.report) ops.info('ops', 'paper-day-report', `paper day report ${d.report.dayKey} written: ${d.report.paper.signals} signal(s), ${d.report.paper.fills} fill(s), ${d.report.paper.closed} closed`, { cid, result: d.report.dataQuality.verdict }) } catch (err) { ops.error('ops', 'paper-day-report-failed', String((err as Error)?.message ?? err), { cid }) }
       try { soakTick({ now, feed: feedCounters(), verdict: doc.feed.verdict, errors: doc.errors }) } catch (err) { ops.error('ops', 'soak-tick-failed', String((err as Error)?.message ?? err), { cid }) }
       const raised = raiseAlerts(doc.alerts, { emit: deps.alert, now })
       for (const a of raised) log(`${a.severity}: ${a.title}`)
