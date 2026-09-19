@@ -139,7 +139,9 @@ test('BOUNDARY — no engine module imports the school, research, knowledge or l
   for (const file of walk(SRC)) {
     const rel = file.replace(SRC, 'src')
     if (LEARNING_DIRS.some((d) => rel.startsWith(`src/${d}/`))) continue
-    if (rel === 'src/server.ts' || rel.startsWith('src/analyst/')) continue
+    // The analyst and the ops monitor read the learning layers' state (evidence, research ops) and are held to the
+    // read-only rule below; the engine never imports them.
+    if (rel === 'src/server.ts' || rel.startsWith('src/analyst/') || rel.startsWith('src/ops/')) continue
     const body = readFileSync(file, 'utf8')
     if (!layerImport.test(body)) continue
     if (rel === 'src/watch.ts') {
@@ -165,7 +167,7 @@ test('BOUNDARY — the watch loop calls the observer after the close is final, i
 test('BOUNDARY — the learning layers value-import nothing that decides, sizes, places or manages an order, and call no writer', () => {
   const banned = /^import (?!type\b)[^\n]*from '.*\/(exchange\/binanceTrade|live\/trader|live\/orders|live\/reconcile|execution|riskEngine|fusion|watch|shadow\/[a-z]+|paramOverrides)\.ts'/m
   const writers = /\b(openPosition|closeManually|recordMissedSignal|savePosition|appendLedgerRow|managePositions|engageStop|releaseStop|withParams|withParamsAsync|recordPaperResult|savePassport|mint)\(/
-  for (const d of LEARNING_DIRS) for (const file of walk(join(SRC, d))) {
+  for (const d of [...LEARNING_DIRS, 'ops']) for (const file of walk(join(SRC, d))) {
     const body = readFileSync(file, 'utf8')
     const rel = file.replace(SRC, 'src')
     if (rel === 'src/school/caseStudies.ts') {
