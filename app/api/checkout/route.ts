@@ -26,8 +26,43 @@ const METADATA_VALUE_LIMIT = 500
  * Using Price IDs rather than inline `price_data` also lets Stripe own
  * currency, tax behaviour, and product metadata centrally.
  */
+/**
+ * Per-IP throttle, matching the one on /api/subscribe.
+ *
+ * Creating a Checkout Session is free but not costless: each one is a Stripe
+ * API call and a row in their dashboard, and an unthrottled public endpoint
+ * lets anyone fill both. In-memory, so it resets on cold start and is
+ * per-instance — enough to stop a script, not a distributed flood. Put
+ * Vercel WAF in front before a launch that expects real traffic.
+ */
+const WINDOW_MS = 60_000
+const MAX_PER_WINDOW = 12
+const hits = new Map<string, { count: number; resetAt: number }>()
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = hits.get(ip)
+  if (!entry || now > entry.resetAt) {
+    hits.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+    return false
+  }
+  entry.count += 1
+  return entry.count > MAX_PER_WINDOW
+}
+
 export async function POST(req: Request) {
   try {
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+      req.headers.get('x-real-ip') ??
+      'unknown'
+    if (rateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Too many checkout attempts. Wait a moment and try again.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      )
+    }
+
     const { items } = (await req.json()) as { items: IncomingItem[] }
 
     if (!Array.isArray(items) || items.length === 0) {
