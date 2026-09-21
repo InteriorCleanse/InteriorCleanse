@@ -4669,3 +4669,148 @@ textarea {
   .browser-details:active,
   .browser-controls button:active { transform: none; }
 }
+
+/* ── EDITORIAL LAYER ────────────────────────────────────────────────
+   The craft that separates a template from a considered page. Every
+   rule here animates transform or opacity only, and every one of them
+   is switched off under prefers-reduced-motion at the end of the block. */
+
+/* Headlines are split into lines at runtime and each line rises from
+   behind its own edge. The mask needs a little vertical slack or
+   Fraunces' descenders and the italic 'f' get clipped. */
+.line {
+  display: block;
+  overflow: hidden;
+  /* The display face is set at line-height 0.9, so the line box is shorter
+     than the glyphs. Without this slack the mask cuts the descenders off
+     every 'g' and 'j' at rest, not just in flight. */
+  padding-bottom: 0.26em;
+  margin-bottom: -0.26em;
+}
+
+.line-inner {
+  display: block;
+  will-change: transform;
+}
+
+/* Images are uncovered, not faded. The curtain sits off the top by
+   default, so if the script never runs the picture is simply there. */
+.product-card-image,
+.book-card-image,
+.article-card-image,
+.triptych-col {
+  --curtain: -101%;
+}
+
+.product-card-image::after,
+.book-card-image::after,
+.article-card-image::after,
+.triptych-col::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--black);
+  transform: translateY(var(--curtain));
+  will-change: transform;
+}
+
+/* A hairline that draws out from its leading edge. */
+.rule-draw {
+  display: block;
+  height: 1px;
+  width: 100%;
+  max-width: 5rem;
+  margin-bottom: 2.2rem;
+  background: currentColor;
+  opacity: 0.45;
+  transform-origin: left center;
+}
+
+/* The section numeral. Set in the display face at a size that reads as
+   a watermark rather than a label, and kept off the text column. */
+body { counter-reset: track-counter; }
+
+.track-section { counter-increment: track-counter; }
+
+.track-section::before {
+  content: counter(track-counter, decimal-leading-zero);
+  position: absolute;
+  top: 4rem;
+  right: 5vw;
+  z-index: 0;
+  font-family: var(--font-display);
+  font-size: clamp(9rem, 20vw, 22rem);
+  font-weight: 300;
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  color: rgba(247, 244, 239, 0.03);
+  pointer-events: none;
+  user-select: none;
+}
+
+.track-inner { position: relative; z-index: 1; }
+
+/* More air. A luxury page is mostly the space around the object. */
+.track-section { padding: 12rem 8vw; }
+.section { padding: 11rem 8vw; }
+.track-headline { margin-bottom: 2.6rem; }
+.section-header { margin-bottom: 6rem; }
+
+/* Inline calls to action: the rule under them draws across on hover
+   instead of merely changing colour. */
+.track-cta,
+.gallery-explore-btn {
+  position: relative;
+  border-bottom-color: transparent !important;
+}
+
+.track-cta::after,
+.gallery-explore-btn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0.28);
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease);
+}
+
+.track-cta:hover::after,
+.track-cta:focus-visible::after,
+.gallery-explore-btn:hover::after,
+.gallery-explore-btn:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* The trust strip reads as a set of assurances, not a toolbar. */
+.trust-strip { padding: 2.4rem 4vw; }
+.trust-item { gap: 1rem; }
+.trust-text { line-height: 1.5; }
+
+/* The manifesto is the one place the page should feel hand-set. */
+.manifesto-text { letter-spacing: -0.02em; }
+.manifesto-attribution { opacity: 0.55; }
+
+@media (max-width: 900px) {
+  .track-section { padding: 7rem 6vw; }
+  .section { padding: 7rem 6vw; }
+  .track-section::before { top: 2rem; right: 4vw; font-size: clamp(6rem, 24vw, 10rem); }
+  .rule-draw { margin-bottom: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line { overflow: visible; padding-bottom: 0; margin-bottom: 0; }
+  .line-inner { transform: none !important; }
+  .product-card-image::after,
+  .book-card-image::after,
+  .article-card-image::after,
+  .triptych-col::after { display: none; }
+  .rule-draw { transform: none !important; }
+  .track-cta::after,
+  .gallery-explore-btn::after { transform: scaleX(1); transition: none; }
+}

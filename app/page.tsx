@@ -97,6 +97,7 @@ export default function Home() {
                 For the mind — the library
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Books that change
               <br />
@@ -133,6 +134,7 @@ export default function Home() {
                 For the home — the edit
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Cleaning and
               <br />
@@ -169,6 +171,7 @@ export default function Home() {
                 For the body — the ritual
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Objects made
               <br />
@@ -205,6 +208,7 @@ export default function Home() {
                 For the spirit — the faith library
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Books for a
               <br />
