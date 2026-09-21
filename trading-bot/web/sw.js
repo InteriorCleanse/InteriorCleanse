@@ -2,8 +2,8 @@
 // open even when the server is briefly unreachable. Market data is NEVER
 // cached — every /api call goes to the network, so nothing stale is ever
 // shown as fresh.
-const CACHE = 'mr-cash-shell-v2'
-const SHELL = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png', '/css/app.css', '/js/api.js', '/js/state.js', '/js/replay.js']
+const CACHE = 'mr-cash-shell-v3'
+const SHELL = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-180.png', '/icon.svg', '/css/app.css', '/js/api.js', '/js/state.js', '/js/replay.js']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()))

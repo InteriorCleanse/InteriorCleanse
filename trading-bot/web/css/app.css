@@ -375,3 +375,78 @@ tr.ev-trade{cursor:pointer}tr.ev-trade:hover td{background:rgba(255,255,255,.04)
 .kn-item{cursor:pointer}.kn-node{padding:6px 0;border-bottom:1px dashed var(--line,#30363d)}
 .intel-why{margin-top:8px;padding:8px 10px;border:1px dashed var(--line,#30363d);border-radius:8px;font-size:13px}
 @media (max-width:640px){.sc-pair,.sc-debate{grid-template-columns:1fr}.sc-growth-bar{flex-basis:100px}}
+
+/* ---------- BRAND PASS ----------
+   One mark, one accent, one set of rules on every device. The mint accent is
+   the brand; blue stays for informational states so nothing that used to be
+   readable stops being readable. Dark is the brand surface; no light theme
+   until every inline colour has been audited for it. */
+:root { --brand:#34d399; --brand-2:#a3e635; --ink:#0b1220; --brand-grad:linear-gradient(135deg,#34d399 0%,#a3e635 100%); --shadow:0 10px 30px -18px rgba(0,0,0,.9); --tap:44px; }
+html { color-scheme:dark; }
+::selection { background:color-mix(in srgb, var(--brand) 35%, transparent); }
+*::-webkit-scrollbar { height:8px; width:8px; } *::-webkit-scrollbar-thumb { background:var(--line); border-radius:8px; } *::-webkit-scrollbar-track { background:transparent; }
+
+/* the wordmark */
+.brand { display:inline-flex; align-items:center; gap:9px; flex:0 0 auto; white-space:nowrap; }
+.brand h1 { white-space:nowrap; }
+.brand-mark { border-radius:7px; box-shadow:0 2px 10px -2px rgba(52,211,153,.45); flex:0 0 auto; }
+.brand h1 { font-size:17px; font-weight:800; letter-spacing:-.02em; background:linear-gradient(90deg,#e6edf3 0%,#a3e635 140%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.safe { color:var(--brand); border-color:color-mix(in srgb, var(--brand) 55%, transparent); background:color-mix(in srgb, var(--brand) 10%, transparent); }
+#live.stream .dot { background:var(--brand); box-shadow:0 0 8px var(--brand); }
+
+/* primary actions and active states carry the brand */
+button.btn, a.btn { background:var(--brand-grad); color:var(--ink); box-shadow:0 6px 18px -10px rgba(52,211,153,.8); min-height:38px; }
+button.btn.ghost, a.btn.ghost, button.ghost { background:transparent; color:var(--text); box-shadow:none; }
+button.danger { background:transparent; }
+nav button.active { color:var(--text); border-bottom-color:var(--brand); }
+nav button.more.active, nav button.more.open { border-bottom-color:var(--brand); }
+.bottomnav button.active, .bottomnav button.more.open { color:var(--brand); }
+.mp-items button.active { background:color-mix(in srgb, var(--brand) 14%, transparent); border-color:color-mix(in srgb, var(--brand) 40%, transparent); }
+.ev-views button.on, .ev-toggle button.on { background:var(--brand); border-color:var(--brand); color:var(--ink); font-weight:700; }
+.ev-hero:not(.sim) { border-left-color:var(--brand); }
+.ev-st.large { color:var(--brand); border-color:var(--brand); }
+
+/* surfaces */
+.card, .ev-hero { box-shadow:var(--shadow); background-image:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0) 40%); }
+.card h2 { letter-spacing:.08em; }
+.ev-hero-big, .decision, .dk-headline, .dk-ring-num { font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+table { font-variant-numeric:tabular-nums; }
+th { letter-spacing:.07em; }
+
+/* keyboard users see where they are */
+:focus-visible { outline:2px solid var(--brand); outline-offset:2px; border-radius:6px; }
+button:focus:not(:focus-visible) { outline:none; }
+
+/* touch devices: every control is at least a fingertip, inputs never trigger zoom on iOS */
+@media (pointer:coarse) {
+  :root { --nav-h:60px; }
+  button.btn, a.btn, .hbtn, .ev-views button, .ev-toggle button, .chips button, .chip, .mp-items button { min-height:var(--tap); }
+  select, input, textarea { font-size:16px; min-height:var(--tap); }
+  .bottomnav button { font-size:11.5px; gap:4px; padding-top:8px; }
+  .bottomnav button span { font-size:20px; }
+  th, td { padding:10px 8px; }
+}
+
+/* phones: wide tables scroll inside their card instead of pushing the page sideways */
+@media (max-width:720px) {
+  .card { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .ev-hero-big { font-size:26px; }
+  .ev-head .ev-title { font-size:15px; }
+  main { padding:12px 12px 24px; }
+}
+
+/* large desks: use the width */
+@media (min-width:1280px) {
+  main { max-width:1240px; padding:22px 24px; }
+  .ev-heroes { grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+}
+
+/* print: the record on paper, no chrome */
+@media print {
+  header, nav, .bottomnav, #morepanel, .events, .hbtn { display:none !important; }
+  body { background:#fff; color:#000; padding:0; }
+  .card, .ev-hero { box-shadow:none; border-color:#ccc; background:#fff; color:#000; break-inside:avoid; }
+}
+/* touch devices have no ⌘K: drop the shortcut button so the bell stays on screen */
+@media (pointer:coarse) { #btn-palette { display:none; } }
+@media (max-width:720px) { header { gap:6px; } .hbtn { padding:5px 7px; } }
