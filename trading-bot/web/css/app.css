@@ -450,3 +450,17 @@ button:focus:not(:focus-visible) { outline:none; }
 /* touch devices have no ⌘K: drop the shortcut button so the bell stays on screen */
 @media (pointer:coarse) { #btn-palette { display:none; } }
 @media (max-width:720px) { header { gap:6px; } .hbtn { padding:5px 7px; } }
+
+/* ---------- FIRST PAPER FILL ----------
+   The chain reads top to bottom on a phone and as a column on a desk; BEFORE and AFTER are two cards that
+   never share a border, so outcome information cannot visually leak into decision-time knowledge. */
+.ff-chain { display:flex; flex-direction:column; align-items:stretch; gap:2px; }
+.ff-stage { display:grid; grid-template-columns:150px auto 1fr; gap:10px; align-items:center; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); }
+.ff-stage-n { font-weight:700; font-size:13px; }
+.ff-stage-note { font-size:12px; }
+.ff-arrow { text-align:center; color:var(--dim); font-size:14px; line-height:1; padding:1px 0; }
+.ff-split { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+.ff-before { border-top:3px solid var(--brand); }
+.ff-after { border-top:3px solid var(--purple); }
+.ff-split ul { margin:4px 0 0 18px; padding:0; }
+@media (max-width:900px) { .ff-split { grid-template-columns:1fr; } .ff-stage { grid-template-columns:1fr auto; } .ff-stage-note { grid-column:1 / -1; } }

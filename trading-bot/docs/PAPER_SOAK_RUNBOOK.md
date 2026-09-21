@@ -103,6 +103,13 @@ corrupted or duplicate records · error rate ≥ 20/h · **live flag set anywher
 
 ## 6. The first real paper fill — verification chain
 
+Operations → **First fill** runs this chain for you as the acceptance
+contract (`/api/ops/first-fill`, `docs/FIRST_FILL_ACCEPTANCE.md`): every
+check below is a named PASS / FAIL / MISSING there, the verdict is durable,
+and the bell rings `FIRST PAPER FILL ACCEPTED` when the whole chain holds.
+Human review is still yours: mark the `first-fill` checkpoint reviewed on the
+Paper engine view once you have read the BEFORE and AFTER cards.
+
 When the Paper engine view shows the `first paper fill` checkpoint (the bell
 rings `PAPER CHECKPOINT: first paper fill`), verify each link from the record,
 not from memory:

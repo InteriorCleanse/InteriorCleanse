@@ -8,6 +8,7 @@
 import type { FeedHealth } from '../data/feed.ts'
 import { checkCheckpoints, listCheckpoints, markCheckpointReviewed } from './checkpoints.ts'
 import { getDayReport, listDayReports, paperDayReport, storeDayReport } from './dayReport.ts'
+import { evaluateFirstFill } from './firstFill.ts'
 import { feedHealthReport } from './feedHealth.ts'
 import { heartbeat } from './heartbeat.ts'
 import { dailyIntegrity, dataIntegrityReport, listIntegrityReports } from './integrity.ts'
@@ -72,6 +73,9 @@ export function opsDay(q: { day?: string | null; store?: string | null }, feed: 
   return q.store === '1' ? storeDayReport(r) : r
 }
 export function opsDays(limit = 30) { return { reports: listDayReports(limit).map((r) => ({ dayKey: r.dayKey, ended: r.ended, generatedAt: r.generatedAt, signals: r.paper.signals, fills: r.paper.fills, closed: r.paper.closed, candles: r.marketData.candlesInWindow, marketData: r.marketData.verdict, dataQuality: r.dataQuality.verdict, health: r.systemHealth.overall })), note: 'One permanent record per trading day, written by the monitor when the day rolls; ?day=YYYY-MM-DD returns the full report.' } }
+
+/** The first-fill acceptance contract, evaluated now over the durable record; the verdict is persisted. */
+export function opsFirstFill(now = Date.now()) { return evaluateFirstFill({ now, persist: true }) }
 
 export function opsRetries() { return { items: listRetries(), note: 'Failed learning writes waiting for a retry. Each is re-attempted by the research tick after its back-off; handlers are idempotent so a retry cannot duplicate a record.' } }
 export async function opsRetriesRun(handlers: Record<string, RetryHandler>, now = Date.now()) { return runRetries(handlers, now, { force: true }) }

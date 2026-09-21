@@ -27,6 +27,7 @@ import { evaluateAlerts, liveFlagSet, raiseAlerts } from './alerts.ts'
 import type { AlertEmitter, OpsAlert } from './alerts.ts'
 import { checkCheckpoints, listCheckpoints } from './checkpoints.ts'
 import { dayRollReport } from './dayReport.ts'
+import { evaluateFirstFill, readFirstFillState } from './firstFill.ts'
 import type { Checkpoint } from './checkpoints.ts'
 import { feedCounters, feedHealthReport, watchFeed } from './feedHealth.ts'
 import type { FeedHealthReport } from './feedHealth.ts'
@@ -165,6 +166,15 @@ export function startOpsMonitor(deps: MonitorDeps): { stop: () => void; tick: ()
     if (lastCloseAt !== null) { const l = Date.now() - lastCloseAt; if (l >= 0 && l < 3_600_000) { latencyMs.push(l); if (latencyMs.length > 200) latencyMs.shift() } lastCloseAt = null }
     ops.info('watch', 'cycle', `cycle finished at ${new Date(c.at).toISOString()}${c.snap.signal ? ` — ${c.snap.signal.action}` : ''}`, { cid, symbol: config.symbol, result: c.snap.signal?.action ?? 'HOLD' })
     try { const cp = checkCheckpoints(c.at); for (const r of cp.reached) { ops.info('paper', 'checkpoint', `${r.label} reached — human review requested`, { cid }); deps.alert?.(`PAPER CHECKPOINT: ${r.label}`, `${r.review[0]} (Operations tab → Paper engine.)`, 'action') } } catch (err) { ops.error('ops', 'checkpoint-failed', String((err as Error)?.message ?? err), { cid }) }
+    // The first-fill acceptance contract, re-evaluated over the durable record after every cycle. It reads; the
+    // only write is its own durable verdict. The bell rings once when the chain is first ACCEPTED, and once if a
+    // later evaluation disagrees with an earlier acceptance.
+    try {
+      const prior = readFirstFillState()
+      const ff = evaluateFirstFill({ now: c.at, persist: true })
+      if (ff.status === 'ACCEPTED' && prior?.acceptedAt == null) { ops.info('paper', 'first-fill-accepted', `first paper fill ${ff.position?.id} ACCEPTED: ${ff.summary.passed} checks passed`, { cid, result: 'ACCEPTED' }); deps.alert?.('FIRST PAPER FILL ACCEPTED', `Every check on the chain passed for ${ff.position?.id}. This establishes one simulated fill, recorded whole — nothing about profitability. Review it on Operations → First fill.`, 'action') }
+      else if (ff.durable.regressed && !prior?.regressed) { ops.warn('paper', 'first-fill-regressed', ff.durable.regressionNote ?? 'a later evaluation disagrees with the acceptance', { cid }); deps.alert?.('OPS WARN: first-fill acceptance disagreement', ff.durable.regressionNote ?? 'A later evaluation disagrees with the earlier acceptance.', 'warn') }
+    } catch (err) { ops.error('ops', 'first-fill-failed', String((err as Error)?.message ?? err), { cid }) }
   })
   if (deps.events) deps.events.listeners.push((e) => { if (/^(OPS |PAPER CHECKPOINT)/.test(e.title)) return; opsLog(e.severity === 'warn' ? 'WARN' : 'INFO', 'watch', e.kind, `${e.title} — ${e.body.slice(0, 240)}`, { symbol: config.symbol }) })
 

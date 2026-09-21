@@ -1011,6 +1011,7 @@ const server = createServer(async (req, res) => {
         'GET /api/ops/checkpoints': () => opsApi.opsCheckpoints(),
         'POST /api/ops/checkpoints/reviewed': async () => opsApi.opsCheckpointReviewed(await body()),
         'GET /api/ops/log': () => opsApi.opsLogView({ severity: q('severity'), component: q('component'), n: q('n') }),
+        'GET /api/ops/first-fill': () => opsApi.opsFirstFill(),
         'GET /api/ops/day': () => opsApi.opsDay({ day: q('day'), store: q('store') }, marketFeed.health(), watcher.lastError()),
         'GET /api/ops/days': () => opsApi.opsDays(),
         'GET /api/ops/retries': () => opsApi.opsRetries(),
