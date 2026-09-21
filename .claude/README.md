@@ -20,6 +20,9 @@ nothing under `.claude/` is built, served, or linted.
 | diagram-design (+ 6 commands) | github.com/cathrynlavery/diagram-design | 9874ad7 | MIT |
 | 16 security skills (of 818) | github.com/mukul975/Anthropic-Cybersecurity-Skills | 54a7988 | Apache-2.0 |
 | harness-engineering templates (references, not skills) | github.com/ulises-jeremias/awesome-harness-engineering | 1e12fda | CC0 |
+| ponytail, -audit, -debt, -gain, -help, -review | github.com/DietrichGebert/ponytail | e3ba2aa | MIT |
+| graphify | pypi `graphifyy` 0.9.65 / github.com/Graphify-Labs/graphify | 0.9.65 | Apache-2.0 + MIT |
+| 25 lifecycle skills + 4 agents + 9 commands | github.com/addyosmani/agent-skills | dc27a9c | MIT |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -65,11 +68,35 @@ a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
 It is instructions plus two reference files; no scripts, no network.
 
 Every installed skill's name and description is loaded into **every** session
-before you type. This repository now carries 65 skills at roughly 7,400
-tokens of always-on context, up from 48 at ~4,000. That budget is why the
-cybersecurity pack is installed at 16 skills of its 818 (the full pack costs
-~108,000 tokens per session) and why the 166-skill scientific pack was not
-installed at all. Before adding a large pack, measure it.
+before you type. This repository now carries 97 skills at roughly 10,800
+tokens of always-on context, up from 48 at ~4,000 before any of this. That
+budget is why the cybersecurity pack is installed at 16 skills of its 818
+(the full pack costs ~108,000 tokens per session) and why the 166-skill
+scientific pack was not installed at all. Before adding a large pack,
+measure it.
+
+Ponytail is vendored as its six skills only. Its slash commands upstream are
+`.toml`, which is Codex's format, not Claude Code's, so they were left out —
+the skills carry the same behaviour and are routed by description. Its three
+hooks (SessionStart, SubagentStart, UserPromptSubmit) were also left out:
+they resolve paths through `${CLAUDE_PLUGIN_ROOT}`, which only exists for
+plugin installs, and they would fire on every prompt.
+
+agent-skills ships a SessionStart hook whose own header says not to wire it
+on Claude Code, because the host already routes skills from their
+descriptions and a second router would sit on top of the native one. Left
+out on the author's advice. Its four agents are the first non-persona agents
+here: `code-reviewer`, `security-auditor`, `test-engineer`,
+`web-performance-auditor`.
+
+graphify needs `pip install graphifyy` on the machine. Its `--project`
+installer also registers `PreToolUse` hooks that intercept every Read, Glob,
+Bash, and Grep call; those were removed. They would make every file read in
+every session depend on a Python package being installed, which breaks CI and
+any machine without it. The skill itself is routed by description and needs
+no hook. The graph output lives in `graphify-out/`, which is gitignored.
+Build it with `graphify . --code-only` (no API key). The full multimodal pass
+over docs and images needs a model key.
 
 `diagram-design` is the first skill here to ship slash commands; they live in
 `.claude/commands/` and are project-scoped. Its `doctor` and `profile`

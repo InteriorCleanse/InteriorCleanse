@@ -19,8 +19,8 @@ Measured on this repository:
 
 | State | Skills | Always-on cost |
 | --- | --- | --- |
-| Before this round | 48 | ~4,000 tokens |
-| After this round | 65 | ~7,400 tokens |
+| Before any of this | 48 | ~4,000 tokens |
+| Now | 97 | ~10,800 tokens |
 | If the full cybersecurity pack had been installed | 866 | ~112,000 tokens |
 | If the full scientific pack had been installed too | 1,032 | ~135,000 tokens |
 
@@ -170,14 +170,53 @@ heavily with Agent Memory.
 
 ---
 
-## Still open from the earlier request
+### Ponytail — six skills
 
-`Ponytail` and `Graphify` were verified and are ready to install; `OmniRoute`
-re-routes the Claude Code model endpoint machine-wide and cannot be installed
-from here. The "Agent Skills 24-pack" matched two different repositories and
-is waiting on your choice between `addyosmani/agent-skills` (software
-lifecycle, recommended) and `sanjay3290/ai-skills` (connectors, needs many
-API keys). See the notes in that conversation.
+- **Source:** `github.com/DietrichGebert/ponytail` v4.10.0, MIT
+- **Location:** `.claude/skills/ponytail*/`
+- **Invoke:** say "ponytail", "be lazy", "simplest solution", "yagni", or
+  complain about over-engineering. Also routed automatically on coding tasks.
+  `ponytail lite|full|ultra` sets intensity; "stop ponytail" turns it off.
+- **The other five:** `ponytail-review` (review a diff for over-engineering),
+  `ponytail-audit` (scan the whole repo), `ponytail-debt` (collect deferred
+  shortcuts), `ponytail-gain` (its benchmark numbers), `ponytail-help`.
+- **Not installed:** its `.toml` commands are Codex's format, and its three
+  hooks resolve through a plugin-only path variable and fire on every prompt.
+
+### Graphify — codebase knowledge graph
+
+- **Source:** PyPI `graphifyy` 0.9.65, `github.com/Graphify-Labs/graphify`,
+  Apache-2.0 with MIT components
+- **Location:** `.claude/skills/graphify/`, output in gitignored `graphify-out/`
+- **Needs:** `pip install graphifyy`, Python 3.10+
+- **Build it:** `graphify . --code-only` needs no API key. The full pass over
+  docs, PDFs, and images needs `ANTHROPIC_API_KEY` or another model key.
+- **Measured here:** 365 code files became 6,247 nodes, 13,975 edges, 251
+  communities. A query for the publish path correctly returned
+  `publishedProducts()`, `lib/catalog.ts`, both product routes, the admin
+  import route, the sitemap, and the structured-data component.
+- **Not installed:** the `PreToolUse` hooks its installer registers. They
+  intercept every Read, Glob, Bash, and Grep call and hard-require the
+  `graphify` binary on PATH, which would break CI and any machine without it.
+
+### Agent Skills — 25 lifecycle skills, 4 agents, 9 commands
+
+- **Source:** `github.com/addyosmani/agent-skills` v0.6.9, MIT — the one you
+  chose over `sanjay3290/ai-skills`, which needed a Google Workspace account
+  and roughly a dozen API keys
+- **Location:** `.claude/skills/`, `.claude/agents/`, `.claude/commands/`
+- **Commands:** `/spec`, `/plan`, `/build`, `/test`, `/review`, `/ship`,
+  `/constraints`, `/code-simplify`, `/webperf`
+- **Agents:** `code-reviewer`, `security-auditor`, `test-engineer`,
+  `web-performance-auditor` — the first non-persona agents in this repo
+- **Not installed:** its SessionStart hook, on the author's own advice. Its
+  header says hosts that route skills from descriptions, Claude Code among
+  them, would end up running a second router over the native one.
+
+## Still open
+
+`OmniRoute` re-routes the Claude Code model endpoint machine-wide and cannot
+be installed from here. Steps for your own machine are in the conversation.
 
 ---
 

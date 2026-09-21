@@ -13,3 +13,6 @@ raw-clips/
 # Python bytecode from vendored skills
 __pycache__/
 *.pyc
+
+# Graphify knowledge graph output (regenerate with: graphify .)
+graphify-out/
