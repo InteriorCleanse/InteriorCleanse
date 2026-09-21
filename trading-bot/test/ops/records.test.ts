@@ -169,6 +169,8 @@ test('paper day report: one permanent record per trading day from durable record
   assert.equal(quiet.paper.signals, 0)
   assert.match(quiet.text, /NOT ENOUGH REAL PAPER DATA/)
   assert.equal(quiet.dataQuality.verdict, 'not run')
+  assert.equal(quiet.firstFill.status, 'not evaluated', 'the verifier has not run in this data directory')
+  assert.match(quiet.text, /first paper fill: not evaluated/)
   // The trading day of the last fixture trade: the report counts exactly the trades decided inside that day's window.
   const closedAll = pt.readPositions().closed.filter((p) => p.exitReason !== 'missed')
   const end = Math.max(...closedAll.map((p) => p.closedAt!)) + 60_000

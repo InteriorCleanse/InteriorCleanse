@@ -119,4 +119,15 @@ zero trades (WAITING, nothing passed, NOT ENOUGH REAL PAPER DATA) · valid chain
 ## 6. Follow-up candidates (out of scope, not implemented)
 
 - Record a fingerprint of the frozen profile on the decision snapshot at decision time (`watch.ts`), so B6 can compare recorded against recorded rather than recorded against running.
-- A `firstFill` line on the permanent day report once the day's fill is accepted.
+
+## 7. Day-report line (added after the phase)
+
+The permanent paper day report (`paper-day:<dayKey>`, `/api/ops/day`) carries a
+`firstFill` field and a `first paper fill:` text line: the verifier's durable
+verdict as it stood when the report was made (`not evaluated` before the
+verifier has ever run in that data directory; `WAITING`; `ACCEPTED` with the
+position id and acceptance time; `NOT ACCEPTED` with the failed and missing
+check ids, and a note when an earlier acceptance has since regressed). The
+report reads the `ops:first-fill` key directly rather than importing the
+verifier, because the verifier imports the report for checks G1–G3. Nothing
+about how the verdict is reached changed.

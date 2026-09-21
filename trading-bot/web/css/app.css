@@ -118,10 +118,18 @@
   @media (max-width:640px){ .tour .map { grid-template-columns:1fr } }
   .bottomnav { display:none; }
   @media (max-width:720px){
-    header { padding:8px 12px; padding-top:calc(8px + env(safe-area-inset-top)); flex-wrap:nowrap; overflow:hidden; }
+    /* Phone header: the wordmark, the PAPER badge and the live price share the first row; the buttons
+       wrap onto a second row instead of being clipped, so the mode badge is always visible. */
+    header { padding:6px 12px; padding-top:calc(6px + env(safe-area-inset-top)); flex-wrap:wrap; gap:4px 6px; justify-content:flex-end; overflow:visible; }
     header #market, header #clock { display:none; }
-    .safe { font-size:0; padding:3px 8px; } .safe::before { content:"PAPER"; font-size:11px; }
-    .hbtn { padding:5px 8px; font-size:12px; }
+    .brand { order:-2; } .safe { order:-1; flex:0 0 auto; font-size:0; padding:3px 8px; } .safe::before { content:"PAPER"; font-size:11px; }
+    header .spacer { flex:0 0 100%; height:0; margin:-2px 0; } /* a forced line break: the buttons always form the second row */
+    #live { order:0; flex:1 1 auto; min-width:0; overflow:hidden; } #live b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hbtn { padding:5px 7px; font-size:12px; flex:0 0 auto; }
+    .events { top:calc(env(safe-area-inset-top) + 76px); }
+  }
+  @media (max-width:720px) and (pointer:coarse) {
+    .events { top:calc(env(safe-area-inset-top) + 96px); }
     nav { display:none; }
     main { padding:12px; }
     canvas.chart { height:360px; }
@@ -449,7 +457,6 @@ button:focus:not(:focus-visible) { outline:none; }
 }
 /* touch devices have no ⌘K: drop the shortcut button so the bell stays on screen */
 @media (pointer:coarse) { #btn-palette { display:none; } }
-@media (max-width:720px) { header { gap:6px; } .hbtn { padding:5px 7px; } }
 
 /* ---------- FIRST PAPER FILL ----------
    The chain reads top to bottom on a phone and as a column on a desk; BEFORE and AFTER are two cards that

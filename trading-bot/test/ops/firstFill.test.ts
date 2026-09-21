@@ -24,6 +24,7 @@ const C = await import('../../src/ops/checkpoints.ts')
 const I = await import('../../src/ops/integrity.ts')
 const O = await import('../../src/observer/events.ts')
 const PR = await import('../../src/paper/reconcile.ts')
+const DR = await import('../../src/ops/dayReport.ts')
 const { resetOpsLog } = await import('../../src/ops/log.ts')
 after(() => tmp.cleanup())
 resetOpsLog({ logger: { debug() {}, info() {}, warn() {}, error() {}, path: 'fake' } })
@@ -97,6 +98,12 @@ test('a valid chain: the fixture trade through the real fill model, with the obs
   assert.equal(st.status, 'ACCEPTED')
   assert.equal(st.acceptedAt, NOW)
   assert.equal(FF.evaluateFirstFill({ now: NOW + 60_000 }).durable.acceptedAt, NOW, 'a later evaluation keeps the first acceptance time')
+  // The permanent day report carries the verdict as it stood, read from the same durable state.
+  const day = DR.paperDayReport({ now: NOW + 60_000, dataSource: 'PAPER' })
+  assert.equal(day.firstFill.status, 'ACCEPTED')
+  assert.equal(day.firstFill.positionId, id)
+  assert.equal(day.firstFill.acceptedAt, NOW)
+  assert.match(day.text, new RegExp(`first paper fill: ACCEPTED \\(position ${id}\\)`))
 })
 
 test('wrong execution mode: the live flag, a recorded feed, or shadow orders on the store each make the contract fail', () => {

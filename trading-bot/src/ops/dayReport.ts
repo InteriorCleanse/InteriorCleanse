@@ -48,10 +48,23 @@ export type PaperDayReport = {
   knowledgeUpdates: number
   dataQuality: { verdict: IntegrityReport['verdict'] | 'not run'; issues: string[] }
   systemHealth: { overall: MarkStatus | 'not reported'; note: string }
+  /**
+   * The first-fill acceptance verdict as it stood when the report was made, read
+   * from the verifier's durable state (`ops:first-fill`, docs/FIRST_FILL_ACCEPTANCE.md).
+   * `not evaluated` means the verifier has not run yet in this data directory.
+   */
+  firstFill: { status: 'ACCEPTED' | 'NOT ACCEPTED' | 'WAITING' | 'not evaluated'; positionId: string | null; acceptedAt: number | null; regressed: boolean; failed: string[]; missing: string[] }
   text: string
 }
 
 const PREFIX = 'paper-day:'
+/** The verifier's durable state, read by key so this module does not import the verifier (which imports this report). */
+type FirstFillDurable = { positionId: string | null; status: 'ACCEPTED' | 'NOT ACCEPTED' | 'WAITING'; acceptedAt: number | null; regressed: boolean; failed: string[]; missing: string[] }
+function firstFillLine(): PaperDayReport['firstFill'] {
+  const s = store().getJson<FirstFillDurable>('ops:first-fill')
+  if (!s || typeof s !== 'object' || typeof s.status !== 'string') return { status: 'not evaluated', positionId: null, acceptedAt: null, regressed: false, failed: [], missing: [] }
+  return { status: s.status, positionId: s.positionId ?? null, acceptedAt: s.acceptedAt ?? null, regressed: Boolean(s.regressed), failed: Array.isArray(s.failed) ? s.failed : [], missing: Array.isArray(s.missing) ? s.missing : [] }
+}
 
 export function getDayReport(dayKey: string): PaperDayReport | null { return store().getJson<PaperDayReport>(PREFIX + dayKey) }
 export function listDayReports(limit = 30): PaperDayReport[] {
@@ -108,6 +121,7 @@ export function paperDayReport(input: DayReportInputs = {}): PaperDayReport {
     observations, caseStudies, knowledgeUpdates,
     dataQuality: integrity ? { verdict: integrity.verdict, issues: integrity.issues } : { verdict: 'not run', issues: [] },
     systemHealth: input.health ? { overall: input.health.overall, note: input.health.note } : { overall: 'not reported', note: 'The monitor did not supply a health verdict.' },
+    firstFill: firstFillLine(),
     text: '',
   }
   r.text = renderDayReport(r)
@@ -116,6 +130,14 @@ export function paperDayReport(input: DayReportInputs = {}): PaperDayReport {
 
 const et = (ms: number | null) => (ms === null ? '—' : `${toET(ms).dateKey} ${toET(ms).clock} ET`)
 const n = (x: number | null) => (x === null ? '—' : String(x))
+function firstFillText(f: PaperDayReport['firstFill']): string {
+  if (f.status === 'not evaluated') return 'not evaluated — the acceptance verifier has not run in this data directory'
+  if (f.status === 'WAITING') return 'WAITING — no simulated fill on record yet'
+  const id = f.positionId ? ` (position ${f.positionId})` : ''
+  if (f.status === 'ACCEPTED') return `ACCEPTED${id}${f.acceptedAt !== null ? ` at ${et(f.acceptedAt)}` : ''}${f.regressed ? ' · REGRESSED since: a later evaluation disagreed' : ''}`
+  const why = [...f.failed.map((c) => `${c} FAIL`), ...f.missing.map((c) => `${c} MISSING`)]
+  return `NOT ACCEPTED${id}${why.length ? ` — ${why.join(', ')}` : ''}${f.acceptedAt !== null ? ' · previously ACCEPTED, now regressed' : ''}`
+}
 
 export function renderDayReport(r: PaperDayReport): string {
   return [
@@ -132,6 +154,7 @@ export function renderDayReport(r: PaperDayReport): string {
     `observations: ${r.observations} · case studies: ${r.caseStudies} · knowledge updates: ${r.knowledgeUpdates}`,
     `data quality: ${r.dataQuality.verdict}${r.dataQuality.issues.length ? ` — ${r.dataQuality.issues.join('; ')}` : ''}`,
     `system health: ${r.systemHealth.overall} — ${r.systemHealth.note}`,
+    `first paper fill: ${firstFillText(r.firstFill)}`,
     r.paper.signals === 0 && r.paper.fills === 0 && r.paper.closed === 0 ? 'NOT ENOUGH REAL PAPER DATA: no signal, fill or closed trade in this window. A lack of trades is data.' : 'Paper figures are SIMULATED EXECUTION; no conclusion about an edge is drawn from one day.',
   ].join('\n')
 }
