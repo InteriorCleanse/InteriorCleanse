@@ -2688,8 +2688,24 @@ textarea {
 }
 
 .collection-empty {
-  padding: 4rem 0;
+  padding: 1rem 0 5rem;
   max-width: 46ch;
+}
+
+.collection-empty-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-bottom: 1rem;
+}
+
+/* The rule above an empty state is shorter than a section rule: it marks a
+   held space, not a new chapter. */
+.collection-empty .rule-draw {
+  max-width: 3rem;
+  margin-bottom: 1.6rem;
 }
 
 .collection-empty-copy {

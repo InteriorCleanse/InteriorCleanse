@@ -23,10 +23,14 @@ export function CollectionView({ collection }: { collection: Collection }) {
         eyebrowColor={collection.accent}
         background={collection.background}
         title={<>{collection.title}</>}
+        // When the collection is empty the hero carries the collection's own
+        // description and the block below carries the explanation. They used
+        // to both print `emptyCopy`, so four pages said the same sentence
+        // twice, six hundred pixels apart.
         sub={
           products.length > 0
             ? 'Objects selected not for novelty, but for how beautifully they serve.'
-            : collection.emptyCopy
+            : collection.description
         }
       />
 
@@ -43,6 +47,8 @@ export function CollectionView({ collection }: { collection: Collection }) {
             </div>
           ) : (
             <div className="collection-empty">
+              <span className="rule-draw" aria-hidden="true" />
+              <p className="collection-empty-eyebrow">Nothing listed here yet</p>
               <p className="collection-empty-copy">{collection.emptyCopy}</p>
               <div className="hero-actions">
                 {collection.emptyHref ? (
