@@ -243,7 +243,7 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
       const t = snap.flow.tape
       const top = t.bigTrades[0]
       if (top.usd >= config.orderflow.bigTradeUsd * 5 && once(`big-${top.time}-${top.usd.toFixed(0)}`)) {
-        eventLog.push('flow', `Big ${top.side}: ${fmtUsd(top.usd)}`, `A single ${top.side} of ${top.qty.toFixed(3)} at $${top.price.toFixed(0)}. In the same window: ${t.bigBuys} big buys vs ${t.bigSells} big sells, net ${t.deltaUsd >= 0 ? '+' : '-'}${fmtUsd(t.deltaUsd)}.`, 'info')
+        eventLog.push('flow', `Big ${top.side}: ${fmtUsd(top.usd)}`, `A single ${top.side} of ${top.qty.toFixed(3)} at $${top.price.toFixed(0)}. In the same window: ${t.bigBuys} big buys vs ${t.bigSells} big sells, net ${t.deltaUsd >= 0 ? '+' : '-'}${fmtUsd(Math.abs(t.deltaUsd))}.`, 'info')
       }
     }
   }

@@ -114,7 +114,7 @@ export function describeFlow(book: BookSnapshot | null, tape: TapeSnapshot | nul
   }
   if (tape) {
     const mins = Math.max(1, Math.round((tape.to - tape.from) / 60_000))
-    L.push(`Tape: ${tape.trades.toLocaleString()} trades in the last ${mins} min (${tape.tradesPerMinute.toFixed(0)}/min), ${Math.round(tape.buyShare * 100)}% buyer-initiated. Buyers ${usd(tape.buyUsd)} vs sellers ${usd(tape.sellUsd)} — net ${tape.deltaUsd >= 0 ? '+' : '-'}${usd(tape.deltaUsd)} ${tape.deltaUsd >= 0 ? 'buying' : 'selling'} pressure.`)
+    L.push(`Tape: ${tape.trades.toLocaleString()} trades in the last ${mins} min (${tape.tradesPerMinute.toFixed(0)}/min), ${Math.round(tape.buyShare * 100)}% buyer-initiated. Buyers ${usd(tape.buyUsd)} vs sellers ${usd(tape.sellUsd)} — net ${tape.deltaUsd >= 0 ? '+' : '-'}${usd(Math.abs(tape.deltaUsd))} ${tape.deltaUsd >= 0 ? 'buying' : 'selling'} pressure.`)
     if (tape.bigTrades.length) {
       const top = tape.bigTrades[0]
       L.push(`${tape.bigTrades.length} print(s) over ${usd(config.orderflow.bigTradeUsd)}: ${tape.bigBuys} buy(s), ${tape.bigSells} sell(s). Largest was a ${top.side} of ${top.qty.toFixed(3)} at $${top.price.toFixed(0)} (${usd(top.usd)}).`)

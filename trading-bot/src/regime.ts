@@ -162,7 +162,7 @@ export function assessMarket(candles: Candle[], analysis: IctAnalysis | null, fl
   const day = new Date(now).toLocaleString('en-US', { timeZone: config.ict.timezone, weekday: 'short' })
   if (day === 'Sat' || day === 'Sun') { score -= 15; watchOuts.push('Weekend — thin liquidity. Weekend trends are often undone at the Monday open.') }
   score = Math.max(0, Math.min(100, score))
-  const label = trend === 'range' ? 'no trend to continue — wait for a sweep' : score >= 65 ? 'likely to continue' : score >= 40 ? 'unclear — could go either way' : 'weakening'
+  const label = trend === 'range' ? 'no trend to continue — wait for a sweep' : score >= 65 ? 'likely to continue' : score >= 40 ? 'continuation unclear — could go either way' : 'weakening'
 
   const summary =
     trend === 'range'
