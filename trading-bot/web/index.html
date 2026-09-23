@@ -284,6 +284,34 @@ const GROUPS = [
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
 ]
 const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
+
+// Line icons for the tabs: one 24-px grid, one stroke weight, drawn in the text colour.
+const TICON_PATHS = {
+  desk:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  today:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  chart:'<path d="M7 3v4M7 17v4M17 3v6M17 15v6"/><rect x="5" y="7" width="4" height="10" rx="1"/><rect x="15" y="9" width="4" height="6" rx="1"/>',
+  journal:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/>',
+  ask:'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',
+  flow:'<path d="M5 20V11M10 20V5M15 20v-8M20 20v-5"/>',
+  news:'<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5M8 17h3"/>',
+  evidence:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  school:'<path d="m2 9 10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>',
+  research:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7.5 15h9"/>',
+  knowledge:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  observer:'<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/>',
+  validation:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  ops:'<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+  intel:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  tv:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M10.5 8l4 2-4 2z"/>',
+  planner:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  test:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/>',
+  replay:'<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
+  playbook:'<path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>',
+  factory:'<circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><path d="M6 7v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7M12 12v5"/>',
+  vault:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5v1M12 14.5v1M7 20v1M17 20v1"/>',
+  memory:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.3 1 2.1v.4h6v-.4c0-.8.4-1.5 1-2.1A6 6 0 0 0 12 3z"/>',
+}
+const ticon = (id) => TICON_PATHS[id] ? `<svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${TICON_PATHS[id]}</svg>` : TAB[id].icon
 let cfg = null, data = null, busy = false, chatHistory = [], lastEventId = 0, pendingPic = null, deferredInstall = null
 
 const money = (n, d=2) => (n<0?'-':'') + '$' + Math.abs(n).toFixed(d)
@@ -304,12 +332,12 @@ const errBox = (e) => `<div class="card"><h2>Stopped</h2><div class="err">${esc(
 // ---------- navigation ----------
 const navBtn = (id, i) => `<button data-tab="${id}">${TAB[id].label}${i < 9 ? `<kbd>${i+1}</kbd>` : ''}</button>`
 $('tabs').innerHTML = PRIMARY.map(navBtn).join('') + `<button id="btn-more" class="more">More<kbd>M</kbd></button>`
-$('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${TAB[id].icon}</span>${TAB[id].label}</button>`).join('')
+$('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')
   + `<button id="btn-more-b" class="more"><span>⋯</span>More</button>`
 $('morepanel').innerHTML = GROUPS.map(([title, blurb, ids]) => `
   <div class="mp-group">
     <h4>${title}<span>${blurb}</span></h4>
-    <div class="mp-items">${ids.map(id => `<button data-tab="${id}"><span>${TAB[id].icon}</span>${TAB[id].label}</button>`).join('')}</div>
+    <div class="mp-items">${ids.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')}</div>
   </div>`).join('')
 
 const IN_MORE = new Set(GROUPS.flatMap(([, , ids]) => ids))

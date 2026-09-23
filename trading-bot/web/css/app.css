@@ -772,3 +772,40 @@ h1, h2, h3, .decision, .dk-headline { text-wrap:balance; }
    one accent instead of a second (blue) one. */
 .dk-core-vote { font-family:var(--font-sans); font-weight:500; font-size:12px; font-variant-numeric:tabular-nums; }
 .plain { border-left-color:color-mix(in srgb, var(--brand) 55%, var(--line)); background:rgba(52,211,153,.045); }
+
+/* Desk → the pipeline: six steps, one row, the current one lit. */
+.dk-pipe { margin:0 0 16px; }
+.dk-pipe-head { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin:0 0 10px; }
+.dk-pipe-head b { font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.dk-pipe-head span { font-size:12.5px; color:var(--dim); }
+.dk-pipe-row { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; counter-reset:none; }
+.dk-step { position:relative; }
+.dk-step + .dk-step::before { content:''; position:absolute; left:-8px; top:31px; width:8px; height:1px; background:var(--line); }
+.dk-step.done + .dk-step::before { background:color-mix(in srgb, var(--brand) 60%, var(--line)); }
+.dk-step button { all:unset; box-sizing:border-box; cursor:pointer; display:flex; flex-direction:column; gap:3px; width:100%; height:100%; padding:12px 12px 13px; border-radius:14px;
+  border:1px solid var(--edge); background:linear-gradient(180deg, rgba(23,31,44,.82), rgba(18,23,34,.82)); transition:border-color .18s var(--ease), transform .18s var(--ease), background-color .18s var(--ease); }
+.dk-step button:hover { border-color:color-mix(in srgb, var(--text) 20%, var(--edge)); transform:translateY(-1px); }
+.dk-step button:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+.dk-step-i { width:38px; height:38px; border-radius:11px; display:grid; place-items:center; margin-bottom:6px; color:var(--dim); background:rgba(255,255,255,.03); border:1px solid var(--edge); }
+.dk-step-i svg { width:21px; height:21px; }
+.dk-step-n { font-size:12.5px; font-weight:600; color:var(--text); display:flex; gap:6px; align-items:center; }
+.dk-step-n em { font-style:normal; font-size:10.5px; font-weight:700; color:var(--ink); background:var(--brand); border-radius:6px; padding:1px 6px; }
+.dk-step-v { font:600 14px/1.3 var(--font-sans); font-variant-numeric:tabular-nums; color:var(--text); overflow-wrap:anywhere; }
+.dk-step-s { font-size:11.5px; color:var(--dim); line-height:1.35; }
+.dk-step.done .dk-step-i { color:var(--brand); background:color-mix(in srgb, var(--brand) 10%, transparent); border-color:color-mix(in srgb, var(--brand) 30%, transparent); }
+.dk-step.now button { border-color:color-mix(in srgb, var(--brand) 55%, transparent); box-shadow:0 0 0 1px color-mix(in srgb, var(--brand) 25%, transparent), 0 16px 34px -22px rgba(52,211,153,.55); }
+.dk-step.now .dk-step-i { color:var(--ink); background:var(--brand); border-color:var(--brand); }
+.dk-step.idle button, .dk-step.blind button { opacity:.72; }
+.dk-step.blind .dk-step-i { color:var(--amber); }
+.dk-step.stop .dk-step-i { color:var(--red); border-color:color-mix(in srgb, var(--red) 40%, transparent); }
+@media (max-width:980px) { .dk-pipe-row { grid-template-columns:repeat(3,minmax(0,1fr)); } .dk-step:nth-child(4)::before { display:none; } }
+@media (max-width:520px) { .dk-pipe-row { grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-step:nth-child(odd)::before { display:none; } .dk-step:nth-child(4)::before { display:block; } }
+@media (prefers-reduced-motion:reduce) { .dk-step button { transition:none; } .dk-step button:hover { transform:none; } }
+
+/* Tab icons: line drawings instead of emoji, coloured by the tab's state. */
+svg.ti { width:22px; height:22px; display:block; }
+.bottomnav button span { display:grid; place-items:center; }
+.bottomnav button span svg.ti { width:23px; height:23px; }
+.bottomnav button.active span { text-shadow:none; filter:drop-shadow(0 0 8px color-mix(in srgb, var(--brand) 55%, transparent)); }
+.mp-items button span { display:inline-grid; place-items:center; vertical-align:middle; }
+.mp-items button span svg.ti { width:18px; height:18px; }

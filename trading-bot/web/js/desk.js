@@ -476,6 +476,63 @@ function startCore() {
 function stopCore() { if (coreFrame) cancelAnimationFrame(coreFrame); coreFrame = null }
 window.addEventListener('resize', () => { if (coreData && deskVisible()) { drawStatics(); if (REDUCED) startCore() } })
 
+/**
+ * THE PIPELINE — the six steps every paper trade has to pass, left to right,
+ * lit from the same /api/desk reading as everything else on this page. A step
+ * is "done" only when the desk says so; the first step that is not done is
+ * where Mr. Cash is right now. Nothing here is estimated: a step with no
+ * reading says so.
+ */
+const ICON = {
+  scan: '<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M6.5 12s2-3.5 5.5-3.5 5.5 3.5 5.5 3.5-2 3.5-5.5 3.5S6.5 12 6.5 12z"/><circle cx="12" cy="12" r="1.4"/>',
+  mood: '<path d="M3 17l5-6 4 4 5-7 4 5"/><path d="M3 21h18"/>',
+  analyze: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/><path d="M8 12.5v-2M10.5 12.5v-4M13 12.5v-3"/>',
+  plan: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><circle cx="12" cy="13" r="3.5"/><circle cx="12" cy="13" r=".9"/>',
+  risk: '<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="m9 12 2 2 4-4"/>',
+  record: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/>',
+}
+const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`
+const rowVal = (a, label) => a?.rows?.find((r) => r.label === label)?.value
+
+function pipelineSteps(d) {
+  const ag = Object.fromEntries((d.agents || []).map((a) => [a.id, a]))
+  const tape = ag.tape, regime = ag.regime, signal = ag.signal, risk = ag.risk, proof = ag.proof
+  const panel = d.core?.panel
+  const cleared = panel && (panel.action === 'LONG' || panel.action === 'SHORT')
+  const hasCandidate = risk && risk.headline !== 'NO CANDIDATE'
+  const seeing = (a) => a && (a.status === 'LIVE' || a.status === 'PARTIAL')
+  return [
+    { k: 'scan', t: 'Scan', tab: 'chart', state: seeing(tape) ? 'done' : 'blind',
+      v: `${d.symbol} · ${d.interval}`, s: seeing(tape) ? `${rowVal(tape, 'Sweeps today') ?? '—'} sweeps, ${rowVal(tape, 'Fair value gaps') ?? '—'} gaps in play` : "can't read the chart right now" },
+    { k: 'mood', t: 'Mood', tab: 'intel', state: seeing(regime) ? 'done' : 'blind',
+      v: seeing(regime) ? String(regime.headline).toLowerCase() : '—', s: seeing(regime) ? `${rowVal(regime, 'Volatility') ?? '—'} volatility` : 'no reading' },
+    { k: 'analyze', t: 'Analyze', tab: 'today', state: !panel || panel.score === null ? 'blind' : cleared ? 'done' : 'wait',
+      v: panel && panel.score !== null ? `${panel.score}/100` : '—', s: panel && panel.enterScore !== null ? `acts at ${panel.enterScore} · ${String(panel.action).toLowerCase()}` : 'no decision yet' },
+    { k: 'plan', t: 'Plan', tab: 'today', state: hasCandidate ? 'done' : cleared ? 'wait' : 'idle',
+      v: hasCandidate ? 'entry · stop · target' : 'no plan', s: hasCandidate ? 'written before entry' : 'no plan, no trade' },
+    { k: 'risk', t: 'Risk', tab: 'ops', state: !hasCandidate ? 'idle' : risk.headline === 'CLEAR' ? 'done' : 'stop',
+      v: !hasCandidate ? 'nothing to check' : risk.headline === 'CLEAR' ? 'all checks clear' : `stopped: ${String(risk.headline).toLowerCase()}`, s: '9 rules, any one can veto' },
+    { k: 'record', t: 'Record', tab: 'validation', state: 'idle',
+      v: `${rowVal(proof, 'Paper trades') ?? '0'} paper trades`, s: `${rowVal(proof, 'Gates met') ?? '—'} gates met` },
+  ]
+}
+
+function pipeline(d) {
+  const steps = pipelineSteps(d)
+  const now = steps.findIndex((x) => x.state !== 'done')
+  const label = { done: 'passed', wait: 'waiting', idle: 'not yet', blind: "can't see", stop: 'stopped' }
+  return `<section class="dk-pipe" aria-label="How a paper trade happens here">
+    <div class="dk-pipe-head"><b>How a trade happens here</b><span>every step has to pass before the next one starts</span></div>
+    <ol class="dk-pipe-row">${steps.map((x, i) => `<li class="dk-step ${x.state}${i === now ? ' now' : ''}">
+      <button data-tab="${x.tab}" title="Open ${esc(x.tab)}">
+        <span class="dk-step-i">${svg(x.k)}</span>
+        <span class="dk-step-n">${i + 1}. ${esc(x.t)}${i === now ? ' <em>now</em>' : ''}</span>
+        <span class="dk-step-v">${esc(x.v)}</span>
+        <span class="dk-step-s">${esc(x.s)} · ${label[x.state]}</span>
+      </button></li>`).join('')}</ol>
+  </section>`
+}
+
 function render(d) {
   return `
   <div class="dk">
@@ -491,6 +548,8 @@ function render(d) {
       </div>
       ${ring(d.floor.trust)}
     </section>
+
+    ${pipeline(d)}
 
     ${d.core ? coreMarkup(d.core) : ''}
 
