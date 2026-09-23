@@ -233,24 +233,42 @@ textarea {
   justify-self: start;
 }
 
+/* The lockup is vector and drawn in currentColor, so it inherits the header's
+   ink and needs no light/dark raster swap. */
 .logo-lockup {
-  display: block;
-  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--bone);
+  line-height: 1;
+  transition: color var(--dur-base) var(--ease);
 }
 
-.logo-lockup img {
-  height: 44px;
-  width: auto;
-  display: block;
+.logo-wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
 }
 
-/* Two cuts of the lockup, one shown at a time. Solid header → dark ink;
-   transparent-over-hero → light ink. The selectors are scoped under
-   .logo-lockup so they outrank the `.logo-lockup img { display: block }`
-   base rule, which is otherwise more specific than a bare class. */
-.logo-lockup .logo-img-over { display: none; }
-.site-header[data-transparent='true'] .logo-lockup .logo-img-solid { display: none; }
-.site-header[data-transparent='true'] .logo-lockup .logo-img-over { display: block; }
+.logo-word {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  line-height: 1.02;
+}
+
+/* The second line carries the accent, so the mark reads as one considered
+   object rather than two stacked words. */
+.logo-word-trail {
+  color: var(--brass);
+  letter-spacing: 0.4em;
+}
+
+@media (max-width: 600px) {
+  .logo-word { font-size: 10.5px; letter-spacing: 0.28em; }
+  .logo-word-trail { letter-spacing: 0.34em; }
+}
 
 .header-actions {
   display: flex;
@@ -2281,7 +2299,6 @@ textarea {
 }
 
 @media (max-width: 600px) {
-  .logo-lockup img { height: 34px; }
   .hero-section { padding: 0 5vw; }
   .hero-headline { font-size: 13vw; }
   .hero-scroll-hint { left: 5vw; bottom: 2rem; }
@@ -4741,6 +4758,46 @@ html[data-cursor='globe'] * { cursor: none !important; }
   box-shadow: 0 10px 30px -12px rgba(169, 137, 90, 0.6);
 }
 
+/* A single premium touch on the primary calls to action: a soft light sweep
+   crosses the button on hover. Pseudo-element only, so it never intercepts a
+   click, and it is switched off under reduced motion below. */
+.btn-primary,
+.btn-residence-primary,
+.add-to-cart-btn,
+.partner-cta:not([data-disabled='true']) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-primary::after,
+.btn-residence-primary::after,
+.add-to-cart-btn::after,
+.partner-cta:not([data-disabled='true'])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 0.65s var(--ease);
+}
+
+.btn-primary:hover::after,
+.btn-residence-primary:hover::after,
+.add-to-cart-btn:hover:not(:disabled)::after,
+.partner-cta:not([data-disabled='true']):hover::after {
+  transform: translateX(130%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::after,
+  .btn-residence-primary::after,
+  .add-to-cart-btn::after,
+  .partner-cta::after { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .browser-scene img { animation: none; transform: none; }
   .triptych-col img { height: 100%; margin-top: 0; }
@@ -4909,3 +4966,70 @@ body { counter-reset: track-counter; }
   line-height: 1.5;
   color: #E0A090;
 }
+
+/* ── PRODUCT IMAGE + BRANDED FALLBACK ────────────────────────────────
+   A product image never renders as a broken box. When no photograph is
+   present or a remote one fails, a composed tile stands in: the object's own
+   material colour veiled toward the page ground, a hairline frame, the
+   monogram, and the name set in the display face. A real photo covers it. */
+.product-image {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.product-image-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1.4rem;
+  text-align: center;
+  /* Lean the swatch toward the light ground so the mark and name stay legible
+     whatever the material colour is. */
+  background:
+    radial-gradient(120% 90% at 30% 20%, color-mix(in srgb, var(--swatch, #e8e1d4) 45%, #faf7f1), transparent 70%),
+    color-mix(in srgb, var(--swatch, #e8e1d4) 55%, #f4f0e7);
+  box-shadow: inset 0 0 0 1px rgba(27, 24, 21, 0.08);
+  color: rgba(27, 24, 21, 0.7);
+}
+
+.product-image-mark { color: rgba(27, 24, 21, 0.5); flex: 0 0 auto; }
+
+.product-image-label {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: rgba(27, 24, 21, 0.72);
+  text-wrap: balance;
+  max-width: 22ch;
+}
+
+.product-image-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* Kept in the DOM so it still loads and fires onLoad/onError, but fully
+   transparent — a broken or still-loading image never shows its alt text. */
+.product-image-img[data-hidden='true'] { opacity: 0; }
+
+/* The same tile, dropped behind the depth layers. */
+.depth-fallback {
+  z-index: 0;
+  border-radius: inherit;
+}
+.depth-layer[data-hidden='true'] { opacity: 0; }

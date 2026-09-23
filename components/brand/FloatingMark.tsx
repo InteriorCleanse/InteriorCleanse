@@ -112,12 +112,12 @@ export function FloatingMark() {
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
-        <svg viewBox="0 0 64 64" width="40" height="40" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
           <defs>
             {/* The specular sweep. Animating the stop offsets rather than
                 transforming the whole gradient keeps it on one paint. */}
             <linearGradient id="ic-sheen" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--bone)" stopOpacity="0.7" />
+              <stop offset="0%" stopColor="var(--bone)" stopOpacity="0.85" />
               <stop offset="18%" stopColor="var(--sheen-hi)" stopOpacity="1">
                 <animate
                   attributeName="offset"
@@ -126,7 +126,7 @@ export function FloatingMark() {
                   repeatCount="indefinite"
                 />
               </stop>
-              <stop offset="36%" stopColor="var(--bone)" stopOpacity="0.7">
+              <stop offset="36%" stopColor="var(--bone)" stopOpacity="0.85">
                 <animate
                   attributeName="offset"
                   values="-0.2;1.5;1.5"
@@ -136,11 +136,11 @@ export function FloatingMark() {
               </stop>
             </linearGradient>
           </defs>
-          <g fill="url(#ic-sheen)" fillRule="evenodd">
-            <path d="M47.8 13.4c-1.1 3.2-3.9 4.8-7.5 5.6-5.3 1.2-9.9 3.1-13 7.2-2.6 3.4-3.3 7.4-2.4 11.5.2 1 .6 2 1 3-3.6-2.4-5.8-5.9-6.2-10.3-.5-5.6 2-10.4 6.5-14 3.9-3.1 8.5-4.7 13.4-5.3 2.2-.3 4.4-.3 6.6.1.6.1 1.1.3 1.6.6l-.3.9c0 .2 0 .5.3.7z" />
-            <path d="M24.6 40.3c1.9 3.6 5 5.7 8.9 6.6 4.6 1.1 9 .5 13.2-1.6.9-.5 1.8-1.1 2.7-1.7.3 1.6-.2 3-1.1 4.2-1.9 2.6-4.6 4.1-7.6 5-5.4 1.7-10.7 1.4-15.8-1.1-5.1-2.5-8.4-6.6-9.7-12.2-1.4-6.2.2-11.7 4.1-16.6.3-.4.7-.8 1.1-1.1-2 4.1-2.6 8.3-1.6 12.7.5 2.1 1.4 4 2.7 5.7l3.1.1z" />
-            <path d="M45.9 9.6c2.4-1.3 4.8-1.6 7.2-.4 1.4.7 2.3 1.9 2.7 3.4-1.9-1.4-3.9-1.9-6.2-1.5-1.4.2-2.6.8-3.7 1.7l-.9-1.4.9-1.8z" />
-            <path d="M49.3 44.1c2.1-1.6 3.4-3.6 3.6-6.2 1.7 1.6 2.3 3.5 1.8 5.7-.5 2.3-1.9 3.9-4 4.9-.5.2-1 .4-1.6.5l-.6-2.3.8-2.6z" />
+          {/* The IC monogram: a bar (I) beside an open ring (C), swept by the
+              specular highlight. */}
+          <g fill="none" stroke="url(#ic-sheen)" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M14 12 V36" />
+            <path d="M37.7 14.8 A12 12 0 1 0 37.7 33.2" />
           </g>
         </svg>
       </span>

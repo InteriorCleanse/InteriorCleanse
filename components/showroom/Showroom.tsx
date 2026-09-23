@@ -13,6 +13,7 @@ import {
 } from '@/lib/showroom'
 import { RealismLayer } from '@/components/hero/RealismLayer'
 import { SceneBackground } from '@/components/hero/SceneBackground'
+import { ProductImage } from '@/components/product/ProductImage'
 import type { Scene } from '@/lib/scenes'
 import { StageProduct } from './StageProduct'
 import { useStageGestures } from './useStageGestures'
@@ -416,7 +417,7 @@ export function Showroom({
                         aria-label={`Show ${p.name} on the stage`}
                       >
                         {p.productImage ? (
-                          <img src={p.productImage} alt="" loading="lazy" decoding="async" />
+                          <ProductImage src={p.productImage} alt={p.name} label={p.name} />
                         ) : (
                           <span className="showroom-card-blank" aria-hidden="true" />
                         )}
