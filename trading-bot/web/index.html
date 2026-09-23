@@ -28,7 +28,7 @@
   <button class="hbtn" id="btn-voice" title="Mr. Cash speaks alerts and answers aloud">Voice</button>
   <button class="hbtn" id="btn-install" title="Install as an app">Install</button>
   <button class="hbtn" id="btn-notify" title="Get alerts as notifications">Alerts</button>
-  <button class="hbtn" id="btn-bell" title="What happened">🔔<span class="n hidden" id="bell-n">0</span></button>
+  <button class="hbtn" id="btn-bell" title="What happened" aria-label="What happened"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/></svg><span class="n hidden" id="bell-n">0</span></button>
   <button class="hbtn stopbtn hidden" id="btn-stopped" title="Kill switch is on — no new positions. Click to release.">⏹ STOPPED</button>
   <span class="safe">PAPER · no real money</span>
 </header>
@@ -160,7 +160,6 @@
   </section>
 
   <section id="tab-desk" class="hidden">
-    <div class="row"><button class="btn ghost" id="btn-desk">Reload desk</button><button class="btn ghost" id="btn-desk-read">Read it to me</button><a class="btn ghost" href="/api/desk?format=text" target="_blank" rel="noopener">Desk (text)</a><span class="muted" id="desk-status"></span></div>
     <div id="desk-out"><div class="plain">Six agents on one surface. <b>BOOK</b> reads the order book and the tape, <b>TAPE</b> organises structure, <b>SIGNAL</b> runs the strategy panel and fuses the votes, <b>RISK</b> holds the veto, <b>REGIME</b> classifies the market and re-weights the panel — and <b>PROOF</b> watches the other five and reports how much they have earned. Every panel carries where its number came from, how old it is, and what it is waiting on when it cannot speak. A blind agent looks blind rather than showing a zero. Read-only: the desk reports state and can never place, size or shape an order.</div></div>
   </section>
 

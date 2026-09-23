@@ -79,32 +79,21 @@ function evidence(d) {
   </div>`
 }
 
-/* ---------- one crew member ---------- */
-function card(a) {
-  const c = CREW[a.id] || { hue: 210, glyph: '' }
-  const blind = a.status === 'BLIND'
-  const live = a.status === 'LIVE'
-  const rows = (a.rows || []).map((r) => `
-    <div class="dk-row"><span>${esc(r.label)}</span><b>${esc(r.value)}</b></div>`).join('')
+/* ---------- one crew member: a uniform tile, coloured by state, not by agent ---------- */
+const STATE_CLASS = { LIVE: 's-live', PARTIAL: 's-partial', WAITING: 's-wait', BLIND: 's-blind' }
 
+function agentTile(a) {
+  const c = CREW[a.id] || { glyph: '' }
+  const rows = (a.rows || []).map((r) => `<div class="dk-row"><span>${esc(r.label)}</span><b>${esc(r.value)}</b></div>`).join('')
   return `
-  <article class="dk-card${blind ? ' blind' : ''}" style="--hue:${c.hue}">
-    <div class="dk-card-top"></div>
-    <header class="dk-card-head">
-      <span class="dk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${c.glyph}"/></svg></span>
-      <div class="dk-card-titles">
-        <h3>${esc(a.title)}</h3>
-        <p>${esc(a.plain)}</p>
-      </div>
-      <span class="dk-state${live ? ' pulse' : ''}">${esc(STATUS_LABEL[a.status] || a.status)}</span>
-    </header>
-
-    ${a.headline === '—'
-      ? `<div class="dk-value none">No reading</div>`
-      : `<div class="dk-value">${esc(a.headline)}</div>`}
-    <p class="dk-say">${esc(a.line)}</p>
-    ${a.waitingOn ? `<p class="dk-wait">Waiting on ${esc(a.waitingOn)}</p>` : ''}
-
+  <article class="dk2-agent ${STATE_CLASS[a.status] || 's-wait'}">
+    <div class="dk2-agent-hd">
+      <span class="dk2-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${c.glyph}"/></svg></span>
+      <div class="dk2-agent-t"><h3>${esc(a.title)}</h3><p>${esc(a.plain)}</p></div>
+      <span class="dk2-st"><i></i>${esc(STATUS_LABEL[a.status] || a.status)}</span>
+    </div>
+    <div class="dk2-read${a.headline === '—' ? ' none' : ''}">${a.headline === '—' ? 'NO READING' : esc(a.headline)}</div>
+    <p class="dk2-say">${esc(a.line)}${a.waitingOn && !String(a.line || '').toLowerCase().includes(String(a.waitingOn).toLowerCase()) ? ` <span>Waiting on ${esc(a.waitingOn)}.</span>` : ''}</p>
     <details class="dk-more">
       <summary>Details</summary>
       <div class="dk-rows">${rows}</div>
@@ -115,51 +104,123 @@ function card(a) {
 }
 
 /* ---------- the signal core: markup ---------- */
-const prov = (p) => `<i class="${esc(p)}" title="${p === 'REAL' ? 'Read straight from the source' : p === 'APPROXIMATE' ? 'Estimated from candles, not the live tape' : 'Nothing readable right now'}">${esc(p)}</i>`
+const prov = (p) => `<i class="dk2-prov ${esc(p)}" title="${p === 'REAL' ? 'Read straight from the source' : p === 'APPROXIMATE' ? 'Estimated from candles, not the live tape' : 'Nothing readable right now'}">${esc(p)}</i>`
 const fmtPx = (n) => (n >= 1000 ? '$' + Math.round(n).toLocaleString('en-US') : '$' + Number(n).toFixed(2))
+const ICONS = {
+  reload: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  speak: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
+  text: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/>',
+}
+const icon = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`
 
-function stat(s) {
-  return `<div class="dk-stat"><div class="k"><span>${esc(s.label)}</span>${prov(s.provenance)}</div><div class="v${s.value === '—' ? ' none' : ''}">${esc(s.value)}</div><div class="s">${esc(s.sub)}</div></div>`
+/** Minutes per candle from the interval the payload names ("5m", "1h"); null if it is not in that form. */
+function intervalMinutes(iv) {
+  const m = /^(\d+)([mh])$/.exec(String(iv || ''))
+  return m ? Number(m[1]) * (m[2] === 'h' ? 60 : 1) : null
 }
 
-function mini(id, label, right, ok, none) {
-  return `<div class="dk-mini"><div class="k"><span>${esc(label)}</span><b>${esc(right)}</b></div>${ok ? `<canvas id="${id}" aria-hidden="true"></canvas>` : `<div class="none">UNAVAILABLE<br>${esc(none)}</div>`}</div>`
+function heroPrice(d) {
+  const r = d.core?.range
+  if (!r || !r.bars.length) return `<div class="dk2-price-block"><div class="dk2-label">${esc(d.symbol)} · last close</div><div class="dk2-price none">—</div><div class="dk2-chg">no stored candles</div></div>`
+  const last = r.bars[r.bars.length - 1].c, first = r.bars[0].c
+  const pct = first ? ((last - first) / first) * 100 : 0
+  const mins = intervalMinutes(d.interval)
+  const span = mins ? (r.bars.length * mins >= 120 ? `${Math.round((r.bars.length * mins) / 60)}h` : `${r.bars.length * mins}m`) : `${r.bars.length} candles`
+  return `
+  <div class="dk2-price-block">
+    <div class="dk2-label">${esc(d.symbol)} · last close ${prov(r.provenance)}</div>
+    <div class="dk2-price">${fmtPx(last)}</div>
+    <div class="dk2-chg ${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(2)}% <span>over ${span} · ${fmtPx(r.low)} – ${fmtPx(r.high)}</span></div>
+    <canvas id="dk-m-range" class="dk2-spark" aria-hidden="true"></canvas>
+  </div>`
 }
 
-function coreMarkup(c) {
-  const n = c.panel.votes.length
+function hero(d) {
+  const tone = d.core?.panel?.direction === 'long' ? 'long' : d.core?.panel?.direction === 'short' ? 'short' : 'flat'
+  return `
+  <section class="dk2-hero">
+    <div class="dk2-hero-top">
+      <span class="dk2-live"><i></i>Live desk</span>
+      <span class="dk-chip paper" title="Live market data; fills are simulated at the next candle open plus spread and slippage.">${esc(d.mode)} · simulated · no real money</span>
+      <span class="dk-chip">${esc(d.symbol)} · ${esc(d.interval)}</span>
+      <div class="dk2-tools">
+        <span class="dk2-upd" id="desk-status"></span>
+        <button class="dk2-tool" data-act="reload" title="Reload the desk" aria-label="Reload the desk">${icon('reload')}</button>
+        <button class="dk2-tool" data-act="speak" title="Read it to me" aria-label="Read the desk aloud">${icon('speak')}</button>
+        <a class="dk2-tool" href="/api/desk?format=text" target="_blank" rel="noopener" title="The desk as plain text" aria-label="The desk as plain text">${icon('text')}</a>
+      </div>
+    </div>
+    <div class="dk2-hero-body">
+      ${heroPrice(d)}
+      <div class="dk2-verdict">
+        <div class="dk2-verdict-tag ${tone}">${esc(d.floor.verdict)}</div>
+        <p class="dk-headline">${esc(d.voice.floor)}</p>
+        <p class="dk-sub">${esc(d.voice.trust)}</p>
+      </div>
+      ${ring(d.floor.trust)}
+    </div>
+  </section>`
+}
+
+function orbTile(c) {
   const colour = c.panel.direction === 'long' ? 'var(--brand)' : c.panel.direction === 'short' ? 'var(--red)' : 'var(--dim)'
-  const votes = c.panel.votes.map((v) => {
-    const cls = v.action === 'BUY' ? 'buy' : v.action === 'SELL' ? 'sell' : ''
-    const off = v.weight === 0 ? ' off' : ''
-    const label = v.action === 'HOLD' ? 'hold' : `${v.action.toLowerCase()} ${Math.round(v.confidence)}`
-    return `<span class="dk-core-vote ${cls}${off}" title="${esc(v.name)}: ${esc(v.action)} at confidence ${Math.round(v.confidence)}, regime weight ${v.weight.toFixed(2)}${v.weight === 0 ? ' (not allowed in this regime)' : ''}">${esc(v.name)} · ${label}</span>`
+  const cap = [c.flow.trusted ? `tape ${c.flow.tapeLabel || 'read'}` : 'tape not read', c.volatility.label ? `volatility ${c.volatility.label}` : 'volatility —', c.panel.regime ? `regime ${c.panel.regime}` : ''].filter(Boolean).join(' · ')
+  return `
+  <div class="dk2-tile dk2-orb dk-core-scope" id="dk-scope" data-dir="${c.panel.direction || 'none'}">
+    <div class="dk2-tile-h"><b>Signal core</b><span>${esc(cap)}</span></div>
+    <div class="dk-core-stage">
+      <canvas id="dk-core-canvas" aria-hidden="true"></canvas>
+      <div class="dk-core-mid">
+        <div class="dk-core-num" style="color:${colour}">${c.panel.score === null ? '—' : c.panel.score}</div>
+        <div class="dk-core-act">${esc(c.panel.action)}${c.panel.enterScore !== null ? ` · acts at ${c.panel.enterScore}` : ''}</div>
+      </div>
+    </div>
+  </div>`
+}
+
+function votesTile(c) {
+  const n = c.panel.votes.length
+  const rows = c.panel.votes.map((v) => {
+    const cls = v.weight === 0 ? 'off' : v.action === 'BUY' ? 'buy' : v.action === 'SELL' ? 'sell' : 'hold'
+    const conf = v.action === 'HOLD' ? 0 : Math.max(0, Math.min(100, Math.round(v.confidence)))
+    return `<div class="dk2-vote ${cls}" title="${esc(v.name)}: ${esc(v.action)} at confidence ${Math.round(v.confidence)}, regime weight ${v.weight.toFixed(2)}${v.weight === 0 ? ' (not allowed in this regime)' : ''}">
+      <span class="n">${esc(v.name)}</span>
+      <span class="a">${v.action === 'HOLD' ? 'hold' : `${v.action.toLowerCase()} ${conf}`}</span>
+      <span class="bar"><i style="width:${conf}%"></i></span>
+      <span class="w">×${v.weight.toFixed(2)}</span>
+    </div>`
   }).join('')
-  const cap = [`${n} strateg${n === 1 ? 'y' : 'ies'}`, c.flow.trusted ? `tape ${c.flow.tapeLabel || 'read'}` : 'tape not read', c.volatility.label ? `volatility ${c.volatility.label}` : 'volatility —', c.panel.regime ? `regime ${c.panel.regime}` : ''].filter(Boolean).join(' · ')
-  const rangeRight = c.range.high !== null ? `${fmtPx(c.range.low)} – ${fmtPx(c.range.high)}` : '—'
+  const score = c.panel.score, need = c.panel.enterScore
+  const meter = score !== null && need !== null
+    ? `<div class="dk2-meter" title="Agreement ${score} of 100; the panel acts at ${need}"><i style="width:${Math.max(0, Math.min(100, score))}%"></i><b style="left:${Math.max(0, Math.min(100, need))}%"></b></div><div class="dk2-meter-cap"><span>agreement ${score}</span><span>acts at ${need}</span></div>`
+    : ''
+  return `
+  <div class="dk2-tile dk2-votes">
+    <div class="dk2-tile-h"><b>The panel</b><span>${n} strateg${n === 1 ? 'y' : 'ies'} voting on this candle</span></div>
+    ${meter}
+    <div class="dk2-vote-list">${rows || '<p class="muted">No votes for this candle.</p>'}</div>
+  </div>`
+}
+
+function statsTile(c) {
+  const row = (s) => `<div class="dk2-stat"><span class="k">${esc(s.label)} ${prov(s.provenance)}</span><b class="${s.value === '—' ? 'none' : ''}">${esc(s.value)}</b><span class="s">${esc(s.sub)}</span></div>`
+  return `
+  <div class="dk2-tile dk2-stats">
+    <div class="dk2-tile-h"><b>Paper record</b><span>from closed paper trades only</span></div>
+    <div class="dk2-stat-grid">${row(c.stats.fill)}${row(c.stats.hit)}${row(c.stats.expectancy)}${row(c.stats.book)}</div>
+  </div>`
+}
+
+function chartTile(id, label, right, ok, none, cls = '') {
+  return `<div class="dk2-tile dk2-chart ${cls}"><div class="dk2-tile-h"><b>${esc(label)}</b><span>${esc(right)}</span></div>${ok ? `<canvas id="${id}" aria-hidden="true"></canvas>` : `<div class="dk2-none">UNAVAILABLE<br><span>${esc(none)}</span></div>`}</div>`
+}
+
+function chartsRow(c) {
   const pulseRight = c.pulse.perMin === null ? '—' : `${Math.round(c.pulse.perMin)}/min · ${c.pulse.label || ''}`
   return `
-  <section class="dk-core">
-    <div class="dk-core-scope dk-core-hero" id="dk-scope" data-dir="${c.panel.direction || 'none'}">
-      <div class="dk-core-cap">The brain · signal core<b>${esc(cap)}</b></div>
-      <div class="dk-core-stage">
-        <canvas id="dk-core-canvas" aria-hidden="true"></canvas>
-        <div class="dk-core-mid">
-          <div class="dk-core-num" style="color:${colour}">${c.panel.score === null ? '—' : c.panel.score}</div>
-          <div class="dk-core-act">${esc(c.panel.action)}${c.panel.enterScore !== null ? ` · acts at ${c.panel.enterScore}` : ''}</div>
-        </div>
-      </div>
-      <div class="dk-core-votes">${votes || '<span class="dk-core-vote">no votes for this candle</span>'}</div>
-    </div>
-    <div class="dk-stats">${stat(c.stats.fill)}${stat(c.stats.hit)}${stat(c.stats.expectancy)}${stat(c.stats.book)}</div>
-    <div class="dk-minis">
-      ${mini('dk-m-vol', 'Volume', c.volume.bars.length ? `${c.volume.bars.length} candles` : '—', c.volume.bars.length > 0, 'no stored candles')}
-      ${mini('dk-m-heat', 'Heat · volume by NY hour', c.heat.days.length ? `${c.heat.days.length} day${c.heat.days.length === 1 ? '' : 's'}` : '—', c.heat.days.length > 0, 'no stored candles')}
-      ${mini('dk-m-range', 'Range', rangeRight, c.range.bars.length > 0, 'no stored candles')}
-      ${mini('dk-m-pulse', 'Pulse · tape', pulseRight, c.pulse.perMin !== null, c.flow.trusted ? 'no tape reading this candle' : 'stream not trusted')}
-    </div>
-    <p class="dk-core-note">${esc(c.note)}</p>
-  </section>`
+    ${chartTile('dk-m-vol', 'Volume', c.volume.bars.length ? `last ${c.volume.bars.length} candles` : '—', c.volume.bars.length > 0, 'no stored candles', 'c-vol')}
+    ${chartTile('dk-m-heat', 'Heat · volume by NY hour', c.heat.days.length ? `${c.heat.days.length} day${c.heat.days.length === 1 ? '' : 's'}` : '—', c.heat.days.length > 0, 'no stored candles', 'c-heat')}
+    ${chartTile('dk-m-pulse', 'Pulse · the tape', pulseRight, c.pulse.perMin !== null, c.flow.trusted ? 'no tape reading this candle' : 'stream not trusted', 'c-pulse')}`
 }
 
 /* ---------- the signal core: drawing ---------- */
@@ -534,31 +595,30 @@ function pipeline(d) {
 }
 
 function render(d) {
+  const c = d.core
   return `
-  <div class="dk">
-    <section class="dk-hero">
-      <div class="dk-hero-say">
-        <div class="dk-chips">
-          <span class="dk-chip paper" title="Live market data; fills are simulated at the next candle open plus spread and slippage.">${esc(d.mode)} · simulated execution · no real money</span>
-          <span class="dk-chip">${esc(d.symbol)} · ${esc(d.interval)}</span>
-          <span class="dk-chip">${esc(d.floor.verdict)}</span>
-        </div>
-        <p class="dk-headline">${esc(d.voice.floor)}</p>
-        <p class="dk-sub">${esc(d.voice.trust)}</p>
-      </div>
-      ${ring(d.floor.trust)}
-    </section>
+  <div class="dk dk2">
+    ${hero(d)}
 
     ${pipeline(d)}
 
-    ${d.core ? coreMarkup(d.core) : ''}
+    ${c ? `<div class="dk2-grid">
+      ${orbTile(c)}
+      ${votesTile(c)}
+    </div>` : ''}
+
+    <h2 class="dk2-h">The crew <span>six of them, each watching one thing</span></h2>
+    <div class="dk2-crew">${d.agents.map(agentTile).join('')}</div>
+
+    ${c ? `<h2 class="dk2-h">The tape <span>closed candles and the live stream, nothing forecast</span></h2>
+    <div class="dk2-grid dk2-charts">${chartsRow(c)}</div>
+    <div class="dk2-grid dk2-proof">
+      ${statsTile(c)}
+      ${evidence(d)}
+    </div>
+    <p class="dk-core-note">${esc(c.note)}</p>` : `<div class="dk2-grid dk2-proof">${evidence(d)}</div>`}
 
     <section class="dk-accounts" id="dk-accounts" aria-live="polite"></section>
-
-    ${evidence(d)}
-
-    <h2 class="dk-crew-title">The crew <span>six of them, each watching one thing</span></h2>
-    <div class="dk-crew">${d.agents.map(card).join('')}</div>
 
     <section class="dk-learn">
       <div class="dk-learn-head"><b>How it gets better</b><span>it proves strategies to itself before it trusts them — nothing here trades your money</span></div>
@@ -584,7 +644,9 @@ async function loadDesk() {
     if (!j.ok) throw new Error(j.error || 'could not read the desk')
     out.innerHTML = render(j.data)
     out.dataset.spoken = [j.data.voice.floor, j.data.voice.trust, j.data.voice.evidence].join(' ')
-    if (status) status.textContent = `updated ${new Date(j.data.generatedAt).toLocaleTimeString()}`
+    // The stamp lives inside the markup just redrawn, so look it up again rather than writing to the old copy.
+    const stamp = document.getElementById('desk-status')
+    if (stamp) stamp.textContent = `updated ${new Date(j.data.generatedAt).toLocaleTimeString()}`
     coreData = j.data.core || null
     // The accounts card (web/js/accounts.js) fills itself in; the desk only says it has drawn.
     document.dispatchEvent(new CustomEvent('desk:rendered'))
@@ -636,14 +698,17 @@ document.addEventListener('click', (e) => {
   if (!b) return
   // The learning cards are built on this page, so they miss index.html's load-time
   // binding; route them through the shared tab switcher.
-  if (b.classList.contains('dk-learn-card') && typeof window.showTab === 'function') window.showTab(b.dataset.tab)
+  if (b.closest('#desk-out') && typeof window.showTab === 'function') window.showTab(b.dataset.tab)
   setTimeout(() => { if (deskVisible()) { if (coreData && !coreFrame) startCore() } else stopCore() }, 0)
 })
 
 window.loadDesk = loadDesk
 /** What he'd say if you asked him to read the desk aloud. */
 window.deskSpoken = () => document.getElementById('desk-out')?.dataset.spoken || ''
-document.getElementById('btn-desk')?.addEventListener('click', loadDesk)
-document.getElementById('btn-desk-read')?.addEventListener('click', () => {
-  if (window.speakAs) window.speakAs(window.deskSpoken())
+// The desk's own tools live inside the markup it redraws, so they are delegated rather than bound once.
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('#desk-out [data-act]')
+  if (!t) return
+  if (t.dataset.act === 'reload') loadDesk()
+  if (t.dataset.act === 'speak' && window.speakAs) window.speakAs(window.deskSpoken())
 })
