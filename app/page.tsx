@@ -4,6 +4,7 @@ import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
 import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
 import { ProductBrowser } from '@/components/browse/ProductBrowser'
+import { Marquee } from '@/components/motion/Marquee'
 import { GuestBook } from '@/components/GuestBook'
 import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
@@ -60,6 +61,20 @@ export default function Home() {
         products={allProducts}
         label="Browse the edit"
         backdrop={getScene('showroom')?.posterImage ?? null}
+      />
+
+      {/* Editorial ticker — the range at a glance, and the moment the page
+          reads as considered rather than templated. */}
+      <Marquee
+        items={[
+          'Hand-poured candles',
+          'Considered objects',
+          'Books by the founder',
+          'Digital downloads',
+          'A calmer home',
+          'Wall art',
+          'The edit',
+        ]}
       />
 
       {/* 3D SCROLL GALLERY */}

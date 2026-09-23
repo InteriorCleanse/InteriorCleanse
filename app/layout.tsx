@@ -25,6 +25,8 @@ import { GSAPAnimations } from '@/components/GSAPAnimations'
 import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
 import { GlobeCursorGlobal } from '@/components/cursor/GlobeCursorGlobal'
+import { ScrollProgress } from '@/components/motion/ScrollProgress'
+import { MagneticButtons } from '@/components/motion/MagneticButtons'
 import { CartDrawer, CartProvider } from '@/components/cart'
 import { OrganizationLd, WebSiteLd } from '@/components/StructuredData'
 import { BRAND_NAME, PLAUSIBLE_DOMAIN, SITE } from '@/lib/site-config'
@@ -77,7 +79,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <GuestBookModal />
           <Header />
           <CartDrawer />
+          <ScrollProgress />
           <GlobeCursorGlobal />
+          <MagneticButtons />
           <PageTransition>
             <SmoothScroll>
               <main id="main">{children}</main>

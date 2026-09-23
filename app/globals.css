@@ -4654,6 +4654,10 @@ html[data-cursor='globe'] * { cursor: none !important; }
   filter: blur(10px);
 }
 
+/* The reel image is now a wrapper; the product fills it and stays contained. */
+.reel-image .product-image { width: 100%; height: 100%; }
+.reel-image .product-image-img { object-fit: contain; }
+
 @media (prefers-reduced-motion: reduce) {
   .reel-image { transition: opacity 0.3s ease; transform: none !important; }
 }
@@ -4979,6 +4983,100 @@ body { counter-reset: track-counter; }
   font-size: 13px;
   line-height: 1.5;
   color: #E0A090;
+}
+
+/* ── FRAMER-STYLE MOTION LAYERS ──────────────────────────────────────
+   A scroll-progress hairline, an editorial marquee band, and the magnetic
+   pull applied to primary calls to action. Premium personality throughout:
+   the signature decelerate ease, no bounce. All transform/opacity, and each
+   stands down under reduced motion at the end of the block. */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 200;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--brass), var(--brass-light));
+  will-change: transform;
+  pointer-events: none;
+}
+
+.marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 1.5rem 0;
+  background: var(--ink);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee-inner {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-inner { animation-play-state: paused; }
+
+.marquee-track {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.4rem;
+  padding: 0 1.2rem;
+  font-family: var(--font-display);
+  font-weight: 350;
+  font-size: clamp(1.4rem, 3vw, 2.4rem);
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  white-space: nowrap;
+}
+
+.marquee-item::after {
+  content: '';
+  width: 2.4rem;
+}
+
+.marquee-dot { color: var(--brass); font-size: 0.55em; }
+
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Magnetic CTAs: the pointer handler writes --mx/--my (never transform
+   itself), so the pull composes with the press scale instead of fighting it. */
+[data-magnetic] {
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+  transition: transform 0.4s var(--ease-out);
+}
+[data-magnetic]:active {
+  transform: translate(var(--mx, 0px), var(--my, 0px)) scale(0.98);
+  transition: transform 0.12s var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-inner { animation: none; }
+  .scroll-progress { display: none; }
+  [data-magnetic] { transition: none; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  [data-magnetic] { transform: none !important; }
 }
 
 /* ── PRODUCT IMAGE + BRANDED FALLBACK ────────────────────────────────
