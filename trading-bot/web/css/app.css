@@ -634,3 +634,14 @@ button.btn:hover:not(:disabled), a.btn:hover { box-shadow:0 10px 28px -8px rgba(
 @media (prefers-reduced-transparency: reduce) {
   header, nav, .card, .dk-evidence, .ev-hero, .bottomnav, .palette, #morepanel { backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--panel); }
 }
+
+/* Knowledge → Vault: "Tell him something to remember" (owner notes). */
+.kn-note summary { cursor:pointer; list-style:none; display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+.kn-note summary::-webkit-details-marker { display:none; }
+.kn-note summary b::before { content:'+ '; color:var(--brand); }
+.kn-note[open] summary b::before { content:'− '; }
+.kn-note-form { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+.kn-note-form label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--dim); }
+.kn-note-form input, .kn-note-form textarea { width:100%; color:var(--text); }
+.kn-note-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:560px) { .kn-note-row { grid-template-columns:1fr; } }

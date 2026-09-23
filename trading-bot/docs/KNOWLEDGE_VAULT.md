@@ -72,3 +72,23 @@ number.
 `GET /api/knowledge?kind=&status=&tag=&limit=`, `/item?id=`, `/passport?strategy=`
 (see `docs/LEARNING_LOOP.md`), `/brief`, `/eod`, `/weekly`, `/graph`;
 `POST /api/knowledge/review`, `/reassess`, `/backfill`.
+
+## Owner notes: telling him something to remember
+
+Knowledge → Vault → **Tell him something to remember** (or `POST /api/knowledge/note`)
+stores something you heard — a date, a headline, a reel — as a vault item:
+
+- `kind: hypothesis`, `evidenceLabel: HYPOTHESIS`, `provenance.source: USER`,
+  `sampleSize: 0`, tagged `owner-note` (and the market, if you give one).
+- The source link is written into the body as **not verified by Mr. Cash**.
+- An optional **watch date** becomes the item's `review_due`, so the note stays
+  CURRENT until that day and then comes due for review — that is how it
+  resurfaces when it matters. Without one it takes the normal 30-day cadence.
+- Certainty words (`guaranteed`, `proven`, …) are refused, the source must be an
+  http(s) link, and the watch date must be in the next two years.
+
+A note is memory, not a signal. The vault is never read by the engine
+(`test/knowledge/note.test.ts` checks that no decision-making module imports
+it), and the decay monitor ages only data-derived items, so a note cannot move
+a trade. Testing one needs data for its market: a note about a stock the bot
+has no price feed for stays UNTESTED.
