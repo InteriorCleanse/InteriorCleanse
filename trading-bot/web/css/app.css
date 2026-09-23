@@ -127,9 +127,6 @@
     #live { order:0; flex:1 1 auto; min-width:0; overflow:hidden; } #live b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .hbtn { padding:5px 7px; font-size:12px; flex:0 0 auto; }
     .events { top:calc(env(safe-area-inset-top) + 76px); }
-  }
-  @media (max-width:720px) and (pointer:coarse) {
-    .events { top:calc(env(safe-area-inset-top) + 96px); }
     nav { display:none; }
     main { padding:12px; }
     canvas.chart { height:360px; }
@@ -140,6 +137,8 @@
     .bottomnav button span { font-size:18px; }
     .bottomnav button.active { color:var(--blue); }
   }
+  /* touch header rows are taller (44 px targets): the events panel sits under both rows */
+  @media (max-width:720px) and (pointer:coarse) { .events { top:calc(env(safe-area-inset-top) + 96px); } }
 
   /* ---- Phase 17: replay player ---- */
   .replay-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -405,7 +404,7 @@ html { color-scheme:dark; }
 /* primary actions and active states carry the brand */
 button.btn, a.btn { background:var(--brand-grad); color:var(--ink); box-shadow:0 6px 18px -10px rgba(52,211,153,.8); min-height:38px; }
 button.btn.ghost, a.btn.ghost, button.ghost { background:transparent; color:var(--text); box-shadow:none; }
-button.danger { background:transparent; }
+button.danger { background:transparent; color:var(--red); box-shadow:none; }
 nav button.active { color:var(--text); border-bottom-color:var(--brand); }
 nav button.more.active, nav button.more.open { border-bottom-color:var(--brand); }
 .bottomnav button.active, .bottomnav button.more.open { color:var(--brand); }

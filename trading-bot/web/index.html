@@ -737,7 +737,8 @@ function drawChart() {
   if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#58a6ff','entry'],[sig.plan.stop,'#f85149','stop'],[sig.plan.takeProfit,'#3fb950','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,n-41)), y(p)-3) }
   ctx.fillStyle = '#8b98a5'; ctx.font = '11px sans-serif'
   for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+4, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
-  const every = Math.max(1, Math.round(n/8)); for (let i = 0; i < n; i += every) ctx.fillText(cs[i].et + ' ET', x(i)-18, H-8)
+  const slots = Math.max(3, Math.floor((W - padL - padR) / 92)) // one time label per ~92px so they never overlap on a phone
+  const every = Math.max(1, Math.round(n / slots)); for (let i = 0; i < n; i += every) ctx.fillText(cs[i].et + ' ET', x(i)-18, H-8)
   $('chart-status').textContent = `${cs[0].day} → ${cs[n-1].day} (${n} candles)`
 }
 function chartHover(clientX, clientY) {

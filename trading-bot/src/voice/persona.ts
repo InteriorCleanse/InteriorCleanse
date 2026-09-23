@@ -96,11 +96,12 @@ export function floorLine(f: FloorFacts): string {
   if (f.verdict.includes('UNCHECKED')) {
     return `There's a setup on the board, but it hasn't been through the safety checks yet, so I'm not calling it anything.`
   }
-  // The common case, by a mile: nothing to do.
+  // The common case, by a mile: nothing to do. The engine's detail starts a new sentence here.
+  const detail = f.verdictDetail.charAt(0).toUpperCase() + f.verdictDetail.slice(1)
   return pick([
-    `Nothing worth riding yet on ${f.symbol}. ${f.verdictDetail}`,
-    `Just floating here on ${f.symbol} — nothing's lined up. ${f.verdictDetail}`,
-    `Quiet one so far on ${f.symbol}. ${f.verdictDetail}`,
+    `Nothing worth riding yet on ${f.symbol}. ${detail}`,
+    `Just floating here on ${f.symbol} — nothing's lined up. ${detail}`,
+    `Quiet one so far on ${f.symbol}. ${detail}`,
   ], key)
 }
 
