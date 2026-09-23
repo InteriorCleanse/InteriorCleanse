@@ -44,14 +44,17 @@ const SAVED_KEY = 'ic_showroom_saved'
 export function Showroom({
   products,
   scene,
+  scenes,
   initialCategory,
   initialView = 'discover',
   initialQuery = '',
   initialSort = 'featured',
 }: {
   products: ShowroomProduct[]
-  /** The `showroom` environment from the manifest; the locked background. */
+  /** The `showroom` environment from the manifest; the default background. */
   scene?: Scene
+  /** One environment per category, so filtering changes the room. */
+  scenes?: Partial<Record<ShowroomCategory | 'all', Scene>>
   initialCategory?: string | null
   initialView?: Mode
   initialQuery?: string
@@ -102,6 +105,9 @@ export function Showroom({
     () => (category === 'all' ? products : products.filter((p) => p.category === category)),
     [products, category]
   )
+
+  /** The room for the current category, falling back to the default scene. */
+  const activeScene = scenes?.[category] ?? scene
 
   const catalogue = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -206,16 +212,20 @@ export function Showroom({
 
   return (
     <div className="showroom">
-      {/* LAYER 1 — locked environment. Background only, from the `showroom`
-          entry of the scene manifest, through the shared SceneBackground. */}
+      {/* LAYER 1 — the living environment. It changes with the category, so
+          filtering the collection changes the room around the product. Keyed by
+          category so React remounts it and the new room fades in over the scrim;
+          falls back to the default showroom scene. */}
       <div className="showroom-bg" aria-hidden="true">
-        <SceneBackground
-          desktopVideo={scene?.desktopVideo ?? undefined}
-          mobileVideo={scene?.mobileVideo ?? undefined}
-          webmVideo={scene?.webmVideo ?? undefined}
-          posterImage={scene?.posterImage ?? '/images/showroom-poster.jpg'}
-          posterMotion={scene?.posterMotion ?? 'push-in'}
-        />
+        <div key={category} className="showroom-bg-scene">
+          <SceneBackground
+            desktopVideo={activeScene?.desktopVideo ?? undefined}
+            mobileVideo={activeScene?.mobileVideo ?? undefined}
+            webmVideo={activeScene?.webmVideo ?? undefined}
+            posterImage={activeScene?.posterImage ?? '/images/showroom-poster.jpg'}
+            posterMotion={activeScene?.posterMotion ?? 'push-in'}
+          />
+        </div>
         <RealismLayer />
         <span className="showroom-bg-scrim" />
       </div>

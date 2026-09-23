@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Monogram } from '@/components/brand/Monogram'
 
 /**
  * A product image that can never render as a broken box.
@@ -51,12 +52,7 @@ export function ProductImage({
         aria-hidden={showImage ? 'true' : undefined}
         style={{ ['--swatch' as string]: materialColor }}
       >
-        <svg className="product-image-mark" viewBox="0 0 48 48" width="30" height="30" aria-hidden="true">
-          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M14 12 V36" />
-            <path d="M37.7 14.8 A12 12 0 1 0 37.7 33.2" />
-          </g>
-        </svg>
+        <Monogram size={30} className="product-image-mark" />
         <span className="product-image-label">{label ?? alt}</span>
       </span>
       {src ? (

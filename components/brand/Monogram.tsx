@@ -1,11 +1,11 @@
 /**
- * The InteriorCleanse monogram — a geometric "IC".
+ * The InteriorCleanse mark — two nested arches, a recessed doorway.
  *
- * A vertical bar (I) beside an open ring (C). Stroke-only and drawn in
- * `currentColor`, so it inherits the header's ink and flips cleanly between the
- * light solid bar and the light-over-hero state without shipping two rasters.
- * Purely geometric: the same mark reads at 24px in a favicon and at 44px in the
- * header lockup.
+ * An arch is the oldest gesture of interior architecture, and nesting a second
+ * one inside reads as depth — a threshold you step through into a calmer room.
+ * Stroke-only in `currentColor`, so it inherits the header's ink and flips
+ * between the light bar and the over-hero state with no raster. Geometric, so
+ * the same mark holds at a 24px favicon and a 44px lockup.
  */
 export function Monogram({ size = 44, className }: { size?: number; className?: string }) {
   return (
@@ -16,14 +16,15 @@ export function Monogram({ size = 44, className }: { size?: number; className?: 
       className={className}
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.4}
+      strokeWidth={2.2}
       strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
-      {/* I */}
-      <path d="M14 12 V36" />
-      {/* C — an open ring, the aperture facing forward */}
-      <path d="M37.7 14.8 A12 12 0 1 0 37.7 33.2" />
+      {/* Outer arch — the doorway */}
+      <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
+      {/* Inner arch — the niche within */}
+      <path d="M19.5 42 V29 A4.5 4.5 0 0 1 28.5 29 V42" />
     </svg>
   )
 }

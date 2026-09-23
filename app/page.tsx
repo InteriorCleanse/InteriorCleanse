@@ -6,7 +6,7 @@ import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
 import { ProductBrowser } from '@/components/browse/ProductBrowser'
 import { Marquee } from '@/components/motion/Marquee'
 import { GuestBook } from '@/components/GuestBook'
-import { StaticMark } from '@/components/StaticMark'
+import { LineIcon, type IconName } from '@/components/icons/LineIcon'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
@@ -16,11 +16,11 @@ import { getScene, resolveFeatured } from '@/lib/scenes'
 // every page was a copy of the homepage.
 export const metadata: Metadata = { alternates: { canonical: '/' } }
 
-const TRUST: { text: string }[] = [
-  { text: 'Secure checkout via Amazon & TikTok Shop' },
-  { text: 'Hand-poured candles, made with care' },
-  { text: 'Books written and published by the founder' },
-  { text: 'Free shipping on Printful orders over $75' },
+const TRUST: { text: string; icon: IconName }[] = [
+  { text: 'Secure checkout via Amazon & TikTok Shop', icon: 'shield' },
+  { text: 'Hand-poured candles, made with care', icon: 'flame' },
+  { text: 'Books written and published by the founder', icon: 'book' },
+  { text: 'Free shipping on Printful orders over $75', icon: 'ship' },
 ]
 
 export default function Home() {
@@ -45,10 +45,10 @@ export default function Home() {
 
       {/* TRUST STRIP */}
       <section className="trust-strip" aria-label="Why InteriorCleanse">
-        {TRUST.map(({ text }) => (
+        {TRUST.map(({ text, icon }) => (
           <div key={text} className="trust-item">
             <span className="trust-icon">
-              <StaticMark size={30} />
+              <LineIcon name={icon} size={22} />
             </span>
             <span className="trust-text">{text}</span>
           </div>

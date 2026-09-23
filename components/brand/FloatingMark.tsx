@@ -136,11 +136,11 @@ export function FloatingMark() {
               </stop>
             </linearGradient>
           </defs>
-          {/* The IC monogram: a bar (I) beside an open ring (C), swept by the
+          {/* The mark: two nested arches — a recessed doorway — swept by the
               specular highlight. */}
-          <g fill="none" stroke="url(#ic-sheen)" strokeWidth="2.4" strokeLinecap="round">
-            <path d="M14 12 V36" />
-            <path d="M37.7 14.8 A12 12 0 1 0 37.7 33.2" />
+          <g fill="none" stroke="url(#ic-sheen)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
+            <path d="M19.5 42 V29 A4.5 4.5 0 0 1 28.5 29 V42" />
           </g>
         </svg>
       </span>
