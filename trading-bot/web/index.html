@@ -38,15 +38,17 @@
 <div class="events hidden" id="events"></div>
 <main>
   <section id="tab-today">
-    <div class="row">
-      <button class="btn" id="btn-refresh">Refresh</button>
-      <button class="btn ghost" id="btn-scan">Check the market now</button>
-      <button class="btn ghost" id="btn-journal-now">Journal this moment</button>
-      <button class="btn ghost" id="btn-card">Share card</button>
-      <button class="btn ghost" id="btn-read" title="Mr. Cash reads the brief aloud">Read it to me</button>
-      <button class="btn ghost" id="btn-narrate" title="The market read in five sections, from the engine">Market read</button>
-      <button class="btn danger" id="btn-kill" title="Kill switch: no new positions until you resume">⏹ Stop</button>
+    <div class="row td-bar">
+      <button class="btn" id="btn-scan">Check the market now</button>
+      <button class="btn ghost" id="btn-refresh">Refresh</button>
+      <span class="td-tools" role="group" aria-label="More actions">
+        <button class="td-tool" id="btn-narrate" title="The market read in five sections, from the engine">Market read</button>
+        <button class="td-tool" id="btn-read" title="Mr. Cash reads the brief aloud">Read aloud</button>
+        <button class="td-tool" id="btn-journal-now" title="Open the journal with this moment filled in">Journal</button>
+        <button class="td-tool" id="btn-card" title="A 1080×1350 image of today's brief">Share card</button>
+      </span>
       <span class="muted" id="today-status"></span>
+      <button class="btn danger" id="btn-kill" title="Kill switch: no new positions until you resume">⏹ Stop</button>
     </div>
     <div id="narrate-out"></div>
     <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market, the news and the order book…</div></div>
@@ -500,14 +502,22 @@ function riskCard(r) {
 function decisionCard(d) {
   if (!d) return ''
   const cls = d.action === 'LONG' ? 'win' : d.action === 'SHORT' ? 'loss' : d.action.includes('WATCH') ? 'skip' : 'muted'
-  const bar = d.direction === 'long' ? 'g' : d.direction === 'short' ? 'r' : ''
-  return `<div class="card"><h2>Playbook decision <span class="muted" title="The strategy votes, weighted by regime, fused into one call. Drives paper trades only when config.fusion.driveTrading is on.">— the votes, combined</span></h2>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span class="decision ${cls}" style="font-size:22px;margin:0">${esc(d.action)}</span><span class="muted">agreement</span><div class="bar ${bar}" style="width:120px"><i style="width:${d.score}%"></i></div><b>${d.score}</b><span class="muted">/100 · regime ${esc(d.regime||'—')}</span></div>
-    <div class="muted" style="font-size:13px;margin-top:6px">${esc(d.reason)}</div>
-    ${d.confirms.length?`<div style="margin-top:8px"><b class="win" style="font-size:12px">FOR</b><ul style="margin:4px 0 0;padding-left:18px;color:var(--dim);font-size:13px">${d.confirms.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`:''}
-    ${d.invalidates.length?`<div style="margin-top:8px"><b class="loss" style="font-size:12px">AGAINST / MISSING</b><ul style="margin:4px 0 0;padding-left:18px;color:var(--dim);font-size:13px">${d.invalidates.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`:''}
-    <div class="scroll" style="margin-top:10px"><table><tr><th>Strategy</th><th>Vote</th><th>Conf</th><th>Weight</th></tr>${d.contributors.map(c=>`<tr><td>${esc(c.name)}</td><td class="${c.action==='BUY'?'win':c.action==='SELL'?'loss':'muted'}">${c.action}</td><td class="num">${c.action==='HOLD'?'—':c.confidence}</td><td class="num ${c.weight===0?'muted':''}">${c.weight.toFixed(2)}${c.weight===0?' (off)':''}</td></tr>`).join('')}</table></div>
-    <div class="muted" style="font-size:12px;margin-top:6px">Only the ICT session model opens paper trades today. Turn on <code>fusion.driveTrading</code> to let this fused call drive them (still through the risk check).</div>
+  const pct = (v) => Math.max(0, Math.min(100, Number(v) || 0))
+  const need = typeof d.enterScore === 'number' ? d.enterScore : null
+  const list = (items) => `<ul>${items.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`
+  const rows = d.contributors.map(c => {
+    const k = c.weight === 0 ? 'off' : c.action === 'BUY' ? 'buy' : c.action === 'SELL' ? 'sell' : 'hold'
+    const conf = c.action === 'HOLD' ? 0 : pct(c.confidence)
+    return `<div class="dk2-vote ${k}" title="${esc(c.name)}: ${c.action}${c.action==='HOLD'?'':` at confidence ${c.confidence}`}, regime weight ${c.weight.toFixed(2)}${c.weight===0?' (not allowed in this regime)':''}"><span class="n">${esc(c.name)}</span><span class="a">${c.action==='HOLD'?'hold':`${c.action.toLowerCase()} ${conf}`}</span><span class="bar"><i style="width:${conf}%"></i></span><span class="w">×${c.weight.toFixed(2)}</span></div>`
+  }).join('')
+  return `<div class="card td-playbook"><h2>Playbook decision <span class="muted" title="The strategy votes, weighted by regime, fused into one call. Drives paper trades only when config.fusion.driveTrading is on.">the votes, combined</span></h2>
+    <div class="td-pb-head"><span class="decision ${cls}">${esc(d.action)}</span>
+      <div class="td-pb-meter"><div class="dk2-meter" title="Agreement ${d.score} of 100${need!==null?`; acts at ${need}`:''}"><i style="width:${pct(d.score)}%"></i>${need!==null?`<b style="left:${pct(need)}%"></b>`:''}</div>
+      <div class="dk2-meter-cap"><span>agreement ${d.score}/100</span><span>${need!==null?`acts at ${need} · `:''}regime ${esc(d.regime||'—')}</span></div></div></div>
+    <p class="td-pb-reason">${esc(d.reason)}</p>
+    ${d.confirms.length || d.invalidates.length ? `<div class="td-pb-why">${d.confirms.length?`<div class="td-pb-col for"><b>For</b>${list(d.confirms)}</div>`:''}${d.invalidates.length?`<div class="td-pb-col against"><b>Against or missing</b>${list(d.invalidates)}</div>`:''}</div>` : ''}
+    <div class="dk2-vote-list">${rows}</div>
+    <div class="muted td-pb-note">Only the ICT session model opens paper trades today. Turn on <code>fusion.driveTrading</code> to let this fused call drive them (still through the risk check).</div>
   </div>`
 }
 function stateCard(s) {
@@ -549,20 +559,30 @@ function renderToday() {
   const a = data.analysis, s = data.signal, b = data.brief, plan = data.plan
   if (!a) { $('today-out').innerHTML = `<div class="card"><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div><div class="plain">You're on the simple crossover strategy. Set <code>strategy: 'ict'</code> in config.ts for sessions, sweeps and the daily plan.</div></div>`; return }
   const bias = a.bias.direction
+  const sessionLabel = a.session ? esc(cfg.ict.sessions[a.session].label) : 'Between sessions'
+  const windowNote = a.inKillzone ? '<span class="badge good">killzone open</span>' : a.nextKillzone ? `<span class="td-next">next window ${esc(a.nextKillzone.label)} in ${Math.round(a.nextKillzone.startsIn/60000)} min</span>` : ''
   $('today-out').innerHTML = `
-    <div class="card"><div class="kv">
-      <span class="k">Now</span><span>${esc(a.weekday)} ${esc(a.etClock)} ET · ${a.session ? esc(cfg.ict.sessions[a.session].label) : 'between sessions'} ${a.inKillzone ? '<span class="badge good">killzone open</span>' : a.nextKillzone ? `· next window ${esc(a.nextKillzone.label)} in ${Math.round(a.nextKillzone.startsIn/60000)} min` : ''}</span>
-      <span class="k">Price</span><span><b>${px(a.price)}</b> · one candle moves about ${px(a.atr)}</span>
-      <span class="k">Bias</span><span><b class="${bias==='bullish'?'win':bias==='bearish'?'loss':'muted'}">${bias.toUpperCase()}</b> — ${esc(a.bias.reason)}</span>
-    </div></div>
-    <div class="card"><h2>Decision right now</h2><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div>
-      ${s.plan ? `<div class="stats" style="margin-top:12px"><div class="stat"><div class="k">Entry</div><div class="v">${px(s.plan.entry)}</div></div><div class="stat"><div class="k">Stop</div><div class="v loss">${px(s.plan.stop)}</div></div><div class="stat"><div class="k">Target</div><div class="v win">${px(s.plan.takeProfit)}</div></div><div class="stat"><div class="k">Reward:risk</div><div class="v">${s.plan.rr.toFixed(1)}:1</div></div><div class="stat"><div class="k">Quality</div><div class="v">${s.quality}/100</div></div></div>` : ''}
-    </div>
+    <section class="td-hero">
+      <div class="td-now">
+        <div class="td-label">${esc(cfg.symbol)} · last price</div>
+        <div class="td-price">${px(a.price)}</div>
+        <div class="td-sub">One candle moves about ${px(a.atr)}</div>
+        <div class="td-clock"><span>${esc(a.weekday)} ${esc(a.etClock)} ET</span><span class="td-sess">${sessionLabel}</span>${windowNote}</div>
+        <div class="td-bias ${bias}"><span class="td-label">Bias</span><b>${esc(bias.charAt(0).toUpperCase() + bias.slice(1))}</b><p>${esc(a.bias.reason)}</p></div>
+      </div>
+      <div class="td-decide">
+        <div class="td-label">Decision right now</div>
+        <div class="decision ${s.action}">${s.action}</div>
+        <p class="td-reason">${esc(s.reason)}</p>
+        ${s.plan ? `<div class="td-plan"><div><span>Entry</span><b>${px(s.plan.entry)}</b></div><div><span>Stop</span><b class="loss">${px(s.plan.stop)}</b></div><div><span>Target</span><b class="win">${px(s.plan.takeProfit)}</b></div><div><span>Reward : risk</span><b>${s.plan.rr.toFixed(1)}:1</b></div><div><span>Quality</span><b>${s.quality}/100</b></div></div>` : '<p class="td-noplan">No plan, no trade: nothing has cleared the checklist.</p>'}
+      </div>
+    </section>
     ${decisionCard(data.decision)}
+    <div class="td-grid">
+    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>
+    ${stateCard(data.state)}
     ${riskCard(data.risk)}
     ${paperCard(data.paper)}
-    ${stateCard(data.state)}
-    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>
     ${flowCard(data.flow)}
     <div class="card"><h2>Today's plan</h2>
       ${plan ? `<div><span class="badge ${plan.allow==='none'?'high':'good'}">ARMED</span> &nbsp; <b>${esc(plan.allow.toUpperCase())}</b> · ${plan.riskPerTradePercent}% risk · max ${plan.maxTrades} trade(s)${plan.notes?` · <i>${esc(plan.notes)}</i>`:''}</div>` : `<div><span class="badge medium">PROPOSED</span> &nbsp; <b>${esc(b.proposal.allow.toUpperCase())}</b> · ${b.proposal.riskPerTradePercent}% risk · max ${b.proposal.maxTrades} trade(s)</div><div class="muted" style="margin-top:6px">${esc(b.proposal.proposal)}</div>`}
@@ -572,6 +592,7 @@ function renderToday() {
       <textarea id="plan-notes" placeholder="Notes to yourself (optional)">${plan?esc(plan.notes):''}</textarea>
       <div class="row" style="margin:10px 0 0"><button class="btn ok" id="btn-arm">${plan?'Update plan':'Arm this plan'}</button>${plan?'<button class="btn ghost" id="btn-plan-clear">Clear plan</button>':''}</div>
       <div class="plain">The bot proposes, you decide, every scan obeys. Arming a plan places nothing — it narrows what Mr. Cash may do on paper today.</div>
+    </div>
     </div>
     <div class="card"><h2>The brief</h2><pre class="brief">${esc(b.lines.join('\n'))}</pre></div>
     ${data.news && data.news.errors.length ? `<div class="warnbox">News feed problems: ${esc(data.news.errors.join(' | '))}</div>` : ''}`
