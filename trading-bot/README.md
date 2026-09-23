@@ -372,9 +372,18 @@ npm run mcp:config
 That prints the one-line command for Claude Code and the JSON for Claude
 Desktop. After that, any Claude chat can ask for the brief, the checklist,
 the market state, order flow, news, the paper account, your journal review,
-or run the doctor — and can arm today's plan. Nine tools, all read-only
+or run the doctor — and can arm today's plan. Thirteen tools, all read-only
 except `arm_plan`, none of which can place an order. Zero dependencies: Mr.
 Cash speaks the protocol itself.
+
+**Learning to trade with Claude as the tutor.** The `learn` tool hands Claude
+the School's course: first the basics in order (what you trade, candles, bid
+and ask, order types, position sizing, options, time decay and implied
+volatility, leverage, a plan and a journal, psychology), then the concepts the
+engine uses. Ask *"Teach me the next Mr. Cash lesson and quiz me"*; Claude
+gets the lesson, the common misreads and the quiz with an answer key, and
+teaches one concept at a time. The same lessons are in the app under
+**More → School**.
 
 ### Jarvis mode — his voice, and yours
 

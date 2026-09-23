@@ -35,6 +35,7 @@ import { MarketDataError, explainMarketDataError } from './market.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 import { VERSION } from './version.ts'
+import { CONCEPTS, conceptById } from './school/curriculum.ts'
 
 type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (args: Record<string, unknown>) => Promise<string> }
 
@@ -183,6 +184,34 @@ const TOOLS: Tool[] = [
       }
       writePlan(plan)
       return `Armed for ${dayKey}: ${plan.allow}, ${plan.riskPerTradePercent}% risk, max ${plan.maxTrades} trade(s).${plan.notes ? ` Notes: ${plan.notes}` : ''}`
+    },
+  },
+  {
+    name: 'learn',
+    description: "Mr. Cash's School, for teaching the user to trade. With no concept: the course outline in order, starting with the basics (orders, spread, sizing, options, leverage, psychology). With a concept id: the lesson — what it is, what Mr. Cash checks for it, common misreads, and quiz questions with an answer key for the tutor. Teach one concept at a time, ask the quiz before revealing answers, and keep to what the lesson says: no promises of profit.",
+    inputSchema: { type: 'object', properties: { concept: { type: 'string', description: 'Concept id from the outline, e.g. "order-types". Omit for the outline.' } }, additionalProperties: false },
+    run: async (args) => {
+      const id = typeof args.concept === 'string' ? args.concept.trim() : ''
+      if (!id) {
+        const lines = ['Course outline (concept id — title · level). Start at the top.']
+        let track = ''
+        for (const c of CONCEPTS) {
+          if (c.track !== track) { track = c.track; lines.push('', `[${track}]`) }
+          lines.push(`${c.id} — ${c.title} · ${c.level}`)
+        }
+        return lines.join('\n')
+      }
+      const c = conceptById(id)
+      if (!c) return `No concept "${id}". Call learn with no arguments for the outline.`
+      return [
+        `${c.title} (${c.level}, ${c.track})`, '', c.summary, '',
+        'What Mr. Cash checks or offers for it:', ...c.engineChecks.map((x) => `- ${x}`), '',
+        'Common misreads:', ...c.misreads.map((x) => `- ${x}`), '',
+        'Quiz (ask first, then reveal):', ...c.quiz.map((qq, i) => `${i + 1}. ${qq.prompt}\n   ${qq.choices.map((ch, j) => `${String.fromCharCode(97 + j)}) ${ch}`).join('  ')}`), '',
+        'Answer key (for the tutor):', ...c.quiz.map((qq, i) => `${i + 1}. ${String.fromCharCode(97 + qq.answer)} — ${qq.why}`), '',
+        c.related.length ? `Next: ${c.related.join(', ')}` : '',
+        'Paper trading only. A concept is not a claim that it makes money.',
+      ].join('\n')
     },
   },
   {

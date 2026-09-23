@@ -699,6 +699,7 @@ button.btn:hover:not(:disabled), a.btn:hover { box-shadow:0 10px 28px -8px rgba(
   --brand-grad:var(--brand);
   --ease:cubic-bezier(.2,.8,.2,1);
 }
+button, input, select, textarea { font-family:inherit; }
 body { font-family:var(--font-sans); font-feature-settings:'ss01','cv11'; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
 pre.brief, kbd, code, .palette .item .k, .dk-row b, .dk-ring-num, .dk-mini .k b, .dk-acct-v, .pl-kpis b,
 .stat .v { font-family:var(--font-mono); }
