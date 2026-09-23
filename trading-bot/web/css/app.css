@@ -809,3 +809,37 @@ svg.ti { width:22px; height:22px; display:block; }
 .bottomnav button.active span { text-shadow:none; filter:drop-shadow(0 0 8px color-mix(in srgb, var(--brand) 55%, transparent)); }
 .mp-items button span { display:inline-grid; place-items:center; vertical-align:middle; }
 .mp-items button span svg.ti { width:18px; height:18px; }
+
+/* ============================================================
+   MOTION — one identity (motion-design skill: "Corporate" archetype
+   for a dashboard). One signature curve, three durations, one entrance.
+   Opening a tab plays the entrance once: a hidden tab is display:none, so
+   the animation restarts only when the tab is shown, never on the 15-second
+   data refresh, which rewrites content inside the tab's children.
+   ============================================================ */
+:root {
+  --ease:cubic-bezier(.2,0,0,1);          /* signature: on-screen changes */
+  --ease-enter:cubic-bezier(.05,.7,.1,1); /* entrances decelerate */
+  --dur-quick:150ms; --dur-std:250ms; --dur-slow:420ms;
+}
+@keyframes mc-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+main > section:not(.hidden) > * { animation:mc-enter var(--dur-slow) var(--ease-enter) both; }
+main > section:not(.hidden) > :nth-child(2) { animation-delay:45ms; }
+main > section:not(.hidden) > :nth-child(3) { animation-delay:90ms; }
+main > section:not(.hidden) > :nth-child(4) { animation-delay:135ms; }
+main > section:not(.hidden) > :nth-child(5) { animation-delay:180ms; }
+main > section:not(.hidden) > :nth-child(n+6) { animation-delay:220ms; }
+
+/* The pipeline's current step breathes slowly (ambient layer), so the eye
+   finds "where he is" without anything flashing. */
+@keyframes mc-breathe { 0%,100% { box-shadow:0 0 0 0 color-mix(in srgb, var(--brand) 0%, transparent); } 50% { box-shadow:0 0 0 6px color-mix(in srgb, var(--brand) 16%, transparent); } }
+.dk-step.now .dk-step-i { animation:mc-breathe 2.8s ease-in-out infinite; }
+
+/* Press, hover and settle follow the duration palette. */
+button.btn, a.btn, .hbtn, .chips button, .chip, nav button, .bottomnav button, .dk-step button, .sc-concept { transition-duration:var(--dur-quick); transition-timing-function:var(--ease); }
+.card, .dk-step button, .dk-learn-card { transition:transform var(--dur-std) var(--ease), border-color var(--dur-std) var(--ease), box-shadow var(--dur-std) var(--ease); }
+
+@media (prefers-reduced-motion:reduce) {
+  main > section:not(.hidden) > * { animation:none; }
+  .dk-step.now .dk-step-i { animation:none; }
+}
