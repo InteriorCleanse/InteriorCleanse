@@ -22,6 +22,43 @@ Playwright-style browsers), which are run only if you choose to run them.
 | `analyzing-sbom-for-supply-chain-vulnerabilities` | same | 54a7988 | Apache 2.0 | Review what the repo would pull in. |
 | `detecting-indirect-prompt-injection` | same | 54a7988 | Apache 2.0 | The assistant reads headlines; know the attack. |
 
+### Design and presentation skills (added 2026-09-23)
+
+For the app's look and for presenting it: interface critique, anti-generic
+design direction, static art, launch videos. Each SKILL.md and every bundled
+script was read at import; the scripts install ordinary npm packages
+(web-artifacts-builder, app-store-screenshots' Next.js template) or analyse
+audio (brag), and run only when you choose to run them.
+
+| Folder | Upstream | Commit | Licence | Why it is here |
+|---|---|---|---|---|
+| `design-taste-frontend` | github.com/Leonxlnx/taste-skill (`skills/taste-skill`) | c184364 | MIT | Anti-generic design direction — the one that stops a UI looking AI-made. |
+| `redesign-existing-projects` | same (`skills/redesign-skill`) | c184364 | MIT | Audit an existing UI for generic patterns and upgrade it without breaking it. |
+| `high-end-visual-design` | same (`skills/soft-skill`) | c184364 | MIT | Fonts, spacing, shadows and card structure that read as premium. |
+| `minimalist-ui` | same (`skills/minimalist-skill`) | c184364 | MIT | Clean editorial layouts, restrained colour. |
+| `ux-designer` | github.com/szilu/ux-designer-skill | da9e9d0 | MIT | Accessibility, microcopy, forms, navigation, onboarding critique. |
+| `canvas-design` | github.com/anthropics/skills (`skills/canvas-design`) | 34040c9 | Apache 2.0 | Posters and static visual pieces as PNG/PDF. |
+| `web-artifacts-builder` | same (`skills/web-artifacts-builder`) | 34040c9 | Apache 2.0 | Multi-component HTML artifacts (React, Tailwind, shadcn/ui). |
+| `app-store-screenshots` | github.com/ParthJadhav/app-store-screenshots (`skills/app-store-screenshots`) | 18951dd | MIT | Marketing screenshot pages, if Mr. Cash ever ships as a store app. |
+| `brag` | github.com/latent-spaces/brag (`skills/brag`) | 57ce4c9 | MIT (code); SFX CC0 | A short launch video from the project. The five music tracks were **not** vendored — see `brag/assets/music/NOT_VENDORED.md`. |
+
+The rest of the taste-skill collection (image-generation boards, a Codex-only
+image-to-code flow, a "full output" override, a v1 copy and others) was left
+out to keep the standing list of skill descriptions short; install it at user
+level from upstream if wanted.
+
+**Considered and not vendored:**
+
+- **transitions.dev** (github.com/Jakubantalik/transitions.dev) ships no
+  licence, so it cannot be redistributed here. Install it on your own machine
+  with its CLI (`npx transitions-dev add --free`), under the author's terms.
+- **Context Mode** (github.com/mksglu/context-mode) is an MCP server with hooks
+  that sit in front of every tool call, not a skill; it is licensed ELv2
+  (source-available, not open source). Wiring it into this repo would make every
+  agent session here route its tool output through third-party code, which is the
+  same trade the repo already declined for graphify's hooks. If you want it, install
+  it for yourself at user level from its README.
+
 Only defensive security skills are vendored: scanning, review and detection.
 The offensive-simulation skills in that collection (CSRF, CSP-bypass and API
 exploitation tooling) were deliberately left out — the bot already has its own
