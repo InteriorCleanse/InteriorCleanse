@@ -291,7 +291,10 @@
   .dk-core-mid { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; z-index:2; }
   .dk-core-num { font:800 68px/1 ui-monospace,monospace; letter-spacing:-.04em; font-variant-numeric:tabular-nums;
     text-shadow:0 0 40px currentColor, 0 2px 30px rgba(0,0,0,.9); filter:saturate(1.2); }
-  .dk-core-act { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--text); opacity:.85; margin-top:8px; text-shadow:0 0 14px rgba(0,0,0,.95); }
+  .dk-core-act { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--text); opacity:.85; margin-top:8px; text-shadow:0 0 14px rgba(0,0,0,.95); white-space:nowrap; }
+  /* A soft dark lens behind the readout so node glows passing behind it never wash the number out. */
+  .dk-core-mid::before { content:''; position:absolute; left:50%; top:50%; width:260px; height:180px; transform:translate(-50%,-50%); z-index:-1;
+    background:radial-gradient(closest-side, rgba(6,9,14,.6), rgba(6,9,14,.25) 60%, transparent); }
   .dk-core-hero .dk-core-votes { position:relative; z-index:2; }
   .dk-core-votes { display:flex; gap:6px; flex-wrap:wrap; }
   .dk-core-vote { font:600 11px ui-monospace,monospace; padding:3px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); background:rgba(0,0,0,.25); white-space:nowrap; }
@@ -320,7 +323,8 @@
   .rs-lab-item b { font-size:13.5px; }
   .rs-lab-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:auto; font-size:11.5px; }
   @media (max-width:860px) { .dk-core-hero .dk-core-stage { min-height:320px; } .dk-minis { grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-core-num { font-size:56px; } }
-  @media (max-width:560px) { .dk-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-core-hero .dk-core-stage { min-height:280px; } .dk-core-num { font-size:48px; } }
+  @media (max-width:560px) { .dk-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-core-hero .dk-core-stage { min-height:280px; } .dk-core-num { font-size:48px; }
+    .dk-core-act { font-size:10.5px; letter-spacing:.1em; } .dk-core-mid::before { width:200px; height:140px; } }
 
   /* ---------- how it gets better: the self-improvement loop on the desk ---------- */
   .dk-learn { margin:18px 0 4px; }
@@ -594,11 +598,17 @@ nav button.active { color:var(--text); background:linear-gradient(180deg, rgba(5
   border:1px solid var(--edge);
   box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px -28px rgba(0,0,0,.85);
 }
-.card { position:relative; overflow:hidden; }
-.card::before {
+.card, .dk-stat, .dk-mini { position:relative; overflow:hidden; }
+.card::before, .dk-stat::before, .dk-mini::before {
   content:''; position:absolute; left:0; right:0; top:0; height:1px;
   background:linear-gradient(90deg, transparent, rgba(52,211,153,.55), rgba(163,230,53,.35), transparent);
   opacity:.6;
+}
+/* The stat/mini strips read as one instrument cluster: a cooler cyan/violet
+   thread so they sit a half-step behind the crew cards instead of competing. */
+.dk-stat::before, .dk-mini::before {
+  background:linear-gradient(90deg, transparent, rgba(34,211,238,.5), rgba(139,124,246,.3), transparent);
+  opacity:.5;
 }
 .card h2 { color:color-mix(in srgb, var(--text) 62%, var(--dim)); }
 
@@ -624,3 +634,14 @@ button.btn:hover:not(:disabled), a.btn:hover { box-shadow:0 10px 28px -8px rgba(
 @media (prefers-reduced-transparency: reduce) {
   header, nav, .card, .dk-evidence, .ev-hero, .bottomnav, .palette, #morepanel { backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--panel); }
 }
+
+/* Knowledge → Vault: "Tell him something to remember" (owner notes). */
+.kn-note summary { cursor:pointer; list-style:none; display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+.kn-note summary::-webkit-details-marker { display:none; }
+.kn-note summary b::before { content:'+ '; color:var(--brand); }
+.kn-note[open] summary b::before { content:'− '; }
+.kn-note-form { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+.kn-note-form label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--dim); }
+.kn-note-form input, .kn-note-form textarea { width:100%; color:var(--text); }
+.kn-note-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:560px) { .kn-note-row { grid-template-columns:1fr; } }

@@ -24,19 +24,26 @@
     <filter id="mc-glow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <!-- the visor scan is clipped to the eye band so the light never spills -->
+    <clipPath id="mc-visor-clip"><rect x="204" y="219" width="104" height="16" rx="8"/></clipPath>
   </defs>
 
   <!-- badge -->
   <rect x="8" y="8" width="496" height="496" rx="120" fill="url(#mc-badge)"/>
-  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="url(#mc-rim)" stroke-width="6" opacity="0.9"/>
+  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="url(#mc-rim)" stroke-width="6">
+    <animate attributeName="opacity" values="0.9;0.55;0.9" dur="4.5s" repeatCount="indefinite"/>
+  </rect>
   <!-- faint holographic grid -->
   <g opacity="0.10" stroke="#7fe9ff" stroke-width="1.5">
     <path d="M8 160 H504 M8 256 H504 M8 352 H504 M160 8 V504 M256 8 V504 M352 8 V504"/>
   </g>
-  <!-- glow behind character -->
-  <circle cx="256" cy="228" r="150" fill="url(#mc-halo)"/>
+  <!-- glow behind character, gently breathing -->
+  <circle cx="256" cy="228" r="150" fill="url(#mc-halo)">
+    <animate attributeName="r" values="150;162;150" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0.75;1" dur="4s" repeatCount="indefinite"/>
+  </circle>
 
-  <!-- shoulders / suit -->
+  <!-- shoulders / suit (the body stays put; only the figure above breathes) -->
   <path d="M96 470 C112 372 176 340 256 340 C336 340 400 372 416 470 Z" fill="url(#mc-suit)"/>
   <!-- neck -->
   <rect x="234" y="300" width="44" height="54" rx="18" fill="#bfe7e4"/>
@@ -49,32 +56,42 @@
   <path d="M256 356 l14 16 -14 18 -14 -18 Z" fill="url(#mc-visor)" opacity="0.95" filter="url(#mc-glow)"/>
   <path d="M248 392 h16 l6 66 -14 16 -14 -16 Z" fill="url(#mc-visor)" opacity="0.9" filter="url(#mc-glow)"/>
 
-  <!-- head -->
-  <rect x="176" y="150" width="160" height="176" rx="70" fill="url(#mc-face)"/>
-  <!-- jaw shading -->
-  <path d="M188 250 C196 300 224 322 256 322 C288 322 316 300 324 250" fill="none" stroke="#89c4c2" stroke-width="4" opacity="0.5"/>
+  <!-- THE FIGURE: head, hat, visor and smile breathe together with a soft bob -->
+  <g id="mc-figure">
+    <animateTransform attributeName="transform" type="translate" values="0 0; 0 -5; 0 0" dur="4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"/>
 
-  <!-- top hat (banker nod, futuristic) -->
-  <g>
-    <rect x="150" y="150" width="212" height="26" rx="13" fill="url(#mc-hat)"/>
-    <rect x="182" y="60" width="148" height="104" rx="26" fill="url(#mc-hat)"/>
-    <rect x="182" y="120" width="148" height="20" fill="none" stroke="url(#mc-rim)" stroke-width="7"/>
-    <!-- hat coin badge -->
-    <circle cx="256" cy="98" r="20" fill="#0c1424" stroke="url(#mc-rim)" stroke-width="4"/>
-    <text x="256" y="107" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="26" fill="#a3e635">$</text>
+    <!-- head -->
+    <rect x="176" y="150" width="160" height="176" rx="70" fill="url(#mc-face)"/>
+    <!-- jaw shading -->
+    <path d="M188 250 C196 300 224 322 256 322 C288 322 316 300 324 250" fill="none" stroke="#89c4c2" stroke-width="4" opacity="0.5"/>
+
+    <!-- top hat (banker nod, futuristic) -->
+    <g>
+      <rect x="150" y="150" width="212" height="26" rx="13" fill="url(#mc-hat)"/>
+      <rect x="182" y="60" width="148" height="104" rx="26" fill="url(#mc-hat)"/>
+      <rect x="182" y="120" width="148" height="20" fill="none" stroke="url(#mc-rim)" stroke-width="7"/>
+      <!-- hat coin badge -->
+      <circle cx="256" cy="98" r="20" fill="#0c1424" stroke="url(#mc-rim)" stroke-width="4"/>
+      <text x="256" y="107" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="26" fill="#a3e635">$</text>
+    </g>
+
+    <!-- visor eyes (glowing HUD band) with a light that sweeps across it -->
+    <g id="mc-eyes" filter="url(#mc-glow)">
+      <rect x="196" y="212" width="120" height="30" rx="15" fill="#0a1622"/>
+      <rect x="204" y="219" width="104" height="16" rx="8" fill="url(#mc-visor)" opacity="0.35"/>
+      <g clip-path="url(#mc-visor-clip)">
+        <rect x="196" y="219" width="26" height="16" fill="#ffffff" opacity="0.55">
+          <animate attributeName="x" values="196;300;196" dur="3.4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1"/>
+        </rect>
+      </g>
+      <circle cx="224" cy="227" r="8" fill="#7ffcff"/>
+      <circle cx="288" cy="227" r="8" fill="#7ffcff"/>
+      <animate attributeName="opacity" values="1;0.55;1;1" dur="3.2s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- confident smile -->
+    <path d="M222 280 Q256 306 290 280" fill="none" stroke="#5c9c99" stroke-width="7" stroke-linecap="round"/>
   </g>
-
-  <!-- visor eyes (glowing HUD band) -->
-  <g id="mc-eyes" filter="url(#mc-glow)">
-    <rect x="196" y="212" width="120" height="30" rx="15" fill="#0a1622"/>
-    <rect x="204" y="219" width="104" height="16" rx="8" fill="url(#mc-visor)" opacity="0.35"/>
-    <circle cx="224" cy="227" r="8" fill="#7ffcff"/>
-    <circle cx="288" cy="227" r="8" fill="#7ffcff"/>
-    <animate attributeName="opacity" values="1;0.55;1;1" dur="3.2s" repeatCount="indefinite"/>
-  </g>
-
-  <!-- confident smile -->
-  <path d="M222 280 Q256 306 290 280" fill="none" stroke="#5c9c99" stroke-width="7" stroke-linecap="round"/>
 
   <!-- floating coins -->
   <g id="mc-coin1" filter="url(#mc-glow)">

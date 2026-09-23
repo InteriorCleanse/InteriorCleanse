@@ -27,6 +27,23 @@ async function postJson(path, body) {
 const growthBar = (g) => `<div class="sc-growth"><div class="sc-growth-bar"><div style="width:${g.pct}%"></div></div><span class="muted">${g.n} trades · ${esc(g.band)} · ${esc(g.status)}</span></div>`
 const labelled = (title, block, body) => `<div class="card"><h2>${esc(title)} ${pill(block.evidenceLabel)}</h2>${body}<div class="muted sc-prov">source: ${esc(block.source)}</div></div>`
 
+/**
+ * Tell him something to remember: a note from you, stored as an untested
+ * HYPOTHESIS with its source on it. A watch date brings it back for review on
+ * that day. The vault is memory only; a note never reaches the engine.
+ */
+const noteForm = `<details class="card kn-note"><summary><b>Tell him something to remember</b> <span class="muted">a date, a headline, a reel — stored untested, never traded on</span></summary>
+  <form id="kn-note" class="kn-note-form">
+    <label>Title<input name="title" required maxlength="160" placeholder="e.g. Avengers: Doomsday opens Dec 18"></label>
+    <label>What he should remember<textarea name="body" required maxlength="4000" placeholder="What you heard, and what you think it could mean for the market"></textarea></label>
+    <div class="kn-note-row">
+      <label>Market <span class="muted">(optional)</span><input name="market" maxlength="20" placeholder="DIS"></label>
+      <label>Bring it back on <span class="muted">(optional)</span><input name="watchAt" type="date"></label>
+    </div>
+    <label>Source link <span class="muted">(optional)</span><input name="source" type="url" maxlength="500" placeholder="https://…"></label>
+    <div class="row"><button class="btn" type="submit">Remember this</button><span class="muted" id="kn-note-out"></span></div>
+  </form></details>`
+
 async function renderVault() {
   const { data } = await getJson(`/api/knowledge?limit=200${kindFilter ? `&kind=${encodeURIComponent(kindFilter)}` : ''}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ''}`)
   const s = data.summary
@@ -34,8 +51,8 @@ async function renderVault() {
   const kinds = Object.keys(s.byKind), statuses = Object.keys(s.byStatus)
   const chips = `<div class="ev-chips"><button data-kind="" class="${kindFilter ? '' : 'on'}">all kinds</button>${kinds.map((k) => `<button data-kind="${esc(k)}" class="${kindFilter === k ? 'on' : ''}">${esc(k)} ${s.byKind[k]}</button>`).join('')}</div><div class="ev-chips"><button data-status="" class="${statusFilter ? '' : 'on'}">all statuses</button>${statuses.map((k) => `<button data-status="${esc(k)}" class="${statusFilter === k ? 'on' : ''}">${esc(k)} ${s.byStatus[k]}</button>`).join('')}</div>`
   const row = `<div class="row"><button class="btn ghost" id="kn-reassess">Run reassessment now</button><button class="btn ghost" id="kn-backfill">Backfill post-mortems</button><span class="muted" id="kn-action-out"></span></div>`
-  if (!data.items.length) return heroes + chips + row + notEnough(data.note)
-  return `${heroes}${chips}${row}<div class="ev-note">${esc(data.note)}</div><div class="card"><table><tr><th>when</th><th>kind</th><th>title</th><th>status</th><th>label</th><th class="num">v</th><th class="num">+</th><th class="num">−</th><th>review due</th></tr>${data.items.map((i) => `<tr class="kn-item" data-item="${esc(i.id)}"><td class="muted">${when(i.created_at)}</td><td>${esc(i.kind)}</td><td>${esc(i.title)}</td><td>${pill(i.status)}</td><td>${pill(i.evidenceLabel)}</td><td class="num">${i.version}</td><td class="num">${i.new_evidence_count}</td><td class="num">${i.contradictory_evidence_count}</td><td class="muted">${when(i.review_due)}</td></tr>`).join('')}</table></div>`
+  if (!data.items.length) return heroes + noteForm + chips + row + notEnough(data.note)
+  return `${heroes}${noteForm}${chips}${row}<div class="ev-note">${esc(data.note)}</div><div class="card"><table><tr><th>when</th><th>kind</th><th>title</th><th>status</th><th>label</th><th class="num">v</th><th class="num">+</th><th class="num">−</th><th>review due</th></tr>${data.items.map((i) => `<tr class="kn-item" data-item="${esc(i.id)}"><td class="muted">${when(i.created_at)}</td><td>${esc(i.kind)}</td><td>${esc(i.title)}</td><td>${pill(i.status)}</td><td>${pill(i.evidenceLabel)}</td><td class="num">${i.version}</td><td class="num">${i.new_evidence_count}</td><td class="num">${i.contradictory_evidence_count}</td><td class="muted">${when(i.review_due)}</td></tr>`).join('')}</table></div>`
 }
 
 async function showItem(id) {
@@ -177,6 +194,22 @@ document.addEventListener('click', async (e) => {
   }
   if (e.target.closest('#kn-reassess')) { const out = document.getElementById('kn-action-out'); try { const r = await postJson('/api/knowledge/reassess', {}); if (out) out.textContent = r.note } catch (err) { if (out) out.textContent = err.message } await loadKnowledge(); return }
   if (e.target.closest('#kn-backfill')) { const out = document.getElementById('kn-action-out'); try { const r = await postJson('/api/knowledge/backfill', {}); if (out) out.textContent = r.note } catch (err) { if (out) out.textContent = err.message } await loadKnowledge(); return }
+})
+
+document.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'kn-note') return
+  e.preventDefault()
+  const f = new FormData(e.target)
+  const out = document.getElementById('kn-note-out')
+  // A bare date means the start of that day in New York, where the desk keeps time.
+  const day = String(f.get('watchAt') || '')
+  const watchAt = day ? Date.parse(`${day}T09:30:00-05:00`) : undefined
+  try {
+    const it = await postJson('/api/knowledge/note', { title: f.get('title'), body: f.get('body'), market: f.get('market'), source: f.get('source'), watchAt })
+    if (out) out.textContent = `Remembered — ${it.status}, ${it.evidenceLabel}${day ? `, back for review ${day}` : ''}.`
+    e.target.reset()
+    setTimeout(() => { loadKnowledge() }, 900)
+  } catch (err) { if (out) out.textContent = err.message }
 })
 
 document.addEventListener('submit', async (e) => {

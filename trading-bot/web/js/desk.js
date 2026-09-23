@@ -247,98 +247,205 @@ function drawPulse(cv, pulse, t) {
   ctx.fillText(`trades / min · ${pulse.label || ''}`, 48, cy + 17)
 }
 
+/* ---------- 3D helpers: rotate a unit vector, then project to the canvas ---------- */
+// One shared camera so the wireframe shell, the vote nodes and the depth dust
+// all turn together as a single solid, which is what makes it read as an orb
+// rather than a flat scatter. Perspective divide (1.5 − z·0.4) puts the near
+// face closer and the far face smaller — the cue the eye needs for volume.
+function rot3(x, y, z, ay, ax) {
+  const x1 = x * Math.cos(ay) + z * Math.sin(ay), z1 = -x * Math.sin(ay) + z * Math.cos(ay)
+  const y1 = y * Math.cos(ax) - z1 * Math.sin(ax), z2 = y * Math.sin(ax) + z1 * Math.cos(ax)
+  return { x: x1, y: y1, z: z2 }
+}
+function proj(p, R, cx, cy) {
+  const d = 1 / (1.5 - p.z * 0.4)
+  return { x: cx + p.x * R * d, y: cy + p.y * R * d, d, z: p.z }
+}
+
+// The depth dust: a fixed cloud of faint points on a shell a little larger than
+// the brain, drifting with the same camera so the scene has parallax behind the
+// wireframe. Generated once, deterministically — decoration, reading nothing.
+let STARS = null
+function stars() {
+  if (STARS) return STARS
+  STARS = []
+  let s = 20240119
+  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
+  for (let i = 0; i < 120; i++) {
+    const phi = Math.acos(1 - 2 * rnd()), theta = rnd() * Math.PI * 2
+    const r = 1.35 + rnd() * 0.9
+    STARS.push({ x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.cos(phi), z: r * Math.sin(phi) * Math.sin(theta), s: 0.5 + rnd() * 1.1, tw: rnd() * 6.28 })
+  }
+  return STARS
+}
+
 /**
- * The wireframe. One vertex per strategy, placed round a sphere and pushed out
- * by its confidence (a HOLD sits close to the centre); every pair joined, so
- * the panel reads as one tangled solid that tightens when the votes agree.
- * Rotation speed follows the tape's trades-per-minute when the tape is trusted
- * and is a constant slow turn otherwise. Three faint rings mark 33 / 66 / 100
- * of the agreement scale.
+ * The signal core, drawn as a rotating orb. What is real and what is dressing:
+ *
+ *   REAL — one node per strategy, its colour the strategy's vote (mint BUY, red
+ *   SELL, cyan HOLD), pushed out from the shell by confidence, dimmed to half
+ *   radius when the regime disallows it; an edge between any two that agree, and
+ *   a spark running that edge. The centre number and rotation speed are the
+ *   fused score and the real tape cadence.
+ *
+ *   DRESSING — the wireframe shell (latitude/longitude grid), the shaded orb
+ *   body and the depth dust. These carry no data; they exist only to give the
+ *   real nodes a solid to sit on so the panel reads as a brain, not a chart.
+ *
+ * Rotation follows the tape's trades-per-minute when the tape is trusted and is
+ * a constant slow turn otherwise.
  */
 function drawCore(cv, c, t) {
   const f = fitCanvas(cv); if (!f) return
   const { ctx, w, h } = f
   ctx.clearRect(0, 0, w, h)
-  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.46, h * 0.52)
+  // The visible shell projects to ~0.69R and the outermost nodes to ~0.77R, so
+  // R can run to 0.58 of the height and the orb still clears the stage edges.
+  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.44, h * 0.58)
   const sec = t / 1000
-  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.20 : 0.14 + Math.min(1.0, c.flow.tapePerMin / 240)
-  const breathe = REDUCED ? 1 : 1 + 0.04 * Math.sin(sec * (c.volatility.ratio || 1) * 1.6)
-  // The winning side sets the mood colour; HOLD nodes glow cyan/violet so the
-  // brain reads as lit rather than grey. BUY/SELL keep their meaning.
+  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.22 : 0.16 + Math.min(0.9, c.flow.tapePerMin / 240)
+  const breathe = REDUCED ? 1 : 1 + 0.045 * Math.sin(sec * (c.volatility.ratio || 1) * 1.4)
+  const ay = REDUCED ? 0.7 : sec * speed
+  // A slow camera nod instead of a continuous tumble — it reads as a spinning
+  // globe you are looking slightly down onto, cleaner than an end-over-end roll.
+  const ax = 0.44 + (REDUCED ? 0 : Math.sin(sec * 0.2) * 0.13 + Math.sin(sec * 0.063) * 0.05)
+  // The winning side sets the mood colour; a flat market glows cyan so the brain
+  // reads as lit rather than grey. BUY/SELL keep their meaning. A second accent
+  // (violet, or a warm amber when short) gives the bloom depth instead of a flat wash.
   const rgb = c.panel.direction === 'long' ? MINT : c.panel.direction === 'short' ? RED : CYAN
+  const acc = c.panel.direction === 'short' ? '245,158,66' : VIOLET
   const nodeCol = (a) => (a === 'BUY' ? MINT : a === 'SELL' ? RED : (a === 'HOLD' ? CYAN : VIOLET))
 
-  // Central bloom behind the score.
-  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.15)
-  bloom.addColorStop(0, `rgba(${rgb},0.16)`); bloom.addColorStop(0.5, `rgba(${rgb},0.05)`); bloom.addColorStop(1, `rgba(${rgb},0)`)
+  // Central bloom behind the whole scene — mood colour into the accent into black,
+  // so the light feels coloured and volumetric rather than a single tint.
+  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.7)
+  bloom.addColorStop(0, `rgba(${rgb},0.20)`); bloom.addColorStop(0.32, `rgba(${acc},0.09)`); bloom.addColorStop(0.7, `rgba(${rgb},0.03)`); bloom.addColorStop(1, `rgba(${rgb},0)`)
   ctx.fillStyle = bloom; ctx.fillRect(0, 0, w, h)
 
-  // Orbit rings.
-  for (const k of [1 / 3, 2 / 3, 1]) {
-    ctx.beginPath(); ctx.ellipse(cx, cy, R * k, R * k * 0.42, 0, 0, Math.PI * 2)
-    ctx.strokeStyle = `rgba(${CYAN},${k === 1 ? 0.16 : 0.09})`; ctx.lineWidth = 1; ctx.setLineDash(k === 1 ? [] : [3, 6]); ctx.stroke()
-  }
-  ctx.setLineDash([])
-  // Radar sweep.
-  if (!REDUCED) {
-    const a = (sec * 0.8) % (Math.PI * 2)
-    const g = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.42)
-    g.addColorStop(0, `rgba(${rgb},.30)`); g.addColorStop(1, `rgba(${rgb},0)`)
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.42); ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.stroke()
+  ctx.globalCompositeOperation = 'lighter'
+
+  // A tight bright flare right behind the score, so the number sits on light.
+  const flare = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.55)
+  flare.addColorStop(0, `rgba(${rgb},0.22)`); flare.addColorStop(1, `rgba(${rgb},0)`)
+  ctx.fillStyle = flare; ctx.beginPath(); ctx.arc(cx, cy, R * 0.55, 0, Math.PI * 2); ctx.fill()
+
+  // Depth dust behind the orb (far half only; the near half is drawn last).
+  const dust = stars().map((st) => ({ p: proj(rot3(st.x, st.y, st.z, ay * 0.6, ax * 0.6), R, cx, cy), st }))
+  for (const { p, st } of dust) {
+    if (p.z > 0.2) continue
+    const tw = REDUCED ? 0.6 : 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(sec * 1.5 + st.tw))
+    ctx.beginPath(); ctx.arc(p.x, p.y, st.s * p.d * 0.7, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(${st.tw > 3.14 ? acc : CYAN},${(0.16 * p.d * tw).toFixed(3)})`; ctx.fill()
   }
 
+  // The orb body: a soft lit sphere so the wireframe has volume under it.
+  const body = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.3, R * 0.05, cx, cy, R * 1.02)
+  body.addColorStop(0, `rgba(${rgb},0.16)`); body.addColorStop(0.5, `rgba(${acc},0.05)`); body.addColorStop(1, `rgba(${rgb},0)`)
+  ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill()
+
+  // The wireframe shell: latitude rings + longitude half-rings, depth-shaded so
+  // the front of the cage is bright and the back fades. This is the orb. Two-tone
+  // (mood latitudes, accent longitudes) reads richer than a single colour.
+  const ring = (build, col, base) => {
+    let prev = null
+    for (let k = 0; k <= 48; k++) {
+      const u = build(k / 48)
+      const p = proj(rot3(u.x, u.y, u.z, ay, ax), R, cx, cy)
+      if (prev) {
+        const dep = (p.z + prev.z) / 2
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(p.x, p.y)
+        ctx.strokeStyle = `rgba(${col},${(base + 0.24 * Math.max(0, (dep + 1) / 2)).toFixed(3)})`
+        ctx.lineWidth = 0.55 + 0.7 * Math.max(0, dep); ctx.stroke()
+      }
+      prev = p
+    }
+  }
+  for (const lat of [-0.6, -0.3, 0, 0.3, 0.6]) {
+    const cphi = Math.cos(lat * Math.PI / 2), sphi = Math.sin(lat * Math.PI / 2)
+    ring((u) => { const th = u * Math.PI * 2; return { x: cphi * Math.cos(th), y: sphi, z: cphi * Math.sin(th) } }, rgb, 0.05)
+  }
+  for (let m = 0; m < 6; m++) {
+    const lon = (m / 6) * Math.PI
+    ring((u) => { const ph = (u - 0.5) * Math.PI; const cph = Math.cos(ph); return { x: cph * Math.cos(lon), y: Math.sin(ph), z: cph * Math.sin(lon) } }, acc, 0.035)
+  }
+
+  // Rim light: a bright arc down the leading edge of the silhouette, the way a
+  // lit sphere catches light — the single strongest "this is a solid" cue. The
+  // perspective divide shrinks the visible orb below R, so the arc rides at ~0.7R
+  // to hug the real edge rather than float outside it.
+  const rimR = R * 0.7
+  const rim = ctx.createLinearGradient(cx - rimR, cy, cx + rimR, cy)
+  rim.addColorStop(0, `rgba(${acc},0)`); rim.addColorStop(0.55, `rgba(${CYAN},0.12)`); rim.addColorStop(1, `rgba(${rgb},0.55)`)
+  ctx.beginPath(); ctx.arc(cx, cy, rimR, -0.85, 1.3); ctx.strokeStyle = rim; ctx.lineWidth = 2.4; ctx.stroke()
+
   const votes = c.panel.votes
-  if (!votes.length) return
-  const ay = sec * speed, ax = sec * speed * 0.37 + 0.6
+  if (!votes.length) { ctx.globalCompositeOperation = 'source-over'; return }
+
+  // The real nodes: one per strategy, on (or just outside) the shell.
   const pts = votes.map((v, i) => {
     const n = votes.length
     const phi = Math.acos(1 - 2 * (i + 0.5) / n)
     const theta = i * 2.399963 + (v.action === 'SELL' ? Math.PI : 0)
-    const r = (v.action === 'HOLD' ? 0.78 : 0.86 + 0.14 * Math.min(1, v.confidence / 100)) * (v.weight === 0 ? 0.5 : 1) * breathe
-    const x = r * Math.sin(phi) * Math.cos(theta), y = r * Math.cos(phi), z = r * Math.sin(phi) * Math.sin(theta)
-    const x1 = x * Math.cos(ay) + z * Math.sin(ay), z1 = -x * Math.sin(ay) + z * Math.cos(ay)
-    const y1 = y * Math.cos(ax) - z1 * Math.sin(ax), z2 = y * Math.sin(ax) + z1 * Math.cos(ax)
-    const p = 1 / (1.45 - z2 * 0.35)
-    return { x: cx + x1 * R * p, y: cy + y1 * R * p, d: p, z: z2, v }
+    const r = (v.action === 'HOLD' ? 0.82 : 0.94 + 0.16 * Math.min(1, v.confidence / 100)) * (v.weight === 0 ? 0.55 : 1) * breathe
+    const p = proj(rot3(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta), ay, ax), R, cx, cy)
+    return { ...p, v }
   })
 
-  // Edges (additive glow): brighter when both ends vote the same way.
-  ctx.globalCompositeOperation = 'lighter'
+  // Edges: brighter when both ends vote the same way, faint otherwise.
   const edges = []
   for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
     const a = pts[i], b = pts[j]
     const same = a.v.action !== 'HOLD' && a.v.action === b.v.action
     const depth = (a.d + b.d) / 2
-    const alpha = (same ? 0.55 : 0.16) * depth
-    const col = same ? nodeCol(a.v.action) : CYAN
+    const alpha = (same ? 0.5 : 0.10) * depth
     const grd = ctx.createLinearGradient(a.x, a.y, b.x, b.y)
     grd.addColorStop(0, `rgba(${nodeCol(a.v.action)},${alpha.toFixed(3)})`)
     grd.addColorStop(1, `rgba(${nodeCol(b.v.action)},${alpha.toFixed(3)})`)
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y)
-    ctx.strokeStyle = grd; ctx.lineWidth = same ? 1.6 : 0.8; ctx.stroke()
-    if (same) edges.push({ a, b, col })
+    ctx.strokeStyle = grd; ctx.lineWidth = same ? 1.5 : 0.6; ctx.stroke()
+    if (same) edges.push({ a, b, col: nodeCol(a.v.action) })
   }
-  // Signal pulses travelling the agreeing edges — the brain "thinking".
+
+  // Signal sparks running the agreeing edges as glowing streaks with a bright
+  // head — the brain thinking. A longer comet tail and a lit tip read as motion.
   if (!REDUCED) {
     for (const e of edges) {
-      const fr = ((sec * 0.5 + (e.a.x + e.b.x) * 0.0016) % 1)
-      const px = e.a.x + (e.b.x - e.a.x) * fr, py = e.a.y + (e.b.y - e.a.y) * fr
-      ctx.beginPath(); ctx.arc(px, py, 1.9, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(${e.col},0.9)`; ctx.fill()
+      const fr = (sec * 0.55 + (e.a.x + e.b.x) * 0.0016) % 1
+      const tail = Math.max(0, fr - 0.22)
+      const tx = e.a.x + (e.b.x - e.a.x) * tail, ty = e.a.y + (e.b.y - e.a.y) * tail
+      const hx = e.a.x + (e.b.x - e.a.x) * fr, hy = e.a.y + (e.b.y - e.a.y) * fr
+      const g = ctx.createLinearGradient(tx, ty, hx, hy)
+      g.addColorStop(0, `rgba(${e.col},0)`); g.addColorStop(1, `rgba(${e.col},0.95)`)
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy)
+      ctx.strokeStyle = g; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke()
+      const head = ctx.createRadialGradient(hx, hy, 0, hx, hy, 5)
+      head.addColorStop(0, `rgba(255,255,255,0.9)`); head.addColorStop(0.4, `rgba(${e.col},0.8)`); head.addColorStop(1, `rgba(${e.col},0)`)
+      ctx.fillStyle = head; ctx.beginPath(); ctx.arc(hx, hy, 5, 0, Math.PI * 2); ctx.fill()
     }
+    ctx.lineCap = 'butt'
   }
-  // Nodes, back to front, glowing.
-  for (const p of pts.sort((a, b) => a.z - b.z)) {
+
+  // Nodes, back to front, with a crisp core and a tight halo.
+  for (const p of pts.slice().sort((a, b) => a.z - b.z)) {
     const col = nodeCol(p.v.action)
-    const rad = (p.v.action === 'HOLD' ? 2.0 : 2.6) + p.d * 2.6
-    const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 4)
-    halo.addColorStop(0, `rgba(${col},${(0.5 * p.d).toFixed(3)})`); halo.addColorStop(1, `rgba(${col},0)`)
-    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(p.x, p.y, rad * 4, 0, Math.PI * 2); ctx.fill()
+    const rad = (p.v.action === 'HOLD' ? 2.0 : 2.8) + p.d * 2.4
+    const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 4.5)
+    halo.addColorStop(0, `rgba(${col},${(0.55 * p.d).toFixed(3)})`); halo.addColorStop(0.4, `rgba(${col},${(0.18 * p.d).toFixed(3)})`); halo.addColorStop(1, `rgba(${col},0)`)
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(p.x, p.y, rad * 4.5, 0, Math.PI * 2); ctx.fill()
     ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${col},${(0.55 + p.d * 0.45).toFixed(3)})`; ctx.fill()
-    ctx.beginPath(); ctx.arc(p.x - rad * 0.3, p.y - rad * 0.3, rad * 0.4, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(255,255,255,${(0.4 * p.d).toFixed(3)})`; ctx.fill()
+    ctx.fillStyle = `rgba(${col},${(0.6 + p.d * 0.4).toFixed(3)})`; ctx.fill()
+    ctx.beginPath(); ctx.arc(p.x - rad * 0.28, p.y - rad * 0.28, rad * 0.42, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(255,255,255,${(0.5 * p.d).toFixed(3)})`; ctx.fill()
   }
+
+  // Depth dust in front of the orb, drawn last so it sparkles over the cage.
+  for (const { p, st } of dust) {
+    if (p.z <= 0.2) continue
+    const tw = REDUCED ? 0.7 : 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(sec * 1.5 + st.tw))
+    ctx.beginPath(); ctx.arc(p.x, p.y, st.s * p.d * 0.8, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(${st.tw > 3.14 ? acc : CYAN},${(0.22 * p.d * tw).toFixed(3)})`; ctx.fill()
+  }
+
   ctx.globalCompositeOperation = 'source-over'
 }
 

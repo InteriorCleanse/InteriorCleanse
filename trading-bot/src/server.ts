@@ -993,6 +993,7 @@ const server = createServer(async (req, res) => {
         'GET /api/knowledge': () => learn.knowledgeIndex({ kind: q('kind'), status: q('status'), tag: q('tag'), limit: q('limit') }),
         'GET /api/knowledge/item': () => learn.knowledgeItem(q('id') || ''),
         'POST /api/knowledge/review': async () => learn.knowledgeReview(await body()),
+        'POST /api/knowledge/note': async () => learn.knowledgeNote(await body()),
         'GET /api/knowledge/passport': () => learn.knowledgePassport(q('strategy')),
         'GET /api/knowledge/brief': () => learn.knowledgeBrief(),
         'GET /api/knowledge/eod': () => learn.knowledgeEndOfDay(),

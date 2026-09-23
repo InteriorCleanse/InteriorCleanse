@@ -21,11 +21,11 @@ import type { CohortFilter } from '../analyst/cohorts.ts'
 import { backtestDataset, fromReplayTrade, paperDataset } from '../analyst/records.ts'
 import type { Dataset, EvidenceRecord } from '../analyst/records.ts'
 import type { Snapshot } from '../bot.ts'
-import { getItem, listItems, reviewItem, vaultSummary } from '../knowledge/vault.ts'
-import type { KnowledgeKind, KnowledgeStatus, ReviewOutcome } from '../knowledge/vault.ts'
+import { getItem, listItems, makeItem, reviewItem, saveItem, vaultSummary } from '../knowledge/vault.ts'
+import type { KnowledgeItem, KnowledgeKind, KnowledgeStatus, ReviewOutcome } from '../knowledge/vault.ts'
 import { allSeries, historyDepth } from '../news/history.ts'
 import { readPositions } from '../paperTrader.ts'
-import { createHypothesis, getHypothesis, listHypotheses, recordStage, reject as rejectHypothesis, reviewHypothesis, saveHypothesis } from '../research/hypotheses.ts'
+import { BANNED_WORDS, createHypothesis, getHypothesis, listHypotheses, recordStage, reject as rejectHypothesis, reviewHypothesis, saveHypothesis } from '../research/hypotheses.ts'
 import type { Hypothesis, HypothesisStatus, NewHypothesis, StageResult } from '../research/hypotheses.ts'
 import { critiqueCohort, decideProposal, getProposal, listProposals, makeProposal, researchQuestions, saveProposal } from '../research/lab.ts'
 import type { Proposal, ProposalKind, ProposalStatus } from '../research/lab.ts'
@@ -400,6 +400,56 @@ export function knowledgeItem(id: string) {
   const it = getItem(id)
   if (!it) throw new ApiError(404, 'no such item')
   return it
+}
+
+const DAY_MS = 86_400_000
+const NOTE_HORIZON_MS = 2 * 365 * DAY_MS
+/** A calendar date for a person to read, in the desk's own time zone (en-CA prints YYYY-MM-DD). */
+const NY_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
+
+/**
+ * AN OWNER NOTE — something you heard (a reel, a headline, a date) that he
+ * should remember and bring back to you.
+ *
+ * It is stored in the vault as a HYPOTHESIS from USER: untested, unverified,
+ * and with its source written on it. The vault is never read by the engine, so
+ * a note cannot place, size or shape a trade. The decay monitor ages only
+ * data-derived items, so a note waits quietly until its review date. With
+ * `watchAt` that date is the day you name, and the note comes due for review
+ * then — which is how it resurfaces when it matters.
+ */
+export function knowledgeNote(body: { title?: unknown; body?: unknown; market?: unknown; source?: unknown; watchAt?: unknown; tags?: unknown }, now = Date.now()): KnowledgeItem {
+  const title = str(body.title, 160).trim()
+  const text = str(body.body, 4000).trim()
+  if (!title || !text) throw new ApiError(400, 'a note needs a title and what you want him to remember')
+  for (const [field, value] of [['title', title], ['note', text]] as const) {
+    const m = value.match(BANNED_WORDS)
+    if (m) throw new ApiError(400, `"${m[0]}" is not a word a note may use (in ${field}). Say what you heard, not how sure it is.`)
+  }
+  const market = str(body.market, 20).toUpperCase().replace(/[^A-Z0-9.\-]/g, '')
+  const source = str(body.source, 500).trim()
+  if (source && !/^https?:\/\/\S+$/i.test(source)) throw new ApiError(400, 'the source must be a link (http or https)')
+  let watchAt: number | null = null
+  if (body.watchAt !== undefined && body.watchAt !== null && body.watchAt !== '') {
+    const t = typeof body.watchAt === 'number' ? body.watchAt : Date.parse(str(body.watchAt, 40))
+    if (!Number.isFinite(t) || t <= now || t > now + NOTE_HORIZON_MS) throw new ApiError(400, 'the watch date must be a future date within two years')
+    watchAt = t
+  }
+  const extra = Array.isArray(body.tags) ? (body.tags as unknown[]).slice(0, 6).map((x) => String(x).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30)).filter(Boolean) : []
+  const tags = ['owner-note', ...(market ? [market.toLowerCase()] : []), ...extra]
+  const fullBody = [
+    text,
+    source ? `Source: ${source} (not verified by Mr. Cash).` : 'Source: the owner (not verified by Mr. Cash).',
+    market ? `Market: ${market}.` : '',
+    watchAt ? `Bring this back for review on ${NY_DATE.format(new Date(watchAt))} (New York).` : '',
+    'UNTESTED. He remembers this and brings it back for review. It does not move a trade.',
+  ].filter(Boolean).join('\n\n')
+  const item = makeItem({
+    kind: 'hypothesis', title, body: fullBody, evidenceLabel: 'HYPOTHESIS',
+    provenance: { source: 'USER', symbol: market || undefined, sampleSize: 0, method: 'owner note, untested' },
+    tags, payload: { ownerNote: true, source: source || null, market: market || null, watchAt }, now,
+  })
+  return saveItem(watchAt ? { ...item, review_due: watchAt } : item)
 }
 
 export function knowledgeReview(body: { id?: unknown; outcome?: unknown; note?: unknown; body?: unknown; evidenceLabel?: unknown }, now = Date.now()) {
