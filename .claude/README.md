@@ -24,6 +24,8 @@ nothing under `.claude/` is built, served, or linted.
 | graphify | pypi `graphifyy` 0.9.65 / github.com/Graphify-Labs/graphify | 0.9.65 | Apache-2.0 + MIT |
 | 25 lifecycle skills + 4 agents + 9 commands | github.com/addyosmani/agent-skills | dc27a9c | MIT |
 | claudex-loop, claudex-route, codex-build, codex-review | github.com/chaseai-yt/claudex-loop | v2.1.0 | MIT |
+| ux-designer (+ 26 references) | github.com/szilu/ux-designer-skill | main @ 2026-09-23 | (repo README; no LICENSE file upstream) |
+| design-taste-frontend, high-end-visual-design, redesign-existing-projects (3 of 13) | github.com/Leonxlnx/taste-skill | main @ 2026-09-23 | see upstream |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -126,6 +128,21 @@ Genjutsu's `cast` and `paint` orchestrators load their sub-skills from
 `genjutsu/_jutsu`, which is where its resolver probes for a skills-directory
 install (`*/.claude/skills/*/_jutsu`). Upstream docs, screenshots, tests, and
 other-language READMEs were left out.
+
+Four design skills were added for the storefront's own frontend work.
+`ux-designer` is UX/UI principles with accessibility, forms, e-commerce and
+design-system guidance; its SKILL.md plus all 26 `references/*.md` are
+vendored (the references load only on demand, so the standing cost is the
+one-line description). The other three come from the `Leonxlnx/taste-skill`
+pack, which ships **thirteen** skills — only the three that fit this project
+were taken: `design-taste-frontend` (its flagship anti-slop frontend skill),
+`high-end-visual-design` (the "make it feel expensive" ruleset), and
+`redesign-existing-projects` (audit-first redesign). Each is a single
+self-contained SKILL.md; the pack's other ten (v1, gpt, image-to-code,
+minimalist, brutalist, stitch, output, and three image-generation skills)
+were left out to hold the always-on budget, and its affiliate/sponsor-laden
+README was not copied. Together the four add roughly 135 words of
+descriptions (~180 tokens) to every session.
 
 To remove a set, delete its folders and the row above. To update, re-copy from
 the upstream commit you want and change the commit here.

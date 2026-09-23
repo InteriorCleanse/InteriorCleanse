@@ -53,6 +53,8 @@ export function ProductExperience({
       alt={product.name}
       experience={experience}
       eager={eager}
+      materialColor={product.materialColor}
+      label={product.name}
       className={variant === 'stage' ? 'depth-stage-large' : ''}
     />
   )

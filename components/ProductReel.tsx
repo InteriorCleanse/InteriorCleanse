@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { ProductImage } from '@/components/product/ProductImage'
 import type { Product } from '@/lib/types'
 
 /**
@@ -84,16 +85,21 @@ export function ProductReel({ products }: { products: Product[] }) {
         <h2 className="sr-only">Featured products</h2>
         <div className="reel-stage" ref={stageRef} aria-hidden="true">
           {products.map((p, i) => (
-            <img
+            <div
               key={p.slug}
               className="reel-image"
               data-active={i === activeIndex ? 'true' : undefined}
               data-side={i < activeIndex ? 'before' : i > activeIndex ? 'after' : undefined}
-              src={p.heroImage}
-              alt=""
-              loading={i === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-            />
+            >
+              <ProductImage
+                src={p.heroImage}
+                alt=""
+                label={p.name}
+                materialColor={p.materialColor}
+                variant="plain"
+                eager={i === 0}
+              />
+            </div>
           ))}
           <span className="reel-shadow" />
         </div>

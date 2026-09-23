@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ProductExperience } from '@/components/product/ProductExperience'
+import { ProductImage } from '@/components/product/ProductImage'
 import type { Article, Book, Product, SpiritBook } from '@/lib/types'
 
 /** A channel URL is only real once the owner has replaced the TODO marker. */
@@ -36,7 +37,7 @@ export function BookCard({ book }: { book: Book }) {
   return (
     <article className="book-card">
       <Link href={`/library/${book.slug}/`} className="book-card-image">
-        <img src={book.coverImage} alt={book.imageAlt} loading="lazy" />
+        <ProductImage src={book.coverImage} alt={book.imageAlt} label={book.title} />
       </Link>
       <div className="book-card-info">
         <p className="eyebrow">The Library</p>
@@ -71,7 +72,7 @@ export function SpiritCard({ book }: { book: SpiritBook }) {
   return (
     <article className="spirit-card">
       <div className="spirit-card-image">
-        <img src={book.coverImage} alt={book.imageAlt} loading="lazy" />
+        <ProductImage src={book.coverImage} alt={book.imageAlt} label={book.title} />
         {book.badge ? <span className="spirit-badge">{book.badge}</span> : null}
       </div>
       <p className="spirit-category">{book.category}</p>
@@ -92,7 +93,7 @@ export function ArticleCard({ article }: { article: Article }) {
   return (
     <article data-reveal>
       <Link href={`/journal/${article.slug}/`} className="article-card-image">
-        <img src={article.image} alt={article.imageAlt} loading="lazy" />
+        <ProductImage src={article.image} alt={article.imageAlt} label={article.title} />
       </Link>
       <p className="eyebrow" style={{ marginBottom: '0.8rem' }}>
         {article.eyebrow}

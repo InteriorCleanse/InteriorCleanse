@@ -4,19 +4,31 @@
 @tailwind utilities;
 
 :root {
-  --black: #0A0A0A;
-  --ink: #1C1A17;
-  --bone: #F7F4EF;
-  --brass: #A9895A;
-  --brass-light: #C4A96E;
+  /* Light & luxury. The tokens keep their old names so every rule that
+     reads them is unchanged; only the values flip. --black is now the page
+     ground (warm bone), --ink a raised surface (near-white), --bone the ink
+     you read. Literal dark rgba scrims over hero imagery are intentionally
+     left dark so the cinematic bands survive the flip. */
+  /* One foreground triplet drives every reading colour. On the light ground
+     it is near-black ink; the cinematic dark zones (hero, scenes, cart, admin
+     chrome) re-declare --fg-rgb to the old bone so their descendants stay
+     light without touching a single rule. --bone and the two secondary-text
+     tokens derive from it, so re-scoping --fg-rgb flips them all at once. */
+  --fg-rgb: 27, 24, 21;
+  --black: #F4F0E7;
+  --ink: #FAF7F1;
+  --bone: rgb(var(--fg-rgb));
+  --brass: #7E6234;
+  --brass-light: #9A7A44;
   --sage: #5B6357;
-  --taupe: #9A9286;
-  --line: rgba(169, 137, 90, 0.2);
-  /* Secondary text. Measured against every dark ground on the site:
-     --text-dim clears 4.5:1 for labels and metadata, --text-muted clears
-     7:1 for running text. Do not go dimmer than these for anything read. */
-  --text-dim: rgba(247, 244, 239, 0.52);
-  --text-muted: rgba(247, 244, 239, 0.64);
+  --taupe: #6C6459;
+  --line: rgba(var(--fg-rgb), 0.14);
+  /* Secondary text. Measured against the bone ground:
+     --text-dim clears 4.5:1 (4.73:1) for labels and metadata,
+     --text-muted clears 6:1 (6.6:1) for running text. Do not go dimmer
+     than these for anything read. */
+  --text-dim: rgba(var(--fg-rgb), 0.62);
+  --text-muted: rgba(var(--fg-rgb), 0.72);
   /* Motion. One signature curve and three durations; hover and state
      feedback use --dur-base, entrances --dur-slow, presses --dur-quick. */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -28,15 +40,57 @@
      render-blocking third-party request. */
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
-  --mind-bg: #1A2410;
-  --mind-accent: #7FA872;
-  --home-bg: #0F1419;
-  --home-accent: #4A9EFF;
-  --body-bg: #1A1208;
-  --body-accent: #A9895A;
-  --spirit-bg: #0F0A1E;
-  --spirit-accent: #C4A8E8;
+  --mind-bg: #EAEFE2;
+  --mind-accent: #4F6B44;
+  --home-bg: #E7EDF1;
+  --home-accent: #2F6390;
+  --body-bg: #F1E9DB;
+  --body-accent: #7E6234;
+  --spirit-bg: #ECE6F1;
+  --spirit-accent: #5B4A7A;
   --header-h: 72px;
+  /* The specular highlight that sweeps the header mark. A warm brass shimmer
+     on the light ground; the cinematic zones raise it to white over their
+     dark grounds. */
+  --sheen-hi: var(--brass-light);
+}
+
+/* ── CINEMATIC DARK ZONES ───────────────────────────────────────────
+   The scenes, the hero, the cart and email modals, the 3D stages and the
+   admin chrome keep a dark ground on purpose — a light editorial body that
+   opens from a dark cinematic frame is the whole point of the look. These
+   grounds are literal darks that never flipped, so their descendants would
+   read dark-on-dark after the theme flip. Re-declaring --fg-rgb here (and
+   --ink, the ink used for text on the light chips inside them) flips every
+   descendant back to light without editing a single child rule. */
+.hero-section,
+.residence-hero,
+.guestbook,
+.showroom,
+.reel-stage,
+.popup-overlay,
+.stage-controls,
+.product-viewer-col,
+.pedestal-rotate,
+.site-header[data-transparent='true'] {
+  --fg-rgb: 247, 244, 239;
+  --ink: #1C1A17;
+  --sheen-hi: #FFFFFF;
+  /* --bone and the secondary-text tokens must be re-declared here, not only
+     at :root: a var() inside a custom property is substituted where the
+     property is declared, so a token derived only at :root would keep the
+     root's dark value even where --fg-rgb is re-scoped. Declaring them in the
+     scope re-runs the substitution against the light --fg-rgb above. */
+  --bone: rgb(var(--fg-rgb));
+  --line: rgba(var(--fg-rgb), 0.14);
+  --text-dim: rgba(var(--fg-rgb), 0.62);
+  --text-muted: rgba(var(--fg-rgb), 0.72);
+}
+
+/* The mobile "shop the scene" strip lives inside the dark hero but paints its
+   own ground; keep it dark so it stays part of the hero, not the page. */
+.hero-carousel {
+  background: #14110e;
 }
 
 * {
@@ -156,10 +210,10 @@ textarea {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 0 3vw;
-  background: rgba(10, 10, 10, 0.9);
+  background: rgba(250, 247, 241, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(169, 137, 90, 0.15);
+  border-bottom: 1px solid var(--line);
   transition: background 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
 }
 
@@ -179,15 +233,41 @@ textarea {
   justify-self: start;
 }
 
+/* The lockup is vector and drawn in currentColor, so it inherits the header's
+   ink and needs no light/dark raster swap. */
 .logo-lockup {
-  display: block;
-  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--bone);
+  line-height: 1;
+  transition: color var(--dur-base) var(--ease);
 }
 
-.logo-lockup img {
-  height: 44px;
-  width: auto;
-  display: block;
+.logo-wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.logo-word {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  line-height: 1.02;
+}
+
+/* The second line carries the accent, so the mark reads as one considered
+   object rather than two stacked words. */
+.logo-word-trail {
+  color: var(--brass);
+  letter-spacing: 0.4em;
+}
+
+@media (max-width: 600px) {
+  .logo-word { font-size: 10.5px; letter-spacing: 0.28em; }
+  .logo-word-trail { letter-spacing: 0.34em; }
 }
 
 .header-actions {
@@ -203,7 +283,7 @@ textarea {
   justify-content: center;
   width: 40px;
   height: 40px;
-  color: rgba(247, 244, 239, 0.8);
+  color: rgba(var(--fg-rgb), 0.8);
   transition: color var(--dur-base) var(--ease);
 }
 
@@ -240,7 +320,7 @@ textarea {
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.92);
+  color: rgba(var(--fg-rgb), 0.92);
   padding: 0.5rem 0.15rem;
   transition: color var(--dur-base) var(--ease);
   white-space: nowrap;
@@ -338,7 +418,7 @@ textarea {
 
 .hero-sub {
   font-size: 16px;
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
   line-height: 1.7;
   max-width: 420px;
   margin-bottom: 3rem;
@@ -374,7 +454,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  border: 1px solid rgba(247, 244, 239, 0.25);
+  border: 1px solid rgba(var(--fg-rgb), 0.25);
   color: var(--bone);
   padding: 1rem 2rem;
   font-size: 10px;
@@ -405,7 +485,7 @@ textarea {
 .scroll-line {
   width: 40px;
   height: 1px;
-  background: rgba(247, 244, 239, 0.2);
+  background: rgba(var(--fg-rgb), 0.2);
   position: relative;
   overflow: hidden;
 }
@@ -429,7 +509,7 @@ textarea {
 
 /* TRUST STRIP */
 .trust-strip {
-  background: rgba(247, 244, 239, 0.03);
+  background: rgba(var(--fg-rgb), 0.03);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   display: grid;
@@ -463,7 +543,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.5);
+  color: var(--text-muted);
   line-height: 1.4;
 }
 
@@ -527,7 +607,7 @@ textarea {
 .track-spirit .track-headline em { color: var(--spirit-accent); }
 
 .track-body-text {
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
   line-height: 1.8;
   margin-bottom: 2.5rem;
   max-width: 440px;
@@ -541,7 +621,7 @@ textarea {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--bone);
-  border-bottom: 1px solid rgba(247, 244, 239, 0.25);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.25);
   padding: 0.4rem 0;
   transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease), gap var(--dur-base) var(--ease);
 }
@@ -573,7 +653,7 @@ textarea {
   position: relative;
   width: 100%;
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(247, 244, 239, 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.06);
 }
 
 /* 3D STAGE */
@@ -651,7 +731,7 @@ textarea {
   display: block;
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  background: rgba(247, 244, 239, 0.04);
+  background: rgba(var(--fg-rgb), 0.04);
   position: relative;
 }
 
@@ -745,7 +825,7 @@ textarea {
 .depth-stage-large {
   aspect-ratio: 1 / 1;
   height: auto;
-  background: rgba(247, 244, 239, 0.03);
+  background: rgba(var(--fg-rgb), 0.03);
 }
 
 /* Hover does not exist on touch, so neither does any of this. */
@@ -769,7 +849,7 @@ textarea {
 .spin-viewport {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: rgba(247, 244, 239, 0.03);
+  background: rgba(var(--fg-rgb), 0.03);
   overflow: hidden;
   cursor: grab;
   touch-action: pan-y;
@@ -946,8 +1026,8 @@ textarea {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   padding: 0.6rem 1rem;
-  border: 1px solid rgba(247, 244, 239, 0.2);
-  color: rgba(247, 244, 239, 0.7);
+  border: 1px solid rgba(var(--fg-rgb), 0.2);
+  color: rgba(var(--fg-rgb), 0.7);
   transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
@@ -1070,7 +1150,7 @@ textarea {
 
 .gallery-product-tagline {
   font-size: 14px;
-  color: rgba(247, 244, 239, 0.5);
+  color: var(--text-muted);
   line-height: 1.7;
   margin-bottom: 2.5rem;
 }
@@ -1123,12 +1203,12 @@ textarea {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(247, 244, 239, 0.2);
+  background: rgba(var(--fg-rgb), 0.2);
   transition: background var(--dur-base) var(--ease), transform var(--dur-base) var(--ease);
 }
 
 .gallery-dot:hover::before {
-  background: rgba(247, 244, 239, 0.5);
+  background: rgba(var(--fg-rgb), 0.5);
 }
 
 .gallery-dot.active::before {
@@ -1207,7 +1287,7 @@ textarea {
 
 .popup-copy {
   font-size: 14px;
-  color: rgba(247, 244, 239, 0.5);
+  color: var(--text-muted);
   line-height: 1.75;
   margin-bottom: 2rem;
   max-width: 380px;
@@ -1221,7 +1301,7 @@ textarea {
 
 .popup-input {
   width: 100%;
-  background: rgba(247, 244, 239, 0.05);
+  background: rgba(var(--fg-rgb), 0.05);
   border: 1px solid rgba(169, 137, 90, 0.25);
   color: var(--bone);
   padding: 1rem 1.2rem;
@@ -1237,7 +1317,7 @@ textarea {
 }
 
 .popup-input::placeholder {
-  color: rgba(247, 244, 239, 0.25);
+  color: rgba(var(--fg-rgb), 0.25);
   letter-spacing: 0.12em;
   font-size: 11px;
 }
@@ -1267,7 +1347,7 @@ textarea {
 
 .popup-privacy {
   font-size: 10px;
-  color: rgba(247, 244, 239, 0.22);
+  color: rgba(var(--fg-rgb), 0.22);
   text-align: center;
   margin-top: 1.2rem;
   letter-spacing: 0.06em;
@@ -1353,7 +1433,7 @@ textarea {
 
 .product-detail-desc {
   font-size: 14px;
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
   line-height: 1.8;
 }
 
@@ -1363,8 +1443,8 @@ textarea {
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
-  border-top: 1px solid rgba(247, 244, 239, 0.1);
-  border-bottom: 1px solid rgba(247, 244, 239, 0.1);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.1);
   padding: 1.2rem 0;
 }
 
@@ -1384,7 +1464,7 @@ textarea {
 .add-to-cart-btn {
   width: 100%;
   background: var(--bone);
-  color: var(--black);
+  color: var(--ink);
   padding: 1.2rem;
   font-size: 10px;
   letter-spacing: 0.22em;
@@ -1427,11 +1507,11 @@ textarea {
 .channel-btn.amazon:hover { background: rgba(255, 153, 0, 0.1); }
 .channel-btn.etsy { border-color: rgba(241, 101, 33, 0.4); }
 .channel-btn.etsy:hover { background: rgba(241, 101, 33, 0.1); }
-.channel-btn.tiktok { border-color: rgba(255, 255, 255, 0.2); }
-.channel-btn.tiktok:hover { background: rgba(255, 255, 255, 0.05); }
+.channel-btn.tiktok { border-color: rgba(var(--fg-rgb), 0.25); }
+.channel-btn.tiktok:hover { background: rgba(var(--fg-rgb), 0.05); }
 
 .care-craft {
-  border-top: 1px solid rgba(247, 244, 239, 0.1);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.1);
   padding-top: 1.5rem;
 }
 
@@ -1467,7 +1547,7 @@ textarea {
 }
 
 .product-meta {
-  border-top: 1px solid rgba(247, 244, 239, 0.1);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.1);
   padding-top: 1.5rem;
 }
 
@@ -1485,7 +1565,7 @@ textarea {
 
 .product-meta dd {
   font-size: 12px;
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
 }
 
 /* SECTION CONTAINERS */
@@ -1548,7 +1628,7 @@ textarea {
 
 .page-hero-sub {
   font-size: 15px;
-  color: rgba(247, 244, 239, 0.5);
+  color: var(--text-muted);
   line-height: 1.8;
   max-width: 520px;
   margin-top: 2rem;
@@ -1562,14 +1642,14 @@ textarea {
 .prose p {
   font-size: 15px;
   line-height: 1.9;
-  color: rgba(247, 244, 239, 0.6);
+  color: var(--text-muted);
   margin-bottom: 1.5rem;
 }
 
 .prose p.lead {
   font-size: 19px;
   line-height: 1.8;
-  color: rgba(247, 244, 239, 0.75);
+  color: rgba(var(--fg-rgb), 0.75);
 }
 
 .prose h2 {
@@ -1601,7 +1681,7 @@ textarea {
 .prose ul,
 .prose ol {
   margin: 0 0 1.5rem 1.2rem;
-  color: rgba(247, 244, 239, 0.6);
+  color: var(--text-muted);
 }
 
 .prose li {
@@ -1616,7 +1696,7 @@ textarea {
   background: rgba(169, 137, 90, 0.12);
   border: 1px solid var(--line);
   padding: 0.15em 0.45em;
-  color: var(--brass-light);
+  color: var(--brass);
 }
 
 .prose-dropcap::first-letter {
@@ -1634,7 +1714,7 @@ textarea {
   padding: 1.6rem;
   font-size: 13px;
   line-height: 1.8;
-  color: rgba(247, 244, 239, 0.5);
+  color: var(--text-muted);
   max-width: 720px;
 }
 
@@ -1652,7 +1732,7 @@ textarea {
   grid-template-columns: 4rem 1fr;
   gap: 1.5rem;
   padding: 1.8rem 0;
-  border-top: 1px solid rgba(247, 244, 239, 0.1);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.1);
 }
 
 .step-list li::before {
@@ -1675,7 +1755,7 @@ textarea {
 .step-list span {
   font-size: 14px;
   line-height: 1.8;
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
 }
 
 .step-list a {
@@ -1859,13 +1939,13 @@ textarea {
 .spirit-subtitle {
   font-size: 11px;
   font-style: italic;
-  color: rgba(196, 168, 232, 0.55);
+  color: var(--spirit-accent);
   margin-bottom: 0.8rem;
 }
 
 .spirit-desc {
   font-size: 12px;
-  color: rgba(196, 168, 232, 0.45);
+  color: var(--text-muted);
   line-height: 1.6;
   flex: 1;
   margin-bottom: 1.2rem;
@@ -1880,14 +1960,14 @@ textarea {
 
 .spirit-price {
   font-size: 13px;
-  color: #D4AF6A;
+  color: var(--brass);
 }
 
 .spirit-buy {
   font-size: 10px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  border: 1px solid rgba(196, 168, 232, 0.3);
+  border: 1px solid rgba(91, 74, 122, 0.35);
   padding: 0.6rem 1rem;
   color: var(--spirit-accent);
   transition: background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
@@ -1895,7 +1975,7 @@ textarea {
 }
 
 .spirit-buy:hover {
-  background: rgba(196, 168, 232, 0.1);
+  background: rgba(91, 74, 122, 0.08);
   border-color: var(--spirit-accent);
 }
 
@@ -1935,7 +2015,7 @@ textarea {
 
 .email-line {
   display: flex;
-  border-bottom: 1px solid rgba(247, 244, 239, 0.2);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.2);
   transition: border-color var(--dur-base) var(--ease);
 }
 
@@ -1978,7 +2058,7 @@ textarea {
 
 .contact-form input,
 .contact-form textarea {
-  background: rgba(247, 244, 239, 0.04);
+  background: rgba(var(--fg-rgb), 0.04);
   border: 1px solid var(--line);
   color: var(--bone);
   padding: 1rem 1.2rem;
@@ -2060,9 +2140,9 @@ textarea {
   gap: 1rem;
   align-items: baseline;
   padding: 1rem 0;
-  border-top: 1px solid rgba(247, 244, 239, 0.1);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.1);
   font-size: 14px;
-  color: rgba(247, 244, 239, 0.6);
+  color: var(--text-muted);
 }
 
 .book-learn-list li::before {
@@ -2112,7 +2192,7 @@ textarea {
   display: inline-block;
   padding: 0.25rem 0;
   font-size: 12px;
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
   transition: color var(--dur-base) var(--ease);
 }
 
@@ -2121,7 +2201,7 @@ textarea {
 }
 
 .footer-base {
-  border-top: 1px solid rgba(247, 244, 239, 0.08);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.08);
   padding-top: 2rem;
   display: flex;
   justify-content: space-between;
@@ -2219,7 +2299,6 @@ textarea {
 }
 
 @media (max-width: 600px) {
-  .logo-lockup img { height: 34px; }
   .hero-section { padding: 0 5vw; }
   .hero-headline { font-size: 13vw; }
   .hero-scroll-hint { left: 5vw; bottom: 2rem; }
@@ -2279,7 +2358,7 @@ textarea {
 
 .admin-login-box {
   width: min(420px, 100%);
-  background: #0F0D0A;
+  background: var(--ink);
   border: 1px solid rgba(169, 137, 90, 0.3);
   padding: 3rem 2.5rem;
   display: flex;
@@ -2303,7 +2382,7 @@ textarea {
   gap: 2rem;
   padding: 1.2rem 3vw;
   border-bottom: 1px solid var(--line);
-  background: rgba(10, 10, 10, 0.9);
+  background: rgba(250, 247, 241, 0.92);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -2316,7 +2395,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.55);
+  color: var(--text-muted);
   padding: 0.6rem 1rem;
   border: 1px solid transparent;
   transition: color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
@@ -2354,7 +2433,7 @@ textarea {
 .admin-total { font-size: 1.1rem; color: var(--brass); }
 
 .admin-search {
-  background: rgba(247, 244, 239, 0.04);
+  background: rgba(var(--fg-rgb), 0.04);
   border: 1px solid var(--line);
   color: var(--bone);
   padding: 0.7rem 1rem;
@@ -2388,8 +2467,8 @@ textarea {
 
 .admin-table td {
   padding: 0.9rem 1rem;
-  border-bottom: 1px solid rgba(247, 244, 239, 0.06);
-  color: rgba(247, 244, 239, 0.7);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.06);
+  color: rgba(var(--fg-rgb), 0.7);
   vertical-align: top;
 }
 
@@ -2404,7 +2483,7 @@ textarea {
   padding: 1.8rem;
   position: relative;
   height: max-content;
-  background: rgba(247, 244, 239, 0.02);
+  background: rgba(var(--fg-rgb), 0.02);
 }
 
 .admin-panel h3 {
@@ -2430,7 +2509,7 @@ textarea {
   color: var(--text-dim);
   margin-bottom: 0.2rem;
 }
-.admin-dl dd { font-size: 13px; color: rgba(247, 244, 239, 0.7); word-break: break-word; }
+.admin-dl dd { font-size: 13px; color: rgba(var(--fg-rgb), 0.7); word-break: break-word; }
 
 .admin-stats {
   display: grid;
@@ -2490,8 +2569,8 @@ textarea {
   gap: 1rem;
   align-items: baseline;
   font-size: 13px;
-  color: rgba(247, 244, 239, 0.75);
-  border-bottom: 1px solid rgba(247, 244, 239, 0.08);
+  color: rgba(var(--fg-rgb), 0.75);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.08);
   padding-bottom: 0.9rem;
 }
 .cart-line-price { color: var(--brass); white-space: nowrap; }
@@ -2521,7 +2600,7 @@ textarea {
   aspect-ratio: 4 / 3;
   overflow: hidden;
   margin-bottom: 1.5rem;
-  background: rgba(247, 244, 239, 0.04);
+  background: rgba(var(--fg-rgb), 0.04);
 }
 
 .download-card-image img {
@@ -2563,7 +2642,7 @@ textarea {
 
 .download-desc {
   font-size: 13px;
-  color: rgba(247, 244, 239, 0.5);
+  color: var(--text-muted);
   line-height: 1.7;
   margin-bottom: 1.2rem;
 }
@@ -2598,7 +2677,7 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  border-top: 1px solid rgba(247, 244, 239, 0.1);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.1);
   padding-top: 1.2rem;
 }
 
@@ -2620,7 +2699,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.7);
+  color: rgba(var(--fg-rgb), 0.7);
   border: 1px solid var(--line);
   padding: 0.6rem 1.1rem;
   transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
@@ -2709,7 +2788,7 @@ textarea {
 }
 
 .collection-empty-copy {
-  color: rgba(247, 244, 239, 0.7);
+  color: rgba(var(--fg-rgb), 0.7);
   font-size: 16px;
   line-height: 1.7;
   margin-bottom: 2rem;
@@ -2750,7 +2829,7 @@ textarea {
 
 .readiness-issues li {
   font-size: 12px;
-  color: var(--brass-light);
+  color: var(--brass);
   line-height: 1.5;
 }
 
@@ -2796,7 +2875,7 @@ textarea {
   aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
-  background: rgba(247, 244, 239, 0.04);
+  background: rgba(var(--fg-rgb), 0.04);
 }
 
 /* Connector health */
@@ -2817,7 +2896,7 @@ textarea {
 .connector-alert li {
   font-size: 13px;
   line-height: 1.7;
-  color: rgba(247, 244, 239, 0.75);
+  color: rgba(var(--fg-rgb), 0.75);
 }
 
 .connector-alert ul {
@@ -2870,14 +2949,14 @@ textarea {
 .connector-purpose {
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(247, 244, 239, 0.62);
+  color: rgba(var(--fg-rgb), 0.62);
 }
 
 .connector-blocker {
   margin-top: 0.9rem;
   font-size: 12px;
   line-height: 1.65;
-  color: var(--brass-light);
+  color: var(--brass);
 }
 
 .connector-keys {
@@ -2911,7 +2990,7 @@ textarea {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--line);
-  color: rgba(247, 244, 239, 0.8);
+  color: rgba(var(--fg-rgb), 0.8);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.14em;
@@ -2955,8 +3034,11 @@ textarea {
   background: radial-gradient(120% 90% at 65% 40%, #2a231c 0%, #14110e 55%, #0A0A0A 100%);
 }
 
-/* The globe replaces the pointer only over open scene area. */
-.residence-hero[data-cursor='globe'] { cursor: none; }
+/* The globe replaces the pointer across the whole document over open space.
+   The handler flips html[data-cursor] to 'native' the instant the pointer is
+   over a control, so the real cursor always returns where it is needed. */
+html[data-cursor='globe'],
+html[data-cursor='globe'] * { cursor: none !important; }
 
 .scene-bg { position: absolute; inset: 0; }
 
@@ -3035,11 +3117,11 @@ textarea {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: 1px solid rgba(247, 244, 239, 0.22);
+  border: 1px solid rgba(var(--fg-rgb), 0.22);
   background: rgba(10, 10, 10, 0.38);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: rgba(247, 244, 239, 0.7);
+  color: rgba(var(--fg-rgb), 0.7);
   cursor: pointer;
   transition: color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
@@ -3141,13 +3223,13 @@ textarea {
 .btn-residence-primary:hover { background: #fff; }
 
 .btn-residence-ghost {
-  border: 1px solid rgba(247, 244, 239, 0.55);
+  border: 1px solid rgba(var(--fg-rgb), 0.55);
   color: var(--bone);
 }
 
 .btn-residence-ghost:hover {
   border-color: var(--bone);
-  background: rgba(247, 244, 239, 0.08);
+  background: rgba(var(--fg-rgb), 0.08);
 }
 
 /* ── HOTSPOTS ─────────────────────────────────────────────────────── */
@@ -3180,7 +3262,7 @@ textarea {
   height: 11px;
   border-radius: 50%;
   background: var(--bone);
-  box-shadow: 0 0 0 1px rgba(247, 244, 239, 0.55), 0 0 0 7px rgba(247, 244, 239, 0.12);
+  box-shadow: 0 0 0 1px rgba(var(--fg-rgb), 0.55), 0 0 0 7px rgba(var(--fg-rgb), 0.12);
   transition: box-shadow 0.35s ease, transform 0.35s ease;
   flex: 0 0 auto;
 }
@@ -3188,7 +3270,7 @@ textarea {
 .hotspot:hover .hotspot-dot,
 .hotspot[data-open='true'] .hotspot-dot {
   transform: scale(1.15);
-  box-shadow: 0 0 0 1px var(--bone), 0 0 0 11px rgba(247, 244, 239, 0.16);
+  box-shadow: 0 0 0 1px var(--bone), 0 0 0 11px rgba(var(--fg-rgb), 0.16);
 }
 
 .hotspot-label {
@@ -3200,7 +3282,7 @@ textarea {
   background: rgba(10, 10, 10, 0.6);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(247, 244, 239, 0.14);
+  border: 1px solid rgba(var(--fg-rgb), 0.14);
   border-radius: 999px;
   padding: 0.42rem 0.85rem;
   opacity: 0;
@@ -3232,7 +3314,7 @@ textarea {
   background: rgba(10, 10, 10, 0.72);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(247, 244, 239, 0.14);
+  border: 1px solid rgba(var(--fg-rgb), 0.14);
   padding: 0.9rem;
 }
 
@@ -3261,7 +3343,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.12em;
   color: var(--ink);
-  background: rgba(247, 244, 239, 0.92);
+  background: rgba(var(--fg-rgb), 0.92);
   padding: 0.3rem 0.5rem;
   border-radius: 999px;
 }
@@ -3276,7 +3358,7 @@ textarea {
   place-items: center;
   border: none;
   border-radius: 50%;
-  background: rgba(247, 244, 239, 0.9);
+  background: rgba(var(--fg-rgb), 0.9);
   color: var(--ink);
   cursor: pointer;
 }
@@ -3323,6 +3405,7 @@ textarea {
 
 .hero-carousel-track li { flex: 0 0 62vw; scroll-snap-align: start; max-width: 240px; }
 .hero-carousel-track img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.hero-carousel-track .product-image { width: 100%; aspect-ratio: 4 / 5; display: block; }
 .hero-carousel-name { display: block; margin-top: 0.6rem; font-size: 13px; color: var(--bone); }
 .hero-carousel-price { display: block; font-size: 12px; color: var(--taupe); }
 
@@ -3332,9 +3415,13 @@ textarea {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 60;
+  z-index: 10000;
   pointer-events: none;
-  color: var(--bone);
+  /* White through a difference blend inverts against whatever is behind it —
+     dark over the cream body, bright over the cinematic scenes — so the globe
+     is legible on every ground without knowing which one it is over. */
+  color: #fff;
+  mix-blend-mode: difference;
   opacity: 0;
   transition: opacity 0.25s ease;
   will-change: transform;
@@ -3365,7 +3452,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.75);
+  color: rgba(var(--fg-rgb), 0.75);
   opacity: 0;
   transition: opacity 0.6s ease;
 }
@@ -3406,11 +3493,11 @@ textarea {
 .partner-disclosure p {
   font-size: 13px;
   line-height: 1.75;
-  color: rgba(247, 244, 239, 0.72);
+  color: rgba(var(--fg-rgb), 0.72);
 }
 
 .partner-disclosure strong { color: var(--bone); font-weight: 500; }
-.partner-disclosure-note { margin-top: 0.8rem; color: var(--brass-light) !important; }
+.partner-disclosure-note { margin-top: 0.8rem; color: var(--brass) !important; }
 
 .partner-group { margin-bottom: 4rem; }
 
@@ -3467,7 +3554,7 @@ textarea {
 .partner-note p {
   font-size: 14px;
   line-height: 1.75;
-  color: rgba(247, 244, 239, 0.68);
+  color: rgba(var(--fg-rgb), 0.68);
 }
 
 .partner-cta {
@@ -3483,7 +3570,7 @@ textarea {
   transition: background var(--dur-base) var(--ease);
 }
 
-.partner-cta:hover { background: #fff; }
+.partner-cta:hover { background: var(--brass); color: #fff; }
 
 /* Not yet approved: visibly inert, and not a link element at all. */
 .partner-cta[data-disabled='true'] {
@@ -3583,7 +3670,7 @@ textarea {
 .guestbook-body {
   font-size: 15px;
   line-height: 1.75;
-  color: rgba(247, 244, 239, 0.74);
+  color: rgba(var(--fg-rgb), 0.74);
   margin-bottom: 2rem;
 }
 
@@ -3602,8 +3689,8 @@ textarea {
   flex: 1 1 220px;
   min-height: 50px;
   padding: 0 1rem;
-  background: rgba(247, 244, 239, 0.06);
-  border: 1px solid rgba(247, 244, 239, 0.22);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.22);
   color: var(--bone);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -3697,12 +3784,12 @@ textarea {
 
 .floating-mark-inner svg {
   display: block;
-  filter: drop-shadow(0 0 6px rgba(247, 244, 239, 0));
+  filter: drop-shadow(0 0 6px rgba(var(--fg-rgb), 0));
   transition: filter 0.4s ease;
 }
 
 .floating-mark-inner[data-hover='true'] svg {
-  filter: drop-shadow(0 0 9px rgba(247, 244, 239, 0.35));
+  filter: drop-shadow(0 0 9px rgba(var(--fg-rgb), 0.35));
 }
 
 .floating-mark:focus-visible {
@@ -3790,6 +3877,18 @@ textarea {
   margin-bottom: 1.5rem;
 }
 
+/* When the browser card falls back to the plain product tile, keep the
+   product floating (contain, not cover) and let the scene show through. The
+   card already prints the name below, so the tile's own label is hidden, and
+   only the active card's stand-in shows so the stack does not overlap marks. */
+.browser-card-image.product-image { overflow: visible; }
+.browser-card-image .product-image-img { object-fit: contain; }
+.browser-card-image .product-image-label,
+.browser-fallback .product-image-label { display: none; }
+.browser-card:not([data-active='true']) .product-image-fallback { opacity: 0; }
+.browser-fallback .product-image { width: 100%; aspect-ratio: 4 / 5; }
+.browser-fallback .product-image-img { object-fit: cover; }
+
 .browser-card-name {
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 2.4vw, 2rem);
@@ -3801,7 +3900,7 @@ textarea {
 .browser-card-desc {
   margin-top: 0.6rem;
   font-size: 14px;
-  color: rgba(247, 244, 239, 0.66);
+  color: rgba(var(--fg-rgb), 0.66);
 }
 
 .browser-card-price {
@@ -3828,7 +3927,7 @@ textarea {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--bone);
-  border: 1px solid rgba(247, 244, 239, 0.35);
+  border: 1px solid rgba(var(--fg-rgb), 0.35);
   transition: border-color var(--dur-base) var(--ease);
 }
 
@@ -3916,7 +4015,7 @@ textarea {
   margin-top: 1.6rem;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(247, 244, 239, 0.25);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.25);
   padding: 0.4rem 0;
   color: var(--taupe);
   font-family: var(--font-sans);
@@ -3939,6 +4038,11 @@ textarea {
 .showroom-bg { position: absolute; inset: 0; overflow: hidden; }
 .showroom-bg img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* The per-category room. Remounted on category change, so it fades in over
+   the scrim as the visitor moves between environments. */
+.showroom-bg-scene { position: absolute; inset: 0; animation: fade-in 0.8s var(--ease) both; }
+@media (prefers-reduced-motion: reduce) { .showroom-bg-scene { animation: none; } }
+
 .showroom-bg-scrim {
   position: absolute;
   inset: 0;
@@ -3954,38 +4058,49 @@ textarea {
 
 .showroom-categories {
   display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.6rem;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding-bottom: 0.2rem;
   -webkit-overflow-scrolling: touch;
 }
 
 .showroom-categories button {
   flex: 0 0 auto;
   min-height: 40px;
-  padding: 0 1rem;
-  background: rgba(10, 10, 10, 0.5);
-  border: 1px solid var(--line);
-  color: rgba(247, 244, 239, 0.8);
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--fg-rgb), 0.18);
+  color: rgba(var(--fg-rgb), 0.82);
   font-family: var(--font-sans);
   font-size: 10px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
 
-.showroom-categories button[data-active='true'],
-.showroom-categories button:hover { border-color: var(--brass); color: var(--brass); }
+.showroom-categories button:hover { border-color: rgba(var(--fg-rgb), 0.4); color: var(--bone); }
+.showroom-categories button[data-active='true'] {
+  border-color: var(--brass);
+  color: #fff;
+  background: var(--brass);
+}
 
-.showroom-modes { display: flex; gap: 0.5rem; margin: 1.5rem 0 2rem; }
+@media (max-width: 767px) {
+  .showroom-categories { flex-wrap: nowrap; overflow-x: auto; }
+}
+
+.showroom-modes { display: flex; gap: 0.6rem; margin: 2rem 0 2.5rem; }
 
 .showroom-modes button {
   min-height: 42px;
   padding: 0 1.4rem;
   background: transparent;
   border: 1px solid var(--line);
-  color: rgba(247, 244, 239, 0.75);
+  color: rgba(var(--fg-rgb), 0.75);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.2em;
@@ -4028,6 +4143,8 @@ textarea {
   justify-content: center;
 }
 
+.stage-media .product-image { width: 100%; height: 42svh; }
+.stage-media .product-image-img { object-fit: contain; }
 .stage-media[data-rotatable='true'] { cursor: grab; touch-action: pan-y; }
 .stage-media[data-rotatable='true']:active { cursor: grabbing; }
 
@@ -4043,7 +4160,7 @@ textarea {
    keyed into the scene as though it were a real object in the room. */
 .stage-flat {
   padding: 0.7rem;
-  background: rgba(247, 244, 239, 0.94);
+  background: rgba(var(--fg-rgb), 0.94);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
 }
 
@@ -4082,7 +4199,7 @@ textarea {
   background: rgba(10, 10, 10, 0.62);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(247, 244, 239, 0.12);
+  border: 1px solid rgba(var(--fg-rgb), 0.12);
   padding: 2rem;
 }
 
@@ -4101,7 +4218,7 @@ textarea {
   line-height: 1.15;
 }
 
-.showroom-desc { margin-top: 0.7rem; font-size: 14px; line-height: 1.7; color: rgba(247, 244, 239, 0.68); }
+.showroom-desc { margin-top: 0.7rem; font-size: 14px; line-height: 1.7; color: rgba(var(--fg-rgb), 0.68); }
 .showroom-price { margin-top: 1rem; font-size: 16px; color: var(--bone); }
 
 .showroom-actions { margin-top: 1.6rem; display: flex; flex-direction: column; gap: 0.6rem; }
@@ -4111,7 +4228,7 @@ textarea {
   text-align: center;
   min-height: 46px;
   line-height: 46px;
-  border: 1px solid rgba(247, 244, 239, 0.35);
+  border: 1px solid rgba(var(--fg-rgb), 0.35);
   color: var(--bone);
   font-size: 10px;
   letter-spacing: 0.2em;
@@ -4127,7 +4244,7 @@ textarea {
   min-height: 46px;
   background: transparent;
   border: 1px solid var(--line);
-  color: rgba(247, 244, 239, 0.8);
+  color: rgba(var(--fg-rgb), 0.8);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.2em;
@@ -4185,7 +4302,7 @@ textarea {
 
 .showroom-card {
   background: rgba(10, 10, 10, 0.55);
-  border: 1px solid rgba(247, 244, 239, 0.1);
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
   padding: 0.9rem;
 }
 
@@ -4194,7 +4311,7 @@ textarea {
   width: 100%;
   padding: 0;
   border: none;
-  background: rgba(247, 244, 239, 0.05);
+  background: rgba(var(--fg-rgb), 0.05);
   cursor: pointer;
   aspect-ratio: 1 / 1;
   overflow: hidden;
@@ -4209,8 +4326,8 @@ textarea {
   aspect-ratio: 1 / 1;
   background: repeating-linear-gradient(
     45deg,
-    rgba(247, 244, 239, 0.04),
-    rgba(247, 244, 239, 0.04) 8px,
+    rgba(var(--fg-rgb), 0.04),
+    rgba(var(--fg-rgb), 0.04) 8px,
     transparent 8px,
     transparent 16px
   );
@@ -4283,7 +4400,7 @@ textarea {
   min-height: 40px;
   background: transparent;
   border: 1px solid var(--line);
-  color: rgba(247, 244, 239, 0.75);
+  color: rgba(var(--fg-rgb), 0.75);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.18em;
@@ -4415,7 +4532,7 @@ textarea {
 /* ── ADMIN · PRODUCTS ─────────────────────────────────────────────── */
 .admin-store {
   font-size: 12px;
-  color: rgba(247, 244, 239, 0.6);
+  color: var(--text-muted);
   border: 1px solid var(--line);
   padding: 0.7rem 1rem;
   margin-bottom: 1.5rem;
@@ -4427,7 +4544,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.6);
+  color: var(--text-muted);
   border: 1px solid var(--line);
   padding: 0.5rem 0.85rem;
   display: inline-flex;
@@ -4441,7 +4558,7 @@ textarea {
 .admin-products td { vertical-align: middle; }
 .admin-products tbody tr { cursor: default; }
 .admin-thumb { width: 40px; height: 40px; object-fit: cover; display: block; background: #111; }
-.admin-thumb.empty { display: block; border: 1px dashed rgba(247, 244, 239, 0.25); }
+.admin-thumb.empty { display: block; border: 1px dashed rgba(var(--fg-rgb), 0.25); }
 .admin-thumb.big { width: 100%; height: 120px; }
 .admin-inline {
   background: transparent;
@@ -4453,7 +4570,7 @@ textarea {
   width: 100%;
   min-width: 90px;
 }
-.admin-inline:hover, .admin-inline:focus { border-color: rgba(169, 137, 90, 0.5); outline: none; background: rgba(10, 10, 10, 0.5); }
+.admin-inline:hover, .admin-inline:focus { border-color: rgba(169, 137, 90, 0.5); outline: none; background: rgba(var(--fg-rgb), 0.05); }
 .admin-inline.num { text-align: right; width: 80px; min-width: 0; }
 .admin-inline option { background: #1c1a17; }
 .admin-inline.status-published { color: #9fc79a; }
@@ -4471,9 +4588,9 @@ textarea {
 .admin-images { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; }
 .admin-images figure { margin: 0; display: grid; gap: 0.4rem; }
 .admin-images img { width: 100%; height: 120px; object-fit: contain; background: #111; }
-.admin-images figcaption { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(247, 244, 239, 0.5); }
+.admin-images figcaption { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
 .checker { background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; background-color: #333; }
-.admin-file { font-size: 11px; color: rgba(247, 244, 239, 0.6); display: grid; gap: 0.3rem; }
+.admin-file { font-size: 11px; color: var(--text-muted); display: grid; gap: 0.3rem; }
 .admin-file input { font-size: 11px; }
 .admin-gallery { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
 .admin-gallery-item { position: relative; width: 56px; height: 56px; }
@@ -4495,7 +4612,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.7);
+  color: rgba(var(--fg-rgb), 0.7);
   border: 1px solid var(--line);
   padding: 0.6rem 1rem;
   background: rgba(10, 10, 10, 0.5);
@@ -4508,6 +4625,7 @@ textarea {
 .related-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
 .related-grid a { display: grid; gap: 0.5rem; color: var(--bone); }
 .related-grid img, .related-empty { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: #111; }
+.related-grid .product-image { width: 100%; aspect-ratio: 4 / 5; }
 .related-name { font-size: 14px; }
 .related-price { font-size: 12px; color: var(--taupe); }
 
@@ -4553,6 +4671,10 @@ textarea {
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%);
   filter: blur(10px);
 }
+
+/* The reel image is now a wrapper; the product fills it and stays contained. */
+.reel-image .product-image { width: 100%; height: 100%; }
+.reel-image .product-image-img { object-fit: contain; }
 
 @media (prefers-reduced-motion: reduce) {
   .reel-image { transition: opacity 0.3s ease; transform: none !important; }
@@ -4672,6 +4794,46 @@ textarea {
   box-shadow: 0 10px 30px -12px rgba(169, 137, 90, 0.6);
 }
 
+/* A single premium touch on the primary calls to action: a soft light sweep
+   crosses the button on hover. Pseudo-element only, so it never intercepts a
+   click, and it is switched off under reduced motion below. */
+.btn-primary,
+.btn-residence-primary,
+.add-to-cart-btn,
+.partner-cta:not([data-disabled='true']) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-primary::after,
+.btn-residence-primary::after,
+.add-to-cart-btn::after,
+.partner-cta:not([data-disabled='true'])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 0.65s var(--ease);
+}
+
+.btn-primary:hover::after,
+.btn-residence-primary:hover::after,
+.add-to-cart-btn:hover:not(:disabled)::after,
+.partner-cta:not([data-disabled='true']):hover::after {
+  transform: translateX(130%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::after,
+  .btn-residence-primary::after,
+  .add-to-cart-btn::after,
+  .partner-cta::after { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .browser-scene img { animation: none; transform: none; }
   .triptych-col img { height: 100%; margin-top: 0; }
@@ -4761,7 +4923,7 @@ body { counter-reset: track-counter; }
   font-weight: 300;
   line-height: 0.8;
   letter-spacing: -0.06em;
-  color: rgba(247, 244, 239, 0.03);
+  color: rgba(var(--fg-rgb), 0.03);
   pointer-events: none;
   user-select: none;
 }
@@ -4840,3 +5002,173 @@ body { counter-reset: track-counter; }
   line-height: 1.5;
   color: #E0A090;
 }
+
+/* ── FRAMER-STYLE MOTION LAYERS ──────────────────────────────────────
+   A scroll-progress hairline, an editorial marquee band, and the magnetic
+   pull applied to primary calls to action. Premium personality throughout:
+   the signature decelerate ease, no bounce. All transform/opacity, and each
+   stands down under reduced motion at the end of the block. */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 200;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--brass), var(--brass-light));
+  will-change: transform;
+  pointer-events: none;
+}
+
+.marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 1.5rem 0;
+  background: var(--ink);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee-inner {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-inner { animation-play-state: paused; }
+
+.marquee-track {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.4rem;
+  padding: 0 1.2rem;
+  font-family: var(--font-display);
+  font-weight: 350;
+  font-size: clamp(1.4rem, 3vw, 2.4rem);
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  white-space: nowrap;
+}
+
+.marquee-item::after {
+  content: '';
+  width: 2.4rem;
+}
+
+.marquee-dot { color: var(--brass); font-size: 0.55em; }
+
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Magnetic CTAs: the pointer handler writes --mx/--my (never transform
+   itself), so the pull composes with the press scale instead of fighting it. */
+[data-magnetic] {
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+  transition: transform 0.4s var(--ease-out);
+}
+[data-magnetic]:active {
+  transform: translate(var(--mx, 0px), var(--my, 0px)) scale(0.98);
+  transition: transform 0.12s var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-inner { animation: none; }
+  .scroll-progress { display: none; }
+  [data-magnetic] { transition: none; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  [data-magnetic] { transform: none !important; }
+}
+
+/* ── PRODUCT IMAGE + BRANDED FALLBACK ────────────────────────────────
+   A product image never renders as a broken box. When no photograph is
+   present or a remote one fails, a composed tile stands in: the object's own
+   material colour veiled toward the page ground, a hairline frame, the
+   monogram, and the name set in the display face. A real photo covers it. */
+.product-image {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.product-image-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1.4rem;
+  text-align: center;
+  /* Lean the swatch toward the light ground so the mark and name stay legible
+     whatever the material colour is. */
+  background:
+    radial-gradient(120% 90% at 30% 20%, color-mix(in srgb, var(--swatch, #e8e1d4) 45%, #faf7f1), transparent 70%),
+    color-mix(in srgb, var(--swatch, #e8e1d4) 55%, #f4f0e7);
+  box-shadow: inset 0 0 0 1px rgba(27, 24, 21, 0.08);
+  color: rgba(27, 24, 21, 0.7);
+}
+
+/* Frameless, transparent fallback for products that float over a scene. */
+.product-image-fallback--plain {
+  background: none;
+  box-shadow: none;
+  color: var(--bone);
+}
+.product-image-fallback--plain .product-image-label { color: var(--bone); }
+.product-image-fallback--plain .product-image-mark { color: var(--bone); opacity: 0.6; }
+
+.product-image-mark { color: rgba(27, 24, 21, 0.5); flex: 0 0 auto; }
+
+.product-image-label {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: rgba(27, 24, 21, 0.72);
+  text-wrap: balance;
+  max-width: 22ch;
+}
+
+.product-image-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* Kept in the DOM so it still loads and fires onLoad/onError, but fully
+   transparent — a broken or still-loading image never shows its alt text. */
+.product-image-img[data-hidden='true'] { opacity: 0; }
+
+/* The same tile, dropped behind the depth layers. */
+.depth-fallback {
+  z-index: 0;
+  border-radius: inherit;
+}
+.depth-layer[data-hidden='true'] { opacity: 0; }

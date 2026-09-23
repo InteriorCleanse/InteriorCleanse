@@ -24,6 +24,9 @@ import { GuestBookModal } from '@/components/GuestBookModal'
 import { GSAPAnimations } from '@/components/GSAPAnimations'
 import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
+import { GlobeCursorGlobal } from '@/components/cursor/GlobeCursorGlobal'
+import { ScrollProgress } from '@/components/motion/ScrollProgress'
+import { MagneticButtons } from '@/components/motion/MagneticButtons'
 import { CartDrawer, CartProvider } from '@/components/cart'
 import { OrganizationLd, WebSiteLd } from '@/components/StructuredData'
 import { BRAND_NAME, PLAUSIBLE_DOMAIN, SITE } from '@/lib/site-config'
@@ -55,7 +58,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
-      { url: '/brand/flowing-c-dark.svg', type: 'image/svg+xml' },
+      { url: '/brand/monogram.svg', type: 'image/svg+xml' },
     ],
     apple: [{ url: '/images/apple-touch-icon.png', sizes: '180x180' }],
   },
@@ -76,6 +79,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <GuestBookModal />
           <Header />
           <CartDrawer />
+          <ScrollProgress />
+          <GlobeCursorGlobal />
+          <MagneticButtons />
           <PageTransition>
             <SmoothScroll>
               <main id="main">{children}</main>

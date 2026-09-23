@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { ProductImage } from '@/components/product/ProductImage'
 import { SIZE_PRESENTATION, type ShowroomProduct } from '@/lib/showroom'
 
 /**
@@ -91,17 +92,16 @@ export function StageProduct({
         onPointerCancel={onPointerUp}
         data-rotatable={hasTurntable && rotating ? 'true' : undefined}
       >
-        {media ? (
-          <img src={media} alt={product.name} draggable={false} />
-        ) : product.productImage ? (
-          // No cut-out exists, so this is presented honestly as a framed image
-          // standing on the plinth — never keyed onto the scene as if it were.
-          <figure className="stage-flat">
-            <img src={product.productImage} alt={product.name} draggable={false} />
-          </figure>
-        ) : (
-          <p className="stage-nomedia">No product image yet.</p>
-        )}
+        {/* Descending fidelity: a rotation frame or cut-out floats on the
+            plinth; otherwise the flat catalogue image; otherwise the branded
+            stand-in. Never a broken box — the product is real, the photograph
+            is simply pending. */}
+        <ProductImage
+          src={media ?? product.productImage}
+          alt=""
+          label={product.name}
+          variant="plain"
+        />
       </div>
 
       <span

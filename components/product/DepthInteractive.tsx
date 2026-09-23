@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Monogram } from '@/components/brand/Monogram'
 import type { CategoryExperience } from '@/lib/category-experience'
 import type { DepthLayer } from '@/lib/types'
 
@@ -11,6 +12,9 @@ interface DepthInteractiveProps {
   /** Eager-load the first few cards in a grid; lazy-load the rest. */
   eager?: boolean
   className?: string
+  /** Drives the branded fallback tile shown when no image is present or loads. */
+  materialColor?: string
+  label?: string
 }
 
 /**
@@ -30,11 +34,18 @@ export function DepthInteractive({
   experience,
   eager = false,
   className = '',
+  materialColor = '#E8E1D4',
+  label,
 }: DepthInteractiveProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<number | null>(null)
   /** Set once we know motion is unwanted — reduced-motion or a coarse pointer. */
   const staticRef = useRef(false)
+  /** Layer indices whose image failed to load, so they can step aside for the
+      branded fallback rather than showing a broken-image glyph. */
+  const [failed, setFailed] = useState<Record<number, boolean>>({})
+  const [loaded, setLoaded] = useState<Record<number, boolean>>({})
+  const drawable = layers.filter((l) => l.src)
 
   const reset = useCallback(() => {
     const el = rootRef.current
@@ -97,7 +108,17 @@ export function DepthInteractive({
       }
     >
       <div className="depth-stage-inner">
-        {layers.map((layer, i) => (
+        {/* Always present, behind every layer: if no image is set or they all
+            fail, this composed tile is what shows instead of a broken box. */}
+        <span
+          className="product-image-fallback depth-fallback"
+          aria-hidden={drawable.length ? 'true' : undefined}
+          style={{ ['--swatch' as string]: materialColor }}
+        >
+          <Monogram size={30} className="product-image-mark" />
+          <span className="product-image-label">{label ?? alt}</span>
+        </span>
+        {drawable.map((layer, i) => (
           <img
             key={layer.src + i}
             src={layer.src}
@@ -107,6 +128,9 @@ export function DepthInteractive({
             aria-hidden={i === 0 ? undefined : true}
             loading={eager ? 'eager' : 'lazy'}
             className="depth-layer"
+            data-hidden={failed[i] || !loaded[i] ? 'true' : undefined}
+            onLoad={() => setLoaded((l) => (l[i] ? l : { ...l, [i]: true }))}
+            onError={() => setFailed((f) => (f[i] ? f : { ...f, [i]: true }))}
             style={{ '--depth': layer.depth } as React.CSSProperties}
           />
         ))}

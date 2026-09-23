@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { AddToCartButton } from '@/components/cart'
+import { ProductImage } from '@/components/product/ProductImage'
 import { isInternalCheckout, purchaseLabel } from '@/lib/category-experience'
 import { resolveRenderMode } from '@/lib/category-experience'
 import type { Product } from '@/lib/types'
@@ -56,7 +57,14 @@ export function FeaturedCard({ product }: { product: Product }) {
         </button>
 
         <Link href={`/shop/${product.slug}/`}>
-          <img src={product.heroImage} alt={product.name} loading="lazy" decoding="async" />
+          <ProductImage
+            src={product.heroImage}
+            /* The product name is the very next element as a link, so the image
+               itself is decorative here — an alt would just repeat it. */
+            alt=""
+            label={product.name}
+            materialColor={product.materialColor}
+          />
         </Link>
       </div>
 

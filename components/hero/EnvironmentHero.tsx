@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useMemo, useRef } from 'react'
-import { GlobeCursor } from '@/components/cursor/GlobeCursor'
 import type { Scene } from '@/lib/scenes'
 import type { Product } from '@/lib/types'
 import { AmbientToggle } from './AmbientToggle'
@@ -10,6 +9,7 @@ import { FeaturedCard } from './FeaturedCard'
 import { Hotspots } from './Hotspots'
 import { RealismLayer } from './RealismLayer'
 import { SceneBackground } from './SceneBackground'
+import { ProductImage } from '@/components/product/ProductImage'
 import { useParallax } from './useParallax'
 
 interface EnvironmentHeroProps {
@@ -50,7 +50,6 @@ export function EnvironmentHero({
   height = 'full',
   featured,
   carousel = [],
-  cursor = false,
   id,
   headingLevel = 'h1',
 }: EnvironmentHeroProps) {
@@ -127,8 +126,6 @@ export function EnvironmentHero({
         {scene.ambientSound ? (
           <AmbientToggle kind={scene.ambientSound} sceneRef={stageRef} />
         ) : null}
-
-        {cursor ? <GlobeCursor targetRef={stageRef} /> : null}
       </section>
 
       {carousel.length > 0 ? (
@@ -138,7 +135,7 @@ export function EnvironmentHero({
             {carousel.map((p) => (
               <li key={p.slug}>
                 <Link href={`/shop/${p.slug}/`}>
-                  <img src={p.heroImage} alt="" loading="lazy" decoding="async" />
+                  <ProductImage src={p.heroImage} alt="" label={p.name} materialColor={p.materialColor} />
                   <span className="hero-carousel-name">{p.name}</span>
                   <span className="hero-carousel-price">${p.price}</span>
                 </Link>

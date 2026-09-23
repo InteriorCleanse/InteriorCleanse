@@ -46,7 +46,7 @@ export default function Spirit() {
               >
                 Books for a life
                 <br />
-                <em style={{ fontStyle: 'italic', color: '#D4AF6A' }}>rooted in faith.</em>
+                <em style={{ fontStyle: 'italic', color: 'var(--brass)' }}>rooted in faith.</em>
               </h1>
               <p className="page-hero-sub">
                 Bibles, devotionals, and coloring books chosen to be used — kept on the
