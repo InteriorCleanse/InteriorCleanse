@@ -656,3 +656,23 @@ button.btn:hover:not(:disabled), a.btn:hover { box-shadow:0 10px 28px -8px rgba(
 .dk-acct-v { font:700 20px/1.2 ui-monospace,monospace; font-variant-numeric:tabular-nums; color:var(--text); }
 .dk-acct.off .dk-acct-v { color:var(--dim); font-size:14px; }
 .dk-acct-empty { font-size:12.5px; margin:0; }
+
+/* Planner: your own trades — size, stop, targets, option contracts, strike comparison. */
+.pl-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; align-items:end; }
+.pl-grid label, .pl-strike label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--dim); }
+.pl-grid input, .pl-grid select, .pl-strike input { width:100%; }
+.pl-check { flex-direction:row !important; align-items:center; gap:8px !important; }
+.pl-check input { width:auto; }
+.pl-strikes { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:10px; }
+.pl-strike { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.pl-out { margin-top:12px; }
+.pl-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
+.pl-kpis div { border:1px solid var(--edge); border-radius:12px; padding:9px 11px; background:rgba(0,0,0,.18); display:flex; flex-direction:column; gap:2px; }
+.pl-kpis span { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
+.pl-kpis b { font:700 20px/1.2 ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+.pl-line { font-size:13px; margin:10px 0 4px; }
+.pl-warn { margin:8px 0; padding-left:18px; color:var(--amber); font-size:12.5px; }
+.pl-err { color:var(--red); font-size:13px; margin:4px 0; }
+.pl-note { font-size:12px; margin:8px 0 0; }
+.pl-foot { font-size:12px; text-align:center; margin:4px 0 18px; }
+.pl-table tr.pl-best td { background:color-mix(in srgb, var(--brand) 9%, transparent); }

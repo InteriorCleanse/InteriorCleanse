@@ -112,6 +112,14 @@
     <div id="tv-out"></div>
   </section>
 
+  <section id="tab-planner" class="hidden">
+    <div class="card">
+      <h2>Trade planner</h2>
+      <p class="plain" style="margin-top:0">Work out your stop, size and targets <b>before</b> you place a trade in TradingView or your broker's app — and compare the option strikes you are looking at. This page only does the maths. It sends nothing and places nothing.</p>
+    </div>
+    <div id="planner-out"></div>
+  </section>
+
   <section id="tab-test" class="hidden">
     <div class="row"><button class="btn" id="btn-raw">Test on past prices</button><button class="btn ghost" id="btn-mem">Test with memory</button><button class="btn ghost" id="btn-backtest">Backtest (out-of-sample)</button><span class="muted" id="test-status"></span></div>
     <div id="test-out"><div class="plain">Replays the last <span id="lb-days">30</span> days of real candles and takes every setup that passes the full checklist, scoring each one in R. Nothing is tuned, nothing is cherry-picked, and a candle that hits both stop and target counts as a loss.</div></div>
@@ -266,10 +274,10 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','journal','ask']
 const GROUPS = [
-  ['Markets', 'what price is doing right now', ['flow','news','intel','tv']],
+  ['Markets', 'what price is doing right now, and planning your own trades', ['planner','flow','news','intel','tv']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
   ['Learn', 'the school, the lab, what it remembers, and what it is observing now', ['school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
@@ -1328,6 +1336,7 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/replay.js"></script>
 <script type="module" src="/js/desk.js"></script>
 <script type="module" src="/js/accounts.js"></script>
+<script type="module" src="/js/planner.js"></script>
 <script type="module" src="/js/evidence.js"></script>
 <script type="module" src="/js/school.js"></script>
 <script type="module" src="/js/research.js"></script>
