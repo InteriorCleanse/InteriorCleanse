@@ -1,0 +1,132 @@
+name: Land environment assets
+
+# Fetches the generated posters and clips recorded in content/poster-sources.json,
+# turns the clips into seamless loops, commits the results to the branch it was
+# run on, and measures text-over-image contrast against the real photographs.
+#
+# Runs on GitHub's machines because the CDN the assets sit on is not reachable
+# from every network, and because ffmpeg with motion interpolation on nine
+# clips is a coffee-break job nobody should have to babysit locally.
+#
+# Trigger it from the Actions tab (Run workflow) or from the API. Re-running it
+# after regenerating an asset is the intended way to replace one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      clips:
+        description: Process the raw clips into loops (slow — about 20 minutes)
+        type: boolean
+        default: true
+      contrast:
+        description: Build the site and run the contrast check afterwards
+        type: boolean
+        default: true
+
+concurrency:
+  group: land-assets-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  land:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The push below needs the real branch, not a detached head.
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install ffmpeg
+        if: ${{ inputs.clips }}
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && ffmpeg -version | head -1
+
+      - name: Fetch posters and raw clips
+        run: npm run posters:fetch
+
+      - name: Loop and grade the clips
+        if: ${{ inputs.clips }}
+        run: |
+          ls -la raw-clips/ || { echo "no raw clips fetched"; exit 0; }
+          npm run clips:loop -- raw-clips/*.mp4 --auto
+
+      - name: What landed
+        run: |
+          echo "## Posters" && ls -la public/images/*poster*.png 2>/dev/null || echo "(none)"
+          echo "## Clips" && ls -la public/video/ 2>/dev/null || echo "(none)"
+          du -sh public/images public/video 2>/dev/null || true
+
+      - name: Commit and push
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Posters are JPEG now; any PNG poster from an earlier run is stale.
+          git rm -q --ignore-unmatch public/images/*-poster.png
+          git add -A public/images public/video
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "assets: environment posters and clips"
+            echo
+            echo "Fetched from the sources recorded in content/poster-sources.json and, for"
+            echo "the clips, processed by scripts/loop-clips.mjs: slowed to 70% with motion"
+            echo "interpolation, graded, looped, with every poster re-cut from frame 0 of its"
+            echo "finished loop so the poster-to-video swap cannot pop."
+            echo
+            echo "Landed by the 'Land environment assets' workflow, run ${{ github.run_id }}."
+          } > .commit-msg
+          git commit -F .commit-msg
+          rm -f .commit-msg
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      # ── Measure, now that there are photographs to measure against ─────
+      - name: Install Chromium for the contrast check
+        if: ${{ inputs.contrast }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        if: ${{ inputs.contrast }}
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://interiorcleanse.com
+
+      - name: Contrast check against the real posters
+        if: ${{ inputs.contrast }}
+        run: |
+          npm run start > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/ && break; sleep 1; done
+          set +e
+          npm run check:contrast | tee contrast-report.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "contrast exit code: $code (1 = a surface fell below 3:1 and needs a heavier scrim)"
+          {
+            echo "## Text-over-image contrast"
+            echo '```'
+            cat contrast-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && inputs.contrast }}
+        with:
+          name: contrast-report
+          path: |
+            contrast-report.txt
+            server.log
+          if-no-files-found: ignore

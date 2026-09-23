@@ -196,7 +196,9 @@ export const PENDING_LINK = 'PENDING_APPROVAL'
 export function validateForPublish(p: CatalogProduct): ValidationIssue[] {
   const issues: ValidationIssue[] = []
   if (!p.images.hero) issues.push({ field: 'images.hero', message: 'Needs a hero image.' })
-  if (!(p.price > 0)) issues.push({ field: 'price', message: 'Price must be greater than 0.' })
+  // A free download is a real product with a real link; everything else must be priced.
+  const freeDownload = p.purchaseType === 'gumroad' && p.fulfillment === 'digital' && p.price === 0
+  if (!(p.price > 0) && !freeDownload) issues.push({ field: 'price', message: 'Price must be greater than 0.' })
   if (!p.category) issues.push({ field: 'category', message: 'Needs a category.' })
   if (!p.environment) issues.push({ field: 'environment', message: 'Needs an environment.' })
   if (p.purchaseType === 'stripe' && !p.stripePriceId) {

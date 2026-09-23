@@ -13,3 +13,10 @@ raw-clips/
 # Packaged copy of trading-bot/ (Mr. Cash) for download; duplicates tracked source
 paper-trading-bot.zip
 mr-cash.zip
+
+# Python bytecode from vendored skills
+__pycache__/
+*.pyc
+
+# Graphify knowledge graph output (regenerate with: graphify .)
+graphify-out/

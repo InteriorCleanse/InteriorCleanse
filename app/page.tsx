@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ScrollGalleryLoader } from '@/components/3d/SceneLoaders'
 import { ResidenceHero } from '@/components/hero/ResidenceHero'
@@ -8,6 +9,11 @@ import { StaticMark } from '@/components/StaticMark'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
+
+// `trailingSlash: true` means the canonical form of every URL carries one.
+// Each page declares its own; a site-wide canonical of '/' told search engines
+// every page was a copy of the homepage.
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 const TRUST: { text: string }[] = [
   { text: 'Secure checkout via Amazon & TikTok Shop' },
@@ -50,7 +56,11 @@ export default function Home() {
 
       {/* SWIPE BROWSER — one product at a time over the scene. Every product
           here is also in the plain grid at /shop, never trapped in this UI. */}
-      <ProductBrowser products={allProducts} label="Browse the edit" />
+      <ProductBrowser
+        products={allProducts}
+        label="Browse the edit"
+        backdrop={getScene('showroom')?.posterImage ?? null}
+      />
 
       {/* 3D SCROLL GALLERY */}
       <ScrollGalleryLoader products={featured} />
@@ -87,6 +97,7 @@ export default function Home() {
                 For the mind — the library
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Books that change
               <br />
@@ -123,6 +134,7 @@ export default function Home() {
                 For the home — the edit
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Cleaning and
               <br />
@@ -159,6 +171,7 @@ export default function Home() {
                 For the body — the ritual
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Objects made
               <br />
@@ -195,6 +208,7 @@ export default function Home() {
                 For the spirit — the faith library
               </span>
             </div>
+            <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Books for a
               <br />

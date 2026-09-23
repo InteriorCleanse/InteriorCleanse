@@ -10,8 +10,20 @@
   --brass: #A9895A;
   --brass-light: #C4A96E;
   --sage: #5B6357;
-  --taupe: #8C8479;
+  --taupe: #9A9286;
   --line: rgba(169, 137, 90, 0.2);
+  /* Secondary text. Measured against every dark ground on the site:
+     --text-dim clears 4.5:1 for labels and metadata, --text-muted clears
+     7:1 for running text. Do not go dimmer than these for anything read. */
+  --text-dim: rgba(247, 244, 239, 0.52);
+  --text-muted: rgba(247, 244, 239, 0.64);
+  /* Motion. One signature curve and three durations; hover and state
+     feedback use --dur-base, entrances --dur-slow, presses --dur-quick. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-quick: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 480ms;
   /* Set by next/font in app/layout.tsx — self-hosted, preloaded, no
      render-blocking third-party request. */
   --font-display: var(--font-fraunces), Georgia, serif;
@@ -192,7 +204,7 @@ textarea {
   width: 40px;
   height: 40px;
   color: rgba(247, 244, 239, 0.8);
-  transition: color 0.25s;
+  transition: color var(--dur-base) var(--ease);
 }
 
 .header-icon-btn:hover,
@@ -207,6 +219,7 @@ textarea {
   letter-spacing: 0.18em;
   color: var(--bone);
   white-space: nowrap;
+  padding: 0.4rem 0;
 }
 
 .wordmark em {
@@ -228,7 +241,8 @@ textarea {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(247, 244, 239, 0.92);
-  transition: color 0.25s;
+  padding: 0.5rem 0.15rem;
+  transition: color var(--dur-base) var(--ease);
   white-space: nowrap;
 }
 
@@ -238,12 +252,12 @@ textarea {
 }
 
 .nav-cta {
-  font-size: 9px !important;
+  font-size: 10px !important;
   letter-spacing: 0.2em !important;
   border: 1px solid rgba(169, 137, 90, 0.5) !important;
   padding: 0.6rem 1.2rem;
   color: var(--brass) !important;
-  transition: background 0.3s, color 0.3s !important;
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease) !important;
 }
 
 .nav-cta:hover {
@@ -348,7 +362,7 @@ textarea {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-weight: 600;
-  transition: background 0.3s, transform 0.2s;
+  transition: background var(--dur-base) var(--ease), transform var(--dur-base) var(--ease);
 }
 
 .btn-primary:hover {
@@ -366,7 +380,7 @@ textarea {
   font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  transition: border-color 0.3s, color 0.3s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .btn-ghost:hover {
@@ -382,10 +396,10 @@ textarea {
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.35);
+  color: var(--text-dim);
 }
 
 .scroll-line {
@@ -446,7 +460,7 @@ textarea {
 }
 
 .trust-text {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: rgba(247, 244, 239, 0.5);
@@ -528,8 +542,8 @@ textarea {
   text-transform: uppercase;
   color: var(--bone);
   border-bottom: 1px solid rgba(247, 244, 239, 0.25);
-  padding-bottom: 0.4rem;
-  transition: border-color 0.3s, color 0.3s, gap 0.3s;
+  padding: 0.4rem 0;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease), gap var(--dur-base) var(--ease);
 }
 
 .track-cta:hover {
@@ -588,7 +602,7 @@ textarea {
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(169, 137, 90, 0.6);
@@ -616,7 +630,7 @@ textarea {
   align-items: center;
   justify-content: center;
   color: rgba(169, 137, 90, 0.5);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -800,7 +814,7 @@ textarea {
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .spin-controls button:hover {
@@ -809,7 +823,7 @@ textarea {
 }
 
 .spin-hint {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--taupe);
@@ -821,7 +835,7 @@ textarea {
   left: 1rem;
   background: var(--brass);
   color: var(--black);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 600;
@@ -833,10 +847,10 @@ textarea {
 }
 
 .product-card-category {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.4);
+  color: var(--text-dim);
   margin-bottom: 0.5rem;
 }
 
@@ -855,7 +869,7 @@ textarea {
 
 .product-card-tagline {
   font-size: 13px;
-  color: rgba(247, 244, 239, 0.45);
+  color: var(--text-muted);
   margin-bottom: 1rem;
 }
 
@@ -915,8 +929,8 @@ textarea {
 }
 
 .book-card-hook {
-  font-size: 12px;
-  color: rgba(247, 244, 239, 0.45);
+  font-size: 13px;
+  color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 1.2rem;
 }
@@ -928,13 +942,13 @@ textarea {
 }
 
 .book-buy-btn {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   padding: 0.6rem 1rem;
   border: 1px solid rgba(247, 244, 239, 0.2);
   color: rgba(247, 244, 239, 0.7);
-  transition: border-color 0.3s, color 0.3s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .book-buy-btn:hover {
@@ -996,7 +1010,7 @@ textarea {
 }
 
 .manifesto-attribution {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: rgba(169, 137, 90, 0.6);
@@ -1069,13 +1083,13 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.8rem;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--brass);
   border-bottom: 1px solid var(--brass);
-  padding-bottom: 0.4rem;
-  transition: gap 0.3s;
+  padding: 0.4rem 0;
+  transition: gap var(--dur-base) var(--ease);
 }
 
 .gallery-explore-btn:hover {
@@ -1084,27 +1098,40 @@ textarea {
 
 .gallery-dots {
   position: absolute;
-  right: 2rem;
+  right: 1.4rem;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.2rem;
   z-index: 20;
 }
 
 .gallery-dot {
+  /* 24px pointer target (WCAG 2.2 target size); the visible dot is 5px. */
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.gallery-dot::before {
+  content: '';
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: rgba(247, 244, 239, 0.2);
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.3s;
+  transition: background var(--dur-base) var(--ease), transform var(--dur-base) var(--ease);
 }
 
-.gallery-dot.active {
+.gallery-dot:hover::before {
+  background: rgba(247, 244, 239, 0.5);
+}
+
+.gallery-dot.active::before {
   background: var(--brass);
   transform: scale(1.5);
 }
@@ -1146,14 +1173,14 @@ textarea {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  color: rgba(247, 244, 239, 0.35);
+  color: var(--text-dim);
   font-size: 20px;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.25s;
+  transition: color var(--dur-base) var(--ease);
 }
 
 .popup-close:hover {
@@ -1202,7 +1229,7 @@ textarea {
   letter-spacing: 0.1em;
   outline: none;
   margin-bottom: 0.8rem;
-  transition: border-color 0.3s;
+  transition: border-color var(--dur-base) var(--ease);
 }
 
 .popup-input:focus {
@@ -1224,7 +1251,7 @@ textarea {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 600;
-  transition: background 0.3s;
+  transition: background var(--dur-base) var(--ease);
   cursor: pointer;
   border: none;
 }
@@ -1297,10 +1324,10 @@ textarea {
   gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.4);
+  color: var(--text-dim);
   margin-bottom: 1rem;
 }
 
@@ -1348,9 +1375,9 @@ textarea {
 }
 
 .product-currency {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.15em;
-  color: rgba(247, 244, 239, 0.4);
+  color: var(--text-dim);
   text-transform: uppercase;
 }
 
@@ -1366,7 +1393,7 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background 0.3s;
+  transition: background var(--dur-base) var(--ease);
   border: none;
   cursor: pointer;
 }
@@ -1387,12 +1414,12 @@ textarea {
 }
 
 .channel-btn {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   padding: 0.7rem 1rem;
   border: 1px solid;
-  transition: background 0.3s, color 0.3s;
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
   color: var(--bone);
 }
 
@@ -1409,7 +1436,7 @@ textarea {
 }
 
 .care-craft-title {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--brass);
@@ -1425,7 +1452,7 @@ textarea {
 
 .care-craft li {
   font-size: 12px;
-  color: rgba(247, 244, 239, 0.45);
+  color: var(--text-muted);
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
@@ -1434,7 +1461,7 @@ textarea {
 .care-craft li::before {
   content: '◇';
   color: var(--brass);
-  font-size: 8px;
+  font-size: 10px;
   margin-top: 3px;
   flex-shrink: 0;
 }
@@ -1449,10 +1476,10 @@ textarea {
 }
 
 .product-meta dt {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.35);
+  color: var(--text-dim);
   margin-bottom: 0.3rem;
 }
 
@@ -1663,10 +1690,10 @@ textarea {
 }
 
 .article-meta {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.35);
+  color: var(--text-dim);
   margin-top: 1.5rem;
 }
 
@@ -1711,7 +1738,7 @@ textarea {
 
 .article-card-excerpt {
   font-size: 13px;
-  color: rgba(247, 244, 239, 0.45);
+  color: var(--text-muted);
   line-height: 1.6;
 }
 
@@ -1805,7 +1832,7 @@ textarea {
   left: 1rem;
   background: #D4AF6A;
   color: #0F0A1E;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -1813,7 +1840,7 @@ textarea {
 }
 
 .spirit-category {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--spirit-accent);
@@ -1857,13 +1884,13 @@ textarea {
 }
 
 .spirit-buy {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   border: 1px solid rgba(196, 168, 232, 0.3);
   padding: 0.6rem 1rem;
   color: var(--spirit-accent);
-  transition: background 0.3s, border-color 0.3s;
+  transition: background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
   white-space: nowrap;
 }
 
@@ -1909,7 +1936,7 @@ textarea {
 .email-line {
   display: flex;
   border-bottom: 1px solid rgba(247, 244, 239, 0.2);
-  transition: border-color 0.3s;
+  transition: border-color var(--dur-base) var(--ease);
 }
 
 .email-line:focus-within {
@@ -1929,12 +1956,12 @@ textarea {
 }
 
 .email-line input::placeholder {
-  color: rgba(247, 244, 239, 0.3);
+  color: var(--text-dim);
 }
 
 .email-line button {
   color: var(--brass);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   padding: 0 0 0 1rem;
@@ -1957,7 +1984,7 @@ textarea {
   padding: 1rem 1.2rem;
   font-size: 13px;
   outline: none;
-  transition: border-color 0.3s;
+  transition: border-color var(--dur-base) var(--ease);
   width: 100%;
 }
 
@@ -1968,7 +1995,7 @@ textarea {
 
 .contact-form input::placeholder,
 .contact-form textarea::placeholder {
-  color: rgba(247, 244, 239, 0.3);
+  color: var(--text-dim);
 }
 
 .contact-form button {
@@ -1980,7 +2007,7 @@ textarea {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 600;
-  transition: background 0.3s;
+  transition: background var(--dur-base) var(--ease);
 }
 
 .contact-form button:hover {
@@ -2061,14 +2088,14 @@ textarea {
 
 .footer-brand p {
   font-size: 13px;
-  color: rgba(247, 244, 239, 0.45);
+  color: var(--text-muted);
   line-height: 1.7;
   margin-top: 1.2rem;
   max-width: 300px;
 }
 
 .footer-col-title {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--brass);
@@ -2082,9 +2109,11 @@ textarea {
 }
 
 .footer-links a {
+  display: inline-block;
+  padding: 0.25rem 0;
   font-size: 12px;
-  color: rgba(247, 244, 239, 0.5);
-  transition: color 0.25s;
+  color: rgba(247, 244, 239, 0.55);
+  transition: color var(--dur-base) var(--ease);
 }
 
 .footer-links a:hover {
@@ -2100,7 +2129,7 @@ textarea {
   gap: 2rem;
   flex-wrap: wrap;
   font-size: 10px;
-  color: rgba(247, 244, 239, 0.3);
+  color: var(--text-dim);
   letter-spacing: 0.08em;
 }
 
@@ -2290,17 +2319,17 @@ textarea {
   color: rgba(247, 244, 239, 0.55);
   padding: 0.6rem 1rem;
   border: 1px solid transparent;
-  transition: color 0.25s, border-color 0.25s;
+  transition: color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
 }
 
 .admin-tab:hover { color: var(--bone); }
 .admin-tab.active { color: var(--brass); border-color: rgba(169, 137, 90, 0.5); }
 
 .admin-signout {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.45);
+  color: var(--text-muted);
 }
 .admin-signout:hover { color: var(--brass); }
 
@@ -2336,7 +2365,7 @@ textarea {
 }
 .admin-search:focus { border-color: var(--brass); }
 
-.admin-muted { font-size: 12px; color: rgba(247, 244, 239, 0.4); }
+.admin-muted { font-size: 12px; color: var(--text-dim); }
 .admin-error { font-size: 12px; color: #E06B5A; }
 
 .admin-split { display: grid; grid-template-columns: 1fr; gap: 2rem; }
@@ -2348,7 +2377,7 @@ textarea {
 
 .admin-table th {
   text-align: left;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brass);
@@ -2365,7 +2394,7 @@ textarea {
 }
 
 .admin-table td.num, .admin-table th.num { text-align: right; }
-.admin-table tbody tr { cursor: pointer; transition: background 0.2s; }
+.admin-table tbody tr { cursor: pointer; transition: background var(--dur-base) var(--ease); }
 .admin-table tbody tr:hover { background: rgba(169, 137, 90, 0.06); }
 .admin-table tbody tr.selected { background: rgba(169, 137, 90, 0.12); }
 .admin-table a { color: var(--brass); }
@@ -2390,15 +2419,15 @@ textarea {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  color: rgba(247, 244, 239, 0.4);
+  color: var(--text-dim);
 }
 
 .admin-dl { display: flex; flex-direction: column; gap: 1rem; }
 .admin-dl dt {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(247, 244, 239, 0.35);
+  color: var(--text-dim);
   margin-bottom: 0.2rem;
 }
 .admin-dl dd { font-size: 13px; color: rgba(247, 244, 239, 0.7); word-break: break-word; }
@@ -2412,7 +2441,7 @@ textarea {
 
 .admin-stat { border: 1px solid var(--line); padding: 1.5rem; }
 .admin-stat-label {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brass);
@@ -2439,7 +2468,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brass);
@@ -2466,7 +2495,7 @@ textarea {
   padding-bottom: 0.9rem;
 }
 .cart-line-price { color: var(--brass); white-space: nowrap; }
-.cart-lines button { color: rgba(247, 244, 239, 0.35); font-size: 12px; }
+.cart-lines button { color: var(--text-dim); font-size: 12px; }
 .cart-lines button:hover { color: var(--brass); }
 .cart-total {
   display: flex;
@@ -2510,7 +2539,7 @@ textarea {
   left: 0;
   background: rgba(10, 10, 10, 0.85);
   color: var(--brass);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   padding: 0.5rem 0.8rem;
@@ -2550,7 +2579,7 @@ textarea {
 
 .download-bullets li {
   font-size: 12px;
-  color: rgba(247, 244, 239, 0.45);
+  color: var(--text-muted);
   display: flex;
   gap: 0.6rem;
   line-height: 1.6;
@@ -2559,7 +2588,7 @@ textarea {
 .download-bullets li::before {
   content: '◇';
   color: var(--brass);
-  font-size: 8px;
+  font-size: 10px;
   margin-top: 4px;
   flex-shrink: 0;
 }
@@ -2594,7 +2623,7 @@ textarea {
   color: rgba(247, 244, 239, 0.7);
   border: 1px solid var(--line);
   padding: 0.6rem 1.1rem;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .collection-nav a:hover,
@@ -2619,7 +2648,7 @@ textarea {
 }
 
 .shop-field-label {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--taupe);
@@ -2659,8 +2688,24 @@ textarea {
 }
 
 .collection-empty {
-  padding: 4rem 0;
+  padding: 1rem 0 5rem;
   max-width: 46ch;
+}
+
+.collection-empty-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-bottom: 1rem;
+}
+
+/* The rule above an empty state is shorter than a section rule: it marks a
+   held space, not a new chapter. */
+.collection-empty .rule-draw {
+  max-width: 3rem;
+  margin-bottom: 1.6rem;
 }
 
 .collection-empty-copy {
@@ -2731,7 +2776,7 @@ textarea {
 }
 
 .static-gallery-title {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brass);
@@ -2812,7 +2857,7 @@ textarea {
 }
 
 .connector-state {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -2868,13 +2913,13 @@ textarea {
   border: 1px solid var(--line);
   color: rgba(247, 244, 239, 0.8);
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 0.6rem 0.85rem;
   min-height: 34px;
   cursor: pointer;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .stage-controls button:hover:not(:disabled),
@@ -2933,15 +2978,38 @@ textarea {
 .scene-video[data-ready='true'] { opacity: 1; }
 
 /* ── REALISM LAYER ──────────────────────────────────────────────────
-   Living grain and a vignette, between the footage and the scrim. */
+   Living grain and a vignette, between the footage and the scrim.
+
+   The grain is a pre-rendered tile moved in steps, never a live filter: the
+   SVG feTurbulence version re-rasterised a noise field twelve times a second
+   per hero and cost 65 s of main-thread long tasks in a 67 s scroll. The
+   layer is over-sized by one tile so no step ever exposes an edge, and the
+   eight offsets are odd numbers below 256 so consecutive fields never line up. */
 .scene-grain {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.025;
+  inset: -256px;
+  background: url('/images/grain.png') repeat 0 0 / 256px 256px;
+  opacity: 0.045;
   mix-blend-mode: overlay;
   pointer-events: none;
+  will-change: transform;
+  animation: grain-step 0.64s steps(1, end) infinite;
+}
+
+@keyframes grain-step {
+  0%     { transform: translate3d(0, 0, 0); }
+  12.5%  { transform: translate3d(-97px, 53px, 0); }
+  25%    { transform: translate3d(41px, -131px, 0); }
+  37.5%  { transform: translate3d(-171px, -29px, 0); }
+  50%    { transform: translate3d(113px, 89px, 0); }
+  62.5%  { transform: translate3d(-59px, -197px, 0); }
+  75%    { transform: translate3d(149px, -71px, 0); }
+  87.5%  { transform: translate3d(-23px, 167px, 0); }
+  100%   { transform: translate3d(0, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-grain { animation: none; will-change: auto; }
 }
 
 .scene-vignette {
@@ -2973,7 +3041,7 @@ textarea {
   -webkit-backdrop-filter: blur(8px);
   color: rgba(247, 244, 239, 0.7);
   cursor: pointer;
-  transition: color 0.25s, border-color 0.25s, background 0.25s;
+  transition: color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
 
 .ambient-toggle:hover,
@@ -2994,21 +3062,24 @@ textarea {
 }
 
 /* The scrim exists to make bone-white text survive an unpredictable photograph.
-   Measured against the hero: the ramp has to stay strong across the FULL width
-   of the copy block (~52% at desktop), not just the first third, because the
-   last line of the headline reaches furthest right and that is where contrast
-   bottomed out at 3.05:1. */
+   Measured against the real hero photograph (pool caustics and sunlit
+   limestone under the headline): the first tuning bottomed out at 2.35:1 at
+   the right end of the copy block, so the ramp now stays above 0.6 alpha to
+   54% and does not reach zero until 94%. The photograph reads darker on the
+   left; that is the trade, and it is the scrim's job to make it. */
 .residence-scrim {
   position: absolute;
   inset: 0;
   background:
     linear-gradient(
       100deg,
-      rgba(10, 10, 10, 0.86) 0%,
-      rgba(10, 10, 10, 0.72) 22%,
-      rgba(10, 10, 10, 0.5) 40%,
-      rgba(10, 10, 10, 0.24) 58%,
-      rgba(10, 10, 10, 0.06) 76%
+      rgba(10, 10, 10, 0.94) 0%,
+      rgba(10, 10, 10, 0.88) 20%,
+      rgba(10, 10, 10, 0.78) 38%,
+      rgba(10, 10, 10, 0.6) 54%,
+      rgba(10, 10, 10, 0.34) 68%,
+      rgba(10, 10, 10, 0.1) 82%,
+      rgba(10, 10, 10, 0) 94%
     ),
     linear-gradient(rgba(10, 10, 10, 0.4), rgba(10, 10, 10, 0) 30%);
 }
@@ -3059,7 +3130,7 @@ textarea {
   font-weight: 500;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  transition: background 0.3s, color 0.3s, border-color 0.3s;
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
 }
 
 .btn-residence-primary {
@@ -3187,7 +3258,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   color: var(--ink);
   background: rgba(247, 244, 239, 0.92);
@@ -3291,7 +3362,7 @@ textarea {
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(247, 244, 239, 0.75);
@@ -3302,9 +3373,12 @@ textarea {
 .globe-cursor-hint[data-shown='true'] { opacity: 1; }
 
 @media (max-width: 900px) {
-  .featured-slot { position: static; margin: 0 auto; padding: 0 5vw 3rem; }
-  .featured-card { width: 100%; max-width: 340px; }
-  .residence-copy { padding-bottom: 3rem; margin-left: 0; padding-left: 5vw; }
+  /* The hero is a flex row; once the featured card goes static it must take
+     its own row, or it sits beside the headline and clips it. */
+  .residence-hero { flex-wrap: wrap; }
+  .featured-slot { position: static; flex: 0 0 100%; margin: 0 auto; padding: 0 5vw 3rem; }
+  .featured-card { width: 100%; max-width: 340px; margin: 0 auto; }
+  .residence-copy { flex: 0 0 100%; max-width: none; padding-bottom: 3rem; margin-left: 0; padding-left: 5vw; }
 }
 
 @media (max-width: 767px) {
@@ -3365,7 +3439,7 @@ textarea {
 }
 
 .partner-category {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--taupe);
@@ -3383,7 +3457,7 @@ textarea {
 .partner-note { margin: 1.4rem 0 1.8rem; flex: 1; }
 
 .partner-note-title {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brass);
@@ -3406,7 +3480,7 @@ textarea {
   text-transform: uppercase;
   background: var(--bone);
   color: var(--ink);
-  transition: background 0.25s;
+  transition: background var(--dur-base) var(--ease);
 }
 
 .partner-cta:hover { background: #fff; }
@@ -3515,7 +3589,7 @@ textarea {
 
 .guestbook-label {
   display: block;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--taupe);
@@ -3535,7 +3609,7 @@ textarea {
   font-size: 15px;
 }
 
-.guestbook-row input::placeholder { color: rgba(247, 244, 239, 0.38); }
+.guestbook-row input::placeholder { color: var(--text-dim); }
 
 .guestbook-row input:focus-visible {
   outline: 2px solid var(--brass);
@@ -3555,7 +3629,7 @@ textarea {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.25s;
+  transition: background var(--dur-base) var(--ease);
 }
 
 .guestbook-row button:hover:not(:disabled) { background: #fff; }
@@ -3755,7 +3829,7 @@ textarea {
   text-transform: uppercase;
   color: var(--bone);
   border: 1px solid rgba(247, 244, 239, 0.35);
-  transition: border-color 0.25s;
+  transition: border-color var(--dur-base) var(--ease);
 }
 
 .browser-details:hover { border-color: var(--bone); }
@@ -3777,7 +3851,7 @@ textarea {
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .browser-controls button:hover,
@@ -3843,14 +3917,14 @@ textarea {
   background: none;
   border: none;
   border-bottom: 1px solid rgba(247, 244, 239, 0.25);
-  padding: 0.2rem 0;
+  padding: 0.4rem 0;
   color: var(--taupe);
   font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.25s, border-color 0.25s;
+  transition: color var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
 }
 
 .guestbook-sound:hover,
@@ -3898,7 +3972,7 @@ textarea {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .showroom-categories button[data-active='true'],
@@ -3998,7 +4072,7 @@ textarea {
 
 .stage-hint {
   margin-top: 0.8rem;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--taupe);
@@ -4059,7 +4133,7 @@ textarea {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .showroom-deck button:hover { border-color: var(--brass); color: var(--brass); }
@@ -4080,7 +4154,7 @@ textarea {
 .showroom-filters label { display: flex; flex-direction: column; gap: 0.4rem; }
 
 .showroom-filters span {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--taupe);
@@ -4211,11 +4285,11 @@ textarea {
   border: 1px solid var(--line);
   color: rgba(247, 244, 239, 0.75);
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 0.25s, color 0.25s;
+  transition: border-color var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .showroom-view-controls button:hover:not(:disabled),
@@ -4384,7 +4458,7 @@ textarea {
 .admin-inline option { background: #1c1a17; }
 .admin-inline.status-published { color: #9fc79a; }
 .admin-inline.status-approved { color: var(--brass); }
-.admin-inline.status-draft { color: rgba(247, 244, 239, 0.45); }
+.admin-inline.status-draft { color: var(--text-muted); }
 .admin-ready { color: #9fc79a; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
 .admin-blocking { color: #e2a58f; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 .admin-muted.small { display: block; font-size: 11px; }
@@ -4393,7 +4467,7 @@ textarea {
 .admin-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; }
 .admin-row { display: grid; gap: 0.5rem; }
 .admin-fieldset { border: 1px solid var(--line); padding: 1rem; margin: 0.5rem 0; }
-.admin-fieldset legend { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); padding: 0 0.4rem; }
+.admin-fieldset legend { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); padding: 0 0.4rem; }
 .admin-images { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; }
 .admin-images figure { margin: 0; display: grid; gap: 0.4rem; }
 .admin-images img { width: 100%; height: 120px; object-fit: contain; background: #111; }
@@ -4405,7 +4479,7 @@ textarea {
 .admin-gallery-item { position: relative; width: 56px; height: 56px; }
 .admin-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
 .admin-gallery-item button { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: #1c1a17; color: var(--bone); border: 1px solid var(--line); font-size: 10px; }
-.btn-ghost.small { padding: 0.6rem 1rem; font-size: 9px; }
+.btn-ghost.small { padding: 0.6rem 1rem; font-size: 10px; }
 .admin-danger { margin-left: auto; color: #e2a58f; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; background: none; border: 1px solid transparent; padding: 0.6rem 0.8rem; }
 .admin-danger:hover:not(:disabled) { border-color: #b3543a; }
 .admin-danger:disabled { opacity: 0.35; }
@@ -4427,7 +4501,7 @@ textarea {
   background: rgba(10, 10, 10, 0.5);
 }
 .pedestal-rotate[aria-pressed='true'] { color: var(--brass); border-color: var(--brass); }
-.product-compare { color: rgba(247, 244, 239, 0.45); margin-left: 0.75rem; font-size: 14px; }
+.product-compare { color: var(--text-muted); margin-left: 0.75rem; font-size: 14px; }
 .product-meta ul { padding-left: 1rem; }
 .related-section { background: var(--ink); }
 .related-heading { font-family: var(--font-display); font-weight: 350; font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--bone); margin: 0.4rem 0 2rem; }
@@ -4436,3 +4510,333 @@ textarea {
 .related-grid img, .related-empty { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: #111; }
 .related-name { font-size: 14px; }
 .related-price { font-size: 12px; color: var(--taupe); }
+
+/* ── PRODUCT REEL (replaces the WebGL scroll gallery) ─────────────── */
+.reel-stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(70% 60% at 50% 55%, #1b1713 0%, #0e0c0a 55%, #080806 100%);
+  /* --reel-p is -0.5..0.5, the fractional scroll position around the active item. */
+  --reel-p: 0;
+}
+
+.reel-image {
+  position: absolute;
+  inset: 12% 14%;
+  width: 72%;
+  height: 76%;
+  object-fit: contain;
+  opacity: 0;
+  transform: translate3d(calc(var(--reel-p) * -6%), 0, 0) scale(0.92);
+  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+  filter: drop-shadow(0 40px 60px rgba(0, 0, 0, 0.55));
+}
+
+.reel-image[data-active='true'] {
+  opacity: 1;
+  transform: translate3d(calc(var(--reel-p) * -6%), 0, 0) scale(1);
+}
+
+/* Neighbours park just off to their side so the hand-off reads as a slide. */
+.reel-image[data-side='before'] { transform: translate3d(-18%, 0, 0) scale(0.86); }
+.reel-image[data-side='after'] { transform: translate3d(18%, 0, 0) scale(0.86); }
+
+.reel-shadow {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 9%;
+  height: 6%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%);
+  filter: blur(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-image { transition: opacity 0.3s ease; transform: none !important; }
+}
+
+@media (max-width: 767px) {
+  .reel-image { inset: 8%; width: 84%; height: 84%; }
+}
+
+/* ── LIVING LAYER ───────────────────────────────────────────────────
+   One curve, three durations (tokens at :root). Everything here is
+   transform or opacity; nothing lays out or paints per frame. */
+
+/* The browser stack: one product reads at a time. Cards behind keep their
+   silhouette for depth and lose their words, so no two names ever overlap. */
+.browser-card:not([data-active='true']) .browser-card-name,
+.browser-card:not([data-active='true']) .browser-card-desc,
+.browser-card:not([data-active='true']) .browser-card-price,
+.browser-card:not([data-active='true']) .browser-card-actions {
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease);
+}
+.browser-card[data-active='true'] .browser-card-name,
+.browser-card[data-active='true'] .browser-card-desc,
+.browser-card[data-active='true'] .browser-card-price,
+.browser-card[data-active='true'] .browser-card-actions {
+  opacity: 1;
+  transition: opacity var(--dur-slow) var(--ease) 120ms;
+}
+
+/* The scene behind the stack: dim, soft-edged, and it breathes very slowly. */
+.browser-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 30%, transparent 100%);
+}
+.browser-scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.38;
+  filter: saturate(0.85);
+  transform: scale(1.04);
+  animation: browser-scene-breathe 26s var(--ease) infinite alternate;
+  will-change: transform;
+}
+@keyframes browser-scene-breathe {
+  from { transform: scale(1.04) translate3d(0, 0, 0); }
+  to { transform: scale(1.09) translate3d(0, -1.5%, 0); }
+}
+.browser-stack,
+.browser-controls,
+.browser-escape { position: relative; z-index: 1; }
+
+/* A soft pool of light behind the active product. */
+.browser-card[data-active='true'] .browser-card-image {
+  filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.55));
+}
+
+/* Triptych columns give the parallax room to travel. */
+.triptych-col img {
+  height: 130%;
+  margin-top: -15%;
+  will-change: transform;
+}
+
+/* Cards: the image answers the pointer, the title underlines itself. */
+.product-card:hover .product-card-image img,
+.product-card:focus-within .product-card-image img {
+  transform: scale(1.04);
+}
+.article-card-image:hover img { transform: scale(1.04); }
+.product-card-name a,
+.book-card-title a,
+.article-card-title a {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  transition: background-size var(--dur-slow) var(--ease);
+}
+.product-card:hover .product-card-name a,
+.book-card:hover .book-card-title a,
+.article-card-title a:hover {
+  background-size: 100% 1px;
+}
+
+/* Press feedback: quick in, slow out, on every primary control. */
+.add-to-cart-btn,
+.btn-primary,
+.btn-ghost,
+.btn-residence-primary,
+.btn-residence-ghost,
+.browser-details,
+.browser-controls button,
+.gallery-dot,
+.header-icon-btn {
+  transition-property: background, color, border-color, transform, box-shadow, gap;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease);
+}
+.add-to-cart-btn:active:not(:disabled),
+.btn-primary:active,
+.btn-ghost:active,
+.btn-residence-primary:active,
+.btn-residence-ghost:active,
+.browser-details:active,
+.browser-controls button:active {
+  transform: scale(0.98);
+  transition-duration: var(--dur-quick);
+}
+.add-to-cart-btn:hover:not(:disabled) {
+  box-shadow: 0 10px 30px -12px rgba(169, 137, 90, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .browser-scene img { animation: none; transform: none; }
+  .triptych-col img { height: 100%; margin-top: 0; }
+  .product-card:hover .product-card-image img,
+  .article-card-image:hover img { transform: none; }
+  .add-to-cart-btn:active:not(:disabled),
+  .btn-primary:active,
+  .btn-ghost:active,
+  .btn-residence-primary:active,
+  .btn-residence-ghost:active,
+  .browser-details:active,
+  .browser-controls button:active { transform: none; }
+}
+
+/* ── EDITORIAL LAYER ────────────────────────────────────────────────
+   The craft that separates a template from a considered page. Every
+   rule here animates transform or opacity only, and every one of them
+   is switched off under prefers-reduced-motion at the end of the block. */
+
+/* Headlines are split into lines at runtime and each line rises from
+   behind its own edge. The mask needs a little vertical slack or
+   Fraunces' descenders and the italic 'f' get clipped. */
+.line {
+  display: block;
+  overflow: hidden;
+  /* The display face is set at line-height 0.9, so the line box is shorter
+     than the glyphs. Without this slack the mask cuts the descenders off
+     every 'g' and 'j' at rest, not just in flight. */
+  padding-bottom: 0.26em;
+  margin-bottom: -0.26em;
+}
+
+.line-inner {
+  display: block;
+  will-change: transform;
+}
+
+/* Images are uncovered, not faded. The curtain sits off the top by
+   default, so if the script never runs the picture is simply there. */
+.product-card-image,
+.book-card-image,
+.article-card-image,
+.triptych-col {
+  --curtain: -101%;
+}
+
+.product-card-image::after,
+.book-card-image::after,
+.article-card-image::after,
+.triptych-col::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--black);
+  transform: translateY(var(--curtain));
+  will-change: transform;
+}
+
+/* A hairline that draws out from its leading edge. */
+.rule-draw {
+  display: block;
+  height: 1px;
+  width: 100%;
+  max-width: 5rem;
+  margin-bottom: 2.2rem;
+  background: currentColor;
+  opacity: 0.45;
+  transform-origin: left center;
+}
+
+/* The section numeral. Set in the display face at a size that reads as
+   a watermark rather than a label, and kept off the text column. */
+body { counter-reset: track-counter; }
+
+.track-section { counter-increment: track-counter; }
+
+.track-section::before {
+  content: counter(track-counter, decimal-leading-zero);
+  position: absolute;
+  top: 4rem;
+  right: 5vw;
+  z-index: 0;
+  font-family: var(--font-display);
+  font-size: clamp(9rem, 20vw, 22rem);
+  font-weight: 300;
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  color: rgba(247, 244, 239, 0.03);
+  pointer-events: none;
+  user-select: none;
+}
+
+.track-inner { position: relative; z-index: 1; }
+
+/* More air. A luxury page is mostly the space around the object. */
+.track-section { padding: 12rem 8vw; }
+.section { padding: 11rem 8vw; }
+.track-headline { margin-bottom: 2.6rem; }
+.section-header { margin-bottom: 6rem; }
+
+/* Inline calls to action: the rule under them draws across on hover
+   instead of merely changing colour. */
+.track-cta,
+.gallery-explore-btn {
+  position: relative;
+  border-bottom-color: transparent !important;
+}
+
+.track-cta::after,
+.gallery-explore-btn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0.28);
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease);
+}
+
+.track-cta:hover::after,
+.track-cta:focus-visible::after,
+.gallery-explore-btn:hover::after,
+.gallery-explore-btn:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* The trust strip reads as a set of assurances, not a toolbar. */
+.trust-strip { padding: 2.4rem 4vw; }
+.trust-item { gap: 1rem; }
+.trust-text { line-height: 1.5; }
+
+/* The manifesto is the one place the page should feel hand-set. */
+.manifesto-text { letter-spacing: -0.02em; }
+.manifesto-attribution { opacity: 0.55; }
+
+@media (max-width: 900px) {
+  .track-section { padding: 7rem 6vw; }
+  .section { padding: 7rem 6vw; }
+  .track-section::before { top: 2rem; right: 4vw; font-size: clamp(6rem, 24vw, 10rem); }
+  .rule-draw { margin-bottom: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line { overflow: visible; padding-bottom: 0; margin-bottom: 0; }
+  .line-inner { transform: none !important; }
+  .product-card-image::after,
+  .book-card-image::after,
+  .article-card-image::after,
+  .triptych-col::after { display: none; }
+  .rule-draw { transform: none !important; }
+  .track-cta::after,
+  .gallery-explore-btn::after { transform: scaleX(1); transition: none; }
+}
+
+/* Checkout errors are customer-facing and were borrowing the admin
+   stylesheet's error class, which ties the shop's appearance to an
+   unrelated section. */
+.cart-error {
+  margin: 0.8rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #E0A090;
+}

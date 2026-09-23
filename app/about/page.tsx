@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'About',
   description:
     'InteriorCleanse connects the visual calm of interior design with the practical rituals of keeping a real home.',
+  alternates: { canonical: '/about/' },
 }
 
 export default function About() {

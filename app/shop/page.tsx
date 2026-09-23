@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: 'Shop the Edit',
   description:
     'Curated cleaning picks, hand-poured candles, prints, mugs and apparel — objects selected for how beautifully they serve.',
+  alternates: { canonical: '/shop/' },
 }
 
 export default function Shop() {
@@ -28,6 +29,7 @@ export default function Shop() {
           catalogue underneath the filtered result. */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="section-inner">
+          <h2 className="sr-only">All products</h2>
           <nav className="collection-nav" aria-label="Collections">
             {COLLECTIONS.map((c) => (
               <Link key={c.slug} href={`/shop/${c.slug}/`}>

@@ -4,6 +4,48 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 
 /**
+ * Splits an element's text into lines on its existing <br> breaks and wraps
+ * each in a clipping mask, so the line can rise into view from behind its own
+ * edge. This is the one move that separates editorial typography from a fade.
+ *
+ * Done at runtime rather than in the markup because the copy already carries
+ * the breaks the designer chose, and duplicating them into wrapper spans in
+ * every page would be the same information in two places. Element nodes are
+ * moved, not re-serialised, so an <em> inside a line survives intact.
+ *
+ * If this never runs the text is simply visible, which is the correct
+ * failure: the animation adds the mask, it does not create the text.
+ */
+function splitLines(el: HTMLElement): HTMLElement[] {
+  if (el.dataset.split === 'true') return Array.from(el.querySelectorAll('.line-inner'))
+  const groups: Node[][] = [[]]
+  el.childNodes.forEach((node) => {
+    if (node.nodeName === 'BR') groups.push([])
+    else groups[groups.length - 1].push(node)
+  })
+  const nonEmpty = groups.filter((g) =>
+    g.some((n) => (n.textContent ?? '').trim().length > 0)
+  )
+  if (!nonEmpty.length) return []
+  const frag = document.createDocumentFragment()
+  const inners: HTMLElement[] = []
+  for (const group of nonEmpty) {
+    const line = document.createElement('span')
+    line.className = 'line'
+    const inner = document.createElement('span')
+    inner.className = 'line-inner'
+    group.forEach((n) => inner.appendChild(n))
+    line.appendChild(inner)
+    frag.appendChild(line)
+    inners.push(inner)
+  }
+  el.textContent = ''
+  el.appendChild(frag)
+  el.dataset.split = 'true'
+  return inners
+}
+
+/**
  * Scroll-driven choreography: headline reveals, staggered grids, hero parallax.
  *
  * Every tween is a `fromTo` with `immediateRender: false`. That matters more
@@ -41,17 +83,57 @@ export function GSAPAnimations() {
         }
 
         const ctx = gsap.context(() => {
-          gsap.utils.toArray<HTMLElement>('.gsap-headline').forEach((el) => {
+          // Headlines rise line by line from behind a mask. One tween per
+          // headline, staggered across its own lines, so a three-line
+          // headline reads as three beats rather than one block moving.
+          gsap.utils.toArray<HTMLElement>('.gsap-headline, .track-headline, .manifesto-text').forEach((el) => {
+            const lines = splitLines(el)
+            if (!lines.length) return
             gsap.fromTo(
-              el,
-              { y: 80, opacity: 0 },
+              lines,
+              { yPercent: 115 },
               {
-                y: 0,
-                opacity: 1,
-                duration: 1.2,
+                yPercent: 0,
+                duration: 1.1,
+                stagger: 0.09,
                 ease: 'power4.out',
                 immediateRender: false,
                 scrollTrigger: { trigger: el, start: 'top 88%', once: true },
+              }
+            )
+          })
+
+          // Hairline rules draw out from their start edge. Scale only.
+          gsap.utils.toArray<HTMLElement>('.rule-draw').forEach((el) => {
+            gsap.fromTo(
+              el,
+              { scaleX: 0 },
+              {
+                scaleX: 1,
+                duration: 1.4,
+                ease: 'power3.inOut',
+                immediateRender: false,
+                scrollTrigger: { trigger: el, start: 'top 92%', once: true },
+              }
+            )
+          })
+
+          // Images are uncovered by a curtain that slides off them, rather
+          // than faded in. The curtain is a pseudo-element moved through a
+          // custom property, so nothing here paints per frame.
+          gsap.utils.toArray<HTMLElement>(
+            '.product-card-image, .book-card-image, .article-card-image, .triptych-col'
+          ).forEach((el, i) => {
+            gsap.fromTo(
+              el,
+              { '--curtain': '0%' },
+              {
+                '--curtain': '-101%',
+                duration: 1.1,
+                delay: (i % 3) * 0.08,
+                ease: 'power3.inOut',
+                immediateRender: false,
+                scrollTrigger: { trigger: el, start: 'top 90%', once: true },
               }
             )
           })
@@ -74,17 +156,19 @@ export function GSAPAnimations() {
             )
           })
 
-          gsap.utils.toArray<HTMLElement>('.track-headline').forEach((el, i) => {
+          // Triptych: three columns, three speeds. The images are taller than
+          // their frames (CSS), so the travel never exposes an edge. Transform
+          // only, scrubbed to scroll — no layout, no paint.
+          gsap.utils.toArray<HTMLElement>('.triptych-col img').forEach((img, i) => {
+            const travel = [14, 8, 11][i % 3]
             gsap.fromTo(
-              el,
-              { x: i % 2 === 0 ? -70 : 70, opacity: 0 },
+              img,
+              { yPercent: -travel },
               {
-                x: 0,
-                opacity: 1,
-                duration: 1.3,
-                ease: 'power4.out',
+                yPercent: travel,
+                ease: 'none',
                 immediateRender: false,
-                scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+                scrollTrigger: { trigger: '.triptych', start: 'top bottom', end: 'bottom top', scrub: 0.6 },
               }
             )
           })

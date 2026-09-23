@@ -2,7 +2,7 @@
   "atrium": {
     "desktopVideo": "/video/hero-desktop.mp4",
     "mobileVideo": null,
-    "posterImage": "/images/hero-poster.png",
+    "posterImage": "/images/hero-poster.jpg",
     "headline": [
       "LIVE BEAUTIFULLY.",
       "FEEL RESTORED."
@@ -66,7 +66,7 @@
     "posterMotion": "push-in"
   },
   "library": {
-    "posterImage": "/images/library-poster.png",
+    "posterImage": "/images/library-poster.jpg",
     "desktopVideo": "/video/library-desktop.mp4",
     "mobileVideo": null,
     "headline": [
@@ -108,7 +108,7 @@
     "ambientSound": "classical"
   },
   "conservatory": {
-    "posterImage": "/images/conservatory-poster.png",
+    "posterImage": "/images/conservatory-poster.jpg",
     "desktopVideo": "/video/conservatory-desktop.mp4",
     "mobileVideo": null,
     "headline": [
@@ -150,7 +150,7 @@
     "ambientSound": "birdsong"
   },
   "cleaning": {
-    "posterImage": "/images/cleaning-poster.png",
+    "posterImage": "/images/cleaning-poster.jpg",
     "desktopVideo": "/video/cleaning-desktop.mp4",
     "mobileVideo": null,
     "headline": [
@@ -192,7 +192,7 @@
     "ambientSound": "water"
   },
   "chapel": {
-    "posterImage": "/images/chapel-poster.png",
+    "posterImage": "/images/chapel-poster.jpg",
     "desktopVideo": "/video/chapel-desktop.mp4",
     "mobileVideo": null,
     "headline": [
@@ -233,8 +233,8 @@
     "posterMotion": "drift-up"
   },
   "gallery": {
-    "posterImage": "/images/gallery-poster.png",
-    "desktopVideo": null,
+    "posterImage": "/images/gallery-poster.jpg",
+    "desktopVideo": "/video/gallery-desktop.mp4",
     "mobileVideo": null,
     "headline": [
       "ART FOR",
@@ -274,8 +274,8 @@
     "posterMotion": "pull-out"
   },
   "atelier": {
-    "posterImage": "/images/atelier-poster.png",
-    "desktopVideo": null,
+    "posterImage": "/images/atelier-poster.jpg",
+    "desktopVideo": "/video/atelier-desktop.mp4",
     "mobileVideo": null,
     "headline": [
       "MADE TO BE",
@@ -315,7 +315,7 @@
     "posterMotion": "push-in"
   },
   "pavilion": {
-    "posterImage": "/images/arrival-poster.png",
+    "posterImage": "/images/arrival-poster.jpg",
     "desktopVideo": null,
     "mobileVideo": null,
     "headline": [
@@ -356,7 +356,7 @@
     "posterMotion": "drift-right"
   },
   "guestbook": {
-    "posterImage": "/images/guestbook-poster.png",
+    "posterImage": "/images/guestbook-poster.jpg",
     "desktopVideo": "/video/guestbook-desktop.mp4",
     "mobileVideo": null,
     "headline": [
@@ -371,7 +371,7 @@
     "posterMotion": "drift-left"
   },
   "showroom": {
-    "posterImage": "/images/showroom-poster.png",
+    "posterImage": "/images/showroom-poster.jpg",
     "desktopVideo": "/video/showroom-desktop.mp4",
     "mobileVideo": null,
     "headline": [

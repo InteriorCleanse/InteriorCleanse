@@ -49,9 +49,18 @@ export function SceneBackground({
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
     const mobile = window.matchMedia(MOBILE_QUERY)
 
+    const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData)
+
     const pick = () => {
-      if (reduced.matches) return setSrc(null)
-      const chosen = mobile.matches ? mobileVideo ?? desktopVideo : desktopVideo ?? mobileVideo
+      // Reduced motion and Data Saver both mean: the poster is the scene.
+      if (reduced.matches || saveData) return setSrc(null)
+      // On a phone, a scene plays only if a cut was made for a phone. The
+      // desktop file is never the fallback: those clips run 0.7-2.4 MB each,
+      // and the homepage alone was handing a 2.1 MB landscape video to a
+      // 390 px screen, usually over cellular, to play behind a headline.
+      // The poster is a frame of the same footage and already the LCP
+      // candidate, so the scene still reads; it simply stops moving.
+      const chosen = mobile.matches ? mobileVideo : desktopVideo ?? mobileVideo
       setSrc(chosen ?? null)
     }
 

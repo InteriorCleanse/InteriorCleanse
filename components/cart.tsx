@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react'
 import { track } from '@/lib/analytics'
+import { useModalDialog } from '@/lib/use-modal-dialog'
 import { isInternalCheckout } from '@/lib/category-experience'
 import { getProduct } from '@/lib/content'
 
@@ -175,6 +176,10 @@ export function CartDrawer() {
   const { items, total, open, setOpen, remove, checkout } = useCart()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // Supplies what aria-modal promises: focus in, Tab trapped, Escape closes,
+  // background locked, focus restored. Hooks must run on every render, so it
+  // is called before the early return and told whether the dialog is open.
+  const dialogRef = useModalDialog(open, () => setOpen(false))
 
   if (!open) return null
 
@@ -196,7 +201,14 @@ export function CartDrawer() {
         if (e.target === e.currentTarget) setOpen(false)
       }}
     >
-      <div className="popup-box" role="dialog" aria-modal="true" aria-label="Cart">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="popup-box"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cart"
+      >
         <button className="popup-close" onClick={() => setOpen(false)} aria-label="Close">
           ✕
         </button>
@@ -228,7 +240,11 @@ export function CartDrawer() {
               <span>${total.toFixed(2)}</span>
             </div>
 
-            {error ? <p className="admin-error">{error}</p> : null}
+            {error ? (
+              <p className="cart-error" role="alert">
+                {error}
+              </p>
+            ) : null}
 
             <button className="popup-submit" onClick={go} disabled={busy}>
               {busy ? 'Redirecting…' : 'Checkout →'}

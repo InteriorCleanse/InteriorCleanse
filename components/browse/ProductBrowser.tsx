@@ -33,9 +33,12 @@ const DEPTH = 2
 export function ProductBrowser({
   products,
   label = 'Featured products',
+  backdrop,
 }: {
   products: Product[]
   label?: string
+  /** A scene poster to sit behind the stack, dimmed. Without it the section is bare ink. */
+  backdrop?: string | null
 }) {
   const [index, setIndex] = useState(0)
   const [drag, setDrag] = useState(0)
@@ -132,6 +135,12 @@ export function ProductBrowser({
 
   return (
     <section className="product-browser" aria-label={label}>
+      {backdrop ? (
+        <div className="browser-scene" aria-hidden="true">
+          <img src={backdrop} alt="" loading="lazy" decoding="async" />
+        </div>
+      ) : null}
+      <h2 className="sr-only">{label}</h2>
       <div
         className="browser-stack"
         ref={stackRef}

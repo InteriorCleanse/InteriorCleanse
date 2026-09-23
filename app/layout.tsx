@@ -49,8 +49,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: ['/images/og-image.png'],
   },
-  // `trailingSlash: true` means the canonical form of every URL carries one.
-  alternates: { canonical: '/' },
   // The .ico carries 16/32/48 of the flowing-C silhouette only. The rose and
   // vase from the master are fine graphite work and turn to mud below ~48px,
   // so small marks come from the hand-drawn vector, never a shrunk raster.
