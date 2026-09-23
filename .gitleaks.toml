@@ -1,0 +1,22 @@
+# Gitleaks configuration for AURELIS OS.
+#
+# Keeps the full default ruleset — this only ADDS an allowlist, it does not
+# replace the rules that catch a real leaked key.
+#
+# The one allowance is `tests/readiness.test.ts`, which deliberately assigns
+# obvious placeholder credentials (sk-test-placeholder-000, whsec-placeholder-000,
+# sk_live_placeholder) to exercise the deployment-readiness check. The
+# generic-api-key rule flags them by entropy; they are fixtures, not secrets,
+# and the readiness test's whole purpose is asserting that no key material ever
+# reaches the report. Scoped to that one file so a real key committed anywhere
+# else still fails the build.
+title = "AURELIS gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder credentials used as test fixtures, not real secrets."
+paths = [
+  '''tests/readiness\.test\.ts''',
+]
