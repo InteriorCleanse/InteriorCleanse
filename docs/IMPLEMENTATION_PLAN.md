@@ -233,3 +233,23 @@ note be read as a figure or a deal as revenue.
 - [ ] A first sync against a real Notion, HubSpot or Base44 account, and a
       first briefing written into a real Notion database — needs credentials.
 - [ ] Salesforce, if a customer on a paid edition asks for it.
+
+
+## ✅ Cross-company owner view — after the clients
+
+The one screen that crosses tenants, for the platform owner alone.
+
+- [x] `/owner-admin/companies`: every workspace on the deployment, with
+      subscription health, plan, member count, and headline revenue. Built the
+      way the rest of the owner console is — the `platform:view_console` gate
+      first (a tenant user is redirected and never learns the route exists),
+      then a service-role read of tables no tenant path can reach.
+- [x] `lib/owner/portfolio.ts` is a pure, tested aggregation: real kept apart
+      from demo so a demonstration workspace can never inflate a total, revenue
+      totalled per currency and never across, and an attention list for real
+      subscriptions past due or canceled.
+- [x] Honest about the metrics gap: real workspaces show "connect a source"
+      rather than a zero, because only the demo dataset computes figures today.
+      The isolation the view leans on is already proven in the RLS suite (a
+      normal user cannot read another tenant's organizations, members, or
+      platform_staff), and the authz gate is covered in the authz suite.

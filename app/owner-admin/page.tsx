@@ -62,6 +62,13 @@ export default async function OwnerAdminPage() {
         Signed in as {session.email} · {session.platformRole}
       </p>
 
+      <Link
+        href="/owner-admin/companies"
+        className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-hairline bg-panelRaised px-5 text-sm font-medium transition hover:border-signal"
+      >
+        View all companies →
+      </Link>
+
       <Panel className="mt-8">
         <h2 className="text-lg font-semibold">Deployment readiness</h2>
         <p
