@@ -494,6 +494,8 @@ function render(d) {
 
     ${d.core ? coreMarkup(d.core) : ''}
 
+    <section class="dk-accounts" id="dk-accounts" aria-live="polite"></section>
+
     ${evidence(d)}
 
     <h2 class="dk-crew-title">The crew <span>six of them, each watching one thing</span></h2>
@@ -525,6 +527,8 @@ async function loadDesk() {
     out.dataset.spoken = [j.data.voice.floor, j.data.voice.trust, j.data.voice.evidence].join(' ')
     if (status) status.textContent = `updated ${new Date(j.data.generatedAt).toLocaleTimeString()}`
     coreData = j.data.core || null
+    // The accounts card (web/js/accounts.js) fills itself in; the desk only says it has drawn.
+    document.dispatchEvent(new CustomEvent('desk:rendered'))
     if (deskVisible()) { startDeskRefresh(); if (coreData) startCore() } else { stopDeskRefresh(); stopCore() }
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't read the desk just now: ${esc(e.message)}. Showing you nothing rather than making something up.</div>`

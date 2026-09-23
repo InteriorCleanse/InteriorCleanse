@@ -100,6 +100,7 @@ import { bus } from './data/bus.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import { fetchPortfolio } from './broker/alpaca.ts'
+import { brokerStatus, fetchKrakenPortfolio } from './broker/kraken.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -385,6 +386,15 @@ const server = createServer(async (req, res) => {
     // this route never returns them and the client cannot place an order.
     if (path === '/api/portfolio') {
       json(res, 200, { ok: true, data: await fetchPortfolio() })
+      return
+    }
+    if (path === '/api/portfolio/kraken') {
+      json(res, 200, { ok: true, data: await fetchKrakenPortfolio() })
+      return
+    }
+    // Which brokers are wired up. No network call, no secrets: just configured yes/no.
+    if (path === '/api/brokers') {
+      json(res, 200, { ok: true, data: brokerStatus() })
       return
     }
     // "What is the current state of my system?" — one document, from disk and the last watch cycle.
