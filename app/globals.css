@@ -3017,8 +3017,11 @@ textarea {
   background: radial-gradient(120% 90% at 65% 40%, #2a231c 0%, #14110e 55%, #0A0A0A 100%);
 }
 
-/* The globe replaces the pointer only over open scene area. */
-.residence-hero[data-cursor='globe'] { cursor: none; }
+/* The globe replaces the pointer across the whole document over open space.
+   The handler flips html[data-cursor] to 'native' the instant the pointer is
+   over a control, so the real cursor always returns where it is needed. */
+html[data-cursor='globe'],
+html[data-cursor='globe'] * { cursor: none !important; }
 
 .scene-bg { position: absolute; inset: 0; }
 
@@ -3394,9 +3397,13 @@ textarea {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 60;
+  z-index: 10000;
   pointer-events: none;
-  color: var(--bone);
+  /* White through a difference blend inverts against whatever is behind it —
+     dark over the cream body, bright over the cinematic scenes — so the globe
+     is legible on every ground without knowing which one it is over. */
+  color: #fff;
+  mix-blend-mode: difference;
   opacity: 0;
   transition: opacity 0.25s ease;
   will-change: transform;

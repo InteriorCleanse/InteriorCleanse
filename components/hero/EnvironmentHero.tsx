@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useMemo, useRef } from 'react'
-import { GlobeCursor } from '@/components/cursor/GlobeCursor'
 import type { Scene } from '@/lib/scenes'
 import type { Product } from '@/lib/types'
 import { AmbientToggle } from './AmbientToggle'
@@ -50,7 +49,6 @@ export function EnvironmentHero({
   height = 'full',
   featured,
   carousel = [],
-  cursor = false,
   id,
   headingLevel = 'h1',
 }: EnvironmentHeroProps) {
@@ -127,8 +125,6 @@ export function EnvironmentHero({
         {scene.ambientSound ? (
           <AmbientToggle kind={scene.ambientSound} sceneRef={stageRef} />
         ) : null}
-
-        {cursor ? <GlobeCursor targetRef={stageRef} /> : null}
       </section>
 
       {carousel.length > 0 ? (
