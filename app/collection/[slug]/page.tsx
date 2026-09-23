@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AddToCartButton } from '@/components/cart'
 import { EnvironmentHero } from '@/components/hero/EnvironmentHero'
+import { ProductImage } from '@/components/product/ProductImage'
 import { ProductPedestal } from '@/components/showroom/ProductPedestal'
 import { BreadcrumbLd, ProductLd } from '@/components/StructuredData'
 import { externalUrlOf, getCatalogProduct, productsInEnvironment, publishedProducts, toLegacyProduct } from '@/lib/catalog'
@@ -163,7 +164,7 @@ export default function CollectionProductPage({ params }: { params: { slug: stri
               {related.map((r) => (
                 <li key={r.slug}>
                   <Link href={`/collection/${r.slug}/`}>
-                    {r.images.hero ? <img src={r.images.hero} alt="" loading="lazy" decoding="async" /> : <span className="related-empty" />}
+                    <ProductImage src={r.images.hero} alt="" label={r.name} materialColor={r.materialColor ?? undefined} />
                     <span className="related-name">{r.name}</span>
                     <span className="related-price">{r.price ? `$${r.price}` : 'At partner'}</span>
                   </Link>

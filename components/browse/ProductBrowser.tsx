@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AddToCartButton } from '@/components/cart'
+import { ProductImage } from '@/components/product/ProductImage'
 import { track } from '@/lib/analytics'
 import { isInternalCheckout, purchaseLabel } from '@/lib/category-experience'
 import type { Product } from '@/lib/types'
@@ -111,7 +112,7 @@ export function ProductBrowser({
       {products.map((p) => (
         <li key={p.slug}>
           <Link href={`/shop/${p.slug}/`}>
-            <img src={p.heroImage} alt="" loading="lazy" decoding="async" />
+            <ProductImage src={p.heroImage} alt="" label={p.name} materialColor={p.materialColor} variant="plain" />
             <span className="browser-fallback-name">{p.name}</span>
             <span className="browser-fallback-price">
               {p.price ? `$${p.price}` : 'Coming soon'}
@@ -175,7 +176,15 @@ export function ProductBrowser({
               }
             >
               {/* Transparent background so the environment shows through. */}
-              <img className="browser-card-image" src={p.heroImage} alt="" loading={offset === 0 ? 'eager' : 'lazy'} decoding="async" />
+              <ProductImage
+                className="browser-card-image"
+                src={p.heroImage}
+                alt=""
+                label={p.name}
+                materialColor={p.materialColor}
+                variant="plain"
+                eager={offset === 0}
+              />
               <h3 className="browser-card-name">{p.name}</h3>
               <p className="browser-card-desc">{p.tagline}</p>
               <p className="browser-card-price">

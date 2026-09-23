@@ -9,6 +9,7 @@ import { FeaturedCard } from './FeaturedCard'
 import { Hotspots } from './Hotspots'
 import { RealismLayer } from './RealismLayer'
 import { SceneBackground } from './SceneBackground'
+import { ProductImage } from '@/components/product/ProductImage'
 import { useParallax } from './useParallax'
 
 interface EnvironmentHeroProps {
@@ -134,7 +135,7 @@ export function EnvironmentHero({
             {carousel.map((p) => (
               <li key={p.slug}>
                 <Link href={`/shop/${p.slug}/`}>
-                  <img src={p.heroImage} alt="" loading="lazy" decoding="async" />
+                  <ProductImage src={p.heroImage} alt="" label={p.name} materialColor={p.materialColor} />
                   <span className="hero-carousel-name">{p.name}</span>
                   <span className="hero-carousel-price">${p.price}</span>
                 </Link>

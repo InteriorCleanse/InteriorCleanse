@@ -3405,6 +3405,7 @@ html[data-cursor='globe'] * { cursor: none !important; }
 
 .hero-carousel-track li { flex: 0 0 62vw; scroll-snap-align: start; max-width: 240px; }
 .hero-carousel-track img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+.hero-carousel-track .product-image { width: 100%; aspect-ratio: 4 / 5; display: block; }
 .hero-carousel-name { display: block; margin-top: 0.6rem; font-size: 13px; color: var(--bone); }
 .hero-carousel-price { display: block; font-size: 12px; color: var(--taupe); }
 
@@ -3875,6 +3876,18 @@ html[data-cursor='globe'] * { cursor: none !important; }
   display: block;
   margin-bottom: 1.5rem;
 }
+
+/* When the browser card falls back to the plain product tile, keep the
+   product floating (contain, not cover) and let the scene show through. The
+   card already prints the name below, so the tile's own label is hidden, and
+   only the active card's stand-in shows so the stack does not overlap marks. */
+.browser-card-image.product-image { overflow: visible; }
+.browser-card-image .product-image-img { object-fit: contain; }
+.browser-card-image .product-image-label,
+.browser-fallback .product-image-label { display: none; }
+.browser-card:not([data-active='true']) .product-image-fallback { opacity: 0; }
+.browser-fallback .product-image { width: 100%; aspect-ratio: 4 / 5; }
+.browser-fallback .product-image-img { object-fit: cover; }
 
 .browser-card-name {
   font-family: var(--font-display);
@@ -4594,6 +4607,7 @@ html[data-cursor='globe'] * { cursor: none !important; }
 .related-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
 .related-grid a { display: grid; gap: 0.5rem; color: var(--bone); }
 .related-grid img, .related-empty { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; background: #111; }
+.related-grid .product-image { width: 100%; aspect-ratio: 4 / 5; }
 .related-name { font-size: 14px; }
 .related-price { font-size: 12px; color: var(--taupe); }
 
@@ -4998,6 +5012,15 @@ body { counter-reset: track-counter; }
   box-shadow: inset 0 0 0 1px rgba(27, 24, 21, 0.08);
   color: rgba(27, 24, 21, 0.7);
 }
+
+/* Frameless, transparent fallback for products that float over a scene. */
+.product-image-fallback--plain {
+  background: none;
+  box-shadow: none;
+  color: var(--bone);
+}
+.product-image-fallback--plain .product-image-label { color: var(--bone); }
+.product-image-fallback--plain .product-image-mark { color: var(--bone); opacity: 0.6; }
 
 .product-image-mark { color: rgba(27, 24, 21, 0.5); flex: 0 0 auto; }
 

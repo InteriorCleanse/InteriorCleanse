@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { BookCard } from '@/components/cards'
+import { ProductImage } from '@/components/product/ProductImage'
 import { EnvironmentHero } from '@/components/hero/EnvironmentHero'
 import { PageHero } from '@/components/ui'
 import { digitalProducts, gumroadUrl, healthBooks, mindBooks } from '@/lib/content'
@@ -72,7 +73,7 @@ export default function Library() {
               {digitalProducts.map((item) => (
                 <article className="download-card" key={item.slug} data-reveal>
                   <div className="download-card-image">
-                    <img src={item.coverImage} alt={item.imageAlt} loading="lazy" />
+                    <ProductImage src={item.coverImage} alt={item.imageAlt} label={item.title} />
                     <span className="download-format">{item.format}</span>
                   </div>
                   <h3 className="download-title">{item.title}</h3>

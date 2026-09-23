@@ -23,6 +23,7 @@ export function ProductImage({
   className = '',
   loading = 'lazy',
   eager = false,
+  variant = 'tile',
 }: {
   src?: string | null
   alt: string
@@ -32,6 +33,9 @@ export function ProductImage({
   className?: string
   loading?: 'lazy' | 'eager'
   eager?: boolean
+  /** `tile` fills a card; `plain` is a transparent, frameless fallback for
+      surfaces where the product floats over a scene. */
+  variant?: 'tile' | 'plain'
 }) {
   const [failed, setFailed] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -43,7 +47,7 @@ export function ProductImage({
   return (
     <span className={`product-image ${className}`.trim()} data-fallback={showImage ? undefined : 'true'}>
       <span
-        className="product-image-fallback"
+        className={`product-image-fallback${variant === 'plain' ? ' product-image-fallback--plain' : ''}`}
         aria-hidden={showImage ? 'true' : undefined}
         style={{ ['--swatch' as string]: materialColor }}
       >
