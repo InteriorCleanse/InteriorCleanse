@@ -340,7 +340,10 @@ export function AssistantDock(props: Props) {
         className="assistant-orb fixed bottom-6 right-6 z-40 inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-panelRaised px-5 text-sm font-medium text-ink shadow-panel transition hover:border-signal"
         aria-label={`Ask ${props.assistantName}`}
       >
-        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-signal" />
+        <span aria-hidden="true" className="assistant-reactor">
+          <span className="assistant-reactor-ring" />
+          <span className="assistant-reactor-core" />
+        </span>
         Ask {props.assistantName}
       </button>
     )

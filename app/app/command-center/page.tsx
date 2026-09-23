@@ -12,6 +12,7 @@ import { changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
 import { ALLOCATION_MODEL_LABELS } from '@/lib/metrics/allocation'
 import { formatMoney, money } from '@/lib/money'
 import { COMPARISON_LABELS } from '@/lib/periods'
+import { computeSignals, type SignalSeverity } from '@/lib/signals'
 
 export const metadata = { title: 'Command center' }
 
@@ -41,6 +42,20 @@ export default async function CommandCenterPage({
   const { metrics } = analytics
   const comparisonLabel =
     comparison === 'none' ? undefined : COMPARISON_LABELS[comparison].toLowerCase()
+
+  // The "what needs a decision" layer, from figures already loaded. Pure and
+  // per-workspace: no extra data reach, no cross-tenant view.
+  const signals = analytics.hasData
+    ? computeSignals({
+        revenue: changeFor(analytics, 'netRevenue'),
+        profit: changeFor(analytics, 'contributionProfit'),
+        spend: changeFor(analytics, 'adSpend'),
+        contributionMargin: metrics.contributionMargin.value,
+        refundRate: metrics.refundRate.value,
+        unallocatedMinor: metrics.allocation.unallocated.minor,
+        formatMoney: fmt,
+      })
+    : []
 
   const cards = [
     ['netRevenue', metrics.netRevenue],
@@ -93,6 +108,33 @@ export default async function CommandCenterPage({
                 </p>
               </div>
             </Panel>
+          ) : null}
+
+          {signals.length > 0 ? (
+            <section aria-label="Signals">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-muted">
+                Signals · what needs a decision
+              </h2>
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {signals.map((signal) => (
+                  <li key={signal.id}>
+                    <Panel className={SIGNAL_BORDER[signal.severity]}>
+                      <div className="flex items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className={`inline-block h-2 w-2 rounded-full ${SIGNAL_DOT[signal.severity]}`}
+                        />
+                        <span className={`text-xs font-semibold uppercase tracking-[0.14em] ${SIGNAL_TEXT[signal.severity]}`}>
+                          {SIGNAL_LABEL[signal.severity]}
+                        </span>
+                      </div>
+                      <h3 className="mt-2 text-sm font-semibold text-ink">{signal.title}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-muted">{signal.detail}</p>
+                    </Panel>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : null}
 
           <section>
@@ -207,6 +249,27 @@ export default async function CommandCenterPage({
       )}
     </div>
   )
+}
+
+const SIGNAL_BORDER: Record<SignalSeverity, string> = {
+  critical: 'border-negative/50',
+  warning: 'border-amber/40',
+  info: 'border-hairline',
+}
+const SIGNAL_DOT: Record<SignalSeverity, string> = {
+  critical: 'bg-negative',
+  warning: 'bg-amber',
+  info: 'bg-signal',
+}
+const SIGNAL_TEXT: Record<SignalSeverity, string> = {
+  critical: 'text-negative',
+  warning: 'text-amber',
+  info: 'text-muted',
+}
+const SIGNAL_LABEL: Record<SignalSeverity, string> = {
+  critical: 'Critical',
+  warning: 'Watch',
+  info: 'Note',
 }
 
 function EmptyState() {
