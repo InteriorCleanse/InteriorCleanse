@@ -1,0 +1,752 @@
+/**
+ * ============================================================
+ *  YOUR SETTINGS  —  this is the only file you need to edit.
+ * ============================================================
+ *
+ * Change a number, save the file, run the bot again. That's it.
+ * Nothing here can place a real trade. There is no live-trading
+ * switch anywhere in this project.
+ *
+ * Times below are in NEW YORK time (ET), because that is how the
+ * ICT session model is defined. The bot converts to your local
+ * time whenever it prints something.
+ */
+
+export const config = {
+  // ---------- WHAT TO WATCH ----------
+
+  /** The market. BTCUSDT means "Bitcoin priced in US dollars". */
+  symbol: 'BTCUSDT',
+
+  /**
+   * Candle size. The session model works best on '5m' or '1m'.
+   * Options: '1m' '3m' '5m' '15m' '30m' '1h' '4h' '1d'
+   */
+  interval: '5m',
+
+  /**
+   * Which brain to use.
+   *   'ict'       — session ranges, liquidity sweeps, inversion FVGs (the main one)
+   *   'crossover' — the simple 9/21 moving-average teaching strategy
+   */
+  strategy: 'ict' as 'ict' | 'crossover',
+
+  // ---------- YOUR (PRETEND) MONEY ----------
+
+  /** Pretend balance. Not connected to anything. */
+  accountSizeUsd: 25,
+
+  /**
+   * How much of the account one losing trade is allowed to cost.
+   * 1 means 1% — on a $25 account that is 25 cents per loss.
+   * Professionals rarely go above 1–2%. The bot sizes every ICT
+   * trade so that hitting the stop loses exactly this much.
+   */
+  riskPerTradePercent: 1,
+
+  /** Never let one position be worth more than this many dollars. */
+  maxPositionValueUsd: 25,
+
+  /**
+   * Fees for the IDEALISED pre-Phase-4 model only, percent per side — the
+   * before/after comparison in `IDEAL_ASSUMPTIONS`. It is NOT the fee your
+   * results are computed with.
+   *
+   * Every reported result — paper, backtest, replay, shadow, the journal —
+   * comes from `execution.takerFeePercent` / `execution.makerFeePercent`
+   * below, because those are what `defaultAssumptions()` reads. Changing the
+   * number here moves nothing except the idealised comparison. Set your real
+   * venue fees in `execution`, not here.
+   *
+   * (This comment used to claim every result already had this fee taken out.
+   * It did not: the engine has read `execution.*` since Phase 4, and the only
+   * other consumer, the journal's R, was reading this one — so the two
+   * disagreed by 0.08R the moment a venue fee tier was set. The journal now
+   * reads `execution.*` too.)
+   */
+  feePercent: 0.1,
+
+  // ---------- HOW ORDERS REALLY FILL ----------
+
+  /**
+   * The bot no longer pretends an order fills at the exact price it
+   * wanted. These are the costs it charges itself on paper and in the
+   * look-back test, so the numbers stay honest. Set them from what your
+   * exchange actually shows you; the defaults are ordinary for BTC spot.
+   */
+  execution: {
+    /** Full bid/ask spread, in basis points (1 bp = 0.01 %). You pay half on each side. */
+    spreadBps: 1,
+
+    /** How far a market order moves the price against you, in basis points. */
+    slippageBps: 2,
+
+    /** A take-profit only counts as filled when price trades THROUGH it by this much (bp). A touch is not a fill. */
+    targetTouchBps: 1,
+
+    /** Candles between the signal and the order. 1 = enter at the next candle's open (the honest minimum). */
+    latencyCandles: 1,
+
+    /** If the next candle opens further than this from the intended entry (in ATRs), the trade is missed, not chased. */
+    maxEntryDriftAtr: 0.5,
+
+    /** Fee for market orders — entries, stops, time exits — percent per side. */
+    takerFeePercent: 0.1,
+
+    /** Fee for resting limit orders — the take-profit — percent per side. */
+    makerFeePercent: 0.1,
+  },
+
+  // ---------- THE ICT SESSION MODEL ----------
+
+  ict: {
+    /** The clock the session model runs on. Leave this alone. */
+    timezone: 'America/New_York',
+
+    /**
+     * The "trading day" rolls over at this hour ET (18 = 6pm), so the
+     * Asian session that starts in the evening belongs to the NEXT
+     * day's plan — the day it sets up. This is how ICT counts days.
+     */
+    dayStartHour: 18,
+
+    /**
+     * Session windows, in ET, 24-hour clock. Each one gets a High and
+     * a Low marked on the chart and watched for sweeps.
+     */
+    sessions: {
+      asia:    { start: '20:00', end: '00:00', label: 'Asia' },
+      london:  { start: '02:00', end: '05:00', label: 'London' },
+      newYork: { start: '08:30', end: '11:00', label: 'New York AM' },
+      nyPM:    { start: '13:30', end: '16:00', label: 'New York PM' },
+    },
+
+    /**
+     * The bot is only allowed to ENTER during these sessions. These
+     * are the "killzones" — the windows where the big players move
+     * price. Outside them it watches and reports, but never trades.
+     */
+    killzones: ['london', 'newYork'] as Array<'asia' | 'london' | 'newYork' | 'nyPM'>,
+
+    /** Sit out Saturday and Sunday — thin liquidity, no institutions. */
+    skipWeekends: true,
+
+    /**
+     * The setup, step by step. The bot needs ALL of these before it
+     * takes a trade, and it tells you which ones are missing.
+     */
+
+    /** A sweep must poke at least this far past the level, in ATRs. 0 = any wick counts. */
+    sweepMinDepthAtr: 0.05,
+
+    /** After a sweep, the reversal candle's BODY must be at least this many ATRs. That's "displacement". */
+    displacementBodyAtr: 1.0,
+
+    /** A fair value gap smaller than this (in ATRs) is noise and is ignored. */
+    fvgMinSizeAtr: 0.15,
+
+    /**
+     * Wait for an INVERSION fair value gap before entering.
+     *   true  — the gap must first be broken through, then come back and hold
+     *           (the inversion). This is the entry you asked for.
+     *   false — a plain retest of the displacement gap is enough. More trades, lower quality.
+     */
+    requireInversion: true,
+
+    /** How many candles after a sweep the bot keeps looking for the rest of the setup. 24 × 5m = 2 hours. */
+    setupWindowCandles: 24,
+
+    /** Forget a fair value gap this many candles after it formed. 288 × 5m = one day. */
+    fvgMaxAgeCandles: 288,
+
+    /** Stop loss sits this many ATRs beyond the sweep wick, so a re-poke doesn't take you out. */
+    stopBufferAtr: 0.15,
+
+    /**
+     * Where to take profit.
+     *   'liquidity' — aim for the opposite session high/low (the next pool of orders)
+     *   'fixed'     — always aim for fixedRR times the risk
+     */
+    takeProfit: 'liquidity' as 'liquidity' | 'fixed',
+
+    /** The reward-to-risk the bot insists on. 2 means "make $2 for every $1 risked". */
+    minRR: 2,
+
+    /** Used when takeProfit is 'fixed', or when no liquidity target gives enough RR. */
+    fixedRR: 2,
+
+    /** Give up on a trade that hasn't hit stop or target after this many candles. 96 × 5m = 8 hours. */
+    maxHoldCandles: 96,
+
+    /** Hard daily brakes. Both are your friend. */
+    maxTradesPerDay: 2,
+    dailyLossLimitR: 2,
+
+    /** Skip a day whose Asia range is tiny — nothing to sweep, no story. In ATRs. */
+    minAsiaRangeAtr: 0.8,
+
+    /** Don't enter this many minutes before or after a high-impact news event. */
+    newsBlackoutMinutes: 15,
+
+    /** Indicator lengths. Leave these unless you know why you're changing them. */
+    atrPeriod: 14,
+    swingLookback: 3,
+  },
+
+  // ---------- MARKET STRUCTURE ----------
+
+  /**
+   * How swings, structure breaks, order blocks and the dealing range are
+   * read. These are shared readings drawn on the chart; the session
+   * checklist above does not trade on them yet.
+   */
+  structure: {
+    /** An order block is the last opposite-coloured candle within this many candles before a displacement. */
+    orderBlockLookback: 3,
+
+    /** Forget an order block this many candles after it formed. 288 × 5m = one day. */
+    orderBlockMaxAgeCandles: 288,
+
+    /** Position in the dealing range (0 = at the swing low, 100 = at the swing high) above which price is "premium"… */
+    premiumAbovePercent: 55,
+
+    /** …and below which it is "discount". In between is equilibrium. */
+    discountBelowPercent: 45,
+  },
+
+  // ---------- THE SIMPLE STRATEGY (only used when strategy = 'crossover') ----------
+
+  crossover: {
+    fastMA: 9,
+    slowMA: 21,
+    quantity: 0.0002,
+    maxPosition: 0.001,
+    holdCandles: 12,
+  },
+
+  // ---------- THE PLAYBOOK (many strategies, each judged alone) ----------
+
+  /**
+   * Mr. Cash reads the market through several strategies at once. Each one
+   * votes on its own — nothing is combined into a single decision yet, and
+   * only the ICT session model actually opens paper trades. The rest are
+   * shown on the Playbook tab so you can watch what each would do and test
+   * it on its own with the look-back test.
+   */
+  strategies: {
+    /** Which strategies are shown and replayable. Empty = all of them. */
+    enabled: [] as string[],
+
+    /** The stop for the feature-based strategies sits this many ATRs from entry… */
+    stopAtr: 1.0,
+
+    /** …and the target is this many times the risk. */
+    minRR: 2,
+  },
+
+  // ---------- RISK (the veto engine) ----------
+
+  /**
+   * The risk engine has veto power over every order, paper or live. These
+   * are the limits it enforces on top of the per-trade sizing. The exchange
+   * `filters` are 0 (off) here so paper sizes are exact; Phase 20 sets the
+   * real venue values before anything goes near a live order.
+   */
+  risk: {
+    /** At most this many paper positions open at once. */
+    maxOpenPositions: 1,
+
+    /** Total open notional cap, in dollars. 0 = use the account size. */
+    maxExposureUsd: 0,
+
+    /** Stop opening new risk once paper equity is this far below its peak, in percent. */
+    maxDrawdownPercent: 25,
+
+    /** Veto a trade when the latest candle is older than this — the feed may be stalled. */
+    maxCandleAgeSec: 180,
+
+    /** Veto a trade when the spread is wider than this percent of price. */
+    maxSpreadPct: 0.1,
+
+    /** Exchange filters for sizing. 0 = off. */
+    filters: { tickSize: 0, stepSize: 0, minNotionalUsd: 0 },
+  },
+
+  // ---------- SIGNAL FUSION (combining the votes) ----------
+
+  /**
+   * How the separate strategy votes become one decision. The weights are
+   * regime-aware and are shown with every decision, never hidden.
+   *
+   * `driveTrading` is OFF by default: the 24/7 paper trader still acts on the
+   * ICT session model alone, exactly as before. Turn it on to have the paper
+   * trader act on the FUSED decision instead (still through the risk check).
+   */
+  fusion: {
+    driveTrading: false,
+
+    /** Agreement (0–100) at or above which a lean becomes an actual LONG/SHORT… */
+    enterScore: 60,
+
+    /** …provided the winning side also outweighs the other by at least this much. */
+    dominance: 1.5,
+
+    /** Base weight per strategy family, before the regime multiplier. */
+    weights: { session: 1.0, 'order-flow': 0.8, breakout: 0.7, trend: 0.7, vwap: 0.6, 'mean-reversion': 0.6, crossover: 0.3 } as Record<string, number>,
+  },
+
+  // ---------- THE LOOK-BACK TEST ----------
+
+  replay: {
+    /** How many days of history to test the ICT model on. More = slower but more honest. */
+    lookbackDays: 30,
+
+    /** Below this many trades the bot warns you the sample is too small to mean anything. */
+    minSetupsForConfidence: 20,
+  },
+
+  // ---------- THE BACKTESTER (honest, out-of-sample) ----------
+
+  /**
+   * The backtester splits history into a part it "fits" on and a part it is
+   * judged on — the out-of-sample part it never looked at — plus a rolling
+   * walk-forward and a Monte-Carlo shuffle. The only number worth trusting is
+   * the out-of-sample one.
+   */
+  backtest: {
+    /** Fraction of history used in-sample (fitting), then for validation; the rest is out-of-sample. */
+    trainPct: 0.6,
+    validationPct: 0.2,
+
+    /** Walk-forward window sizes, in days. */
+    walkForward: { trainDays: 30, testDays: 10 },
+
+    /** How many resampled runs the Monte-Carlo does. */
+    monteCarloSamples: 2000,
+  },
+
+  // ---------- FACTORY (the strategy breeder) ----------
+
+  /**
+   * The strategy factory generates parameter variants, backtests each one, and
+   * keeps only the survivors that hold up out-of-sample with multiple-testing
+   * discipline. Nothing it finds is ever auto-enabled — a survivor still needs
+   * a passport (Phase 15) before it can trade. These are the survival gates.
+   */
+  factory: {
+    /** A survivor needs at least this many out-of-sample trades — anything less is noise. */
+    minOosTrades: 20,
+    /** …and an out-of-sample expectancy (avg R per trade) of at least this. */
+    minOosAvgR: 0.05,
+    /**
+     * Parameter stability: of a genome and its immediate neighbours on the
+     * grid, at least this share must also be profitable out-of-sample. A lone
+     * spike surrounded by losers is curve-fitting, not an edge, and is rejected.
+     */
+    stabilityMinShare: 0.6,
+    /** Deflated-Sharpe confidence: P(edge is real, given the number of trials) must clear this. */
+    deflatedSharpeMin: 0.9,
+    /** Default campaign budget — the most genomes one run will evaluate (excluding stability probes). */
+    maxGenomes: 60,
+  },
+
+  // ---------- VAULT (passports, decay, champion-challenger) ----------
+
+  /**
+   * Every strategy instance the factory produces gets a passport and a
+   * lifecycle: candidate → paper → shadow → live, with decay detection and
+   * champion-challenger promotion. Nothing is ever auto-promoted to live.
+   */
+  vault: {
+    /** Decay needs at least this many live-ish trades before it will judge anything. */
+    decayMinTrades: 20,
+    /** The window (in trades) the rolling expectancy is measured over. */
+    decayWindow: 20,
+    /** CUSUM slack (in R): deviations smaller than this from the expected R are ignored. */
+    cusumSlack: 0.1,
+    /** CUSUM alarm threshold (in R): the accumulated downside that counts as a sustained shift. */
+    cusumThreshold: 3,
+    /** A challenger must beat the champion by at least this much OOS avg R to promote. */
+    promotionEdgeR: 0.02,
+    /** …and have at least this many paper trades where it also beats the champion. */
+    promotionMinPaperTrades: 20,
+  },
+
+  // ---------- MR. CASH INTELLIGENCE LAYER (Phase 22 — read-only) ----------
+
+  /**
+   * The intelligence / visualization layer: automatic chart markup, provenance,
+   * "why this trade" and "why not", replay without look-ahead, alerts, AI
+   * explanations and the TradingView export.
+   *
+   * It is READ-ONLY and sits ABOVE the engine. Nothing here can produce a
+   * signal, size a position, veto a trade, place an order or change a decision —
+   * turning every one of these flags off must leave trading behaviour
+   * byte-identical. NONE of these is a trading-execution flag: the execution
+   * gates (LIVE_TRADING_ENABLED, live.enabled, shadow.enabled) are untouched by
+   * this block and stay exactly as they are.
+   */
+  intelligence: {
+    /** Master switch for the whole layer. Off = the /api/intel/* routes report disabled. */
+    enabled: true,
+
+    /** Automatic annotation of what the engine sees. */
+    chartMarkup: true,
+
+    /** Higher-timeframe context layers (only for timeframes the stored candles support). */
+    mtfMarkup: true,
+
+    /** Annotation frames + event timeline during replay, filtered to what was knowable. */
+    replayIntelligence: true,
+
+    /** The Pine snapshot generator. A point-in-time export, never a live feed. */
+    tradingViewExport: true,
+
+    /** Derivation of alert events from real engine-state changes. Never places an order. */
+    alertCenter: true,
+
+    /** The AI explanation endpoint. Explains engine state only and cites annotation ids. */
+    aiExplanation: true,
+
+    /** The most annotations one API response will return, so a huge window cannot wedge the page. */
+    maxAnnotations: 2000,
+
+    /** The most drawings one Pine export will emit (TradingView caps these too). */
+    maxPineDrawings: 400,
+  },
+
+  // ---------- EXTENDED PAPER VALIDATION (the validation stage) ----------
+
+  /**
+   * The FROZEN validation profile. Extended paper trading is a *measurement*
+   * stage, not a tuning stage: nothing here is optimised against paper results,
+   * and none of these numbers may be changed to flatter a run. Change the
+   * profile only on purpose, and bump `profile` when you do — that invalidates
+   * the sample and the validation starts over. The market, timeframe, strategy,
+   * risk limits, execution assumptions, data provider and freshness limits are
+   * read from the blocks above; this block records the *gates* that decide when
+   * the paper sample finally MEANS something. Until every gate is met the
+   * verdict is INSUFFICIENT SAMPLE — a small sample is never dressed up as one.
+   */
+  paperValidation: {
+    /** The frozen profile label. Bump this when you deliberately change any input; it resets the sample. */
+    profile: 'PAPER_VALIDATION-1',
+
+    /** The gates. All must pass before the verdict leaves INSUFFICIENT SAMPLE. */
+    gates: {
+      /** Minimum taken paper trades, per strategy, before that strategy's numbers are trusted. */
+      minTradesPerStrategy: 20,
+      /** Minimum total taken paper trades across the whole system. */
+      minTradesTotal: 40,
+      /** Minimum calendar span, in weeks. A burst of trades in one week is not a track record. */
+      minWeeks: 4,
+      /** Minimum distinct regimes the taken trades must span (of trending/ranging/breakout/transition). */
+      minRegimesCovered: 2,
+      /** Minimum distinct sessions (killzones) the taken trades must span. */
+      minSessionsCovered: 2,
+      /** Data quality: the share of actionable signals seen on a fresh, trusted feed must be at least this. */
+      minDataQuality: 0.95,
+      /** Stability: realised paper expectancy must not fall more than this many R below the out-of-sample floor. */
+      maxPaperVsOosShortfallR: 0.1,
+      /** The paper equity drawdown over the window, in percent, must not exceed this. */
+      maxDrawdownPercent: 25,
+      /** Soak: the process must have run at least this many hours continuously with recovery intact. */
+      minSoakHours: 168,
+    },
+
+    /**
+     * Shadow trading is PREPARED here, never activated. SHADOW_READY is reported
+     * only when all of these are true — but turning shadow on stays a deliberate,
+     * separate, human action (config.shadow.enabled + a read-only key). Nothing
+     * in the validation stage flips it.
+     */
+    shadowReadiness: {
+      /** The paper gates must be met before shadow is even considered. */
+      requirePaperGatesMet: true,
+      /** A read-only exchange key must be present (checked, never printed). */
+      requireReadOnlyKey: true,
+      /** Minimum shadow-scored orders before shadow ITSELF would be validated — the next stage's gate, documented now. */
+      minShadowOrders: 20,
+    },
+  },
+
+  // ---------- SHADOW (read-only exchange, Phase 19) ----------
+
+  /**
+   * Shadow trading builds the exact order it WOULD send against the live venue
+   * and scores it later from real trades — without ever sending. It needs a
+   * READ-ONLY exchange key (EXCHANGE_API_KEY / EXCHANGE_API_SECRET in .env) and
+   * is off unless both the key is present and `enabled` is true. There is no
+   * order-placing code in this phase.
+   */
+  shadow: {
+    enabled: false,
+    /** Binance global by default; 'binance-us' switches the min-notional filter and base URL. */
+    flavour: 'binance' as 'binance' | 'binance-us',
+    baseUrl: 'https://api.binance.com',
+    baseUrlUs: 'https://api.binance.us',
+    recvWindow: 5000,
+  },
+
+  // ---------- LIVE (real orders — dormant, gated, Phase 20) ----------
+
+  /**
+   * The live-execution block. It is OFF, and getting it on is deliberately
+   * hard: `enabled` here is only ONE of a chain of gates (see src/live/gates.ts),
+   * every one of which must pass — including the top-level `LIVE_TRADING_ENABLED`
+   * flag (still false), the `MRCASH_LIVE` env phrase, a testnet track record, a
+   * typed confirmation, the guard, an absent kill switch and a healthy feed.
+   * With any gate closed, no order-placing code can run. These caps are the
+   * hard ceiling once (if ever) it is armed.
+   */
+  live: {
+    enabled: false,
+    /** testnet first, then live — never reachable unless every gate passes. */
+    venue: 'testnet' as 'testnet' | 'live',
+    /** Minimum reconciled testnet trades before real money is even a possibility. */
+    minTestnetTrades: 20,
+    /** Hard caps, enforced on top of the risk engine. */
+    maxNotionalUsd: 25,
+    maxTradesPerDay: 3,
+    maxOpenPositions: 1,
+    /** The exact phrase MRCASH_LIVE must equal in the environment. */
+    envPhrase: 'I_UNDERSTAND_REAL_MONEY',
+  },
+
+  // ---------- MEMORY ----------
+
+  memory: {
+    /** How many times the same kind of setup must LOSE before the bot refuses it. */
+    skipAfterLosses: 3,
+
+    /** ...and it must also win less often than this (0.4 = 40%). */
+    skipIfWinRateBelow: 0.4,
+  },
+
+  // ---------- NEWS ----------
+
+  news: {
+    /** Which currencies' economic events matter to you. USD moves everything. */
+    currencies: ['USD'],
+
+    /** Only these impact levels make it onto the "stand aside" list. */
+    blackoutImpacts: ['High'],
+
+    /** Re-download news at most this often. Feeds don't like being hammered. */
+    cacheMinutes: 10,
+  },
+
+  // ---------- THE OPTIONAL AI ASSISTANT ----------
+
+  ai: {
+    /**
+     * Which Claude model answers your questions in `npm run talk`
+     * and the dashboard's Ask tab. Needs ANTHROPIC_API_KEY in .env.
+     *
+     *   'claude-opus-5'     — the default. Excellent, and half the price.
+     *   'claude-fable-5-1'  — Anthropic's most capable model. About 2× the cost.
+     *
+     * A typical question costs a fraction of a cent on either.
+     * The bot prints the cost after every answer so you always know.
+     */
+    model: 'claude-opus-5',
+
+    /** How hard the model thinks: 'low' | 'medium' | 'high'. Medium is plenty for Q&A. */
+    effort: 'medium' as 'low' | 'medium' | 'high',
+
+    /** Price per million tokens, used only to show you the cost. */
+    prices: {
+      'claude-opus-5':    { input: 5,  output: 25 },
+      'claude-fable-5-1': { input: 10, output: 50 },
+    } as Record<string, { input: number; output: number }>,
+  },
+
+  // ---------- THE APP ----------
+
+  /** Which port the app opens on. Change only if 4173 is busy. */
+  webPort: 4173,
+
+  app: {
+    /**
+     * Let your phone open Mr. Cash over your home wifi.
+     *   false — this computer only (safest, the default)
+     *   true  — also reachable from other devices on the same network,
+     *           protected by the PIN below
+     */
+    allowPhone: false,
+
+    /** The PIN your phone must enter. Leave '' and Mr. Cash makes a fresh one every start and prints it. */
+    pin: '',
+
+    /** While the app is open, re-read the market this often (minutes) and raise alerts. 5 = every candle. */
+    watchEveryMinutes: 5,
+
+    /** Warn this many minutes before an entry window opens. */
+    killzoneHeadsUpMinutes: 15,
+
+    /**
+     * The 24/7 paper trader. When the checklist passes and risk and memory
+     * agree, Mr. Cash opens a PAPER position, manages it candle by candle,
+     * records the outcome in memory, and writes you a journal entry.
+     * Still no exchange, still no real money — a record in a file.
+     */
+    autoPaperTrade: true,
+  },
+
+  // ---------- LIVE MARKET DATA ----------
+
+  /**
+   * Where the bot's prices come from while it runs. With `stream` on it
+   * holds a live connection to the exchange's public data stream and
+   * reacts the moment a candle closes; if the stream drops, it falls back
+   * to polling and says so. Nothing here needs an account or a key.
+   */
+  data: {
+    /** Use the live stream. false = poll every watchEveryMinutes like before. */
+    stream: true,
+
+    /** Public stream hosts, tried in order. The first is the market-data-only host. */
+    streamHosts: ['wss://data-stream.binance.vision', 'wss://stream.binance.com:9443', 'wss://stream.binance.us:9443'],
+
+    /** Keep this many order-book levels per side in memory from the depth stream. */
+    bookLevels: 200,
+
+    /** Reconnect back-off, in milliseconds. Doubles from min to max. */
+    reconnectMinMs: 1000,
+    reconnectMaxMs: 30_000,
+
+    /** A stream with no message for this long is considered down. Candles arrive every interval; trades and the book every second on BTC. */
+    staleAfterMs: 90_000,
+
+    /** Keep at most this many days of candles in the store (older ones are pruned). */
+    keepDays: 400,
+  },
+
+  // ---------- FEATURES ----------
+
+  /**
+   * The shared readings every strategy consumes: VWAP, volume profile,
+   * hourly averages, momentum, volatility. Inputs only — no trade rules
+   * live here. Each reading says whether it came from the live tape
+   * (exact) or from candles (an approximation).
+   */
+  features: {
+    /** VWAP bands, in standard deviations of the volume-weighted price. */
+    vwapBandSd: 1,
+
+    /** The value area holds this percent of the day's volume. 70 is the textbook number. */
+    valueAreaPercent: 70,
+
+    /** Volume-profile bucket height, in ATRs. Smaller = finer, noisier. */
+    profileBucketAtr: 0.1,
+
+    /** Hours of history the 20/50-hour averages need before they are reported. */
+    hourlyAveragesMinHours: 60,
+
+    /** Where cumulative volume delta starts counting from: the trading day or the current session. */
+    cvdAnchor: 'day' as 'day' | 'session',
+
+    /** Tape speed is measured over this many seconds (and compared with the window before it). */
+    tapeWindowSec: 60,
+
+    /** Large prints are counted over this many minutes. */
+    largeTradesWindowMin: 15,
+
+    /** Book imbalance looks this far either side of the mid price, in percent. */
+    bookBandPct: 1,
+
+    /**
+     * The absorption heuristic (see src/features/absorption.ts): volume at
+     * least this many times the typical candle, trades spanning at most this
+     * many ATRs, and one side making up at least this share of the volume.
+     */
+    absorption: { volumeMultiple: 2, maxRangeAtr: 0.25, minDeltaShare: 0.3, minHistory: 6 },
+
+    /**
+     * The regime reading (see src/features/regime.ts): a break counts as
+     * "recent" for this many candles, and volatility is "expanding" when the
+     * current ratio is at least `breakoutVolRatio`× the ratio `breakoutLookback`
+     * candles ago (and above 1).
+     */
+    regime: { recentShiftCandles: 12, breakoutLookback: 12, breakoutVolRatio: 1.3 },
+  },
+
+  // ---------- ORDER FLOW ----------
+
+  orderflow: {
+    /** Read the public order book and recent trades. Free, no key. */
+    enabled: true,
+
+    /** How many price levels of the order book to read on each side (max 5000). */
+    depthLevels: 1000,
+
+    /** Group the book into buckets this wide, as a percent of price. 0.1 = $100 buckets at $100,000. */
+    bucketPercent: 0.1,
+
+    /** A bucket holding at least this many times the typical bucket is a "wall". */
+    wallMultiple: 5,
+
+    /** A single trade bigger than this (in dollars) counts as a big print. */
+    bigTradeUsd: 100_000,
+
+    /** How many recent trades to read. Max 1000. */
+    tradesLimit: 1000,
+  },
+
+  // ---------- TRADINGVIEW ----------
+
+  tradingview: {
+    /** The chart shown inside the app. Any TradingView symbol string. */
+    widgetSymbol: 'BINANCE:BTCUSDT',
+
+    /**
+     * A secret your TradingView alerts must include, so nobody else can
+     * poke the webhook. Leave '' and Mr. Cash makes one and prints it.
+     */
+    webhookSecret: '',
+  },
+}
+
+/** Free, public, read-only order-flow endpoints — same hosts as the prices. */
+export const flowSources = {
+  orderBook: '/api/v3/depth',
+  trades: '/api/v3/aggTrades',
+}
+
+/**
+ * Where market data comes from. Free, public, read-only. No account,
+ * no key, no sign-up. The bot tries them in order.
+ */
+export const dataSources = process.env.MRCASH_MARKET_URL
+  ? [`${process.env.MRCASH_MARKET_URL.replace(/\/$/, '')}/api/v3/klines`] // tests point this at a local stand-in feed
+  : [
+      'https://data-api.binance.vision/api/v3/klines',
+      'https://api.binance.com/api/v3/klines',
+      'https://api.binance.us/api/v3/klines',
+    ]
+
+/**
+ * Where news comes from. All free, all public. If one is down the bot
+ * says so and carries on with the others.
+ */
+export const newsSources = process.env.MRCASH_NEWS_URL
+  ? { calendar: `${process.env.MRCASH_NEWS_URL.replace(/\/$/, '')}/calendar.json`, headlines: [{ name: 'Test feed', url: `${process.env.MRCASH_NEWS_URL.replace(/\/$/, '')}/rss` }] } // tests only
+  : {
+      /** This week's economic calendar, with impact ratings. */
+      calendar: 'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+
+      /** Headline feeds (RSS). */
+      headlines: [
+        { name: 'CoinDesk',      url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
+        { name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss' },
+        { name: 'Google News',   url: 'https://news.google.com/rss/search?q=bitcoin+OR+crypto+OR+%22federal+reserve%22&hl=en-US&gl=US&ceid=US:en' },
+      ],
+    }
+
+/**
+ * HARD SAFETY LOCK.
+ * This is false and no code anywhere in this project sets it to true.
+ * Every "order" is written to a text file and your screen — never to
+ * an exchange.
+ */
+export const LIVE_TRADING_ENABLED = false

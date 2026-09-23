@@ -1,0 +1,31 @@
+name: Mr. Cash (trading-bot)
+
+# Runs only when the bot changes. Three gates, in order: the type check,
+# the offline self-test, and the test suite (which starts the real server
+# against a local stand-in feed — no internet is needed or used).
+
+on:
+  push:
+    paths: ['trading-bot/**', '.github/workflows/bot.yml']
+  pull_request:
+    paths: ['trading-bot/**', '.github/workflows/bot.yml']
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: trading-bot
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Type check
+        run: npm run typecheck
+      - name: Self-test (offline logic)
+        run: npm run selftest
+      - name: Test suite
+        run: npm test

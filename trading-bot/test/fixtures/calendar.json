@@ -1,0 +1,6 @@
+[
+  { "title": "CPI m/m", "country": "USD", "date": "2026-01-15T08:30:00-05:00", "impact": "High", "forecast": "0.3%", "previous": "0.2%" },
+  { "title": "Unemployment Claims", "country": "USD", "date": "2026-01-15T08:30:00-05:00", "impact": "Medium", "forecast": "210K", "previous": "205K" },
+  { "title": "Bank Holiday", "country": "JPY", "date": "2026-01-15T00:00:00-05:00", "impact": "Holiday", "forecast": "", "previous": "" },
+  { "title": "FOMC Statement", "country": "USD", "date": "2026-01-28T14:00:00-05:00", "impact": "High", "forecast": "", "previous": "" }
+]

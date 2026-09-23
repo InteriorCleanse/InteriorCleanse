@@ -1,0 +1,15 @@
+# Mr. Cash — paper trading, 24/7. Data persists in a named volume; logs and the
+# store survive restarts. No exchange keys, no real orders.
+services:
+  mrcash:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4173:4173"
+    environment:
+      - MRCASH_DATA_DIR=/data
+      # LIVE stays off. Do not set MRCASH_LIVE here.
+    volumes:
+      - mrcash-data:/data
+volumes:
+  mrcash-data:

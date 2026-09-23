@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+.DS_Store
+# Runtime data: the store and its readable mirrors. Only the placeholder is tracked.
+data/*
+!data/.gitkeep
+# Fresh data directories for real paper runs (MRCASH_DATA_DIR=./data-soak, see docs/PAPER_SOAK_RUNBOOK.md): never committed.
+data-*/

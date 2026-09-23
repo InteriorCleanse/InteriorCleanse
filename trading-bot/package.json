@@ -1,0 +1,57 @@
+{
+  "name": "mr-cash",
+  "version": "2.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Mr. Cash \u2014 a paper-trading bot built on the ICT session model that explains every decision and learns from its own mistakes. No real money, ever.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "app": "node src/server.ts",
+    "talk": "node src/talk.ts",
+    "brief": "node src/index.ts brief",
+    "news": "node src/index.ts news",
+    "state": "node src/index.ts state",
+    "flow": "node src/index.ts flow",
+    "watch": "node src/watch.ts",
+    "doctor": "node src/doctor.ts",
+    "picture": "node src/picture.ts",
+    "mcp": "node src/mcp.ts",
+    "mcp:config": "node src/mcp.ts --config",
+    "paper": "node src/index.ts paper",
+    "scan": "node src/index.ts scan",
+    "scan:memory": "node src/index.ts scan:memory",
+    "replay:raw": "node src/index.ts replay:raw",
+    "replay:memory": "node src/index.ts replay:memory",
+    "compare": "node src/index.ts compare",
+    "backtest": "node src/index.ts backtest",
+    "factory": "node src/index.ts factory",
+    "vault": "node src/index.ts vault",
+    "strategies": "node src/index.ts strategies",
+    "memory:show": "node src/index.ts memory:show",
+    "memory:reset": "node src/index.ts memory:reset",
+    "plan:clear": "node src/index.ts plan:clear",
+    "selftest": "node src/selftest.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "ui:smoke": "node test/ui/smoke.mjs",
+    "test": "node --test --import ./test/setup.ts test/*.test.ts test/features/*.test.ts test/strategies/*.test.ts test/backtest/*.test.ts test/factory/*.test.ts test/vault/*.test.ts test/ai/*.test.ts test/paper/*.test.ts test/exchange/*.test.ts test/shadow/*.test.ts test/live/*.test.ts test/intel/*.test.ts test/desk/*.test.ts test/voice/*.test.ts test/web/*.test.ts test/tv/*.test.ts test/security/*.test.ts test/analyst/*.test.ts test/news/*.test.ts test/knowledge/*.test.ts test/research/*.test.ts test/school/*.test.ts test/learning/*.test.ts test/observer/*.test.ts test/ops/*.test.ts",
+    "check": "tsc --noEmit -p . && node src/selftest.ts && node --test --import ./test/setup.ts test/*.test.ts test/features/*.test.ts test/strategies/*.test.ts test/backtest/*.test.ts test/factory/*.test.ts test/vault/*.test.ts test/ai/*.test.ts test/paper/*.test.ts test/exchange/*.test.ts test/shadow/*.test.ts test/live/*.test.ts test/intel/*.test.ts test/desk/*.test.ts test/voice/*.test.ts test/web/*.test.ts test/tv/*.test.ts test/security/*.test.ts test/analyst/*.test.ts test/news/*.test.ts test/knowledge/*.test.ts test/research/*.test.ts test/school/*.test.ts test/learning/*.test.ts test/observer/*.test.ts test/ops/*.test.ts",
+    "stop": "node src/index.ts stop",
+    "resume": "node src/index.ts resume",
+    "status": "node src/index.ts status",
+    "migrate": "node src/index.ts migrate",
+    "tradingview": "node src/tradingview.ts",
+    "backup": "node scripts/backup.ts",
+    "live:check": "node scripts/live-arm.ts",
+    "help": "node src/index.ts help"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/sdk": "^0.115.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.7",
+    "typescript": "5.9.3"
+  }
+}
