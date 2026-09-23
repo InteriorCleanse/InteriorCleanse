@@ -80,7 +80,12 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      spellcheck: true,
+      // Off deliberately: Chromium's spellchecker can fetch Hunspell
+      // dictionaries from a Google CDN on first use, which is an outbound call
+      // this app otherwise never makes. Keeping it off means the shell talks to
+      // nothing but the deployment you configure.
+      spellcheck: false,
+      // webSecurity stays on (the default); this app never disables it.
     },
   })
 
