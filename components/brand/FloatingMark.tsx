@@ -117,8 +117,8 @@ export function FloatingMark() {
             {/* The specular sweep. Animating the stop offsets rather than
                 transforming the whole gradient keeps it on one paint. */}
             <linearGradient id="ic-sheen" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--bone)" stopOpacity="0.55" />
-              <stop offset="18%" stopColor="#FFFFFF" stopOpacity="1">
+              <stop offset="0%" stopColor="var(--bone)" stopOpacity="0.7" />
+              <stop offset="18%" stopColor="var(--sheen-hi)" stopOpacity="1">
                 <animate
                   attributeName="offset"
                   values="-0.35;1.35;1.35"
@@ -126,7 +126,7 @@ export function FloatingMark() {
                   repeatCount="indefinite"
                 />
               </stop>
-              <stop offset="36%" stopColor="var(--bone)" stopOpacity="0.55">
+              <stop offset="36%" stopColor="var(--bone)" stopOpacity="0.7">
                 <animate
                   attributeName="offset"
                   values="-0.2;1.5;1.5"

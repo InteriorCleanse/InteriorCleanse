@@ -15,12 +15,25 @@ import { BRAND_NAME } from '@/lib/site-config'
 export function LogoMark() {
   return (
     <Link href="/" className="logo-lockup" aria-label={`${BRAND_NAME} — home`}>
+      {/* Two cuts of the same lockup. The dark-ink cut is shown on the solid
+          cream header; the light-ink cut is swapped in by CSS while the header
+          floats transparent over a dark hero. Both ship so the swap never
+          waits on a second request. */}
       <img
-        src="/brand/header-lockup-dark.png"
+        className="logo-img logo-img-solid"
+        src="/brand/header-lockup-light.png"
         alt={BRAND_NAME}
         width={288}
         height={88}
-        // The lockup is the first paint in the header on every route.
+        fetchPriority="high"
+      />
+      <img
+        className="logo-img logo-img-over"
+        src="/brand/header-lockup-dark.png"
+        alt=""
+        aria-hidden="true"
+        width={288}
+        height={88}
         fetchPriority="high"
       />
     </Link>
