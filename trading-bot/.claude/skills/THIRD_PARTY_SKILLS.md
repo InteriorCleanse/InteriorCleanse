@@ -61,6 +61,21 @@ Every SKILL.md and bundled script was searched at import for remote fetches,
 credential handling and shell hazards; none found. Their descriptions add
 roughly 6 KB to each session's skill list.
 
+### Most-installed design skills (added 2026-09-23)
+
+Chosen by popularity from public skill directories and GitHub in September
+2026. Every file was searched for network calls, credential handling and shell
+hazards at import; the only hits were test scripts, an optional font-catalogue
+refresh that needs the user's own API key, and a helper that builds a
+stock-photo search link.
+
+| Folder | Upstream | Commit | Licence | Why it is here |
+|---|---|---|---|---|
+| `frontend-design` | github.com/anthropics/skills (`skills/frontend-design`) | 34040c9 | Apache 2.0 | Anthropic's design-direction skill, the most-installed design skill in public directories. |
+| `theme-factory` | same (`skills/theme-factory`) | 34040c9 | Apache 2.0 | Ten ready-made colour-and-type themes. |
+| `ui-ux-pro-max` | github.com/nextlevelbuilder/ui-ux-pro-max-skill (`.claude/skills/ui-ux-pro-max`) | dcc40ff | MIT | Searchable library of UI styles, palettes, font pairings and UX rules (about 24.7k stars). Its search script is Python standard library only. |
+| `design-system` | same (`.claude/skills/design-system`) | dcc40ff | MIT | Its design-token companion. The 5.8 MB `ui-styling` pack from the same repository was left out; it overlaps what is installed. |
+
 The rest of the taste-skill collection (image-generation boards, a Codex-only
 image-to-code flow, a "full output" override, a v1 copy and others) was left
 out to keep the standing list of skill descriptions short; install it at user
