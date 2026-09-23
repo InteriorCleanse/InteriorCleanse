@@ -302,6 +302,15 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // The app's own typefaces: /fonts/*.woff2 from web/fonts, same constraint.
+    if (path.startsWith('/fonts/') && /^\/fonts\/[a-z0-9-]+\.woff2$/.test(path)) {
+      const full = join(WEB_DIR, path.slice(1))
+      if (!existsSync(full)) { res.writeHead(404); res.end(); return }
+      res.writeHead(200, { 'content-type': 'font/woff2', 'cache-control': 'public, max-age=86400' })
+      res.end(readFileSync(full))
+      return
+    }
+
     // TradingView alerts carry their own secret
     if (path === '/api/tv-alert' && req.method === 'POST') {
       const raw = await readBody(req, 64 * 1024)

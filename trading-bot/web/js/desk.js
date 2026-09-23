@@ -205,7 +205,7 @@ function drawHeat(cv, heat) {
     ctx.fillStyle = v > 0 ? `rgba(${MINT},${(0.08 + 0.85 * a).toFixed(3)})` : 'rgba(255,255,255,.035)'
     ctx.fillRect(c * cw + 0.5, r * ch + 0.5, Math.max(0.5, cw - 1), Math.max(0.5, ch - 1))
   }
-  ctx.fillStyle = `rgba(${GREY},.8)`; ctx.font = '9px ui-monospace,monospace'
+  ctx.fillStyle = `rgba(${GREY},.8)`; ctx.font = "9px 'Geist Mono',ui-monospace,monospace"
   for (const hr of [0, 6, 12, 18]) ctx.fillText(String(hr).padStart(2, '0'), hr * cw + 1, h - 1)
 }
 
@@ -241,9 +241,9 @@ function drawPulse(cv, pulse, t) {
   const cx = 26, cy = h / 2
   ctx.beginPath(); ctx.arc(cx, cy, 9 + glow * 7, 0, Math.PI * 2); ctx.fillStyle = `rgba(${MINT},${(0.10 + glow * 0.25).toFixed(3)})`; ctx.fill()
   ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = `rgba(${MINT},${(0.55 + glow * 0.45).toFixed(3)})`; ctx.fill()
-  ctx.fillStyle = 'rgba(230,237,243,.92)'; ctx.font = '700 22px ui-monospace,monospace'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = 'rgba(230,237,243,.92)'; ctx.font = "700 22px 'Geist Mono',ui-monospace,monospace"; ctx.textBaseline = 'middle'
   ctx.fillText(`${Math.round(pulse.perMin)}`, 48, cy - 1)
-  ctx.fillStyle = `rgba(${GREY},.9)`; ctx.font = '10px ui-monospace,monospace'
+  ctx.fillStyle = `rgba(${GREY},.9)`; ctx.font = "10px 'Geist Mono',ui-monospace,monospace"
   ctx.fillText(`trades / min · ${pulse.label || ''}`, 48, cy + 17)
 }
 
