@@ -2,7 +2,7 @@
  * The themes a viewer can choose, in one place.
  *
  * The switcher, the no-flash bootstrap script in the root layout, and the
- * contrast test all lean on these names. JARVIS is the default and the
+ * contrast test all lean on these names. Arch is the default and the
  * signature; dark and light are the classic pair. The value is what goes on
  * `<html data-theme>` and into storage — bare `:root` is the light theme, so
  * "light" is represented explicitly here and written as an attribute rather
@@ -11,14 +11,14 @@
  */
 
 export const THEMES = [
-  { value: 'jarvis', label: 'JARVIS' },
+  { value: 'arch', label: 'Arch' },
   { value: 'dark', label: 'Dark' },
   { value: 'light', label: 'Light' },
 ] as const
 
 export type ThemeValue = (typeof THEMES)[number]['value']
 
-export const DEFAULT_THEME: ThemeValue = 'jarvis'
+export const DEFAULT_THEME: ThemeValue = 'arch'
 export const THEME_STORAGE_KEY = 'aurelis-theme'
 
 export function isTheme(value: unknown): value is ThemeValue {

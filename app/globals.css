@@ -71,12 +71,12 @@
   --series-4: 201 133 0;
 }
 
-/* ── JARVIS: the signature futuristic theme, and the default ──────────────
+/* ── Arch: the signature futuristic theme, and the default ──────────────
    A near-black violet ground with electric-violet and azure primaries,
    aurora-mint for good and hot-pink for bad. Every text token below is held
    to WCAG AA 4.5:1 on all three surfaces by tests/contrast.test.ts, exactly
    like light and dark — the default look does not get to skip the bar. */
-:root[data-theme='jarvis'] {
+:root[data-theme='arch'] {
   --ground: 8 8 16;
   --panel: 16 16 28;
   --panel-raised: 24 22 40;
@@ -114,13 +114,13 @@ body {
     radial-gradient(50rem 26rem at 92% 4%, rgb(var(--cobalt) / 0.10), transparent 60%);
 }
 
-/* ── JARVIS chrome ────────────────────────────────────────────────────────
+/* ── Arch chrome ────────────────────────────────────────────────────────
    The HUD atmosphere, scoped to the theme so light and dark are untouched.
-   Deliberately restrained where readability lives: the grid sits BEHIND the
-   content (never an overlay on top of text), and there is no full-screen
-   scanline blend in the product — that would quietly erode the very contrast
-   the token palette is tuned to guarantee. Glow does the futuristic work. */
-:root[data-theme='jarvis'] body {
+   The motion is deliberate: everything that moves — the drifting grid, the
+   breathing aurora — sits BEHIND the content on a negative z-index, so it
+   reads as depth and never touches the contrast of anything you read. There
+   is no scanline blend over text. All of it freezes under reduced-motion. */
+:root[data-theme='arch'] body {
   background:
     radial-gradient(72rem 42rem at 6% -12%, rgb(var(--signal) / 0.16), transparent 58%),
     radial-gradient(60rem 38rem at 110% -6%, rgb(var(--cobalt) / 0.13), transparent 55%),
@@ -129,12 +129,12 @@ body {
   background-attachment: fixed;
 }
 
-/* Grid field, behind everything (negative z-index), faded out toward the base. */
-:root[data-theme='jarvis'] body::before {
+/* Grid field, behind everything, slowly drifting one cell for a living feel. */
+:root[data-theme='arch'] body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   pointer-events: none;
   background-image:
     linear-gradient(rgb(var(--signal) / 0.05) 1px, transparent 1px),
@@ -142,10 +142,34 @@ body {
   background-size: 46px 46px;
   -webkit-mask: radial-gradient(130% 100% at 50% 0%, #000 52%, transparent 100%);
   mask: radial-gradient(130% 100% at 50% 0%, #000 52%, transparent 100%);
+  animation: arch-grid-drift 26s linear infinite;
+}
+@keyframes arch-grid-drift {
+  to { background-position: 46px 46px; }
+}
+
+/* Aurora: two soft light sweeps that breathe and turn behind the content.
+   Blurred, low-opacity, oversized so its edges never show — pure atmosphere. */
+:root[data-theme='arch'] body::after {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    conic-gradient(from 0deg at 30% 25%, transparent 0deg, rgb(var(--signal) / 0.12) 55deg, transparent 130deg),
+    conic-gradient(from 200deg at 75% 78%, transparent 0deg, rgb(var(--cobalt) / 0.11) 65deg, transparent 150deg);
+  filter: blur(46px);
+  opacity: 0.65;
+  animation: arch-aurora 48s ease-in-out infinite;
+}
+@keyframes arch-aurora {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(16deg) scale(1.12); }
 }
 
 /* Every Panel gets a neon edge and a lift. `.shadow-panel` is the panel class. */
-:root[data-theme='jarvis'] .shadow-panel {
+:root[data-theme='arch'] .shadow-panel {
   border-color: rgb(var(--signal) / 0.22);
   box-shadow:
     0 0 0 1px rgb(var(--signal) / 0.06),
@@ -154,7 +178,7 @@ body {
 }
 
 /* The assistant launcher reads as an arc reactor: a pulsing signal glow. */
-:root[data-theme='jarvis'] .assistant-orb {
+:root[data-theme='arch'] .assistant-orb {
   border-color: rgb(var(--signal) / 0.5);
   box-shadow:
     0 0 24px -6px rgb(var(--signal) / 0.7),
@@ -170,7 +194,7 @@ body {
 }
 
 /* The reactor core inside the launcher — concentric rings and a pulsing
-   centre, built from tokens so it reads in every theme, brightest in jarvis
+   centre, built from tokens so it reads in every theme, brightest in arch
    where the button also glows. */
 .assistant-reactor {
   position: relative;
