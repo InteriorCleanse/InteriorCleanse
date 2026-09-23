@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node src/server.ts",
     "app": "node src/server.ts",
+    "fleet": "node scripts/fleet.mjs",
     "talk": "node src/talk.ts",
     "brief": "node src/index.ts brief",
     "news": "node src/index.ts news",
