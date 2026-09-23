@@ -843,3 +843,86 @@ button.btn, a.btn, .hbtn, .chips button, .chip, nav button, .bottomnav button, .
   main > section:not(.hidden) > * { animation:none; }
   .dk-step.now .dk-step-i { animation:none; }
 }
+
+/* ============================================================
+   HUD — the sci-fi layer. Chamfered, lit controls; instrument-panel
+   corners; a scan beam on the header; a floating dock on phones.
+   Drawn with pseudo-elements so no markup changes and focus rings stay
+   on the real (unclipped) element. Labels, numbers and colours of
+   meaning (red stop, green ok) are untouched.
+   ============================================================ */
+:root { --hud:color-mix(in srgb, var(--brand) 62%, transparent); --neon-2:#22d3ee; --chamfer:9px; }
+
+/* --- Primary and ghost buttons: a chamfered plate, a light sweep on hover --- */
+button.btn, a.btn { position:relative; isolation:isolate; background:none; border:0; border-radius:0; box-shadow:none; padding:10px 18px;
+  transition:filter var(--dur-std) var(--ease), transform var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease); }
+button.btn::before, a.btn::before, button.btn::after, a.btn::after { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  clip-path:polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer)); }
+button.btn::before, a.btn::before { background:linear-gradient(180deg, #6ff0c0 0%, #34d399 48%, #1ea877 100%); }
+button.btn::after, a.btn::after { background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,.5) 50%, transparent 62%) no-repeat; background-size:260% 100%; background-position:140% 0; transition:background-position .7s var(--ease); }
+button.btn:hover:not(:disabled), a.btn:hover { background:none; box-shadow:none; filter:drop-shadow(0 0 10px rgba(52,211,153,.5)); }
+button.btn:hover:not(:disabled)::after, a.btn:hover::after { background-position:-40% 0; }
+
+/* Ghost: a lit edge around a dark plate. */
+button.btn.ghost, a.btn.ghost { background:none; border:0; color:var(--text); }
+button.btn.ghost::before, a.btn.ghost::before { background:linear-gradient(135deg, var(--hud), rgba(255,255,255,.16) 35%, rgba(255,255,255,.07) 65%, color-mix(in srgb, var(--brand) 40%, transparent)); }
+button.btn.ghost::after, a.btn.ghost::after { inset:1px; --chamfer:8.6px; background:linear-gradient(180deg, rgba(20,28,40,.96), rgba(11,15,23,.96)); transition:background var(--dur-std) var(--ease); }
+button.btn.ghost:hover:not(:disabled), a.btn.ghost:hover { background:none; border:0; filter:drop-shadow(0 0 8px rgba(52,211,153,.28)); }
+button.btn.ghost:hover:not(:disabled)::after, a.btn.ghost:hover::after { background:linear-gradient(180deg, rgba(26,38,50,.96), rgba(14,20,29,.96)); }
+
+/* Meaning keeps its colour: stop is red, ok is green. */
+button.btn.danger { border:0; background:none; color:var(--red); }
+button.btn.danger::before { background:linear-gradient(135deg, rgba(248,81,73,.95), rgba(248,81,73,.45)); }
+button.btn.danger::after { inset:1px; --chamfer:8.6px; background:rgba(30,11,13,.96); transition:background var(--dur-std) var(--ease); }
+button.btn.danger:hover:not(:disabled) { background:none; filter:drop-shadow(0 0 10px rgba(248,81,73,.45)); }
+button.btn.danger:hover:not(:disabled)::after { background:rgba(46,14,16,.96); }
+button.btn.ok { background:none; }
+button.btn.ok::before { background:linear-gradient(180deg, #5fd07a, var(--green)); }
+
+/* Header buttons: small instrument keys. */
+.hbtn { border-color:rgba(255,255,255,.08); background:rgba(255,255,255,.02); border-radius:10px; }
+.hbtn:hover { border-color:var(--hud); background:rgba(52,211,153,.06); box-shadow:0 0 14px -4px rgba(52,211,153,.45); }
+
+/* --- Instrument-panel corners on cards and pipeline steps --- */
+.card::after, .dk-step button::after { content:''; position:absolute; inset:7px; pointer-events:none; opacity:.55;
+  background:
+    linear-gradient(var(--hud),var(--hud)) 0 0/12px 1px, linear-gradient(var(--hud),var(--hud)) 0 0/1px 12px,
+    linear-gradient(var(--hud),var(--hud)) 100% 0/12px 1px, linear-gradient(var(--hud),var(--hud)) 100% 0/1px 12px,
+    linear-gradient(var(--hud),var(--hud)) 0 100%/12px 1px, linear-gradient(var(--hud),var(--hud)) 0 100%/1px 12px,
+    linear-gradient(var(--hud),var(--hud)) 100% 100%/12px 1px, linear-gradient(var(--hud),var(--hud)) 100% 100%/1px 12px;
+  background-repeat:no-repeat; }
+.dk-step button { position:relative; }
+.dk-step:not(.now):not(.done) button::after { opacity:.2; }
+.card > h2::before { content:''; display:inline-block; width:6px; height:6px; margin:0 10px 0 1px; vertical-align:2px; transform:rotate(45deg);
+  background:var(--brand); box-shadow:0 0 8px var(--brand); border-radius:1px; }
+
+/* --- Header: a slow scan beam along the bottom edge --- */
+@keyframes mc-scan { from { background-position:-45% 0; } to { background-position:145% 0; } }
+header::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none; opacity:.8;
+  background:linear-gradient(90deg, transparent, var(--brand), var(--neon-2), transparent) no-repeat; background-size:35% 100%; animation:mc-scan 7s linear infinite; }
+
+/* --- Top tabs: the active tab is lit from below --- */
+nav button.active { box-shadow:inset 0 -2px 0 var(--brand), 0 10px 22px -14px rgba(52,211,153,.7); text-shadow:0 0 14px rgba(52,211,153,.35); }
+
+/* --- Phones: a floating glass dock --- */
+@media (max-width:720px) {
+  body { padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 34px); }
+  .bottomnav { left:10px; right:10px; bottom:calc(10px + env(safe-area-inset-bottom)); height:64px; padding:6px; gap:2px; border-radius:24px; overflow:visible;
+    background:linear-gradient(180deg, rgba(18,25,36,.8), rgba(7,10,16,.92)); border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 22px 44px -14px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.07), 0 0 0 1px rgba(52,211,153,.07), 0 0 30px -10px rgba(52,211,153,.25); }
+  .bottomnav button { flex:1 1 0; min-width:0; position:relative; border-radius:18px; padding:6px 0 5px; font-size:10.5px; letter-spacing:.01em;
+    transition:color var(--dur-std) var(--ease), background-color var(--dur-std) var(--ease), transform var(--dur-quick) var(--ease); }
+  .bottomnav button:active { transform:scale(.94); }
+  .bottomnav button.active, .bottomnav button.more.open { color:var(--brand);
+    background:radial-gradient(80% 90% at 50% 0%, rgba(52,211,153,.24), transparent 72%), rgba(52,211,153,.06); }
+  .bottomnav button.active::before, .bottomnav button.more.open::before { content:''; position:absolute; top:-7px; left:32%; right:32%; height:3px; border-radius:3px;
+    background:linear-gradient(90deg, var(--brand), var(--neon-2)); box-shadow:0 0 10px var(--brand), 0 0 2px var(--brand); }
+  #morepanel { left:10px; right:10px; bottom:calc(84px + env(safe-area-inset-bottom)); border-radius:22px; border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.9), 0 0 0 1px rgba(52,211,153,.06); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  header::after { animation:none; opacity:.4; background-size:100% 100%; }
+  button.btn::after, a.btn::after { transition:none; }
+}
+@media print { button.btn::before, button.btn::after, .card::after, header::after { display:none; } }
