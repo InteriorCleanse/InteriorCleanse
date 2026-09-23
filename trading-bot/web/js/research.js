@@ -27,7 +27,27 @@ async function renderOverview() {
   const { data } = await getJson('/api/research')
   return `${data.notes.map((n) => `<div class="ev-note">${esc(n)}</div>`).join('')}
     <div class="ev-heroes"><div class="ev-hero"><div class="ev-hero-k">paper trades</div><div class="ev-hero-big">${data.paperTrades}</div></div><div class="ev-hero"><div class="ev-hero-k">questions</div><div class="ev-hero-big">${data.questions.length}</div></div><div class="ev-hero"><div class="ev-hero-k">hypotheses</div><div class="ev-hero-big">${data.hypotheses.length}</div></div><div class="ev-hero"><div class="ev-hero-k">proposals awaiting</div><div class="ev-hero-big">${data.proposals.filter((p) => p.status === 'PROPOSED').length}</div></div><div class="ev-hero"><div class="ev-hero-k">trials recorded</div><div class="ev-hero-big">${data.trials.total}</div></div></div>
-    <div class="card"><h2>Trial registry</h2><div class="plain">${esc(data.trials.note)}</div>${Object.keys(data.trials.byStrategy).length ? `<table><tr><th>strategy</th><th class="num">trials</th></tr>${Object.entries(data.trials.byStrategy).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td></tr>`).join('')}</table>` : ''}</div>`
+    <div class="card"><h2>Trial registry</h2><div class="plain">${esc(data.trials.note)}</div>${Object.keys(data.trials.byStrategy).length ? `<table><tr><th>strategy</th><th class="num">trials</th></tr>${Object.entries(data.trials.byStrategy).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td></tr>`).join('')}</table>` : ''}</div>
+    ${quantLab()}`
+}
+
+/**
+ * THE QUANT LAB — four research tools, each a named view, each labelled with
+ * what it runs on. None of them changes a strategy; every one of them reports
+ * NOT ENOUGH DATA until the record it needs exists.
+ */
+function quantLab() {
+  const rows = [
+    ['overfitting', 'Backtest overfitting detector', 'Deflated Sharpe over the trial registry: how likely the best backtest is luck, given how many things were tried.', 'trial registry · backtests'],
+    ['atlas', 'Strategy-by-regime atlas', 'Where each strategy family has held up and where it has not, by volatility and regime. PAPER and BACKTEST never share a table.', 'paper record · backtests'],
+    ['diffusion', 'News-to-price diffusion', 'A Hawkes fit around scheduled releases: how hard a headline hits and how fast the move is absorbed. HISTORICAL.', 'calendar memory · candles'],
+    ['sandbox', 'Strategy search sandbox', 'Filter, session, regime and parameter variants of an existing strategy, each registered as a trial before it runs.', 'backtests · trial registry'],
+  ]
+  return `<div class="card"><h2>Quant lab <span class="muted">— the four research tools</span></h2>
+    <div class="rs-lab">${rows.map(([id, title, what, on]) => `<div class="rs-lab-item"><b>${esc(title)}</b><div class="muted">${esc(what)}</div><div class="rs-lab-foot"><span class="muted">runs on: ${esc(on)}</span><button class="chip" data-labview="${id}">Open</button></div></div>`).join('')}
+      <div class="rs-lab-item"><b>Prediction-market arithmetic</b><div class="muted">YES + NO under one dollar, costs, cross-venue divergence and Kelly sizing, taught with SIMULATED numbers. Mr. Cash is not connected to any prediction market and does not trade them.</div><div class="rs-lab-foot"><span class="muted">runs on: worked examples</span><button class="chip" data-tab="school">School → Other markets</button></div></div>
+    </div>
+    <div class="plain">Research reads the record and writes proposals. A proposal that passes its gates still needs a human; nothing here reaches the engine.</div></div>`
 }
 
 async function renderQuestions() {
@@ -135,6 +155,8 @@ async function loadResearch() { renderShell(); await renderView() }
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('#research-views button[data-view]')
   if (b) { view = b.dataset.view; await loadResearch(); return }
+  const lab = e.target.closest('#tab-research [data-labview]'); if (lab) { view = lab.dataset.labview; await loadResearch(); return }
+  const jump = e.target.closest('#tab-research [data-tab]'); if (jump && typeof window.showTab === 'function') { window.showTab(jump.dataset.tab); return }
   const s = e.target.closest('#tab-research [data-atlas-src]'); if (s) { atlasSource = s.dataset.atlasSrc; await loadResearch(); return }
   const d = e.target.closest('#tab-research [data-atlas-dim]'); if (d) { atlasDim = d.dataset.atlasDim; await loadResearch(); return }
   const adopt = e.target.closest('#tab-research [data-adopt]')

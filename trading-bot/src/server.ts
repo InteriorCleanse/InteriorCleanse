@@ -1333,9 +1333,14 @@ const server = createServer(async (req, res) => {
 })
 
 function openBrowser(target: string): void {
-  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
+  // Windows: `start` is a cmd.exe builtin, so it runs through `cmd /c` with verbatim arguments
+  // rather than `shell: true` (Node 24 deprecates passing args to a shell; the URL is built by us,
+  // never from input). The empty "" is the window title `start` expects before a quoted target.
+  const win = process.platform === 'win32'
+  const cmd = process.platform === 'darwin' ? 'open' : win ? 'cmd' : 'xdg-open'
+  const args = win ? ['/c', 'start', '""', target] : [target]
   try {
-    const child = spawn(cmd, [target], { shell: process.platform === 'win32', stdio: 'ignore', detached: true })
+    const child = spawn(cmd, args, { stdio: 'ignore', detached: true, windowsVerbatimArguments: win, windowsHide: true })
     child.on('error', () => {})
     child.unref()
   } catch {

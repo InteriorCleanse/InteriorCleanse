@@ -31,7 +31,7 @@ the bot checks and tells you if not.
 npm run selftest
 ```
 
-45 green PASS lines means the install is fine. There's nothing to download
+80 green PASS lines means the install is fine. There's nothing to download
 first: the bot has no required dependencies.
 
 ### 4. Open the app
@@ -51,6 +51,24 @@ Mac users can double-click `start-mac.command`; Windows users `start-windows.bat
 ---
 
 ## What you're looking at
+
+Twenty-two tabs, in five groups. The first five are on the bottom bar of a
+phone; the rest are under **More**. Every screen says which kind of data it is
+showing — PAPER (live prices, simulated fills), BACKTEST, REPLAY, MOCK — and
+says NOT ENOUGH DATA rather than estimating when the record is thin.
+
+| Group | Tabs | What they are for |
+|---|---|---|
+| The desk | **Desk**, **Today**, **Chart**, **Journal**, **Ask** | The crew of six agents with the signal core, the daily brief and decision, the annotated chart, your journal, and a conversation with the bot in any of its hats. |
+| Markets | Flow, News, Intel, TradingView | The order book and tape, the calendar and headlines, the engine's own chart markup with provenance, and the Pine export. |
+| Is it working? | Evidence, Validation, Operations, Test, Replay | Attribution by session, regime and strategy; the frozen validation gates; heartbeat, feed, integrity, reconciliation, soak and the first-fill acceptance chain; look-back tests; the replay player. |
+| Learn | School, Research, Knowledge, Observer | Lessons from its own case studies; the quant lab (overfitting detector, regime atlas, news diffusion, sandbox); the versioned vault and daily digests; what it is observing right now. |
+| Under the hood | Playbook, Factory, Vault, Memory | Every strategy's vote; the breeding and out-of-sample survivor tests; passports and decay; the raw ledger, lessons and doctor. |
+
+The longer references live in `docs/`: `PAPER_SOAK_RUNBOOK.md` for running it
+around the clock, `FIRST_FILL_ACCEPTANCE.md` for how the first paper fill is
+verified, `SIGNAL_CORE.md` for the moving picture on the desk,
+`QUANT_LAB.md` for the four research tools, and `SECURITY.md`.
 
 ### The Today tab (and `npm run brief`)
 
