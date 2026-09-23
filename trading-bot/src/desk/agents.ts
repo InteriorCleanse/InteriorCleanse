@@ -28,7 +28,7 @@
  */
 
 import { LIVE_TRADING_ENABLED } from '../../config.ts'
-import { tradingDayKey } from '../sessions.ts'
+import { toET, tradingDayKey } from '../sessions.ts'
 import { floorLine, trustLine, evidenceLine, agentLine, AGENT_NAMES } from '../voice/persona.ts'
 import type { FeatureSnapshot, Feature } from '../features/types.ts'
 import type { FusedDecision } from '../fusion.ts'
@@ -107,6 +107,43 @@ export type DeskReport = {
   }
   /** The same state, said the way he'd say it. Phrasing only — never new facts. */
   voice: { floor: string; trust: string; evidence: string }
+  /** The signal core: the same state again, shaped for a picture. Every number carries its provenance. */
+  core: DeskCore
+}
+
+/**
+ * THE SIGNAL CORE — the desk's state shaped for a moving picture.
+ *
+ * The web desk draws a rotating wireframe from the strategy panel, a stat strip
+ * and four small charts. Everything they show is in this block, computed here
+ * from the same inputs as the six agents, so the picture can never carry a
+ * number the agents do not. Rules the picture obeys:
+ *   - a reading that is unavailable is `null` and draws as an empty frame with
+ *     the word UNAVAILABLE, never as a flat line or a zero;
+ *   - the panel's geometry (how many vertices, how far out) comes from the real
+ *     votes; motion speed comes from the tape when the tape is trusted and is
+ *     otherwise constant, so the animation cannot imply activity that is not
+ *     being read;
+ *   - the stat strip is FILL / HIT / EXPECTANCY / BOOK — never "edge" — and it
+ *     says INSUFFICIENT SAMPLE under any figure built from fewer than ten
+ *     trades.
+ */
+export type CoreVote = { id: string; name: string; action: 'BUY' | 'SELL' | 'HOLD'; direction: 'long' | 'short' | null; confidence: number; weight: number; effective: number }
+export type CoreStat = { label: string; value: string; sub: string; provenance: Provenance }
+export type CoreCandle = { openTime: number; open: number; high: number; low: number; close: number; volume: number }
+export type DeskCore = {
+  note: string
+  panel: { votes: CoreVote[]; score: number | null; enterScore: number | null; action: string; direction: 'long' | 'short' | null; regime: string | null }
+  flow: { trusted: boolean; imbalance: number | null; tapePerMin: number | null; tapeLabel: string | null; deltaShare: number | null; largeNetUsd: number | null; provenance: Provenance; asOf: number | null }
+  volatility: { ratio: number | null; label: string | null }
+  stats: { fill: CoreStat; hit: CoreStat; expectancy: CoreStat; book: CoreStat }
+  /** The last 48 closed candles' volume, oldest first. */
+  volume: { bars: Array<{ t: number; v: number; up: boolean }>; provenance: Provenance }
+  /** The last 96 closed candles (8 h at 5m): high, low and close, with the window's extremes. */
+  range: { bars: Array<{ t: number; h: number; l: number; c: number }>; high: number | null; low: number | null; provenance: Provenance }
+  /** Volume by New York hour × trading day over the candles supplied (up to seven days). */
+  heat: { days: string[]; grid: number[][]; max: number; provenance: Provenance }
+  pulse: { perMin: number | null; label: string | null; provenance: Provenance }
 }
 
 export type DeskInput = {
@@ -119,6 +156,10 @@ export type DeskInput = {
   risk: RiskVerdict | null
   structure: { swings: number; orderBlocks: number; fvgs: number; sweeps: number; bias: string | null } | null
   validation: { verdict: string; metCount: number; total: number; trades: number; decaying: number; retired: number } | null
+  /** Closed candles, oldest first, for the core's small charts. Optional: the core draws UNAVAILABLE without them. */
+  candles?: CoreCandle[]
+  /** The paper record's counts for the core's stat strip. Optional: the strip shows em dashes without them. */
+  paper?: { signals: number; fills: number; closed: number; wins: number; losses: number; sumR: number }
 }
 
 // ---------------------------------------------------------------
@@ -368,6 +409,78 @@ export function trustScore(agents: Pick<DeskAgent, 'id' | 'status'>[]): number {
   return Math.round((points / watchers.length) * 100)
 }
 
+// ---------------------------------------------------------------
+// The signal core
+// ---------------------------------------------------------------
+
+const SAMPLE_BAR = 10
+
+/** The core block. Pure over its input; every null is a reading that is not there. */
+export function buildCore(input: DeskInput): DeskCore {
+  const f = input.features
+  const d = input.decision
+  const flow = f?.flow
+  const trusted = Boolean(flow?.stream?.trusted)
+  const imbF = flow?.bookImbalance as Feature<{ imbalance?: number }> | undefined
+  const tapeF = flow?.tapeSpeed as Feature<{ tradesPerMinute?: number; label?: string }> | undefined
+  const deltaF = flow?.delta as Feature<{ buyShare?: number }> | undefined
+  const largeF = flow?.largeTrades as Feature<{ netUsd?: number }> | undefined
+  const imbalance = trusted && imbF?.available ? (imbF.value?.imbalance ?? null) : null
+  const tapePerMin = trusted && tapeF?.available ? (tapeF.value?.tradesPerMinute ?? null) : null
+  const tapeLabel = trusted && tapeF?.available ? (tapeF.value?.label ?? null) : null
+  const deltaShare = trusted && deltaF?.available ? (deltaF.value?.buyShare ?? null) : null
+  const largeNetUsd = trusted && largeF?.available ? (largeF.value?.netUsd ?? null) : null
+  const flowProv: Provenance = !trusted ? 'UNAVAILABLE' : provenanceOf(imbF as Feature<unknown> | undefined)
+  const vol = f?.volatility?.value as { ratio?: number; label?: string } | undefined
+
+  // The panel: the fused contributors when there is a decision, the raw votes otherwise.
+  const votes: CoreVote[] = d
+    ? d.contributors.map((c) => ({ id: c.id, name: c.name, action: c.action, direction: c.direction, confidence: c.confidence, weight: c.weight, effective: c.effective }))
+    : input.votes.map((v) => ({ id: v.id, name: v.id, action: v.action, direction: v.direction, confidence: v.confidence, weight: 1, effective: v.action === 'HOLD' ? 0 : v.confidence }))
+
+  // The stat strip. A figure built from fewer than ten trades says so under itself.
+  const p = input.paper
+  const pct = (n: number, dnm: number) => (dnm > 0 ? `${Math.round((n / dnm) * 100)}%` : '—')
+  const sample = (n: number) => (n < SAMPLE_BAR ? `INSUFFICIENT SAMPLE · ${n} of ${SAMPLE_BAR}` : `${n} trades`)
+  const stats = {
+    fill: { label: 'FILL', value: p ? pct(p.fills, p.signals) : '—', sub: p ? (p.signals ? `${p.fills} of ${p.signals} signals filled` : 'no signal yet') : 'record not read', provenance: p ? 'REAL' : 'UNAVAILABLE' } as CoreStat,
+    hit: { label: 'HIT', value: p ? pct(p.wins, p.wins + p.losses) : '—', sub: p ? (p.closed ? sample(p.closed) : 'no closed trade') : 'record not read', provenance: p ? 'REAL' : 'UNAVAILABLE' } as CoreStat,
+    expectancy: { label: 'EXPECTANCY', value: p && p.closed ? `${p.sumR / p.closed >= 0 ? '+' : ''}${(p.sumR / p.closed).toFixed(2)}R` : '—', sub: p ? (p.closed ? `per closed trade · ${sample(p.closed)}` : 'no closed trade') : 'record not read', provenance: p ? 'REAL' : 'UNAVAILABLE' } as CoreStat,
+    book: { label: 'BOOK', value: imbalance === null ? '—' : `${Math.round(imbalance * 100)}% bid`, sub: imbalance === null ? (trusted ? 'no book reading this candle' : 'stream not trusted') : 'resting size within the band', provenance: imbalance === null ? 'UNAVAILABLE' : flowProv } as CoreStat,
+  }
+
+  // The small charts, from closed candles only.
+  const candles = input.candles ?? []
+  const volume = { bars: candles.slice(-48).map((c) => ({ t: c.openTime, v: c.volume, up: c.close >= c.open })), provenance: (candles.length ? 'REAL' : 'UNAVAILABLE') as Provenance }
+  const rb = candles.slice(-96)
+  const range = {
+    bars: rb.map((c) => ({ t: c.openTime, h: c.high, l: c.low, c: c.close })),
+    high: rb.length ? Math.max(...rb.map((c) => c.high)) : null,
+    low: rb.length ? Math.min(...rb.map((c) => c.low)) : null,
+    provenance: (rb.length ? 'REAL' : 'UNAVAILABLE') as Provenance,
+  }
+  const byDay = new Map<string, number[]>()
+  for (const c of candles) {
+    const et = toET(c.openTime)
+    const row = byDay.get(et.dateKey) ?? Array<number>(24).fill(0)
+    row[et.hour] += c.volume
+    byDay.set(et.dateKey, row)
+  }
+  const days = [...byDay.keys()].sort().slice(-7)
+  const grid = days.map((k) => byDay.get(k)!)
+  const heat = { days, grid, max: grid.length ? Math.max(0, ...grid.flat()) : 0, provenance: (days.length ? 'REAL' : 'UNAVAILABLE') as Provenance }
+
+  return {
+    note: 'A picture of the live state, drawn from the same readings as the six agents. Shape and motion follow real votes and the real tape; an unread feed draws as UNAVAILABLE. Nothing here is a forecast, and none of it is a track record.',
+    panel: { votes, score: d ? Math.round(d.score) : null, enterScore: d ? d.enterScore : null, action: d ? d.action : 'NO DECISION', direction: d?.direction ?? null, regime: d?.regime ?? null },
+    flow: { trusted, imbalance, tapePerMin, tapeLabel, deltaShare, largeNetUsd, provenance: flowProv, asOf: (imbF?.asOf ?? tapeF?.asOf ?? null) || null },
+    volatility: { ratio: vol?.ratio ?? null, label: vol?.label ?? null },
+    stats,
+    volume, range, heat,
+    pulse: { perMin: tapePerMin, label: tapeLabel, provenance: tapePerMin === null ? 'UNAVAILABLE' : flowProv },
+  }
+}
+
 /** The whole desk. Pure over its input; the server assembles the input. */
 /** Give an agent its plain-English name and the line he'd say about it. */
 function dress(a: AgentCore): DeskAgent {
@@ -432,6 +545,7 @@ export function buildDesk(input: DeskInput): DeskReport {
       trust: trustLine(facts.trust, facts.blind),
       evidence: evidenceLine(facts),
     },
+    core: buildCore(input),
   }
 }
 

@@ -1105,6 +1105,20 @@ const server = createServer(async (req, res) => {
           decaying: decay.filter((d) => d.status === 'DECAYING').length,
           retired: decay.filter((d) => d.status === 'RETIRED').length,
         },
+        // For the signal core's small charts and stat strip: stored candles and the paper record, read, not estimated.
+        candles: store().candlesBetween(config.symbol, config.interval, Date.now() - 7 * 86_400_000, Date.now()),
+        paper: (() => {
+          const all = [...positions.open, ...positions.closed]
+          const closed = positions.closed.filter((p) => p.exitReason !== 'missed')
+          return {
+            signals: all.length,
+            fills: all.filter((p) => p.filledAt !== undefined && p.exitReason !== 'missed').length,
+            closed: closed.length,
+            wins: closed.filter((p) => p.outcome === 'WIN').length,
+            losses: closed.filter((p) => p.outcome === 'LOSS').length,
+            sumR: closed.reduce((s, p) => s + (p.rMultiple ?? 0), 0),
+          }
+        })(),
       })
       if (url.searchParams.get('format') === 'text') {
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })

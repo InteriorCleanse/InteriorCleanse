@@ -213,3 +213,72 @@ test('the desk refreshes itself, and stops when nobody is looking', () => {
   assert.match(js, /visibilitychange/, 'a hidden tab must stop polling')
   assert.match(js, /visibilityState/, 'the desk must check whether it is actually on screen')
 })
+
+/**
+ * THE SIGNAL CORE — the moving picture may not know anything the agents do not.
+ *
+ * The wireframe, the stat strip and the four small charts are drawn from
+ * `core`, computed here from the same inputs as the six agents. These tests
+ * pin the honesty rules: an unread feed is null (drawn as UNAVAILABLE, never as
+ * a zero or a flat line), figures from fewer than ten trades say INSUFFICIENT
+ * SAMPLE, the strip is labelled EXPECTANCY and never "edge", and the panel's
+ * geometry is the real votes.
+ */
+test('the signal core: unread feeds are null, an empty record is em dashes, and nothing is called an edge', () => {
+  const d = buildDesk(input({ features: features({ flow: { delta: feature(null), cvd: feature(null), bookImbalance: feature(null), stream: { trusted: false, trustedSince: null } } }) }))
+  const c = d.core
+  assert.equal(c.flow.trusted, false)
+  assert.equal(c.flow.imbalance, null)
+  assert.equal(c.pulse.perMin, null)
+  assert.equal(c.pulse.provenance, 'UNAVAILABLE')
+  assert.equal(c.stats.book.value, '—')
+  assert.match(c.stats.book.sub, /stream not trusted/)
+  for (const s of Object.values(c.stats)) assert.equal(s.value, '—', `${s.label} must be an em dash with no record`)
+  assert.equal(c.volume.provenance, 'UNAVAILABLE')
+  assert.equal(c.range.high, null)
+  assert.deepEqual(c.heat.days, [])
+  assert.equal(c.panel.votes.length, 1, 'the panel is the fused contributors when there is a decision')
+  assert.equal(c.panel.score, 72)
+  const text = JSON.stringify(c).toLowerCase()
+  assert.equal(/\bedge\b/.test(text), false, 'the core must never call anything an edge')
+  assert.match(c.note, /forecast/i, 'the note must say plainly that the picture is not a forecast')
+})
+
+test('the signal core: the stat strip, the small charts and the heat grid are computed from the record and closed candles', () => {
+  const T = 1_700_000_000_000
+  const candles = Array.from({ length: 120 }, (_, i) => ({ openTime: T + i * 300_000, open: 100 + i, high: 101 + i, low: 99 + i, close: 100.5 + i, volume: 10 + (i % 7) }))
+  const d = buildDesk(input({
+    candles,
+    paper: { signals: 4, fills: 3, closed: 3, wins: 2, losses: 1, sumR: 1.5 },
+    features: features({ flow: { delta: feature({ delta: 120, buyShare: 0.6 }), cvd: feature({ cvd: 900 }), bookImbalance: feature({ imbalance: 0.31 }), tapeSpeed: feature({ tradesPerMinute: 140, label: 'steady' }), stream: { trusted: true, trustedSince: 1 } } }),
+  }))
+  const c = d.core
+  assert.equal(c.stats.fill.value, '75%')
+  assert.equal(c.stats.hit.value, '67%')
+  assert.match(c.stats.hit.sub, /INSUFFICIENT SAMPLE · 3 of 10/)
+  assert.equal(c.stats.expectancy.value, '+0.50R')
+  assert.equal(c.stats.expectancy.label, 'EXPECTANCY')
+  assert.equal(c.stats.book.value, '31% bid')
+  assert.equal(c.pulse.perMin, 140)
+  assert.equal(c.pulse.label, 'steady')
+  assert.equal(c.volume.bars.length, 48, 'the last 48 candles')
+  assert.equal(c.volume.bars[47].t, T + 119 * 300_000)
+  assert.equal(c.range.bars.length, 96)
+  assert.equal(c.range.high, 101 + 119)
+  assert.equal(c.range.low, 99 + 24)
+  assert.ok(c.heat.days.length >= 1 && c.heat.days.length <= 7)
+  assert.equal(c.heat.grid[0].length, 24)
+  const total = c.heat.grid.flat().reduce((s, v) => s + v, 0)
+  assert.equal(total, candles.reduce((s, x) => s + x.volume, 0), 'every candle\'s volume lands in exactly one hour cell')
+  assert.equal(c.heat.max, Math.max(...c.heat.grid.flat()))
+  assert.equal(c.volume.provenance, 'REAL')
+})
+
+test('the signal core is drawn from the payload only: no thresholds, fetches or order paths of its own', () => {
+  const js = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
+  assert.equal((js.match(/fetch\(/g) || []).length, 1, 'the desk fetches /api/desk and nothing else')
+  assert.equal(/\/api\/(order|paper\/close|kill|live)/.test(js), false, 'the desk must not reach an order path')
+  assert.match(js, /prefers-reduced-motion/, 'the animation must respect reduced motion')
+  assert.match(js, /cancelAnimationFrame/, 'the animation must stop when the desk is not on screen')
+  assert.equal(/Math\.random/.test(js), false, 'nothing on the desk may be invented: no random motion, no fake ticks')
+})
