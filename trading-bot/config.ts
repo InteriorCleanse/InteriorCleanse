@@ -15,8 +15,16 @@
 export const config = {
   // ---------- WHAT TO WATCH ----------
 
-  /** The market. BTCUSDT means "Bitcoin priced in US dollars". */
-  symbol: 'BTCUSDT',
+  /**
+   * The market. BTCUSDT means "Bitcoin priced in US dollars".
+   *
+   * The default is unchanged (BTCUSDT), so the frozen single-symbol validation
+   * profile is untouched. Setting MRCASH_SYMBOL runs this whole engine on a
+   * different market instead — that is how the fleet (`npm run fleet`) trades
+   * many markets at once: one full, isolated engine per symbol. Any exchange
+   * pair the data feed serves is valid, e.g. ETHUSDT, SOLUSDT.
+   */
+  symbol: (process.env.MRCASH_SYMBOL || 'BTCUSDT').toUpperCase(),
 
   /**
    * Candle size. The session model works best on '5m' or '1m'.

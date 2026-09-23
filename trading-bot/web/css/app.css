@@ -268,22 +268,36 @@
   .dk-foot { font-size:11.5px; color:var(--dim); text-align:center; margin:20px 0 0; }
 
   /* ---------- the signal core: the same state, as a moving picture ---------- */
-  .dk-core { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:13px; margin-bottom:14px; }
+  /* The brain is the hero: full width, tall, cinematic. Stats and small charts stack under it. */
+  .dk-core { display:flex; flex-direction:column; gap:11px; margin-bottom:14px; }
   .dk-core-scope { display:flex; flex-direction:column; border:1px solid var(--line); border-radius:var(--dk-r); overflow:hidden; padding:14px 16px 12px; gap:8px;
     background:radial-gradient(90% 80% at 50% 45%, rgba(52,211,153,.08), transparent 70%), var(--panel); }
-  .dk-core-cap { font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); }
+  .dk-core-hero { position:relative; border-color:var(--edge);
+    background:
+      radial-gradient(80% 70% at 50% 46%, rgba(34,211,238,.10), transparent 62%),
+      radial-gradient(90% 90% at 15% 0%, rgba(139,124,246,.12), transparent 55%),
+      radial-gradient(90% 90% at 90% 110%, rgba(52,211,153,.12), transparent 55%),
+      linear-gradient(180deg, #0b1017, #080b11);
+    box-shadow:0 26px 60px -30px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.03) inset; }
+  .dk-core-hero::after { content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+    background:radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%); }
+  .dk-core-hero[data-dir="long"] { box-shadow:0 26px 60px -30px rgba(52,211,153,.4), 0 0 0 1px rgba(52,211,153,.14) inset; }
+  .dk-core-hero[data-dir="short"] { box-shadow:0 26px 60px -30px rgba(248,81,73,.4), 0 0 0 1px rgba(248,81,73,.14) inset; }
+  .dk-core-cap { position:relative; z-index:2; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
   .dk-core-cap b { color:var(--text); letter-spacing:0; text-transform:none; font-size:12px; display:block; margin-top:2px; }
+  .dk-core-hero .dk-core-stage { min-height:400px; }
   .dk-core-stage { position:relative; flex:1; min-height:260px; }
   .dk-core-stage canvas { display:block; width:100%; height:100%; position:absolute; inset:0; }
-  .dk-core-mid { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
-  .dk-core-num { font:700 30px/1 ui-monospace,monospace; letter-spacing:-.03em; font-variant-numeric:tabular-nums; text-shadow:0 0 18px rgba(0,0,0,.9); }
-  .dk-core-act { font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); margin-top:5px; text-shadow:0 0 10px rgba(0,0,0,.9); }
+  .dk-core-mid { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; z-index:2; }
+  .dk-core-num { font:800 68px/1 ui-monospace,monospace; letter-spacing:-.04em; font-variant-numeric:tabular-nums;
+    text-shadow:0 0 40px currentColor, 0 2px 30px rgba(0,0,0,.9); filter:saturate(1.2); }
+  .dk-core-act { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--text); opacity:.85; margin-top:8px; text-shadow:0 0 14px rgba(0,0,0,.95); }
+  .dk-core-hero .dk-core-votes { position:relative; z-index:2; }
   .dk-core-votes { display:flex; gap:6px; flex-wrap:wrap; }
   .dk-core-vote { font:600 11px ui-monospace,monospace; padding:3px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); background:rgba(0,0,0,.25); white-space:nowrap; }
   .dk-core-vote.buy { color:var(--brand); border-color:color-mix(in srgb, var(--brand) 50%, transparent); }
   .dk-core-vote.sell { color:var(--red); border-color:color-mix(in srgb, var(--red) 50%, transparent); }
   .dk-core-vote.off { opacity:.45; text-decoration:line-through; }
-  .dk-core-side { display:grid; grid-template-rows:auto 1fr; gap:13px; min-width:0; }
   .dk-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
   .dk-stat { border:1px solid var(--line); border-radius:14px; padding:11px 12px 10px; background:var(--panel); min-width:0; }
   .dk-stat .k { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); display:flex; justify-content:space-between; gap:6px; }
@@ -292,7 +306,7 @@
   .dk-stat .v { font:700 21px/1.15 ui-monospace,monospace; letter-spacing:-.02em; margin:6px 0 3px; font-variant-numeric:tabular-nums; }
   .dk-stat .v.none { color:var(--dim); }
   .dk-stat .s { font-size:10.5px; color:var(--dim); line-height:1.35; }
-  .dk-minis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .dk-minis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
   .dk-mini { position:relative; border:1px solid var(--line); border-radius:14px; padding:10px 12px 8px; background:var(--panel); min-width:0; min-height:118px; display:flex; flex-direction:column; }
   .dk-mini .k { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); display:flex; justify-content:space-between; gap:6px; }
   .dk-mini .k b { font:600 10px ui-monospace,monospace; color:var(--text); letter-spacing:0; text-transform:none; }
@@ -305,8 +319,22 @@
   .rs-lab-item { border:1px solid var(--line); border-radius:12px; padding:12px 14px; background:var(--panel2); display:flex; flex-direction:column; gap:6px; font-size:13px; }
   .rs-lab-item b { font-size:13.5px; }
   .rs-lab-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:auto; font-size:11.5px; }
-  @media (max-width:860px) { .dk-core { grid-template-columns:1fr; } .dk-core-stage { min-height:210px; } }
-  @media (max-width:560px) { .dk-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:860px) { .dk-core-hero .dk-core-stage { min-height:320px; } .dk-minis { grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-core-num { font-size:56px; } }
+  @media (max-width:560px) { .dk-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-core-hero .dk-core-stage { min-height:280px; } .dk-core-num { font-size:48px; } }
+
+  /* ---------- how it gets better: the self-improvement loop on the desk ---------- */
+  .dk-learn { margin:18px 0 4px; }
+  .dk-learn-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:11px; }
+  .dk-learn-head b { font-size:14px; } .dk-learn-head span { font-size:12px; color:var(--dim); }
+  .dk-learn-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:11px; }
+  .dk-learn-card { text-align:left; display:flex; flex-direction:column; gap:5px; cursor:pointer; font-family:inherit; color:var(--text);
+    border:1px solid var(--edge); border-radius:14px; padding:14px 15px;
+    background:linear-gradient(180deg, rgba(23,31,44,.82), rgba(18,23,34,.82));
+    box-shadow:0 18px 40px -30px rgba(0,0,0,.85); transition:transform .16s, border-color .16s, box-shadow .16s; }
+  .dk-learn-card:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--brand) 45%, var(--edge)); box-shadow:0 22px 44px -26px rgba(52,211,153,.5); }
+  .dk-learn-i { font-size:20px; color:var(--brand); line-height:1; }
+  .dk-learn-card b { font-size:13.5px; } .dk-learn-card i { font-style:normal; font-size:12px; color:var(--dim); line-height:1.45; }
+  @media (max-width:640px) { .dk-learn-row { grid-template-columns:1fr; } }
 
   @media (max-width:560px) {
     .dk-hero { padding:20px; gap:18px; }
@@ -437,7 +465,9 @@ html { color-scheme:dark; }
 /* the wordmark */
 .brand { display:inline-flex; align-items:center; gap:9px; flex:0 0 auto; white-space:nowrap; }
 .brand h1 { white-space:nowrap; }
-.brand-mark { border-radius:7px; box-shadow:0 2px 10px -2px rgba(52,211,153,.45); flex:0 0 auto; }
+.brand-mark { border-radius:9px; flex:0 0 auto; filter:drop-shadow(0 2px 10px rgba(34,211,238,.5)); animation:brand-float 5s ease-in-out infinite; }
+@keyframes brand-float { 50% { transform:translateY(-2px); } }
+@media (prefers-reduced-motion:reduce) { .brand-mark { animation:none; } }
 .brand h1 { font-size:17px; font-weight:800; letter-spacing:-.02em; background:linear-gradient(90deg,#e6edf3 0%,#a3e635 140%); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .safe { color:var(--brand); border-color:color-mix(in srgb, var(--brand) 55%, transparent); background:color-mix(in srgb, var(--brand) 10%, transparent); }
 #live.stream .dot { background:var(--brand); box-shadow:0 0 8px var(--brand); }
