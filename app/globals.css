@@ -4830,3 +4830,13 @@ body { counter-reset: track-counter; }
   .track-cta::after,
   .gallery-explore-btn::after { transform: scaleX(1); transition: none; }
 }
+
+/* Checkout errors are customer-facing and were borrowing the admin
+   stylesheet's error class, which ties the shop's appearance to an
+   unrelated section. */
+.cart-error {
+  margin: 0.8rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #E0A090;
+}
