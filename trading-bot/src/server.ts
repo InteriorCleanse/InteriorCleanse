@@ -99,6 +99,7 @@ import { marketFeed } from './data/feed.ts'
 import { bus } from './data/bus.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
+import { fetchPortfolio } from './broker/alpaca.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -378,6 +379,12 @@ const server = createServer(async (req, res) => {
       // Phase 25: the ops monitor's last verdict rides along (the full document is /api/ops/health).
       const oh = opsApi.opsHealthLast(feed, watcher.lastError())
       json(res, 200, { ok: true, data: { healthy, checks, version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: storeIntegrity, feed, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt, watchStaleSec, ops: { overall: oh.overall, feed: oh.feed.verdict, dataSource: oh.dataSource.label, execution: oh.dataSource.execution, alerts: oh.alerts.length, securityOk: oh.security.ok, at: oh.at } } })
+      return
+    }
+    // Your real brokerage account, READ-ONLY. Keys come from the environment;
+    // this route never returns them and the client cannot place an order.
+    if (path === '/api/portfolio') {
+      json(res, 200, { ok: true, data: await fetchPortfolio() })
       return
     }
     // "What is the current state of my system?" — one document, from disk and the last watch cycle.
