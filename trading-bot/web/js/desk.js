@@ -299,7 +299,9 @@ function drawCore(cv, c, t) {
   const f = fitCanvas(cv); if (!f) return
   const { ctx, w, h } = f
   ctx.clearRect(0, 0, w, h)
-  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.44, h * 0.5)
+  // The visible shell projects to ~0.69R and the outermost nodes to ~0.77R, so
+  // R can run to 0.58 of the height and the orb still clears the stage edges.
+  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.44, h * 0.58)
   const sec = t / 1000
   const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.22 : 0.16 + Math.min(0.9, c.flow.tapePerMin / 240)
   const breathe = REDUCED ? 1 : 1 + 0.045 * Math.sin(sec * (c.volatility.ratio || 1) * 1.4)
