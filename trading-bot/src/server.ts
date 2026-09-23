@@ -122,6 +122,7 @@ const STATIC: Record<string, { file: string; type: string }> = {
   '/icon-512.png': { file: 'icon-512.png', type: 'image/png' },
   '/icon-180.png': { file: 'icon-180.png', type: 'image/png' },
   '/icon.svg': { file: 'icon.svg', type: 'image/svg+xml' },
+  '/mr-cash.svg': { file: 'mr-cash.svg', type: 'image/svg+xml' },
   '/favicon.ico': { file: 'icon-192.png', type: 'image/png' },
 }
 

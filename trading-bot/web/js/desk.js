@@ -139,10 +139,9 @@ function coreMarkup(c) {
   const rangeRight = c.range.high !== null ? `${fmtPx(c.range.low)} – ${fmtPx(c.range.high)}` : '—'
   const pulseRight = c.pulse.perMin === null ? '—' : `${Math.round(c.pulse.perMin)}/min · ${c.pulse.label || ''}`
   return `
-  <p class="dk-core-note">${esc(c.note)}</p>
   <section class="dk-core">
-    <div class="dk-core-scope" id="dk-scope">
-      <div class="dk-core-cap">Signal core<b>${esc(cap)}</b></div>
+    <div class="dk-core-scope dk-core-hero" id="dk-scope" data-dir="${c.panel.direction || 'none'}">
+      <div class="dk-core-cap">The brain · signal core<b>${esc(cap)}</b></div>
       <div class="dk-core-stage">
         <canvas id="dk-core-canvas" aria-hidden="true"></canvas>
         <div class="dk-core-mid">
@@ -152,15 +151,14 @@ function coreMarkup(c) {
       </div>
       <div class="dk-core-votes">${votes || '<span class="dk-core-vote">no votes for this candle</span>'}</div>
     </div>
-    <div class="dk-core-side">
-      <div class="dk-stats">${stat(c.stats.fill)}${stat(c.stats.hit)}${stat(c.stats.expectancy)}${stat(c.stats.book)}</div>
-      <div class="dk-minis">
-        ${mini('dk-m-vol', 'Volume', c.volume.bars.length ? `${c.volume.bars.length} candles` : '—', c.volume.bars.length > 0, 'no stored candles')}
-        ${mini('dk-m-heat', 'Heat · volume by NY hour', c.heat.days.length ? `${c.heat.days.length} day${c.heat.days.length === 1 ? '' : 's'}` : '—', c.heat.days.length > 0, 'no stored candles')}
-        ${mini('dk-m-range', 'Range', rangeRight, c.range.bars.length > 0, 'no stored candles')}
-        ${mini('dk-m-pulse', 'Pulse · tape', pulseRight, c.pulse.perMin !== null, c.flow.trusted ? 'no tape reading this candle' : 'stream not trusted')}
-      </div>
+    <div class="dk-stats">${stat(c.stats.fill)}${stat(c.stats.hit)}${stat(c.stats.expectancy)}${stat(c.stats.book)}</div>
+    <div class="dk-minis">
+      ${mini('dk-m-vol', 'Volume', c.volume.bars.length ? `${c.volume.bars.length} candles` : '—', c.volume.bars.length > 0, 'no stored candles')}
+      ${mini('dk-m-heat', 'Heat · volume by NY hour', c.heat.days.length ? `${c.heat.days.length} day${c.heat.days.length === 1 ? '' : 's'}` : '—', c.heat.days.length > 0, 'no stored candles')}
+      ${mini('dk-m-range', 'Range', rangeRight, c.range.bars.length > 0, 'no stored candles')}
+      ${mini('dk-m-pulse', 'Pulse · tape', pulseRight, c.pulse.perMin !== null, c.flow.trusted ? 'no tape reading this candle' : 'stream not trusted')}
     </div>
+    <p class="dk-core-note">${esc(c.note)}</p>
   </section>`
 }
 
@@ -180,7 +178,7 @@ function fitCanvas(cv) {
   return { ctx, w, h }
 }
 
-const MINT = '52,211,153', RED = '248,81,73', GREY = '139,152,165'
+const MINT = '52,211,153', RED = '248,81,73', GREY = '139,152,165', CYAN = '34,211,238', VIOLET = '139,124,246'
 
 function drawVolume(cv, v) {
   const f = fitCanvas(cv); if (!f) return
@@ -261,23 +259,31 @@ function drawCore(cv, c, t) {
   const f = fitCanvas(cv); if (!f) return
   const { ctx, w, h } = f
   ctx.clearRect(0, 0, w, h)
-  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.44, h * 0.5)
+  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.46, h * 0.52)
   const sec = t / 1000
-  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.22 : 0.15 + Math.min(1.1, c.flow.tapePerMin / 240)
-  const breathe = REDUCED ? 1 : 1 + 0.035 * Math.sin(sec * (c.volatility.ratio || 1) * 1.6)
-  const rgb = c.panel.direction === 'long' ? MINT : c.panel.direction === 'short' ? RED : GREY
+  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.20 : 0.14 + Math.min(1.0, c.flow.tapePerMin / 240)
+  const breathe = REDUCED ? 1 : 1 + 0.04 * Math.sin(sec * (c.volatility.ratio || 1) * 1.6)
+  // The winning side sets the mood colour; HOLD nodes glow cyan/violet so the
+  // brain reads as lit rather than grey. BUY/SELL keep their meaning.
+  const rgb = c.panel.direction === 'long' ? MINT : c.panel.direction === 'short' ? RED : CYAN
+  const nodeCol = (a) => (a === 'BUY' ? MINT : a === 'SELL' ? RED : (a === 'HOLD' ? CYAN : VIOLET))
 
-  // rings
+  // Central bloom behind the score.
+  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.15)
+  bloom.addColorStop(0, `rgba(${rgb},0.16)`); bloom.addColorStop(0.5, `rgba(${rgb},0.05)`); bloom.addColorStop(1, `rgba(${rgb},0)`)
+  ctx.fillStyle = bloom; ctx.fillRect(0, 0, w, h)
+
+  // Orbit rings.
   for (const k of [1 / 3, 2 / 3, 1]) {
     ctx.beginPath(); ctx.ellipse(cx, cy, R * k, R * k * 0.42, 0, 0, Math.PI * 2)
-    ctx.strokeStyle = `rgba(${GREY},${k === 1 ? 0.22 : 0.12})`; ctx.lineWidth = 1; ctx.setLineDash(k === 1 ? [] : [3, 5]); ctx.stroke()
+    ctx.strokeStyle = `rgba(${CYAN},${k === 1 ? 0.16 : 0.09})`; ctx.lineWidth = 1; ctx.setLineDash(k === 1 ? [] : [3, 6]); ctx.stroke()
   }
   ctx.setLineDash([])
-  // sweep
+  // Radar sweep.
   if (!REDUCED) {
-    const a = (sec * 0.9) % (Math.PI * 2)
+    const a = (sec * 0.8) % (Math.PI * 2)
     const g = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.42)
-    g.addColorStop(0, `rgba(${rgb},.28)`); g.addColorStop(1, `rgba(${rgb},0)`)
+    g.addColorStop(0, `rgba(${rgb},.30)`); g.addColorStop(1, `rgba(${rgb},0)`)
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.42); ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.stroke()
   }
 
@@ -286,30 +292,54 @@ function drawCore(cv, c, t) {
   const ay = sec * speed, ax = sec * speed * 0.37 + 0.6
   const pts = votes.map((v, i) => {
     const n = votes.length
-    const phi = Math.acos(1 - 2 * (i + 0.5) / n)             // even spread top to bottom
-    const theta = i * 2.399963 + (v.action === 'SELL' ? Math.PI : 0) // golden angle; sells on the far side
+    const phi = Math.acos(1 - 2 * (i + 0.5) / n)
+    const theta = i * 2.399963 + (v.action === 'SELL' ? Math.PI : 0)
     const r = (v.action === 'HOLD' ? 0.78 : 0.86 + 0.14 * Math.min(1, v.confidence / 100)) * (v.weight === 0 ? 0.5 : 1) * breathe
-    let x = r * Math.sin(phi) * Math.cos(theta), y = r * Math.cos(phi), z = r * Math.sin(phi) * Math.sin(theta)
-    // rotate about y then x
-    let x1 = x * Math.cos(ay) + z * Math.sin(ay), z1 = -x * Math.sin(ay) + z * Math.cos(ay)
-    let y1 = y * Math.cos(ax) - z1 * Math.sin(ax), z2 = y * Math.sin(ax) + z1 * Math.cos(ax)
-    const p = 1 / (1.45 - z2 * 0.35)                            // mild perspective: the back of the solid stays readable
-    return { x: cx + x1 * R * p, y: cy + y1 * R * p, d: p, v }
+    const x = r * Math.sin(phi) * Math.cos(theta), y = r * Math.cos(phi), z = r * Math.sin(phi) * Math.sin(theta)
+    const x1 = x * Math.cos(ay) + z * Math.sin(ay), z1 = -x * Math.sin(ay) + z * Math.cos(ay)
+    const y1 = y * Math.cos(ax) - z1 * Math.sin(ax), z2 = y * Math.sin(ax) + z1 * Math.cos(ax)
+    const p = 1 / (1.45 - z2 * 0.35)
+    return { x: cx + x1 * R * p, y: cy + y1 * R * p, d: p, z: z2, v }
   })
-  // edges: every pair, brighter when both sides are voting the same way
+
+  // Edges (additive glow): brighter when both ends vote the same way.
+  ctx.globalCompositeOperation = 'lighter'
+  const edges = []
   for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
     const a = pts[i], b = pts[j]
     const same = a.v.action !== 'HOLD' && a.v.action === b.v.action
-    const alpha = (same ? 0.7 : 0.34) * ((a.d + b.d) / 2)
+    const depth = (a.d + b.d) / 2
+    const alpha = (same ? 0.55 : 0.16) * depth
+    const col = same ? nodeCol(a.v.action) : CYAN
+    const grd = ctx.createLinearGradient(a.x, a.y, b.x, b.y)
+    grd.addColorStop(0, `rgba(${nodeCol(a.v.action)},${alpha.toFixed(3)})`)
+    grd.addColorStop(1, `rgba(${nodeCol(b.v.action)},${alpha.toFixed(3)})`)
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y)
-    ctx.strokeStyle = `rgba(${same ? rgb : GREY},${alpha.toFixed(3)})`; ctx.lineWidth = same ? 1.4 : 1; ctx.stroke()
+    ctx.strokeStyle = grd; ctx.lineWidth = same ? 1.6 : 0.8; ctx.stroke()
+    if (same) edges.push({ a, b, col })
   }
-  // vertices
-  for (const p of pts) {
-    const col = p.v.action === 'BUY' ? MINT : p.v.action === 'SELL' ? RED : GREY
-    ctx.beginPath(); ctx.arc(p.x, p.y, 2.2 + p.d * 2.2, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${col},${(0.35 + p.d * 0.6).toFixed(3)})`; ctx.fill()
+  // Signal pulses travelling the agreeing edges — the brain "thinking".
+  if (!REDUCED) {
+    for (const e of edges) {
+      const fr = ((sec * 0.5 + (e.a.x + e.b.x) * 0.0016) % 1)
+      const px = e.a.x + (e.b.x - e.a.x) * fr, py = e.a.y + (e.b.y - e.a.y) * fr
+      ctx.beginPath(); ctx.arc(px, py, 1.9, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(${e.col},0.9)`; ctx.fill()
+    }
   }
+  // Nodes, back to front, glowing.
+  for (const p of pts.sort((a, b) => a.z - b.z)) {
+    const col = nodeCol(p.v.action)
+    const rad = (p.v.action === 'HOLD' ? 2.0 : 2.6) + p.d * 2.6
+    const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 4)
+    halo.addColorStop(0, `rgba(${col},${(0.5 * p.d).toFixed(3)})`); halo.addColorStop(1, `rgba(${col},0)`)
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(p.x, p.y, rad * 4, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(${col},${(0.55 + p.d * 0.45).toFixed(3)})`; ctx.fill()
+    ctx.beginPath(); ctx.arc(p.x - rad * 0.3, p.y - rad * 0.3, rad * 0.4, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(255,255,255,${(0.4 * p.d).toFixed(3)})`; ctx.fill()
+  }
+  ctx.globalCompositeOperation = 'source-over'
 }
 
 function drawStatics() {
@@ -361,6 +391,15 @@ function render(d) {
 
     <h2 class="dk-crew-title">The crew <span>six of them, each watching one thing</span></h2>
     <div class="dk-crew">${d.agents.map(card).join('')}</div>
+
+    <section class="dk-learn">
+      <div class="dk-learn-head"><b>How it gets better</b><span>it proves strategies to itself before it trusts them — nothing here trades your money</span></div>
+      <div class="dk-learn-row">
+        <button class="dk-learn-card" data-tab="factory"><span class="dk-learn-i">⑂</span><b>Breeds &amp; tests</b><i>tries strategy variants on real history, keeps only the ones that survive out-of-sample</i></button>
+        <button class="dk-learn-card" data-tab="research"><span class="dk-learn-i">◎</span><b>Questions itself</b><i>the lab raises questions from the record, checks them, and flags overfitting</i></button>
+        <button class="dk-learn-card" data-tab="knowledge"><span class="dk-learn-i">✦</span><b>Remembers</b><i>every lesson and post-mortem is versioned; a setup that keeps failing gets refused</i></button>
+      </div>
+    </section>
 
     <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order.</p>
   </div>`
@@ -425,6 +464,9 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-tab]')
   if (!b) return
+  // The learning cards are built on this page, so they miss index.html's load-time
+  // binding; route them through the shared tab switcher.
+  if (b.classList.contains('dk-learn-card') && typeof window.showTab === 'function') window.showTab(b.dataset.tab)
   setTimeout(() => { if (deskVisible()) { if (coreData && !coreFrame) startCore() } else stopCore() }, 0)
 })
 
