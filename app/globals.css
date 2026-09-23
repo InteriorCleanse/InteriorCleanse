@@ -71,6 +71,29 @@
   --series-4: 201 133 0;
 }
 
+/* ── JARVIS: the signature futuristic theme, and the default ──────────────
+   A near-black violet ground with electric-violet and azure primaries,
+   aurora-mint for good and hot-pink for bad. Every text token below is held
+   to WCAG AA 4.5:1 on all three surfaces by tests/contrast.test.ts, exactly
+   like light and dark — the default look does not get to skip the bar. */
+:root[data-theme='jarvis'] {
+  --ground: 8 8 16;
+  --panel: 16 16 28;
+  --panel-raised: 24 22 40;
+  --hairline: 60 56 96;
+  --ink: 236 234 252;
+  --muted: 158 158 190;
+  --signal: 167 148 255;
+  --cobalt: 96 165 255;
+  --amber: 255 190 110;
+  --positive: 74 240 190;
+  --negative: 255 110 150;
+  --series-1: 139 122 255;
+  --series-2: 45 212 218;
+  --series-3: 240 110 200;
+  --series-4: 240 180 90;
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -89,6 +112,61 @@ body {
   background-image:
     radial-gradient(60rem 30rem at 15% -10%, rgb(var(--signal) / 0.10), transparent 60%),
     radial-gradient(50rem 26rem at 92% 4%, rgb(var(--cobalt) / 0.10), transparent 60%);
+}
+
+/* ── JARVIS chrome ────────────────────────────────────────────────────────
+   The HUD atmosphere, scoped to the theme so light and dark are untouched.
+   Deliberately restrained where readability lives: the grid sits BEHIND the
+   content (never an overlay on top of text), and there is no full-screen
+   scanline blend in the product — that would quietly erode the very contrast
+   the token palette is tuned to guarantee. Glow does the futuristic work. */
+:root[data-theme='jarvis'] body {
+  background:
+    radial-gradient(72rem 42rem at 6% -12%, rgb(var(--signal) / 0.16), transparent 58%),
+    radial-gradient(60rem 38rem at 110% -6%, rgb(var(--cobalt) / 0.13), transparent 55%),
+    radial-gradient(82rem 60rem at 50% 122%, rgb(240 110 200 / 0.08), transparent 60%),
+    rgb(var(--ground));
+  background-attachment: fixed;
+}
+
+/* Grid field, behind everything (negative z-index), faded out toward the base. */
+:root[data-theme='jarvis'] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(var(--signal) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--signal) / 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask: radial-gradient(130% 100% at 50% 0%, #000 52%, transparent 100%);
+  mask: radial-gradient(130% 100% at 50% 0%, #000 52%, transparent 100%);
+}
+
+/* Every Panel gets a neon edge and a lift. `.shadow-panel` is the panel class. */
+:root[data-theme='jarvis'] .shadow-panel {
+  border-color: rgb(var(--signal) / 0.22);
+  box-shadow:
+    0 0 0 1px rgb(var(--signal) / 0.06),
+    0 18px 40px -26px rgb(0 0 0 / 0.9),
+    0 0 34px -20px rgb(var(--signal) / 0.55);
+}
+
+/* The assistant launcher reads as an arc reactor: a pulsing signal glow. */
+:root[data-theme='jarvis'] .assistant-orb {
+  border-color: rgb(var(--signal) / 0.5);
+  box-shadow:
+    0 0 24px -6px rgb(var(--signal) / 0.7),
+    inset 0 0 12px -6px rgb(var(--signal) / 0.6);
+  animation: aurelis-orb 3s ease-in-out infinite;
+}
+@keyframes aurelis-orb {
+  50% {
+    box-shadow:
+      0 0 36px -4px rgb(var(--signal) / 0.9),
+      inset 0 0 16px -4px rgb(var(--signal) / 0.85);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

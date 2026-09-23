@@ -61,6 +61,8 @@ function extract(selector: RegExp): Theme {
 const LIGHT = extract(/:root\s*\{([\s\S]*?)\n\}/)
 const DARK = extract(/:root\[data-theme='dark'\]\s*\{([\s\S]*?)\n\}/)
 const DARK_SYSTEM = extract(/:root:not\(\[data-theme='light'\]\)\s*\{([\s\S]*?)\n\s*\}/)
+// JARVIS is the default theme, so it is held to the same bar as the others.
+const JARVIS = extract(/:root\[data-theme='jarvis'\]\s*\{([\s\S]*?)\n\}/)
 
 /** Relative luminance per WCAG 2.x, sRGB. */
 function luminance([r, g, b]: Rgb): number {
@@ -97,6 +99,7 @@ describe('the contrast arithmetic', () => {
 describe.each([
   ['light', LIGHT],
   ['dark', DARK],
+  ['jarvis', JARVIS],
 ])('%s theme', (_name, theme) => {
   it('defines every token the checks depend on', () => {
     for (const token of [...TEXT_TOKENS, ...SURFACES]) {
@@ -142,6 +145,21 @@ describe('the two dark blocks', () => {
     for (const slot of ['series-1', 'series-2', 'series-3', 'series-4']) {
       const ratio = contrast(DARK[slot]!, DARK.panel!)
       expect(ratio, `${slot} on dark panel is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3)
+    }
+  })
+})
+
+describe('the jarvis theme, being the default', () => {
+  it('carries its own series slots, so charts are never drawn in another theme’s hues', () => {
+    for (const slot of ['series-1', 'series-2', 'series-3', 'series-4']) {
+      expect(JARVIS[slot], `${slot} missing from jarvis`).toBeDefined()
+    }
+  })
+
+  it('gives chart fills at least 3:1 on its own panel', () => {
+    for (const slot of ['series-1', 'series-2', 'series-3', 'series-4']) {
+      const ratio = contrast(JARVIS[slot]!, JARVIS.panel!)
+      expect(ratio, `${slot} on jarvis panel is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3)
     }
   })
 })
