@@ -594,11 +594,17 @@ nav button.active { color:var(--text); background:linear-gradient(180deg, rgba(5
   border:1px solid var(--edge);
   box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px -28px rgba(0,0,0,.85);
 }
-.card { position:relative; overflow:hidden; }
-.card::before {
+.card, .dk-stat, .dk-mini { position:relative; overflow:hidden; }
+.card::before, .dk-stat::before, .dk-mini::before {
   content:''; position:absolute; left:0; right:0; top:0; height:1px;
   background:linear-gradient(90deg, transparent, rgba(52,211,153,.55), rgba(163,230,53,.35), transparent);
   opacity:.6;
+}
+/* The stat/mini strips read as one instrument cluster: a cooler cyan/violet
+   thread so they sit a half-step behind the crew cards instead of competing. */
+.dk-stat::before, .dk-mini::before {
+  background:linear-gradient(90deg, transparent, rgba(34,211,238,.5), rgba(139,124,246,.3), transparent);
+  opacity:.5;
 }
 .card h2 { color:color-mix(in srgb, var(--text) 62%, var(--dim)); }
 

@@ -301,20 +301,31 @@ function drawCore(cv, c, t) {
   ctx.clearRect(0, 0, w, h)
   const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.44, h * 0.5)
   const sec = t / 1000
-  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.16 : 0.11 + Math.min(0.8, c.flow.tapePerMin / 260)
-  const breathe = REDUCED ? 1 : 1 + 0.035 * Math.sin(sec * (c.volatility.ratio || 1) * 1.4)
-  const ay = REDUCED ? 0.7 : sec * speed, ax = 0.42 + (REDUCED ? 0 : sec * speed * 0.28)
+  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.22 : 0.16 + Math.min(0.9, c.flow.tapePerMin / 240)
+  const breathe = REDUCED ? 1 : 1 + 0.045 * Math.sin(sec * (c.volatility.ratio || 1) * 1.4)
+  const ay = REDUCED ? 0.7 : sec * speed
+  // A slow camera nod instead of a continuous tumble — it reads as a spinning
+  // globe you are looking slightly down onto, cleaner than an end-over-end roll.
+  const ax = 0.44 + (REDUCED ? 0 : Math.sin(sec * 0.2) * 0.13 + Math.sin(sec * 0.063) * 0.05)
   // The winning side sets the mood colour; a flat market glows cyan so the brain
-  // reads as lit rather than grey. BUY/SELL keep their meaning.
+  // reads as lit rather than grey. BUY/SELL keep their meaning. A second accent
+  // (violet, or a warm amber when short) gives the bloom depth instead of a flat wash.
   const rgb = c.panel.direction === 'long' ? MINT : c.panel.direction === 'short' ? RED : CYAN
+  const acc = c.panel.direction === 'short' ? '245,158,66' : VIOLET
   const nodeCol = (a) => (a === 'BUY' ? MINT : a === 'SELL' ? RED : (a === 'HOLD' ? CYAN : VIOLET))
 
-  // Central bloom behind the whole scene.
-  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.5)
-  bloom.addColorStop(0, `rgba(${rgb},0.15)`); bloom.addColorStop(0.45, `rgba(${rgb},0.05)`); bloom.addColorStop(1, `rgba(${rgb},0)`)
+  // Central bloom behind the whole scene — mood colour into the accent into black,
+  // so the light feels coloured and volumetric rather than a single tint.
+  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.7)
+  bloom.addColorStop(0, `rgba(${rgb},0.20)`); bloom.addColorStop(0.32, `rgba(${acc},0.09)`); bloom.addColorStop(0.7, `rgba(${rgb},0.03)`); bloom.addColorStop(1, `rgba(${rgb},0)`)
   ctx.fillStyle = bloom; ctx.fillRect(0, 0, w, h)
 
   ctx.globalCompositeOperation = 'lighter'
+
+  // A tight bright flare right behind the score, so the number sits on light.
+  const flare = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.55)
+  flare.addColorStop(0, `rgba(${rgb},0.22)`); flare.addColorStop(1, `rgba(${rgb},0)`)
+  ctx.fillStyle = flare; ctx.beginPath(); ctx.arc(cx, cy, R * 0.55, 0, Math.PI * 2); ctx.fill()
 
   // Depth dust behind the orb (far half only; the near half is drawn last).
   const dust = stars().map((st) => ({ p: proj(rot3(st.x, st.y, st.z, ay * 0.6, ax * 0.6), R, cx, cy), st }))
@@ -322,17 +333,18 @@ function drawCore(cv, c, t) {
     if (p.z > 0.2) continue
     const tw = REDUCED ? 0.6 : 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(sec * 1.5 + st.tw))
     ctx.beginPath(); ctx.arc(p.x, p.y, st.s * p.d * 0.7, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${CYAN},${(0.16 * p.d * tw).toFixed(3)})`; ctx.fill()
+    ctx.fillStyle = `rgba(${st.tw > 3.14 ? acc : CYAN},${(0.16 * p.d * tw).toFixed(3)})`; ctx.fill()
   }
 
   // The orb body: a soft lit sphere so the wireframe has volume under it.
   const body = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.3, R * 0.05, cx, cy, R * 1.02)
-  body.addColorStop(0, `rgba(${rgb},0.14)`); body.addColorStop(0.55, `rgba(${rgb},0.05)`); body.addColorStop(1, `rgba(${rgb},0)`)
+  body.addColorStop(0, `rgba(${rgb},0.16)`); body.addColorStop(0.5, `rgba(${acc},0.05)`); body.addColorStop(1, `rgba(${rgb},0)`)
   ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill()
 
   // The wireframe shell: latitude rings + longitude half-rings, depth-shaded so
-  // the front of the cage is bright and the back fades. This is the orb.
-  const ring = (build) => {
+  // the front of the cage is bright and the back fades. This is the orb. Two-tone
+  // (mood latitudes, accent longitudes) reads richer than a single colour.
+  const ring = (build, col, base) => {
     let prev = null
     for (let k = 0; k <= 48; k++) {
       const u = build(k / 48)
@@ -340,20 +352,29 @@ function drawCore(cv, c, t) {
       if (prev) {
         const dep = (p.z + prev.z) / 2
         ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(p.x, p.y)
-        ctx.strokeStyle = `rgba(${rgb},${(0.05 + 0.22 * Math.max(0, (dep + 1) / 2)).toFixed(3)})`
-        ctx.lineWidth = 0.6 + 0.6 * Math.max(0, dep); ctx.stroke()
+        ctx.strokeStyle = `rgba(${col},${(base + 0.24 * Math.max(0, (dep + 1) / 2)).toFixed(3)})`
+        ctx.lineWidth = 0.55 + 0.7 * Math.max(0, dep); ctx.stroke()
       }
       prev = p
     }
   }
   for (const lat of [-0.6, -0.3, 0, 0.3, 0.6]) {
     const cphi = Math.cos(lat * Math.PI / 2), sphi = Math.sin(lat * Math.PI / 2)
-    ring((u) => { const th = u * Math.PI * 2; return { x: cphi * Math.cos(th), y: sphi, z: cphi * Math.sin(th) } })
+    ring((u) => { const th = u * Math.PI * 2; return { x: cphi * Math.cos(th), y: sphi, z: cphi * Math.sin(th) } }, rgb, 0.05)
   }
   for (let m = 0; m < 6; m++) {
     const lon = (m / 6) * Math.PI
-    ring((u) => { const ph = (u - 0.5) * Math.PI; const cph = Math.cos(ph); return { x: cph * Math.cos(lon), y: Math.sin(ph), z: cph * Math.sin(lon) } })
+    ring((u) => { const ph = (u - 0.5) * Math.PI; const cph = Math.cos(ph); return { x: cph * Math.cos(lon), y: Math.sin(ph), z: cph * Math.sin(lon) } }, acc, 0.035)
   }
+
+  // Rim light: a bright arc down the leading edge of the silhouette, the way a
+  // lit sphere catches light — the single strongest "this is a solid" cue. The
+  // perspective divide shrinks the visible orb below R, so the arc rides at ~0.7R
+  // to hug the real edge rather than float outside it.
+  const rimR = R * 0.7
+  const rim = ctx.createLinearGradient(cx - rimR, cy, cx + rimR, cy)
+  rim.addColorStop(0, `rgba(${acc},0)`); rim.addColorStop(0.55, `rgba(${CYAN},0.12)`); rim.addColorStop(1, `rgba(${rgb},0.55)`)
+  ctx.beginPath(); ctx.arc(cx, cy, rimR, -0.85, 1.3); ctx.strokeStyle = rim; ctx.lineWidth = 2.4; ctx.stroke()
 
   const votes = c.panel.votes
   if (!votes.length) { ctx.globalCompositeOperation = 'source-over'; return }
@@ -383,20 +404,23 @@ function drawCore(cv, c, t) {
     if (same) edges.push({ a, b, col: nodeCol(a.v.action) })
   }
 
-  // Signal sparks running the agreeing edges as short streaks — the brain thinking.
+  // Signal sparks running the agreeing edges as glowing streaks with a bright
+  // head — the brain thinking. A longer comet tail and a lit tip read as motion.
   if (!REDUCED) {
     for (const e of edges) {
-      const fr = (sec * 0.5 + (e.a.x + e.b.x) * 0.0016) % 1
-      const tail = Math.max(0, fr - 0.14)
-      const g = ctx.createLinearGradient(
-        e.a.x + (e.b.x - e.a.x) * tail, e.a.y + (e.b.y - e.a.y) * tail,
-        e.a.x + (e.b.x - e.a.x) * fr, e.a.y + (e.b.y - e.a.y) * fr)
+      const fr = (sec * 0.55 + (e.a.x + e.b.x) * 0.0016) % 1
+      const tail = Math.max(0, fr - 0.22)
+      const tx = e.a.x + (e.b.x - e.a.x) * tail, ty = e.a.y + (e.b.y - e.a.y) * tail
+      const hx = e.a.x + (e.b.x - e.a.x) * fr, hy = e.a.y + (e.b.y - e.a.y) * fr
+      const g = ctx.createLinearGradient(tx, ty, hx, hy)
       g.addColorStop(0, `rgba(${e.col},0)`); g.addColorStop(1, `rgba(${e.col},0.95)`)
-      ctx.beginPath()
-      ctx.moveTo(e.a.x + (e.b.x - e.a.x) * tail, e.a.y + (e.b.y - e.a.y) * tail)
-      ctx.lineTo(e.a.x + (e.b.x - e.a.x) * fr, e.a.y + (e.b.y - e.a.y) * fr)
-      ctx.strokeStyle = g; ctx.lineWidth = 2.2; ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy)
+      ctx.strokeStyle = g; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke()
+      const head = ctx.createRadialGradient(hx, hy, 0, hx, hy, 5)
+      head.addColorStop(0, `rgba(255,255,255,0.9)`); head.addColorStop(0.4, `rgba(${e.col},0.8)`); head.addColorStop(1, `rgba(${e.col},0)`)
+      ctx.fillStyle = head; ctx.beginPath(); ctx.arc(hx, hy, 5, 0, Math.PI * 2); ctx.fill()
     }
+    ctx.lineCap = 'butt'
   }
 
   // Nodes, back to front, with a crisp core and a tight halo.
@@ -417,7 +441,7 @@ function drawCore(cv, c, t) {
     if (p.z <= 0.2) continue
     const tw = REDUCED ? 0.7 : 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(sec * 1.5 + st.tw))
     ctx.beginPath(); ctx.arc(p.x, p.y, st.s * p.d * 0.8, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${CYAN},${(0.22 * p.d * tw).toFixed(3)})`; ctx.fill()
+    ctx.fillStyle = `rgba(${st.tw > 3.14 ? acc : CYAN},${(0.22 * p.d * tw).toFixed(3)})`; ctx.fill()
   }
 
   ctx.globalCompositeOperation = 'source-over'
