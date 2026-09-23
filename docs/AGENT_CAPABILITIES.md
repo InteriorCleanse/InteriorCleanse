@@ -269,3 +269,50 @@ Several more were sent from social posts. These were not installed:
 - **`NandhaKishorM/laya`** — an Apache-2.0 Python ML library (a
   non-autoregressive decision model). A pip package, not a skill, and
   unrelated to the site.
+
+## Added later: four design skills
+
+For the storefront's own light-and-luxury redesign, four frontend design
+skills were vetted and installed (provenance in `.claude/README.md`):
+
+- **`ux-designer`** (`szilu/ux-designer-skill`) — UX/UI principles with
+  WCAG/EAA accessibility, forms, microcopy, e-commerce and design-system
+  guidance. SKILL.md plus all 26 `references/*.md`.
+- **`design-taste-frontend`**, **`high-end-visual-design`**,
+  **`redesign-existing-projects`** — three of the thirteen skills in
+  `Leonxlnx/taste-skill`: the flagship anti-slop frontend skill, the
+  "make it feel expensive" ruleset, and the audit-first redesign skill.
+
+Each SKILL.md was read before vendoring and scanned for prompt-injection,
+credential harvesting, and `curl | sh`-style payloads; all were clean, and
+the referenced external URLs are reputable design sources. The taste pack's
+sponsor/affiliate-laden README was not copied.
+
+### Declined from the same batch
+
+- **`mksglu/context-mode` ("Context Mode")** — its own README states it is an
+  **MCP server**, not a Claude Code skill: there is nothing to vendor into
+  `.claude/skills/`, it would be a runtime server addition instead. The
+  listing also carries fabricated social proof (547k users, "used at
+  Microsoft / Google / Meta / …", an "AN MCP" ad watermark), which is reason
+  for caution, not adoption. If a context-compaction MCP server is ever
+  wanted, it would be added to the MCP config deliberately, not here.
+- **`anthropics/skills` → `web-artifacts-builder`** — a real Anthropic skill,
+  but it scaffolds and bundles **claude.ai HTML artifacts** (React + Tailwind
+  + shadcn via `init-artifact.sh` / `bundle-artifact.sh`). This site is a
+  Next.js app on Vercel, not an artifact, so the skill would never fire.
+- **`anthropics/skills` → `canvas-design`** — a real Anthropic skill, but it
+  produces `.png`/`.pdf` visual art from a written "design philosophy." The
+  storefront uses real product photography and HTML/CSS, so the fit is
+  marginal; left out to hold the context budget, easy to add later.
+- **`ParthJadhav/app-store-screenshots`** — a skill, but it scaffolds a
+  Next.js editor for **App Store / Google Play** marketing screenshot decks.
+  This is a web storefront, not a mobile app; not relevant.
+- **`Jakubantalik/transitions.dev`** — not a Claude Code skill: a paywalled
+  npm CLI (`npx transitions-dev add`, Pro tier behind a login) that copies
+  CSS transition snippets. No SKILL.md. The site already has its own motion
+  system (GSAP + tokenised transitions).
+- **The other ten `taste-skill` variants** — v1, gpt-taste, image-to-code,
+  minimalist, brutalist, stitch, output, and three image-generation skills.
+  Real skills, but installing all thirteen would spend the always-on budget
+  on directions this project has not chosen. Any can be added on request.
