@@ -36,6 +36,10 @@ import { MarketDataError, explainMarketDataError } from './market.ts'
 const HERE = dirname(fileURLToPath(import.meta.url))
 import { VERSION } from './version.ts'
 import { CONCEPTS, conceptById } from './school/curriculum.ts'
+import { strategyIds, metaById, enabledStrategyIds } from './strategies/registry.ts'
+import { runBacktestDetailed } from './backtest/runner.ts'
+import { reportLines } from './backtest/report.ts'
+import { recordTrials } from './research/overfitting.ts'
 
 type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (args: Record<string, unknown>) => Promise<string> }
 
@@ -184,6 +188,36 @@ const TOOLS: Tool[] = [
       }
       writePlan(plan)
       return `Armed for ${dayKey}: ${plan.allow}, ${plan.riskPerTradePercent}% risk, max ${plan.maxTrades} trade(s).${plan.notes ? ` Notes: ${plan.notes}` : ''}`
+    },
+  },
+  {
+    name: 'strategies',
+    description: "Every strategy in Mr. Cash's panel: id, name, family, what it looks for, whether it is switched on, and whether it can be backtested (order-flow strategies need the live tape and cannot). Use the id with the backtest tool.",
+    inputSchema: noInput,
+    run: async () => {
+      const metas = metaById(), on = new Set(enabledStrategyIds())
+      const lines = strategyIds().map((id) => { const m = metas.get(id)!; return `${id} — ${m.name} (${m.family}${on.has(id) ? ', on' : ', off'}${m.needsTape ? ', live tape only: not backtestable' : ''})\n   ${m.summary}` })
+      lines.push('fused — the combined decision of the whole panel, as the bot actually trades it')
+      return lines.join('\n')
+    },
+  },
+  {
+    name: 'backtest',
+    description: "Backtest one strategy (or 'fused') on the stored candles with the realistic fill model: in-sample, validation and OUT-OF-SAMPLE splits, walk-forward, Monte Carlo, and the last trades for overlaying on a chart. Results are BACKTEST · SIMULATED, in R. Takes several seconds. Each run is counted as a trial in the overfitting registry, so running many and picking the best is visible. Never places or changes anything.",
+    inputSchema: { type: 'object', properties: { strategy: { type: 'string', description: 'Strategy id from the strategies tool, or "fused".' }, trades: { type: 'number', description: 'How many of the latest trades to list (0–30, default 10).' } }, required: ['strategy'], additionalProperties: false },
+    run: async (args) => {
+      const id = String(args.strategy ?? '').trim()
+      if (id !== 'fused' && !strategyIds().includes(id)) return `Unknown strategy "${id}". Known: ${strategyIds().join(', ')}, fused`
+      const n = Math.max(0, Math.min(30, Math.floor(Number(args.trades ?? 10)) || 0))
+      const { report, trades } = await runBacktestDetailed(id)
+      if (!report.notBacktestable) { try { recordTrials({ strategyId: id, source: 'manual', count: 1, note: 'MCP backtest' }) } catch { /* the registry is best-effort */ } }
+      const iso = (t: number) => new Date(t).toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
+      const last = trades.slice(-n).map((t) => `${iso(t.entryTime)}  ${t.action === 'BUY' ? 'LONG ' : 'SHORT'} in ${t.entryPrice.toFixed(2)} → out ${t.exitPrice.toFixed(2)} (${t.exitReason})  ${t.rMultiple === null ? '—' : (t.rMultiple >= 0 ? '+' : '') + t.rMultiple.toFixed(2) + 'R'}`)
+      return [
+        'BACKTEST · SIMULATED on stored candles with spread, slippage and fees. Not a paper or live result, and not a forecast.', '',
+        ...reportLines(report),
+        ...(n && last.length ? ['', `Last ${last.length} trades (entry and exit times and prices, for a chart overlay):`, ...last] : []),
+      ].join('\n')
     },
   },
   {

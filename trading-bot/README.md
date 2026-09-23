@@ -372,9 +372,18 @@ npm run mcp:config
 That prints the one-line command for Claude Code and the JSON for Claude
 Desktop. After that, any Claude chat can ask for the brief, the checklist,
 the market state, order flow, news, the paper account, your journal review,
-or run the doctor — and can arm today's plan. Thirteen tools, all read-only
+or run the doctor — and can arm today's plan. Fifteen tools, all read-only
 except `arm_plan`, none of which can place an order. Zero dependencies: Mr.
 Cash speaks the protocol itself.
+
+**Research and backtest from the chat.** `strategies` lists the panel;
+`backtest` runs one strategy (or the fused decision) on the stored candles
+with the realistic fill model and returns the in-sample, validation and
+out-of-sample splits, walk-forward, Monte Carlo and the latest trades with
+their entry and exit times and prices, ready to overlay on a chart. Ask
+*"Backtest turtle-soup and show me the last ten trades"*. Every result is
+labelled BACKTEST · SIMULATED, and every run is counted in the overfitting
+registry, so trying twenty strategies and quoting the best is visible.
 
 **Learning to trade with Claude as the tutor.** The `learn` tool hands Claude
 the School's course: first the basics in order (what you trade, candles, bid
