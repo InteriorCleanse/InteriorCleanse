@@ -173,3 +173,18 @@ test('REPLAY SCHOOL — a stop shows only what was knowable before the event; th
   assert.equal(empty.lesson.stops.length, 0)
   assert.match(empty.lesson.note, /NOT ENOUGH DATA/)
 })
+
+test('the basics come first, in teaching order, and their worked answers add up', () => {
+  const basics = cur.CONCEPTS.filter((c) => c.track === 'basics')
+  assert.equal(basics.length, 10)
+  assert.deepEqual(cur.CONCEPTS.slice(0, 10).map((c) => c.id), basics.map((c) => c.id), 'a beginner sees the basics before any ICT concept')
+  for (const c of basics) {
+    const text = [c.summary, ...c.engineChecks, ...c.misreads, ...c.quiz.flatMap((qq) => [qq.prompt, qq.why])].join(' ')
+    assert.doesNotMatch(text, /\b(proven|guaranteed|certain(?:ly)?|best|perfect|fail-?proof|profitable)\b/i, `${c.id} makes no promises`)
+  }
+  const choice = (id: string) => { const qq = cur.CONCEPTS.flatMap((c) => c.quiz).find((x) => x.id === id)!; return qq.choices[qq.answer] }
+  assert.equal(choice('ps-1'), String((5000 * 0.01) / (20 - 19.5)))
+  assert.equal(choice('opt-1'), (105 + 1.5).toFixed(2))
+  assert.equal(choice('opt-2'), `$${0.8 * 100}`)
+  assert.equal(choice('lev-1'), `${100 / 5}%`)
+})

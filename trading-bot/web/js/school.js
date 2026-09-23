@@ -28,12 +28,14 @@ async function postJson(path, body) {
 const growthBar = (g) => `<div class="sc-growth"><div class="sc-growth-bar"><div style="width:${g.pct}%"></div></div><span class="muted">${g.n} trades · ${esc(g.band)} · ${esc(g.status)}${g.toNext ? ` · ${g.toNext} to next band` : ''}</span></div>`
 const notEnough = (what) => `<div class="ev-empty"><div class="ev-empty-big">NOT ENOUGH DATA</div><div class="muted">${esc(what)}</div></div>`
 
+const TRACK_LABEL = { basics: 'Start here: the basics, in order' }
+
 async function renderConcepts() {
   const { data } = await getJson('/api/school')
   const byTrack = {}
   for (const c of data.concepts) (byTrack[c.track] = byTrack[c.track] || []).push(c)
   return `<div class="ev-note">${esc(data.note)}</div>${growthBar(data.dataGrowth)}
-    ${Object.entries(byTrack).map(([track, cs]) => `<div class="card"><h2>${esc(track)}</h2><div class="sc-grid">${cs.map((c) => `<button class="sc-concept" data-concept="${esc(c.id)}"><b>${esc(c.title)}</b><span class="muted">${esc(c.level)} · ${esc(c.mastery.level)}</span></button>`).join('')}</div></div>`).join('')}`
+    ${Object.entries(byTrack).map(([track, cs]) => `<div class="card"><h2>${esc(TRACK_LABEL[track] || track)}</h2><div class="sc-grid">${cs.map((c) => `<button class="sc-concept" data-concept="${esc(c.id)}"><b>${esc(c.title)}</b><span class="muted">${esc(c.level)} · ${esc(c.mastery.level)}</span></button>`).join('')}</div></div>`).join('')}`
 }
 
 async function renderLesson() {

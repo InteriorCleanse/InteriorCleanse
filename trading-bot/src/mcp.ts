@@ -35,6 +35,11 @@ import { MarketDataError, explainMarketDataError } from './market.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 import { VERSION } from './version.ts'
+import { CONCEPTS, conceptById } from './school/curriculum.ts'
+import { strategyIds, metaById, enabledStrategyIds } from './strategies/registry.ts'
+import { runBacktestDetailed } from './backtest/runner.ts'
+import { reportLines } from './backtest/report.ts'
+import { recordTrials } from './research/overfitting.ts'
 
 type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (args: Record<string, unknown>) => Promise<string> }
 
@@ -183,6 +188,64 @@ const TOOLS: Tool[] = [
       }
       writePlan(plan)
       return `Armed for ${dayKey}: ${plan.allow}, ${plan.riskPerTradePercent}% risk, max ${plan.maxTrades} trade(s).${plan.notes ? ` Notes: ${plan.notes}` : ''}`
+    },
+  },
+  {
+    name: 'strategies',
+    description: "Every strategy in Mr. Cash's panel: id, name, family, what it looks for, whether it is switched on, and whether it can be backtested (order-flow strategies need the live tape and cannot). Use the id with the backtest tool.",
+    inputSchema: noInput,
+    run: async () => {
+      const metas = metaById(), on = new Set(enabledStrategyIds())
+      const lines = strategyIds().map((id) => { const m = metas.get(id)!; return `${id} — ${m.name} (${m.family}${on.has(id) ? ', on' : ', off'}${m.needsTape ? ', live tape only: not backtestable' : ''})\n   ${m.summary}` })
+      lines.push('fused — the combined decision of the whole panel, as the bot actually trades it')
+      return lines.join('\n')
+    },
+  },
+  {
+    name: 'backtest',
+    description: "Backtest one strategy (or 'fused') on the stored candles with the realistic fill model: in-sample, validation and OUT-OF-SAMPLE splits, walk-forward, Monte Carlo, and the last trades for overlaying on a chart. Results are BACKTEST · SIMULATED, in R. Takes several seconds. Each run is counted as a trial in the overfitting registry, so running many and picking the best is visible. Never places or changes anything.",
+    inputSchema: { type: 'object', properties: { strategy: { type: 'string', description: 'Strategy id from the strategies tool, or "fused".' }, trades: { type: 'number', description: 'How many of the latest trades to list (0–30, default 10).' } }, required: ['strategy'], additionalProperties: false },
+    run: async (args) => {
+      const id = String(args.strategy ?? '').trim()
+      if (id !== 'fused' && !strategyIds().includes(id)) return `Unknown strategy "${id}". Known: ${strategyIds().join(', ')}, fused`
+      const n = Math.max(0, Math.min(30, Math.floor(Number(args.trades ?? 10)) || 0))
+      const { report, trades } = await runBacktestDetailed(id)
+      if (!report.notBacktestable) { try { recordTrials({ strategyId: id, source: 'manual', count: 1, note: 'MCP backtest' }) } catch { /* the registry is best-effort */ } }
+      const iso = (t: number) => new Date(t).toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
+      const last = trades.slice(-n).map((t) => `${iso(t.entryTime)}  ${t.action === 'BUY' ? 'LONG ' : 'SHORT'} in ${t.entryPrice.toFixed(2)} → out ${t.exitPrice.toFixed(2)} (${t.exitReason})  ${t.rMultiple === null ? '—' : (t.rMultiple >= 0 ? '+' : '') + t.rMultiple.toFixed(2) + 'R'}`)
+      return [
+        'BACKTEST · SIMULATED on stored candles with spread, slippage and fees. Not a paper or live result, and not a forecast.', '',
+        ...reportLines(report),
+        ...(n && last.length ? ['', `Last ${last.length} trades (entry and exit times and prices, for a chart overlay):`, ...last] : []),
+      ].join('\n')
+    },
+  },
+  {
+    name: 'learn',
+    description: "Mr. Cash's School, for teaching the user to trade. With no concept: the course outline in order, starting with the basics (orders, spread, sizing, options, leverage, psychology). With a concept id: the lesson — what it is, what Mr. Cash checks for it, common misreads, and quiz questions with an answer key for the tutor. Teach one concept at a time, ask the quiz before revealing answers, and keep to what the lesson says: no promises of profit.",
+    inputSchema: { type: 'object', properties: { concept: { type: 'string', description: 'Concept id from the outline, e.g. "order-types". Omit for the outline.' } }, additionalProperties: false },
+    run: async (args) => {
+      const id = typeof args.concept === 'string' ? args.concept.trim() : ''
+      if (!id) {
+        const lines = ['Course outline (concept id — title · level). Start at the top.']
+        let track = ''
+        for (const c of CONCEPTS) {
+          if (c.track !== track) { track = c.track; lines.push('', `[${track}]`) }
+          lines.push(`${c.id} — ${c.title} · ${c.level}`)
+        }
+        return lines.join('\n')
+      }
+      const c = conceptById(id)
+      if (!c) return `No concept "${id}". Call learn with no arguments for the outline.`
+      return [
+        `${c.title} (${c.level}, ${c.track})`, '', c.summary, '',
+        'What Mr. Cash checks or offers for it:', ...c.engineChecks.map((x) => `- ${x}`), '',
+        'Common misreads:', ...c.misreads.map((x) => `- ${x}`), '',
+        'Quiz (ask first, then reveal):', ...c.quiz.map((qq, i) => `${i + 1}. ${qq.prompt}\n   ${qq.choices.map((ch, j) => `${String.fromCharCode(97 + j)}) ${ch}`).join('  ')}`), '',
+        'Answer key (for the tutor):', ...c.quiz.map((qq, i) => `${i + 1}. ${String.fromCharCode(97 + qq.answer)} — ${qq.why}`), '',
+        c.related.length ? `Next: ${c.related.join(', ')}` : '',
+        'Paper trading only. A concept is not a claim that it makes money.',
+      ].join('\n')
     },
   },
   {

@@ -141,7 +141,9 @@ test('BOUNDARY — no engine module imports the school, research, knowledge or l
     if (LEARNING_DIRS.some((d) => rel.startsWith(`src/${d}/`))) continue
     // The analyst and the ops monitor read the learning layers' state (evidence, research ops) and are held to the
     // read-only rule below; the engine never imports them.
-    if (rel === 'src/server.ts' || rel.startsWith('src/analyst/') || rel.startsWith('src/ops/')) continue
+    // The MCP server is, like server.ts, an entry point nothing imports; it reads the School's curriculum (content, types-only
+    // imports) for its `learn` tool.
+    if (rel === 'src/server.ts' || rel === 'src/mcp.ts' || rel.startsWith('src/analyst/') || rel.startsWith('src/ops/')) continue
     const body = readFileSync(file, 'utf8')
     if (!layerImport.test(body)) continue
     if (rel === 'src/watch.ts') {

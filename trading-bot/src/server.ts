@@ -100,6 +100,7 @@ import { bus } from './data/bus.ts'
 import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import { fetchPortfolio } from './broker/alpaca.ts'
+import { brokerStatus, fetchKrakenPortfolio } from './broker/kraken.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -301,6 +302,15 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // The app's own typefaces: /fonts/*.woff2 from web/fonts, same constraint.
+    if (path.startsWith('/fonts/') && /^\/fonts\/[a-z0-9-]+\.woff2$/.test(path)) {
+      const full = join(WEB_DIR, path.slice(1))
+      if (!existsSync(full)) { res.writeHead(404); res.end(); return }
+      res.writeHead(200, { 'content-type': 'font/woff2', 'cache-control': 'public, max-age=86400' })
+      res.end(readFileSync(full))
+      return
+    }
+
     // TradingView alerts carry their own secret
     if (path === '/api/tv-alert' && req.method === 'POST') {
       const raw = await readBody(req, 64 * 1024)
@@ -385,6 +395,15 @@ const server = createServer(async (req, res) => {
     // this route never returns them and the client cannot place an order.
     if (path === '/api/portfolio') {
       json(res, 200, { ok: true, data: await fetchPortfolio() })
+      return
+    }
+    if (path === '/api/portfolio/kraken') {
+      json(res, 200, { ok: true, data: await fetchKrakenPortfolio() })
+      return
+    }
+    // Which brokers are wired up. No network call, no secrets: just configured yes/no.
+    if (path === '/api/brokers') {
+      json(res, 200, { ok: true, data: brokerStatus() })
       return
     }
     // "What is the current state of my system?" — one document, from disk and the last watch cycle.

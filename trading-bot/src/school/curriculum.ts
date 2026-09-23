@@ -20,7 +20,7 @@ import type { AnnotationType } from '../intel/types.ts'
 import type { CaseKind } from './caseStudies.ts'
 
 export type ConceptLevel = 'foundation' | 'intermediate' | 'advanced'
-export type ConceptTrack = 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
+export type ConceptTrack = 'basics' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
 
 export type QuizQuestion = {
   id: string
@@ -56,6 +56,108 @@ export type Concept = {
 const q = (id: string, prompt: string, choices: string[], answer: number, why: string): QuizQuestion => ({ id, prompt, choices, answer, why })
 
 export const CONCEPTS: Concept[] = [
+  // ---------------------------------------------------------------- basics (start here)
+  // For someone new to trading. These describe how markets and orders work in general; where the app has
+  // a tool for the idea (the Planner, the Journal, the paper fill model) the lesson says which one.
+  {
+    id: 'what-you-trade', title: 'What you are actually trading', level: 'foundation', track: 'basics',
+    summary: 'A share is a small piece of a company. A coin is a token on a crypto network. An ETF is a basket traded like one share. An option is a contract whose price comes from a share or index. Your broker (Robinhood, Webull, tastytrade, Kraken…) routes your order to a market where a buyer meets a seller. Stocks trade 09:30–16:00 New York time with thinner extended hours around them; crypto trades every hour of every day.',
+    engineChecks: ['Mr. Cash watches one crypto market (BTCUSDT) and trades it on paper only; nothing it does touches a real account.', 'Linked brokers are read-only: the Desk shows balances, never an order button (src/broker/).'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Owning a coin or a share is not the same as owning an option on it: the option can expire worth nothing while the share still exists.', 'A market being open 24/7 (crypto) does not mean liquidity is the same at 3 a.m. as at the New York open.'],
+    related: ['bid-ask', 'order-types', 'options-basics'],
+    quiz: [
+      q('wyt-1', 'Which of these trades around the clock, weekends included?', ['US stocks', 'Bitcoin', 'US stock options', 'Treasury bonds'], 1, 'Crypto venues run 24/7; US stocks and options keep exchange hours.'),
+      q('wyt-2', 'What does your broker do when you press buy?', ['Sells you its own shares at a price it picks', 'Routes your order to a market where it can be matched with a seller', 'Guarantees you the last price you saw', 'Holds the order until the end of the day'], 1, 'The broker routes the order; the price you get depends on who is selling at that moment.'),
+    ],
+  },
+  {
+    id: 'candles-timeframes', title: 'Candles and timeframes', level: 'foundation', track: 'basics',
+    summary: 'A candle summarises trading over a fixed period: where price opened, the highest and lowest it reached, and where it closed. A green body closed above its open; red closed below. The wicks are the extremes that did not hold. The same market looks different on a 1-minute, 5-minute or daily chart, so always know which timeframe you are reading.',
+    engineChecks: ['The engine builds its view from 5-minute candles (src/data/candleStore.ts) and checks higher timeframes for alignment; the Chart tab draws the same candles.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A candle is not finished until its period closes: a big green 5-minute candle at minute 2 can close red at minute 5.', 'A pattern on the 1-minute chart can be noise inside a single daily candle.'],
+    related: ['what-you-trade', 'mtf-alignment', 'bos'],
+    quiz: [q('ct-1', 'A candle opened at 100, went up to 104, down to 98 and closed at 101. What was its high?', ['100', '101', '104', '98'], 2, 'The high is the top of the upper wick: 104.')],
+  },
+  {
+    id: 'bid-ask', title: 'Bid, ask and the spread', level: 'foundation', track: 'basics',
+    summary: 'The bid is the highest price someone will pay right now; the ask is the lowest price someone will sell at. Buy at market and you pay the ask; sell at market and you get the bid. The gap between them is the spread, a cost you pay on every round trip. Busy markets have tight spreads; thin ones, like far-out option strikes, can have very wide ones.',
+    engineChecks: ['Paper fills are charged a spread and slippage by the fill model (src/execution.ts), so the paper record already pays this cost.', 'The Planner reminds you to prefer option strikes with a tight bid-ask spread.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['The "last price" on screen is the last trade, not the price you will get.', 'A 10-cent spread on a $0.50 option is a 20% cost before the trade has moved at all.'],
+    related: ['order-types', 'execution-costs'],
+    quiz: [q('ba-1', 'Bid 1.20, ask 1.30. You buy at market, then sell at market straight away. Roughly what happened?', ['You broke even', 'You lost about the 0.10 spread per share', 'You gained 0.10', 'Nothing; market orders are free'], 1, 'You bought at the ask (1.30) and sold at the bid (1.20).')],
+  },
+  {
+    id: 'order-types', title: 'Order types: market, limit, stop, bracket', level: 'foundation', track: 'basics',
+    summary: 'A market order fills now at whatever the other side offers. A limit order fills only at your price or better, and may not fill at all. A stop order waits until price touches a level and then becomes a market order — the usual way to cap a loss. A stop-limit becomes a limit instead, so it may not fill in a fast move. A bracket (or OCO) sends a stop and a target together; when one fills, the other is cancelled.',
+    engineChecks: ['The paper bot plans every trade with an entry, a stop and a target before it enters; the risk engine rejects a plan whose stop sits on the entry or is absurdly wide (src/risk/rules/perTrade.ts).', 'The Planner tab turns your entry and stop into a size and a plain-text ticket you can paste next to the broker\'s order form.'],
+    annotationTypes: ['entry', 'stop-loss', 'take-profit'], caseKinds: [], strategies: [],
+    misreads: ['A stop is not a promise of that price: if the market gaps through it, a stop fills at the next available price.', 'A stop-limit can leave you in a losing trade if price jumps past your limit.'],
+    related: ['bid-ask', 'position-sizing', 'r-multiple'],
+    quiz: [
+      q('ot-1', 'You want to cap a loss if price falls to 95, and you accept any fill once it gets there. Which order?', ['Limit sell at 95', 'Stop (market) sell at 95', 'Market sell now', 'Stop-limit with a limit of 96'], 1, 'A stop becomes a market order at 95; it fills even in a fast drop, though possibly below 95.'),
+      q('ot-2', 'What does a bracket (OCO) order do?', ['Buys twice', 'Sends a stop and a target; when one fills the other is cancelled', 'Doubles your size at the target', 'Only works on crypto'], 1, 'One-cancels-other: the exit that fills first cancels the other.'),
+    ],
+  },
+  {
+    id: 'position-sizing', title: 'Position sizing: risk a fixed slice', level: 'foundation', track: 'basics',
+    summary: 'Decide how much of the account you are willing to lose if the stop is hit — many traders use 0.5% to 1% — and let that decide the size. Size = amount at risk ÷ distance from entry to stop. A wide stop means a small position; a tight stop allows a larger one. The loss at the stop stays the same either way, which is what keeps one bad day from ending the account.',
+    engineChecks: ['The paper bot sizes every trade from a fixed risk per trade and caps the size (src/risk/rules/perTrade.ts).', 'The Planner tab does the same arithmetic for your own trades, never spends more cash than you hold, and warns above 2% risk.'],
+    annotationTypes: ['entry', 'stop-loss'], caseKinds: [], strategies: [],
+    misreads: ['"I\'ll just buy 100 shares" is a size chosen by habit, not by risk.', 'Moving the stop further away after entering quietly multiplies the risk you planned.'],
+    related: ['order-types', 'r-multiple', 'drawdown'],
+    quiz: [q('ps-1', 'Account $5,000, risk 1%, entry 20.00, stop 19.50. How many shares?', ['50', '100', '250', '500'], 1, '1% of 5,000 is $50; $50 ÷ $0.50 = 100 shares.')],
+  },
+  {
+    id: 'options-basics', title: 'Options: calls, puts, strike and expiry', level: 'foundation', track: 'basics',
+    summary: 'A call gives the right to buy 100 shares at the strike price until expiry; a put gives the right to sell. You pay a premium per share, so a $2.00 option costs $200 per contract. A buyer can lose at most the premium. At expiry a call is worth only what the share is above the strike (a put, below it); break-even for a call is strike + premium.',
+    engineChecks: ['Mr. Cash does not trade options. The Planner\'s option calculator sizes contracts by the loss at your stop, always shows the worst case (the whole premium), and compares strikes at expiry.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Being right about direction is not enough: the move must beat the premium, and arrive before expiry.', 'Cheap far-out strikes look attractive because most of them expire worthless.'],
+    related: ['options-decay-iv', 'bid-ask', 'position-sizing'],
+    quiz: [
+      q('opt-1', 'A 105 call costs $1.50. What is its break-even at expiry?', ['103.50', '105.00', '106.50', '150.00'], 2, 'Strike plus premium: 105 + 1.50.'),
+      q('opt-2', 'How much does one contract cost at a quoted premium of $0.80?', ['$0.80', '$8', '$80', '$800'], 2, 'Standard US equity options cover 100 shares: 0.80 × 100.'),
+    ],
+  },
+  {
+    id: 'options-decay-iv', title: 'Time decay and implied volatility', level: 'intermediate', track: 'basics',
+    summary: 'Part of an option\'s price is time value, and it melts as expiry approaches — faster in the last few weeks (theta). Another part is implied volatility: how big a move the market is pricing in. Before earnings or big news implied volatility is high; right after, it often collapses (an "IV crush"), so an option can lose value even when the share moves your way.',
+    engineChecks: ['The Planner\'s strike table is at expiry only and says so: it ignores time value and implied volatility, so it is a floor for thinking, not a price forecast.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A share going up does not mean a call goes up if implied volatility fell at the same time.', 'Holding a short-dated option over a quiet weekend costs time value with no move to show for it.'],
+    related: ['options-basics', 'volatility-regime', 'news-diffusion'],
+    quiz: [q('iv-1', 'You buy a call the day before earnings. The share rises a little on the report, yet the call loses value. The likeliest reason?', ['The broker made an error', 'Implied volatility collapsed after the event', 'Calls lose value when shares rise', 'The spread narrowed'], 1, 'The pre-event premium priced a bigger move; when the uncertainty passed, that part of the price fell away.')],
+  },
+  {
+    id: 'leverage-margin', title: 'Leverage, margin and the day-trade rule', level: 'intermediate', track: 'basics',
+    summary: 'Margin is borrowing from your broker; leverage is controlling more than your cash. At 10× leverage a 10% move against you erases the margin behind the position. Crypto futures and perpetuals can liquidate you automatically. In the US, a margin account has long needed $25,000 to make four or more day trades in five business days (the pattern day trader rule); FINRA has proposed changing it, so check your broker\'s current terms.',
+    engineChecks: ['The paper bot caps open positions and their total value (by default, no more than the paper account itself), plus daily trade and loss limits (src/risk/rules/).'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Leverage does not change whether a trade idea is good; it changes how fast a bad one hurts.', 'A cash account avoids margin calls but has its own settlement limits on reusing money the same day.'],
+    related: ['position-sizing', 'drawdown'],
+    quiz: [q('lev-1', 'At 5× leverage, roughly what move against you erases the margin behind a position?', ['5%', '20%', '50%', '100%'], 1, '1 ÷ 5 = 20%; fees and funding make it a little less.')],
+  },
+  {
+    id: 'trading-plan', title: 'A trading plan and a journal', level: 'foundation', track: 'basics',
+    summary: 'Write the plan before the trade: what you are waiting for, where you get in, where you are wrong (the stop), where you take profit, and how much you risk. Afterwards, journal what happened and whether you followed the plan. Judging trades by whether you followed the plan, not by whether one made money, is how a small sample teaches you anything.',
+    engineChecks: ['The Journal tab records moments and trades with the market context attached; the paper bot writes its own plan before every entry and keeps it next to the result.'],
+    annotationTypes: ['entry', 'stop-loss', 'take-profit'], caseKinds: [], strategies: [],
+    misreads: ['A winning trade that broke the plan is a lesson in luck, not in skill.', 'Ten trades are too few to judge a method; the School\'s sample-size lesson shows why.'],
+    related: ['position-sizing', 'psychology', 'sample-size'],
+    quiz: [q('tp-1', 'You broke your plan and the trade made money. How should the journal score it?', ['A good trade — it made money', 'A plan violation, whatever the result', 'Ignore it', 'Double the size next time'], 1, 'The process is what you can repeat; one result is noise.')],
+  },
+  {
+    id: 'psychology', title: 'The mind: FOMO, revenge and overtrading', level: 'foundation', track: 'basics',
+    summary: 'Most early damage is behavioural. FOMO is chasing a move that already happened. Revenge trading is taking a quick new trade to win back a loss. Overtrading is trading because you are bored or watching. Simple rules help: a maximum number of trades or a maximum loss per day, and stepping away once either is reached.',
+    engineChecks: ['The paper bot enforces a daily trade cap and a daily loss limit (src/risk/rules/dailyLimits.ts), and the Stop button is a kill switch that blocks new positions until you resume.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Doubling size after a loss to "get it back" is how a normal losing day becomes an account-ending one.', 'Not trading is a position too: a day with no setup is not a wasted day.'],
+    related: ['trading-plan', 'position-sizing', 'drawdown'],
+    quiz: [q('psy-1', 'You hit your daily loss limit at 10:15. What does the rule say?', ['One more trade to win it back', 'Stop for the day', 'Double the size', 'Switch to options'], 1, 'The limit exists for exactly this moment.')],
+  },
   // ---------------------------------------------------------------- liquidity
   {
     id: 'liquidity', title: 'Liquidity: where the resting orders are', level: 'foundation', track: 'liquidity',
