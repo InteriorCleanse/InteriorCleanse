@@ -4,6 +4,7 @@ import { can } from '@/lib/authz'
 import { requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
 import { AssistantDock } from '@/components/assistant/AssistantDock'
+import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 
 // These segments resolve the session from cookies on every request, so there
 // is nothing meaningful to prerender — and prerendering would evaluate the
@@ -65,6 +66,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Sign out
               </button>
             </form>
+            <ThemeSwitcher />
           </nav>
         </div>
       </header>
