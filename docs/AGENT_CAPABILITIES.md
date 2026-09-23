@@ -20,7 +20,7 @@ Measured on this repository:
 | State | Skills | Always-on cost |
 | --- | --- | --- |
 | Before any of this | 48 | ~4,000 tokens |
-| Now | 97 | ~10,800 tokens |
+| Now | 101 | ~10,900 tokens |
 | If the full cybersecurity pack had been installed | 866 | ~112,000 tokens |
 | If the full scientific pack had been installed too | 1,032 | ~135,000 tokens |
 
@@ -240,3 +240,32 @@ Check package.json for dependency confusion exposure.
 Triage this scan output and rank it by what actually matters for a
 storefront.
 ```
+
+
+---
+
+## Added later: claudex-loop
+
+`github.com/chaseai-yt/claudex-loop` v2.1.0, MIT. Four cross-model
+dev-workflow skills — `claudex-route`, `claudex-loop`, `codex-build`,
+`codex-review` — in `.claude/skills/`. No hooks, no collisions, ~260 tokens.
+The build and inspect halves hand off to the Codex CLI, absent on this
+machine, so they degrade to a described handoff; routing and review are
+self-contained.
+
+## Declined, with reasons
+
+Several more were sent from social posts. These were not installed:
+
+- **`SnailSploit/claude-red`** — a pack that turns Claude into a red-team
+  operator, including endpoint and detection evasion. Offensive tooling with
+  no authorised-engagement context and no bearing on a storefront. The 16
+  security skills already here are the defensive opposite: they test this
+  site, which the owner owns.
+- **`Kablex/ComfyUI-Ref2VA-VSA`** — a ComfyUI custom node for a local GPU
+  video pipeline. Not a Claude skill; installs into ComfyUI, not `.claude/`.
+- **muapi "Video Studio", "Open Generative AI"** — hosted web apps, nothing
+  to install.
+- **`NandhaKishorM/laya`** — an Apache-2.0 Python ML library (a
+  non-autoregressive decision model). A pip package, not a skill, and
+  unrelated to the site.

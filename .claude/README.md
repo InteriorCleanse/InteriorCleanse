@@ -23,6 +23,7 @@ nothing under `.claude/` is built, served, or linted.
 | ponytail, -audit, -debt, -gain, -help, -review | github.com/DietrichGebert/ponytail | e3ba2aa | MIT |
 | graphify | pypi `graphifyy` 0.9.65 / github.com/Graphify-Labs/graphify | 0.9.65 | Apache-2.0 + MIT |
 | 25 lifecycle skills + 4 agents + 9 commands | github.com/addyosmani/agent-skills | dc27a9c | MIT |
+| claudex-loop, claudex-route, codex-build, codex-review | github.com/chaseai-yt/claudex-loop | v2.1.0 | MIT |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -68,7 +69,7 @@ a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
 It is instructions plus two reference files; no scripts, no network.
 
 Every installed skill's name and description is loaded into **every** session
-before you type. This repository now carries 97 skills at roughly 10,800
+before you type. This repository now carries 101 skills at roughly 10,900
 tokens of always-on context, up from 48 at ~4,000 before any of this. That
 budget is why the cybersecurity pack is installed at 16 skills of its 818
 (the full pack costs ~108,000 tokens per session) and why the 166-skill
@@ -112,6 +113,14 @@ nothing in it loads automatically.
 
 What was requested and not installed, and how to install it on your own
 machine instead, is recorded in `docs/AGENT_CAPABILITIES.md`.
+
+claudex-loop is four cross-model dev-workflow skills: route a task to a model,
+harden a plan with an independent review, and build or inspect across Claude
+and Codex. Vendored as skills only; it ships no session hooks, and its one
+`validate.py` is an unreferenced CI check left out. The build and inspect
+halves delegate to the Codex CLI, which is not on this machine, so those
+degrade to a described handoff here; `claudex-route` and the review guidance
+are self-contained and work regardless.
 
 Genjutsu's `cast` and `paint` orchestrators load their sub-skills from
 `genjutsu/_jutsu`, which is where its resolver probes for a skills-directory
