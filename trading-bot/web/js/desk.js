@@ -402,6 +402,7 @@ function render(d) {
   return `
   <div class="dk hm">
     ${homeHero(d)}
+    <section class="hm-markets" id="dk-markets" aria-live="polite"></section>
     ${modelsSection(d)}
     ${pipeline(d)}
 

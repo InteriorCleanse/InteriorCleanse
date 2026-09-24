@@ -86,6 +86,11 @@
     </details>
   </section>
 
+  <section id="tab-markets" class="hidden">
+    <div class="row td-bar"><button class="btn ghost" id="btn-markets-refresh">Rescan now</button><span class="muted" id="markets-status"></span></div>
+    <div id="markets-out"></div>
+  </section>
+
   <section id="tab-flow" class="hidden">
     <div class="row"><button class="btn" id="btn-flow">Read the book now</button><span class="muted" id="flow-status"></span></div>
     <div id="flow-out"></div>
@@ -296,10 +301,10 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'what price is doing right now, and planning your own trades', ['planner','flow','news','intel','tv']],
+  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','planner','flow','news','intel','tv']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
   ['You and learning', 'your journal, the school, the lab, and what it remembers', ['journal','school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
@@ -308,6 +313,7 @@ const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]
 
 // Line icons for the tabs: one 24-px grid, one stroke weight, drawn in the text colour.
 const TICON_PATHS = {
+  markets:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.4 3.8 9s-1.3 6.6-3.8 9c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3z"/>',
   desk:'<path d="M12 5.5A3 3 0 0 0 6.2 4.8 3 3 0 0 0 4 8.9a3.2 3.2 0 0 0 .7 5.6A3.3 3.3 0 0 0 8.5 19a3 3 0 0 0 3.5 1V5.5z"/><path d="M12 5.5a3 3 0 0 1 5.8-.7A3 3 0 0 1 20 8.9a3.2 3.2 0 0 1-.7 5.6 3.3 3.3 0 0 1-3.8 4.5 3 3 0 0 1-3.5 1"/><path d="M8 10.5c1.2 0 2 .8 2 2M16 10.5c-1.2 0-2 .8-2 2M12 12v3"/>',
   today:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   chart:'<path d="M7 3v4M7 17v4M17 3v6M17 15v6"/><rect x="5" y="7" width="4" height="10" rx="1"/><rect x="15" y="9" width="4" height="6" rx="1"/>',
@@ -390,6 +396,7 @@ function showTab(id, push=true) {
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
   if (id === 'desk' && window.loadDesk) window.loadDesk()
+  if (id === 'markets' && window.loadMarkets) window.loadMarkets()
   if (id === 'evidence' && window.loadEvidence) window.loadEvidence()
   if (id === 'school' && window.loadSchool) window.loadSchool()
   if (id === 'research' && window.loadResearch) window.loadResearch()
@@ -1455,6 +1462,7 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/brain.js"></script>
 <script type="module" src="/js/desk.js"></script>
 <script type="module" src="/js/accounts.js"></script>
+<script type="module" src="/js/markets.js"></script>
 <script type="module" src="/js/planner.js"></script>
 <script type="module" src="/js/evidence.js"></script>
 <script type="module" src="/js/school.js"></script>
