@@ -25,15 +25,13 @@ try {
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
     // The fields: fraction-of-viewport home, colour, radius scale, and a slow
-    // orbit. Colours are the brand mint and lime plus a cool teal and a violet
-    // for depth — the same family as the accent, never a clashing hue.
+    // orbit. Colours stay in the Night Lab family: the iris accent, a little
+    // aqua and two deep blues — no hue that could be read as up or down.
     const ORBS = [
-      { x: 0.14, y: 0.10, c: '34,211,238',  r: 0.66, ax: 0.06, ay: 0.05, sx: 0.021, sy: 0.017, ph: 0.0, a: 0.13 },
-      { x: 0.86, y: 0.16, c: '139,124,246', r: 0.58, ax: 0.07, ay: 0.05, sx: 0.017, sy: 0.023, ph: 1.7, a: 0.12 },
-      { x: 0.80, y: 0.84, c: '52,211,153',  r: 0.62, ax: 0.06, ay: 0.06, sx: 0.019, sy: 0.015, ph: 3.1, a: 0.11 },
-      { x: 0.22, y: 0.88, c: '236,72,153',  r: 0.52, ax: 0.05, ay: 0.06, sx: 0.015, sy: 0.021, ph: 4.6, a: 0.08 },
-      { x: 0.52, y: 0.44, c: '34,211,238',  r: 0.48, ax: 0.08, ay: 0.05, sx: 0.013, sy: 0.019, ph: 2.3, a: 0.07 },
-      { x: 0.50, y: 0.02, c: '163,230,53',  r: 0.40, ax: 0.05, ay: 0.04, sx: 0.016, sy: 0.014, ph: 5.2, a: 0.06 },
+      { x: 0.16, y: 0.08, c: '139,147,255', r: 0.70, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.10 },
+      { x: 0.88, y: 0.14, c: '92,225,230',  r: 0.56, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.06 },
+      { x: 0.78, y: 0.86, c: '96,108,255',  r: 0.64, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.07 },
+      { x: 0.20, y: 0.90, c: '70,86,190',   r: 0.54, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.06 },
     ]
 
     let w = 0, h = 0, dpr = 1, min = 0, raf = null

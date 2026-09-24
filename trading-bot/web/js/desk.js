@@ -1,29 +1,28 @@
 /**
- * THE DESK — the crew, on one screen.
+ * HOME — the brain, and what it decided.
  *
  * Design brief, in order of priority:
  *   1. A person who has never traded should understand the top of this screen
- *      in about three seconds. One warm sentence, then one number, then the
- *      track record. Everything else is detail and stays folded away.
- *   2. A panel that cannot see must LOOK like it cannot see — desaturated,
- *      dashed, with what it is waiting on written on it. Never a zero standing
- *      in for "we don't know".
- *   3. Colour carries meaning, not decoration. Each crew member owns one hue so
- *      you learn the desk by shape and colour instead of by reading labels.
+ *      in about three seconds: what Mr. Cash thinks right now, in one sentence,
+ *      next to a brain that shows every model he runs and which of them are
+ *      talking. Everything else is detail and stays folded away.
+ *   2. A model that cannot see must LOOK like it cannot see — grey, dashed,
+ *      silent, with what it is waiting on written beside it. Never a zero
+ *      standing in for "we don't know".
+ *   3. Colour carries meaning, not decoration: mint up, coral down, iris for the
+ *      AI itself, aqua for a model reading live, amber for an estimate.
  *
  * This file draws `/api/desk` and nothing else. No trading logic, no thresholds
  * of its own, no way to place or shape an order. Every word and number comes
  * from the payload — including his voice lines, which are composed server-side
  * so there is exactly one place they can be got wrong.
  *
- * THE SIGNAL CORE (the moving picture between the hero and the track record)
- * draws `payload.core` only. The wireframe's vertices are the real strategy
- * votes (one each, pushed out by confidence), its colour is the fused
- * direction, and its speed follows the tape when the tape is trusted and is
- * otherwise constant. The stat strip and the four small charts render an
- * UNAVAILABLE frame for any reading the server sent as null. A pretty screen
- * that implies activity nobody is reading is the one thing this file refuses
- * to be.
+ * THE BRAIN (web/js/brain.js) draws `payload.agents` and `payload.core.panel`
+ * only: one input per agent, one neuron per strategy vote, the fused decision in
+ * the middle. This file runs its frame loop and stops it off screen and under
+ * reduced motion. The small charts render an UNAVAILABLE frame for any reading
+ * the server sent as null. A pretty screen that implies activity nobody is
+ * reading is the one thing this file refuses to be.
  */
 
 const CREW = {
@@ -38,25 +37,6 @@ const CREW = {
 const STATUS_LABEL = { LIVE: 'reading', PARTIAL: 'estimating', WAITING: 'standing by', BLIND: "can't see" }
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-
-/* ---------- the trust ring: the one number worth a picture ---------- */
-function ring(trust) {
-  const R = 52, C = 2 * Math.PI * R
-  const hue = trust >= 80 ? 152 : trust >= 50 ? 38 : 4
-  return `
-  <div class="dk-ring">
-    <svg viewBox="0 0 128 128" aria-label="${trust} out of 100 of the desk can see">
-      <circle class="dk-ring-track" cx="64" cy="64" r="${R}" />
-      <circle class="dk-ring-fill" cx="64" cy="64" r="${R}"
-        stroke="hsl(${hue} 85% 58%)"
-        stroke-dasharray="${C}" stroke-dashoffset="${C - (C * trust) / 100}" />
-    </svg>
-    <div class="dk-ring-mid">
-      <div class="dk-ring-num" style="color:hsl(${hue} 85% 62%)">${trust}</div>
-      <div class="dk-ring-cap">can see</div>
-    </div>
-  </div>`
-}
 
 /* ---------- the evidence strip: how much has actually been earned ---------- */
 function evidence(d) {
@@ -135,71 +115,82 @@ function heroPrice(d) {
   </div>`
 }
 
-function hero(d) {
-  const tone = d.core?.panel?.direction === 'long' ? 'long' : d.core?.panel?.direction === 'short' ? 'short' : 'flat'
+const shortName = (n) => String(n).replace(/\s*\(.*\)\s*$/, '')
+
+function fact(k, v, sub, cls = '') {
+  return `<div class="hm-fact"><span class="k">${esc(k)}</span><b class="${cls}">${esc(v)}</b><span class="s">${esc(sub)}</span></div>`
+}
+
+function homeHero(d) {
+  const p = d.core?.panel
+  const tone = p?.direction === 'long' ? 'long' : p?.direction === 'short' ? 'short' : 'flat'
+  const regime = (d.agents || []).find((a) => a.id === 'regime')
+  const n = (d.agents || []).length + (p ? p.votes.length : 0)
+  const brainLabel = `The brain: ${n} models. ${p && p.score !== null ? `Agreement ${p.score} of 100${p.enterScore !== null ? `, acts at ${p.enterScore}` : ''}.` : 'No decision yet.'}`
   return `
-  <section class="dk2-hero">
-    <div class="dk2-hero-top">
-      <span class="dk2-live"><i></i>Live desk</span>
-      <span class="dk-chip paper" title="Live market data; fills are simulated at the next candle open plus spread and slippage.">${esc(d.mode)} · simulated · no real money</span>
-      <span class="dk-chip">${esc(d.symbol)} · ${esc(d.interval)}</span>
-      <div class="dk2-tools">
-        <span class="dk2-upd" id="desk-status"></span>
-        <button class="dk2-tool" data-act="reload" title="Reload the desk" aria-label="Reload the desk">${icon('reload')}</button>
-        <button class="dk2-tool" data-act="speak" title="Read it to me" aria-label="Read the desk aloud">${icon('speak')}</button>
-        <a class="dk2-tool" href="/api/desk?format=text" target="_blank" rel="noopener" title="The desk as plain text" aria-label="The desk as plain text">${icon('text')}</a>
+  <section class="hm-hero">
+    <div class="hm-brain">
+      <canvas id="dk-core-canvas" role="img" aria-label="${esc(brainLabel)}"></canvas>
+      <div class="hm-legend" aria-hidden="true">
+        <span><i class="buy"></i>buy</span><span><i class="sell"></i>sell</span><span><i class="hold"></i>hold</span>
+        <span><i class="live"></i>reading</span><span><i class="est"></i>estimating</span><span><i class="blind"></i>can't see</span>
       </div>
     </div>
-    <div class="dk2-hero-body">
-      ${heroPrice(d)}
-      <div class="dk2-verdict">
-        <div class="dk2-verdict-tag ${tone}">${esc(d.floor.verdict)}</div>
-        <p class="dk-headline">${esc(d.voice.floor)}</p>
-        <p class="dk-sub">${esc(d.voice.trust)}</p>
+    <div class="hm-side">
+      <div class="hm-top">
+        <span class="hm-live"><i></i>Live · ${esc(d.symbol)} ${esc(d.interval)}</span>
+        <div class="dk2-tools">
+          <button class="dk2-tool" data-act="reload" title="Reload" aria-label="Reload">${icon('reload')}</button>
+          <button class="dk2-tool" data-act="speak" title="Read it to me" aria-label="Read it aloud">${icon('speak')}</button>
+        </div>
       </div>
-      ${ring(d.floor.trust)}
+      <div class="hm-verdict ${tone}">${esc(d.floor.verdict)}</div>
+      <h1 class="hm-say">${esc(d.voice.floor)}</h1>
+      ${heroPrice(d)}
+      <div class="hm-facts">
+        ${p && p.score !== null ? fact('Agreement', `${p.score}/100`, p.enterScore !== null ? `acts at ${p.enterScore}` : 'no act-at level', tone === 'flat' ? '' : tone) : fact('Agreement', '—', 'no decision yet')}
+        ${fact('Market mood', regime && regime.headline !== '—' ? String(regime.headline).toLowerCase().replace(/-/g, ' ') : '—', regime ? STATUS_LABEL[regime.status] || '' : 'no reading')}
+        ${fact('Can see', `${d.floor.trust}/100`, d.floor.blind && d.floor.blind.length ? `${d.floor.blind.join(', ')} blind` : 'every input reading')}
+      </div>
+      <div class="hm-actions">
+        <button class="btn" data-tab="today">Today's plan</button>
+        <button class="btn ghost" data-tab="chart">Chart</button>
+        <button class="btn ghost" data-tab="ask">Ask Mr. Cash</button>
+      </div>
+      <p class="hm-stamp"><span id="desk-status"></span></p>
     </div>
   </section>`
 }
 
-function orbTile(c) {
-  const colour = c.panel.direction === 'long' ? 'var(--brand)' : c.panel.direction === 'short' ? 'var(--red)' : 'var(--dim)'
-  const cap = [c.flow.trusted ? `tape ${c.flow.tapeLabel || 'read'}` : 'tape not read', c.volatility.label ? `volatility ${c.volatility.label}` : 'volatility —', c.panel.regime ? `regime ${c.panel.regime}` : ''].filter(Boolean).join(' · ')
-  return `
-  <div class="dk2-tile dk2-orb dk-core-scope" id="dk-scope" data-dir="${c.panel.direction || 'none'}">
-    <div class="dk2-tile-h"><b>Signal core</b><span>${esc(cap)}</span></div>
-    <div class="dk-core-stage">
-      <canvas id="dk-core-canvas" aria-hidden="true"></canvas>
-      <div class="dk-core-mid">
-        <div class="dk-core-num" style="color:${colour}">${c.panel.score === null ? '—' : c.panel.score}</div>
-        <div class="dk-core-act">${esc(c.panel.action)}${c.panel.enterScore !== null ? ` · acts at ${c.panel.enterScore}` : ''}</div>
-      </div>
-    </div>
-  </div>`
-}
-
-function votesTile(c) {
-  const n = c.panel.votes.length
-  const rows = c.panel.votes.map((v) => {
-    const cls = v.weight === 0 ? 'off' : v.action === 'BUY' ? 'buy' : v.action === 'SELL' ? 'sell' : 'hold'
+function modelsSection(d) {
+  const p = d.core?.panel
+  const agents = (d.agents || []).map((a) => `
+    <li class="hm-model" data-node="${esc(a.id)}" tabindex="0" title="${esc(a.line)}">
+      <i class="hm-dot ${esc(a.status)}"></i>
+      <span class="hm-name"><b>${esc(a.title)}</b><span>${esc(a.plain)}</span></span>
+      <em class="hm-st ${esc(a.status)}">${esc(STATUS_LABEL[a.status] || a.status)}</em>
+    </li>`).join('')
+  const votes = p ? p.votes.map((v) => {
+    const off = v.weight === 0, cls = off ? 'off' : v.action === 'BUY' ? 'buy' : v.action === 'SELL' ? 'sell' : 'hold'
     const conf = v.action === 'HOLD' ? 0 : Math.max(0, Math.min(100, Math.round(v.confidence)))
-    return `<div class="dk2-vote ${cls}" title="${esc(v.name)}: ${esc(v.action)} at confidence ${Math.round(v.confidence)}, regime weight ${v.weight.toFixed(2)}${v.weight === 0 ? ' (not allowed in this regime)' : ''}">
-      <span class="n">${esc(v.name)}</span>
-      <span class="a">${v.action === 'HOLD' ? 'hold' : `${v.action.toLowerCase()} ${conf}`}</span>
-      <span class="bar"><i style="width:${conf}%"></i></span>
-      <span class="w">×${v.weight.toFixed(2)}</span>
-    </div>`
-  }).join('')
-  const score = c.panel.score, need = c.panel.enterScore
-  const meter = score !== null && need !== null
-    ? `<div class="dk2-meter" title="Agreement ${score} of 100; the panel acts at ${need}"><i style="width:${Math.max(0, Math.min(100, score))}%"></i><b style="left:${Math.max(0, Math.min(100, need))}%"></b></div><div class="dk2-meter-cap"><span>agreement ${score}</span><span>acts at ${need}</span></div>`
-    : ''
+    return `
+    <li class="hm-model" data-node="${esc(v.id)}" tabindex="0" title="${esc(v.name)}: ${esc(v.action)}${v.action === 'HOLD' ? '' : ` at confidence ${conf}`}, regime weight ${v.weight.toFixed(2)}${off ? ' (switched off in this regime)' : ''}">
+      <i class="hm-dot ${cls}"></i>
+      <span class="hm-name"><b>${esc(shortName(v.name))}</b>${conf > 0 ? `<span class="hm-bar"><i class="${cls}" style="width:${conf}%"></i></span>` : ''}</span>
+      <em class="hm-st ${cls}">${off ? 'off in this regime' : v.action === 'HOLD' ? 'hold' : `${v.action.toLowerCase()} ${conf}`}</em>
+    </li>`
+  }).join('') : ''
   return `
-  <div class="dk2-tile dk2-votes">
-    <div class="dk2-tile-h"><b>The panel</b><span>${n} strateg${n === 1 ? 'y' : 'ies'} voting on this candle</span></div>
-    ${meter}
-    <div class="dk2-vote-list">${rows || '<p class="muted">No votes for this candle.</p>'}</div>
-  </div>`
+  <section class="hm-models" aria-label="Every model running">
+    <div class="hm-col">
+      <h2>Reading the market <span>${(d.agents || []).length} models, each watching one thing</span></h2>
+      <ul>${agents}</ul>
+    </div>
+    <div class="hm-col">
+      <h2>Voting on this candle <span>${p ? p.votes.length : 0} strategies${p && p.regime ? `, weighted for a ${esc(p.regime)} market` : ''}</span></h2>
+      ${p ? `<ul>${votes}</ul>` : '<p class="muted">No votes for this candle.</p>'}
+    </div>
+  </section>`
 }
 
 function statsTile(c) {
@@ -226,6 +217,8 @@ function chartsRow(c) {
 /* ---------- the signal core: drawing ---------- */
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 let coreData = null
+let deskData = null
+let brainFocus = null
 let coreFrame = null
 let coreT0 = 0
 
@@ -239,7 +232,7 @@ function fitCanvas(cv) {
   return { ctx, w, h }
 }
 
-const MINT = '52,211,153', RED = '248,81,73', GREY = '139,152,165', CYAN = '34,211,238', VIOLET = '139,124,246'
+const MINT = '74,222,154', GREY = '154,163,194', IRIS = '139,147,255'
 
 function drawVolume(cv, v) {
   const f = fitCanvas(cv); if (!f) return
@@ -263,7 +256,7 @@ function drawHeat(cv, heat) {
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const v = heat.grid[r][c]
     const a = heat.max > 0 ? Math.pow(v / heat.max, 0.6) : 0
-    ctx.fillStyle = v > 0 ? `rgba(${MINT},${(0.08 + 0.85 * a).toFixed(3)})` : 'rgba(255,255,255,.035)'
+    ctx.fillStyle = v > 0 ? `rgba(${IRIS},${(0.08 + 0.85 * a).toFixed(3)})` : 'rgba(255,255,255,.035)'
     ctx.fillRect(c * cw + 0.5, r * ch + 0.5, Math.max(0.5, cw - 1), Math.max(0.5, ch - 1))
   }
   ctx.fillStyle = `rgba(${GREY},.8)`; ctx.font = "9px 'Geist Mono',ui-monospace,monospace"
@@ -281,8 +274,8 @@ function drawRange(cv, r) {
   ctx.beginPath()
   r.bars.forEach((b, i) => { i ? ctx.lineTo(x(i), y(b.h)) : ctx.moveTo(x(i), y(b.h)) })
   for (let i = n - 1; i >= 0; i--) ctx.lineTo(x(i), y(r.bars[i].l))
-  ctx.closePath(); ctx.fillStyle = `rgba(${MINT},.14)`; ctx.fill()
-  ctx.beginPath(); ctx.strokeStyle = `rgba(${MINT},.95)`; ctx.lineWidth = 1.4
+  ctx.closePath(); ctx.fillStyle = `rgba(${IRIS},.14)`; ctx.fill()
+  ctx.beginPath(); ctx.strokeStyle = `rgba(${IRIS},.95)`; ctx.lineWidth = 1.4
   r.bars.forEach((b, i) => { i ? ctx.lineTo(x(i), y(b.c)) : ctx.moveTo(x(i), y(b.c)) })
   ctx.stroke()
 }
@@ -300,214 +293,12 @@ function drawPulse(cv, pulse, t) {
   const phase = REDUCED ? 0 : (t / 1000) % period / period
   const glow = 1 - Math.min(1, phase * 3)
   const cx = 26, cy = h / 2
-  ctx.beginPath(); ctx.arc(cx, cy, 9 + glow * 7, 0, Math.PI * 2); ctx.fillStyle = `rgba(${MINT},${(0.10 + glow * 0.25).toFixed(3)})`; ctx.fill()
-  ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = `rgba(${MINT},${(0.55 + glow * 0.45).toFixed(3)})`; ctx.fill()
-  ctx.fillStyle = 'rgba(230,237,243,.92)'; ctx.font = "700 22px 'Geist Mono',ui-monospace,monospace"; ctx.textBaseline = 'middle'
+  ctx.beginPath(); ctx.arc(cx, cy, 9 + glow * 7, 0, Math.PI * 2); ctx.fillStyle = `rgba(${IRIS},${(0.10 + glow * 0.25).toFixed(3)})`; ctx.fill()
+  ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = `rgba(${IRIS},${(0.55 + glow * 0.45).toFixed(3)})`; ctx.fill()
+  ctx.fillStyle = 'rgba(238,241,251,.94)'; ctx.font = "700 22px 'Geist Mono',ui-monospace,monospace"; ctx.textBaseline = 'middle'
   ctx.fillText(`${Math.round(pulse.perMin)}`, 48, cy - 1)
   ctx.fillStyle = `rgba(${GREY},.9)`; ctx.font = "10px 'Geist Mono',ui-monospace,monospace"
   ctx.fillText(`trades / min · ${pulse.label || ''}`, 48, cy + 17)
-}
-
-/* ---------- 3D helpers: rotate a unit vector, then project to the canvas ---------- */
-// One shared camera so the wireframe shell, the vote nodes and the depth dust
-// all turn together as a single solid, which is what makes it read as an orb
-// rather than a flat scatter. Perspective divide (1.5 − z·0.4) puts the near
-// face closer and the far face smaller — the cue the eye needs for volume.
-function rot3(x, y, z, ay, ax) {
-  const x1 = x * Math.cos(ay) + z * Math.sin(ay), z1 = -x * Math.sin(ay) + z * Math.cos(ay)
-  const y1 = y * Math.cos(ax) - z1 * Math.sin(ax), z2 = y * Math.sin(ax) + z1 * Math.cos(ax)
-  return { x: x1, y: y1, z: z2 }
-}
-function proj(p, R, cx, cy) {
-  const d = 1 / (1.5 - p.z * 0.4)
-  return { x: cx + p.x * R * d, y: cy + p.y * R * d, d, z: p.z }
-}
-
-// The depth dust: a fixed cloud of faint points on a shell a little larger than
-// the brain, drifting with the same camera so the scene has parallax behind the
-// wireframe. Generated once, deterministically — decoration, reading nothing.
-let STARS = null
-function stars() {
-  if (STARS) return STARS
-  STARS = []
-  let s = 20240119
-  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
-  for (let i = 0; i < 120; i++) {
-    const phi = Math.acos(1 - 2 * rnd()), theta = rnd() * Math.PI * 2
-    const r = 1.35 + rnd() * 0.9
-    STARS.push({ x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.cos(phi), z: r * Math.sin(phi) * Math.sin(theta), s: 0.5 + rnd() * 1.1, tw: rnd() * 6.28 })
-  }
-  return STARS
-}
-
-/**
- * The signal core, drawn as a rotating orb. What is real and what is dressing:
- *
- *   REAL — one node per strategy, its colour the strategy's vote (mint BUY, red
- *   SELL, cyan HOLD), pushed out from the shell by confidence, dimmed to half
- *   radius when the regime disallows it; an edge between any two that agree, and
- *   a spark running that edge. The centre number and rotation speed are the
- *   fused score and the real tape cadence.
- *
- *   DRESSING — the wireframe shell (latitude/longitude grid), the shaded orb
- *   body and the depth dust. These carry no data; they exist only to give the
- *   real nodes a solid to sit on so the panel reads as a brain, not a chart.
- *
- * Rotation follows the tape's trades-per-minute when the tape is trusted and is
- * a constant slow turn otherwise.
- */
-function drawCore(cv, c, t) {
-  const f = fitCanvas(cv); if (!f) return
-  const { ctx, w, h } = f
-  ctx.clearRect(0, 0, w, h)
-  // The visible shell projects to ~0.69R and the outermost nodes to ~0.77R, so
-  // R can run to 0.58 of the height and the orb still clears the stage edges.
-  const cx = w / 2, cy = h * 0.5, R = Math.min(w * 0.44, h * 0.58)
-  const sec = t / 1000
-  const speed = REDUCED ? 0 : c.flow.tapePerMin === null ? 0.22 : 0.16 + Math.min(0.9, c.flow.tapePerMin / 240)
-  const breathe = REDUCED ? 1 : 1 + 0.045 * Math.sin(sec * (c.volatility.ratio || 1) * 1.4)
-  const ay = REDUCED ? 0.7 : sec * speed
-  // A slow camera nod instead of a continuous tumble — it reads as a spinning
-  // globe you are looking slightly down onto, cleaner than an end-over-end roll.
-  const ax = 0.44 + (REDUCED ? 0 : Math.sin(sec * 0.2) * 0.13 + Math.sin(sec * 0.063) * 0.05)
-  // The winning side sets the mood colour; a flat market glows cyan so the brain
-  // reads as lit rather than grey. BUY/SELL keep their meaning. A second accent
-  // (violet, or a warm amber when short) gives the bloom depth instead of a flat wash.
-  const rgb = c.panel.direction === 'long' ? MINT : c.panel.direction === 'short' ? RED : CYAN
-  const acc = c.panel.direction === 'short' ? '245,158,66' : VIOLET
-  const nodeCol = (a) => (a === 'BUY' ? MINT : a === 'SELL' ? RED : (a === 'HOLD' ? CYAN : VIOLET))
-
-  // Central bloom behind the whole scene — mood colour into the accent into black,
-  // so the light feels coloured and volumetric rather than a single tint.
-  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.7)
-  bloom.addColorStop(0, `rgba(${rgb},0.20)`); bloom.addColorStop(0.32, `rgba(${acc},0.09)`); bloom.addColorStop(0.7, `rgba(${rgb},0.03)`); bloom.addColorStop(1, `rgba(${rgb},0)`)
-  ctx.fillStyle = bloom; ctx.fillRect(0, 0, w, h)
-
-  ctx.globalCompositeOperation = 'lighter'
-
-  // A tight bright flare right behind the score, so the number sits on light.
-  const flare = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.55)
-  flare.addColorStop(0, `rgba(${rgb},0.22)`); flare.addColorStop(1, `rgba(${rgb},0)`)
-  ctx.fillStyle = flare; ctx.beginPath(); ctx.arc(cx, cy, R * 0.55, 0, Math.PI * 2); ctx.fill()
-
-  // Depth dust behind the orb (far half only; the near half is drawn last).
-  const dust = stars().map((st) => ({ p: proj(rot3(st.x, st.y, st.z, ay * 0.6, ax * 0.6), R, cx, cy), st }))
-  for (const { p, st } of dust) {
-    if (p.z > 0.2) continue
-    const tw = REDUCED ? 0.6 : 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(sec * 1.5 + st.tw))
-    ctx.beginPath(); ctx.arc(p.x, p.y, st.s * p.d * 0.7, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${st.tw > 3.14 ? acc : CYAN},${(0.16 * p.d * tw).toFixed(3)})`; ctx.fill()
-  }
-
-  // The orb body: a soft lit sphere so the wireframe has volume under it.
-  const body = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.3, R * 0.05, cx, cy, R * 1.02)
-  body.addColorStop(0, `rgba(${rgb},0.16)`); body.addColorStop(0.5, `rgba(${acc},0.05)`); body.addColorStop(1, `rgba(${rgb},0)`)
-  ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill()
-
-  // The wireframe shell: latitude rings + longitude half-rings, depth-shaded so
-  // the front of the cage is bright and the back fades. This is the orb. Two-tone
-  // (mood latitudes, accent longitudes) reads richer than a single colour.
-  const ring = (build, col, base) => {
-    let prev = null
-    for (let k = 0; k <= 48; k++) {
-      const u = build(k / 48)
-      const p = proj(rot3(u.x, u.y, u.z, ay, ax), R, cx, cy)
-      if (prev) {
-        const dep = (p.z + prev.z) / 2
-        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(p.x, p.y)
-        ctx.strokeStyle = `rgba(${col},${(base + 0.24 * Math.max(0, (dep + 1) / 2)).toFixed(3)})`
-        ctx.lineWidth = 0.55 + 0.7 * Math.max(0, dep); ctx.stroke()
-      }
-      prev = p
-    }
-  }
-  for (const lat of [-0.6, -0.3, 0, 0.3, 0.6]) {
-    const cphi = Math.cos(lat * Math.PI / 2), sphi = Math.sin(lat * Math.PI / 2)
-    ring((u) => { const th = u * Math.PI * 2; return { x: cphi * Math.cos(th), y: sphi, z: cphi * Math.sin(th) } }, rgb, 0.05)
-  }
-  for (let m = 0; m < 6; m++) {
-    const lon = (m / 6) * Math.PI
-    ring((u) => { const ph = (u - 0.5) * Math.PI; const cph = Math.cos(ph); return { x: cph * Math.cos(lon), y: Math.sin(ph), z: cph * Math.sin(lon) } }, acc, 0.035)
-  }
-
-  // Rim light: a bright arc down the leading edge of the silhouette, the way a
-  // lit sphere catches light — the single strongest "this is a solid" cue. The
-  // perspective divide shrinks the visible orb below R, so the arc rides at ~0.7R
-  // to hug the real edge rather than float outside it.
-  const rimR = R * 0.7
-  const rim = ctx.createLinearGradient(cx - rimR, cy, cx + rimR, cy)
-  rim.addColorStop(0, `rgba(${acc},0)`); rim.addColorStop(0.55, `rgba(${CYAN},0.12)`); rim.addColorStop(1, `rgba(${rgb},0.55)`)
-  ctx.beginPath(); ctx.arc(cx, cy, rimR, -0.85, 1.3); ctx.strokeStyle = rim; ctx.lineWidth = 2.4; ctx.stroke()
-
-  const votes = c.panel.votes
-  if (!votes.length) { ctx.globalCompositeOperation = 'source-over'; return }
-
-  // The real nodes: one per strategy, on (or just outside) the shell.
-  const pts = votes.map((v, i) => {
-    const n = votes.length
-    const phi = Math.acos(1 - 2 * (i + 0.5) / n)
-    const theta = i * 2.399963 + (v.action === 'SELL' ? Math.PI : 0)
-    const r = (v.action === 'HOLD' ? 0.82 : 0.94 + 0.16 * Math.min(1, v.confidence / 100)) * (v.weight === 0 ? 0.55 : 1) * breathe
-    const p = proj(rot3(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta), ay, ax), R, cx, cy)
-    return { ...p, v }
-  })
-
-  // Edges: brighter when both ends vote the same way, faint otherwise.
-  const edges = []
-  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
-    const a = pts[i], b = pts[j]
-    const same = a.v.action !== 'HOLD' && a.v.action === b.v.action
-    const depth = (a.d + b.d) / 2
-    const alpha = (same ? 0.5 : 0.10) * depth
-    const grd = ctx.createLinearGradient(a.x, a.y, b.x, b.y)
-    grd.addColorStop(0, `rgba(${nodeCol(a.v.action)},${alpha.toFixed(3)})`)
-    grd.addColorStop(1, `rgba(${nodeCol(b.v.action)},${alpha.toFixed(3)})`)
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y)
-    ctx.strokeStyle = grd; ctx.lineWidth = same ? 1.5 : 0.6; ctx.stroke()
-    if (same) edges.push({ a, b, col: nodeCol(a.v.action) })
-  }
-
-  // Signal sparks running the agreeing edges as glowing streaks with a bright
-  // head — the brain thinking. A longer comet tail and a lit tip read as motion.
-  if (!REDUCED) {
-    for (const e of edges) {
-      const fr = (sec * 0.55 + (e.a.x + e.b.x) * 0.0016) % 1
-      const tail = Math.max(0, fr - 0.22)
-      const tx = e.a.x + (e.b.x - e.a.x) * tail, ty = e.a.y + (e.b.y - e.a.y) * tail
-      const hx = e.a.x + (e.b.x - e.a.x) * fr, hy = e.a.y + (e.b.y - e.a.y) * fr
-      const g = ctx.createLinearGradient(tx, ty, hx, hy)
-      g.addColorStop(0, `rgba(${e.col},0)`); g.addColorStop(1, `rgba(${e.col},0.95)`)
-      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy)
-      ctx.strokeStyle = g; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke()
-      const head = ctx.createRadialGradient(hx, hy, 0, hx, hy, 5)
-      head.addColorStop(0, `rgba(255,255,255,0.9)`); head.addColorStop(0.4, `rgba(${e.col},0.8)`); head.addColorStop(1, `rgba(${e.col},0)`)
-      ctx.fillStyle = head; ctx.beginPath(); ctx.arc(hx, hy, 5, 0, Math.PI * 2); ctx.fill()
-    }
-    ctx.lineCap = 'butt'
-  }
-
-  // Nodes, back to front, with a crisp core and a tight halo.
-  for (const p of pts.slice().sort((a, b) => a.z - b.z)) {
-    const col = nodeCol(p.v.action)
-    const rad = (p.v.action === 'HOLD' ? 2.0 : 2.8) + p.d * 2.4
-    const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 4.5)
-    halo.addColorStop(0, `rgba(${col},${(0.55 * p.d).toFixed(3)})`); halo.addColorStop(0.4, `rgba(${col},${(0.18 * p.d).toFixed(3)})`); halo.addColorStop(1, `rgba(${col},0)`)
-    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(p.x, p.y, rad * 4.5, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${col},${(0.6 + p.d * 0.4).toFixed(3)})`; ctx.fill()
-    ctx.beginPath(); ctx.arc(p.x - rad * 0.28, p.y - rad * 0.28, rad * 0.42, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(255,255,255,${(0.5 * p.d).toFixed(3)})`; ctx.fill()
-  }
-
-  // Depth dust in front of the orb, drawn last so it sparkles over the cage.
-  for (const { p, st } of dust) {
-    if (p.z <= 0.2) continue
-    const tw = REDUCED ? 0.7 : 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(sec * 1.5 + st.tw))
-    ctx.beginPath(); ctx.arc(p.x, p.y, st.s * p.d * 0.8, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${st.tw > 3.14 ? acc : CYAN},${(0.22 * p.d * tw).toFixed(3)})`; ctx.fill()
-  }
-
-  ctx.globalCompositeOperation = 'source-over'
 }
 
 function drawStatics() {
@@ -517,14 +308,26 @@ function drawStatics() {
   const range = document.getElementById('dk-m-range'); if (range && c.range.bars.length) drawRange(range, c.range)
 }
 
+/** What the brain draws: the payload's agents and votes, nothing else. */
+function brainState(d) {
+  const p = d.core?.panel
+  return {
+    agents: (d.agents || []).map((a) => ({ id: a.id, title: a.title, status: a.status })),
+    votes: p ? p.votes.map((v) => ({ id: v.id, name: v.name, action: v.action, confidence: v.confidence, weight: v.weight })) : [],
+    core: { score: p ? p.score : null, enterScore: p ? p.enterScore : null, direction: p ? p.direction : null },
+    focus: brainFocus,
+  }
+}
+
 function frame(t) {
   coreFrame = null
-  const c = coreData; if (!c) return
+  const d = deskData; if (!d) return
   const scope = document.getElementById('dk-core-canvas')
   if (!scope || !deskVisible()) return
   if (!coreT0) coreT0 = t
-  drawCore(scope, c, t - coreT0)
-  const pulse = document.getElementById('dk-m-pulse'); if (pulse && c.pulse.perMin !== null) drawPulse(pulse, c.pulse, t - coreT0)
+  if (window.MrBrain) window.MrBrain.draw(scope, brainState(d), t - coreT0, REDUCED)
+  const c = coreData
+  const pulse = document.getElementById('dk-m-pulse'); if (pulse && c && c.pulse.perMin !== null) drawPulse(pulse, c.pulse, t - coreT0)
   if (!REDUCED) coreFrame = requestAnimationFrame(frame)
 }
 
@@ -535,7 +338,7 @@ function startCore() {
   coreFrame = requestAnimationFrame(frame)
 }
 function stopCore() { if (coreFrame) cancelAnimationFrame(coreFrame); coreFrame = null }
-window.addEventListener('resize', () => { if (coreData && deskVisible()) { drawStatics(); if (REDUCED) startCore() } })
+window.addEventListener('resize', () => { if (deskData && deskVisible()) { drawStatics(); if (REDUCED) startCore() } })
 
 /**
  * THE PIPELINE — the six steps every paper trade has to pass, left to right,
@@ -597,39 +400,34 @@ function pipeline(d) {
 function render(d) {
   const c = d.core
   return `
-  <div class="dk dk2">
-    ${hero(d)}
-
+  <div class="dk hm">
+    ${homeHero(d)}
+    ${modelsSection(d)}
     ${pipeline(d)}
 
-    ${c ? `<div class="dk2-grid">
-      ${orbTile(c)}
-      ${votesTile(c)}
-    </div>` : ''}
-
-    <h2 class="dk2-h">The crew <span>six of them, each watching one thing</span></h2>
-    <div class="dk2-crew">${d.agents.map(agentTile).join('')}</div>
-
-    ${c ? `<h2 class="dk2-h">The tape <span>closed candles and the live stream, nothing forecast</span></h2>
-    <div class="dk2-grid dk2-charts">${chartsRow(c)}</div>
-    <div class="dk2-grid dk2-proof">
-      ${statsTile(c)}
-      ${evidence(d)}
-    </div>
-    <p class="dk-core-note">${esc(c.note)}</p>` : `<div class="dk2-grid dk2-proof">${evidence(d)}</div>`}
-
-    <section class="dk-accounts" id="dk-accounts" aria-live="polite"></section>
-
-    <section class="dk-learn">
-      <div class="dk-learn-head"><b>How it gets better</b><span>it proves strategies to itself before it trusts them — nothing here trades your money</span></div>
-      <div class="dk-learn-row">
-        <button class="dk-learn-card" data-tab="factory"><span class="dk-learn-i">⑂</span><b>Breeds &amp; tests</b><i>tries strategy variants on real history, keeps only the ones that survive out-of-sample</i></button>
-        <button class="dk-learn-card" data-tab="research"><span class="dk-learn-i">◎</span><b>Questions itself</b><i>the lab raises questions from the record, checks them, and flags overfitting</i></button>
-        <button class="dk-learn-card" data-tab="knowledge"><span class="dk-learn-i">✦</span><b>Remembers</b><i>every lesson and post-mortem is versioned; a setup that keeps failing gets refused</i></button>
+    <details class="hm-more">
+      <summary>Charts, the track record and each model's notes</summary>
+      ${c ? `<h2 class="dk2-h">The tape <span>closed candles and the live stream, nothing forecast</span></h2>
+      <div class="dk2-grid dk2-charts">${chartsRow(c)}</div>
+      <div class="dk2-grid dk2-proof">
+        ${statsTile(c)}
+        ${evidence(d)}
       </div>
-    </section>
+      <p class="dk-core-note">${esc(c.note)}</p>` : `<div class="dk2-grid dk2-proof">${evidence(d)}</div>`}
+      <h2 class="dk2-h">Each model's notes <span>what it sees, and what it is waiting on</span></h2>
+      <div class="dk2-crew">${d.agents.map(agentTile).join('')}</div>
+      <section class="dk-accounts" id="dk-accounts" aria-live="polite"></section>
+      <section class="dk-learn">
+        <div class="dk-learn-head"><b>How it gets better</b><span>it proves strategies to itself before it trusts them — nothing here trades your money</span></div>
+        <div class="dk-learn-row">
+          <button class="dk-learn-card" data-tab="factory"><b>Breeds and tests</b><i>tries strategy variants on real history, keeps only the ones that survive out-of-sample</i></button>
+          <button class="dk-learn-card" data-tab="research"><b>Questions itself</b><i>the lab raises questions from the record, checks them, and flags overfitting</i></button>
+          <button class="dk-learn-card" data-tab="knowledge"><b>Remembers</b><i>every lesson and post-mortem is versioned; a setup that keeps failing gets refused</i></button>
+        </div>
+      </section>
+    </details>
 
-    <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order.</p>
+    <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order. Pulses in the brain are readings and votes on their way to the decision — not trades, not prices.</p>
   </div>`
 }
 
@@ -642,15 +440,19 @@ async function loadDesk() {
     const r = await fetch('/api/desk')
     const j = await r.json()
     if (!j.ok) throw new Error(j.error || 'could not read the desk')
+    // A refresh redraws the page; keep whatever the reader had unfolded.
+    const open = [...out.querySelectorAll('details')].map((x) => x.open)
     out.innerHTML = render(j.data)
+    out.querySelectorAll('details').forEach((x, i) => { if (open[i]) x.open = true })
     out.dataset.spoken = [j.data.voice.floor, j.data.voice.trust, j.data.voice.evidence].join(' ')
     // The stamp lives inside the markup just redrawn, so look it up again rather than writing to the old copy.
     const stamp = document.getElementById('desk-status')
     if (stamp) stamp.textContent = `updated ${new Date(j.data.generatedAt).toLocaleTimeString()}`
     coreData = j.data.core || null
+    deskData = j.data
     // The accounts card (web/js/accounts.js) fills itself in; the desk only says it has drawn.
     document.dispatchEvent(new CustomEvent('desk:rendered'))
-    if (deskVisible()) { startDeskRefresh(); if (coreData) startCore() } else { stopDeskRefresh(); stopCore() }
+    if (deskVisible()) { startDeskRefresh(); startCore() } else { stopDeskRefresh(); stopCore() }
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't read the desk just now: ${esc(e.message)}. Showing you nothing rather than making something up.</div>`
     if (status) status.textContent = 'failed'
@@ -699,7 +501,7 @@ document.addEventListener('click', (e) => {
   // The learning cards are built on this page, so they miss index.html's load-time
   // binding; route them through the shared tab switcher.
   if (b.closest('#desk-out') && typeof window.showTab === 'function') window.showTab(b.dataset.tab)
-  setTimeout(() => { if (deskVisible()) { if (coreData && !coreFrame) startCore() } else stopCore() }, 0)
+  setTimeout(() => { if (deskVisible()) { if (deskData && !coreFrame) startCore() } else stopCore() }, 0)
 })
 
 window.loadDesk = loadDesk
@@ -712,3 +514,14 @@ document.addEventListener('click', (e) => {
   if (t.dataset.act === 'reload') loadDesk()
   if (t.dataset.act === 'speak' && window.speakAs) window.speakAs(window.deskSpoken())
 })
+
+// Point at a model in the list and the brain lights that neuron.
+function focusNode(id) {
+  if (brainFocus === id) return
+  brainFocus = id
+  if (REDUCED && deskData && deskVisible()) startCore()
+}
+document.addEventListener('pointerover', (e) => { const r = e.target.closest?.('#desk-out .hm-model'); focusNode(r ? r.dataset.node : null) })
+document.addEventListener('focusin', (e) => { const r = e.target.closest?.('#desk-out .hm-model'); focusNode(r ? r.dataset.node : null) })
+// The detail charts sit in a fold; draw them when it opens.
+document.addEventListener('toggle', (e) => { if (e.target.matches?.('#desk-out details.hm-more') && e.target.open) drawStatics() }, true)

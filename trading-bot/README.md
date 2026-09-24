@@ -59,7 +59,7 @@ says NOT ENOUGH DATA rather than estimating when the record is thin.
 
 | Group | Tabs | What they are for |
 |---|---|---|
-| The desk | **Desk**, **Today**, **Chart**, **Journal**, **Ask** | The crew of six agents with the signal core, the daily brief and decision, the annotated chart, your journal, and a conversation with the bot in any of its hats. |
+| The desk | **Home**, **Today**, **Chart**, **Ask**, and **Journal** under More | The brain (every model he runs, live), the daily brief and decision, the annotated chart, a conversation with the bot in any of its hats, and your journal. |
 | Markets | Flow, News, Intel, TradingView | The order book and tape, the calendar and headlines, the engine's own chart markup with provenance, and the Pine export. |
 | Is it working? | Evidence, Validation, Operations, Test, Replay | Attribution by session, regime and strategy; the frozen validation gates; heartbeat, feed, integrity, reconciliation, soak and the first-fill acceptance chain; look-back tests; the replay player. |
 | Learn | School, Research, Knowledge, Observer | Lessons from its own case studies; the quant lab (overfitting detector, regime atlas, news diffusion, sandbox); the versioned vault and daily digests; what it is observing right now. |
