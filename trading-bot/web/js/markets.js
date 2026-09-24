@@ -148,6 +148,8 @@ function renderTab(d) {
   if (!out) return
   const kinds = ['crypto', 'stock', 'forex', 'index'].filter((k) => d.rows.some((r) => r.kind === k))
   const notes = d.rows.flatMap((r) => r.scan.notes.map((n) => ({ ...n, label: r.label }))).sort((a, b) => b.at - a.at).slice(0, 12)
+  // A refresh redraws the page; keep the setups fold as the reader left it.
+  const wasOpen = !!document.getElementById('mk-setups-fold')?.open
   const ranked = d.rows.filter((r) => r.scan.setup && r.scan.setup.lean !== 'none').sort((a, b) => b.scan.setup.aligned - a.scan.setup.aligned).slice(0, 4)
   out.innerHTML = `
     <section class="mk-hero">
@@ -155,17 +157,21 @@ function renderTab(d) {
       <p>${esc(d.note)}</p></div>
     </section>
     ${overview(d)}
-    <h3 class="mk-h">Setups worth a look <span>five checks per market — trend, momentum, key levels, volume, context — and where the idea would be wrong. A checklist, not a forecast.</span></h3>
-    ${ranked.length ? `<div class="mk-setups">${ranked.map(setupCard).join('')}</div>` : '<p class="muted mk-none-yet">No market has a clear lean right now. That is an answer too.</p>'}
     <h3 class="mk-h">Every market</h3>
     <div class="mk-grid">
       ${kinds.map((k) => `<section class="mk-group"><h3><i class="mk-ic ${k}">${ic(k)}</i>${KIND_LABEL[k]}</h3>${d.rows.filter((r) => r.kind === k).map(row).join('')}</section>`).join('')}
     </div>
+    <details class="mk-setups-fold" id="mk-setups-fold">
+      <summary><span class="mk-h">Setups worth a look</span><span class="mk-fold-sum">${ranked.length ? `${ranked.map((r) => `${esc(r.label)} ${pips(r.scan.setup)}`).join(' · ')}` : 'no market has a clear lean right now'}</span></summary>
+      <p class="mk-fold-note">Five checks per market (trend, momentum, key levels, volume, context) and where the idea would be wrong. A checklist, not a forecast.</p>
+      ${ranked.length ? `<div class="mk-setups">${ranked.map(setupCard).join('')}</div>` : '<p class="muted mk-none-yet">No market has a clear lean right now. That is an answer too.</p>'}
+    </details>
     <section class="mk-feed">
       <h3>What the scan noticed</h3>
       ${notes.length ? `<ul>${notes.map((n) => `<li><b>${esc(n.label)}</b><span>${esc(n.text)}</span><time>${new Date(n.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</time></li>`).join('')}</ul>` : '<p class="muted">Nothing notable in the last few hours. New observations also land in the bell.</p>'}
     </section>
     <p class="mk-foot">Feeds: crypto from Binance's public candles; forex from Kraken's public FX book (a crypto venue's rate, not the interbank rate); stocks and index ETFs from Alpaca's free IEX feed with your read-only keys. Hourly candles. An index is watched through the ETF that tracks it. Observations, not signals: nothing on this page can place an order.</p>`
+  if (wasOpen) document.getElementById('mk-setups-fold').open = true
 }
 
 async function loadMarkets(refresh = false) {

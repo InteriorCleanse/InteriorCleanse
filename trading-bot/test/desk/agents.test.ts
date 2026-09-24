@@ -283,18 +283,18 @@ test('the signal core is drawn from the payload only: no thresholds, fetches or 
   assert.equal(/Math\.random/.test(js), false, 'nothing on the desk may be invented: no random motion, no fake ticks')
 })
 
-test('the brain only draws: no fetches, no randomness, no order paths, and it names what is dressing', () => {
-  const js = readFileSync(join(ROOT, 'web', 'js', 'brain.js'), 'utf8')
-  assert.equal(/fetch\(|XMLHttpRequest|WebSocket|EventSource/.test(js), false, 'the brain draws what desk.js hands it and fetches nothing')
-  assert.equal(/Math\.random/.test(js), false, 'every position in the brain comes from a seeded generator, never Math.random')
-  assert.equal(/\/api\//.test(js), false, 'the brain must not reach any route, least of all an order path')
+test('the core only draws: no fetches, no randomness, no order paths, and it names what is dressing', () => {
+  const js = readFileSync(join(ROOT, 'web', 'js', 'core.js'), 'utf8')
+  assert.equal(/fetch\(|XMLHttpRequest|WebSocket|EventSource/.test(js), false, 'the core draws what desk.js hands it and fetches nothing')
+  assert.equal(/Math\.random/.test(js), false, 'every position in the core comes from a seeded generator, never Math.random')
+  assert.equal(/\/api\//.test(js), false, 'the core must not reach any route, least of all an order path')
   assert.equal(/setInterval|setTimeout|requestAnimationFrame/.test(js), false, 'the frame loop belongs to desk.js, which stops it off screen')
-  assert.match(js, /reduced/, 'the brain must draw a still frame under reduced motion')
-  assert.match(js, /DRESSING/, 'the brain must say which parts carry no data')
+  assert.match(js, /reduced/, 'the core must draw a still frame under reduced motion')
+  assert.match(js, /DRESSING/, 'the core must say which parts carry no data')
   const desk = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
-  assert.match(desk, /MrBrain\.draw\(/, 'desk.js runs the brain from its own loop')
+  assert.match(desk, /MrCore\.draw\(/, 'desk.js runs the core from its own loop')
   // Touching the brain turns it, shows a card or scrolls to a row. Nothing more.
-  assert.match(js, /window\.MrBrain = \{ draw, attach \}/)
+  assert.match(js, /window\.MrCore = \{ draw, attach \}/)
   const attach = desk.slice(desk.indexOf('function attachBrain'), desk.indexOf('function attachBrain') + 1200)
-  assert.equal(/fetch\(|\/api\/|showTab|\.click\(\)/.test(attach), false, 'a click on the brain only scrolls to the model it names')
+  assert.equal(/fetch\(|\/api\/|showTab|\.click\(\)/.test(attach), false, 'a click on the core only scrolls to the model it names')
 })

@@ -68,8 +68,8 @@ dashboard):
 
 One entrance: fade and an 8px rise, staggered 45ms, capped at five steps.
 It plays when a tab opens, never on a data refresh. The one bold motion is
-the brain on Home (below). Everything stops under `prefers-reduced-motion`;
-the brain then draws one still frame with each pulse parked on its synapse,
+the core on Home (below). Everything stops under `prefers-reduced-motion`;
+the core then draws one still frame with each pulse parked on its beam,
 and turns only while you drag it.
 
 **Icons.** One set of line drawings on a 24px grid at a 1.6 stroke, drawn in
@@ -81,7 +81,7 @@ the text colour. No emoji in navigation.
   nothing shouting.
 - **Voice:** first person, plain, honest. He says "I can't see the order book"
   rather than guessing. There is no hype and no profit language anywhere.
-- **Composition:** on Home, the brain and one sentence of what he thinks;
+- **Composition:** on Home, the core and one sentence of what he thinks;
   then every model running, one row each; then the pipeline. Everything else
   (charts, the track record, each model's notes; on Today the vote list and
   the written brief) is folded away.
@@ -93,7 +93,7 @@ the text colour. No emoji in navigation.
 
 | Effect | Where | Technique |
 |---|---|---|
-| The brain | Home | A 3D brain on a 2D canvas (`web/js/brain.js`, no library): two hemispheres of glowing folds, a cerebellum and a stem, projected with perspective and lit from the upper left with a rim glow. It turns and nods at an easing pace, breathes, twinkles, and has signals racing along its folds (more of them when more models are reporting), motes drifting round it and orbit rings round the core; drag to turn it (it keeps a little momentum), point at a node for a card, click one to jump to its row. Strategy neurons sit inside the volume, coloured by vote and sized by confidence, and when its pulse leaves the cortex round it flashes and a ring of light spreads out across it; agent inputs stay outside, coloured by what they can see; pulses carry each reading or vote to the core, whose arc is the agreement score. Seeded geometry; paused off-screen and still under reduced motion. Pointing at a model in the list lights its neuron, and pointing at a neuron lights its row |
+| The core | Home | A sci-fi reactor drawn on a 2D canvas (`web/js/core.js`, no library). The eye in the middle holds the agreement score, with its arc and the act-at tick, inside a plasma corona in the fused direction's colour. Around it, a 3D gimbal of three tilted rings spins in perspective, and each strategy rides a ring as a satellite, coloured by its vote, sized by its confidence and hollow when the regime switches it off, firing pulses into the core. The desk agents are hexagonal ports round the edge, feeding conduits coloured by what they can see. An outer gauge repeats the score at room scale. Dressing: plasma filaments and flares, an accretion disk spiralling inward, shockwaves as votes land, graduated HUD rings and a radar sweep. Drag to turn the gimbal (it keeps a little momentum), point at a satellite or port for a card, click to jump to its row. Seeded; paused off-screen and still under reduced motion. Pointing at a model in the list lights its satellite, and pointing at a satellite lights its row |
 | Ambient light | page background | four slow colour fields in the palette's own hues (`web/js/bg.js`), plus 3.5% SVG grain |
 | Glass | header, nav, bottom bar | `backdrop-filter`, switched off under reduced transparency |
 | Mascot | header | SMIL-animated SVG |
