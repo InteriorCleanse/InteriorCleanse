@@ -1,10 +1,10 @@
 /**
- * HOME — the brain, and what it decided.
+ * HOME — the core, and what it decided.
  *
  * Design brief, in order of priority:
  *   1. A person who has never traded should understand the top of this screen
  *      in about three seconds: what Mr. Cash thinks right now, in one sentence,
- *      next to a brain that shows every model he runs and which of them are
+ *      next to a core that shows every model he runs and which of them are
  *      talking. Everything else is detail and stays folded away.
  *   2. A model that cannot see must LOOK like it cannot see — grey, dashed,
  *      silent, with what it is waiting on written beside it. Never a zero
@@ -17,7 +17,7 @@
  * from the payload — including his voice lines, which are composed server-side
  * so there is exactly one place they can be got wrong.
  *
- * THE BRAIN (web/js/brain.js) draws `payload.agents` and `payload.core.panel`
+ * THE CORE (web/js/core.js) draws `payload.agents` and `payload.core.panel`
  * only: one input per agent, one neuron per strategy vote, the fused decision in
  * the middle. This file runs its frame loop and stops it off screen and under
  * reduced motion. The small charts render an UNAVAILABLE frame for any reading
@@ -126,7 +126,7 @@ function homeHero(d) {
   const tone = p?.direction === 'long' ? 'long' : p?.direction === 'short' ? 'short' : 'flat'
   const regime = (d.agents || []).find((a) => a.id === 'regime')
   const n = (d.agents || []).length + (p ? p.votes.length : 0)
-  const brainLabel = `The brain: ${n} models. ${p && p.score !== null ? `Agreement ${p.score} of 100${p.enterScore !== null ? `, acts at ${p.enterScore}` : ''}.` : 'No decision yet.'}`
+  const brainLabel = `The core: ${n} models. ${p && p.score !== null ? `Agreement ${p.score} of 100${p.enterScore !== null ? `, acts at ${p.enterScore}` : ''}.` : 'No decision yet.'}`
   return `
   <section class="hm-hero">
     <div class="hm-brain">
@@ -309,7 +309,7 @@ function drawStatics() {
   const range = document.getElementById('dk-m-range'); if (range && c.range.bars.length) drawRange(range, c.range)
 }
 
-/** What the brain draws: the payload's agents and votes, nothing else. */
+/** What the core draws: the payload's agents and votes, nothing else. */
 function brainState(d) {
   const p = d.core?.panel
   return {
@@ -326,7 +326,7 @@ function frame(t) {
   const scope = document.getElementById('dk-core-canvas')
   if (!scope || !deskVisible()) return
   if (!coreT0) coreT0 = t
-  if (window.MrBrain) window.MrBrain.draw(scope, brainState(d), t - coreT0, REDUCED)
+  if (window.MrCore) window.MrCore.draw(scope, brainState(d), t - coreT0, REDUCED)
   const c = coreData
   const pulse = document.getElementById('dk-m-pulse'); if (pulse && c && c.pulse.perMin !== null) drawPulse(pulse, c.pulse, t - coreT0)
   if (!REDUCED) coreFrame = requestAnimationFrame(frame)
@@ -429,7 +429,7 @@ function render(d) {
       </section>
     </details>
 
-    <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order. Pulses in the brain are readings and votes on their way to the decision — not trades, not prices.</p>
+    <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order. Pulses in the core are readings and votes on their way to the decision — not trades, not prices.</p>
   </div>`
 }
 
@@ -518,7 +518,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.act === 'speak' && window.speakAs) window.speakAs(window.deskSpoken())
 })
 
-// Point at a model in the list and the brain lights that neuron.
+// Point at a model in the list and the core lights its satellite.
 function focusNode(id) {
   if (brainFocus === id) return
   brainFocus = id
@@ -528,8 +528,8 @@ function focusNode(id) {
 const modelRow = (id) => [...document.querySelectorAll('#desk-out .hm-model')].find((r) => r.dataset.node === id)
 function attachBrain() {
   const cv = document.getElementById('dk-core-canvas')
-  if (!cv || !window.MrBrain || !window.MrBrain.attach) return
-  window.MrBrain.attach(cv, {
+  if (!cv || !window.MrCore || !window.MrCore.attach) return
+  window.MrCore.attach(cv, {
     // The loop is already running unless motion is reduced; then draw the one frame the drag asked for.
     redraw: () => { if (REDUCED && deskData && deskVisible()) startCore() },
     onHover: (id) => {

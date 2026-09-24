@@ -1191,6 +1191,17 @@ button:disabled { cursor:not-allowed; }
    ============================================================ */
 .ch-bar { gap:10px; align-items:center; }
 .ch-count { display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--dim); }
+/* Clean or full markup, and zoom: the two controls that decide how clearly you see price. */
+.ch-mode, .ch-zoom { display:inline-flex; gap:2px; padding:3px; border-radius:12px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.02); }
+.ch-mode button, .ch-zoom button { appearance:none; border:0; background:transparent; color:var(--dim); font:600 13px var(--font-sans); padding:7px 12px; border-radius:9px; cursor:pointer; min-width:34px;
+  transition:background-color var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease); }
+.ch-mode button:hover, .ch-zoom button:hover:not(:disabled) { color:var(--text); background:rgba(255,255,255,.05); }
+.ch-mode button[aria-pressed="true"] { color:var(--ink); background:var(--brand); }
+.ch-zoom button:disabled { opacity:.35; cursor:default; }
+.ch-zoom button:focus-visible, .ch-mode button:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+.ch-plot { position:relative; }
+.ch-plot canvas.chart { cursor:crosshair; }
+canvas.chart-x { position:absolute; left:1px; top:1px; width:calc(100% - 2px); height:calc(100% - 2px); pointer-events:none; }
 .ch-layers { display:inline-flex; flex-wrap:wrap; gap:2px; padding:3px; border-radius:12px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.02); }
 .ch-toggle { position:relative; display:inline-flex; cursor:pointer; }
 .ch-toggle input { position:absolute; opacity:0; width:1px; height:1px; margin:0; pointer-events:none; }
@@ -1748,3 +1759,14 @@ button.btn.vx-open:hover:not(:disabled) { background:linear-gradient(180deg, #ff
 .vx-open-panel:not([data-view="all"]) [data-show] { display:none; }
 .vx-open-panel[data-view="all"] [data-show], .vx-open-panel[data-view="alpaca"] [data-show="alpaca"], .vx-open-panel[data-view="kraken"] [data-show="kraken"], .vx-open-panel[data-view="paper"] [data-show="paper"] { display:revert; }
 .vx-open-panel[data-view="all"] .vx-total { display:flex; }
+
+/* Setups fold: the checklists sit under the board, one line until opened. */
+.mk-setups-fold { margin:18px 0 6px; border:1px solid rgba(255,255,255,.07); border-radius:16px; background:rgba(255,255,255,.015); }
+.mk-setups-fold > summary { list-style:none; cursor:pointer; display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; padding:14px 16px; }
+.mk-setups-fold > summary::-webkit-details-marker { display:none; }
+.mk-setups-fold > summary::before { content:'›'; color:var(--dim); font-size:18px; line-height:1; transition:transform var(--dur-quick) var(--ease); }
+.mk-setups-fold[open] > summary::before { transform:rotate(90deg); }
+.mk-setups-fold > summary .mk-h { margin:0; }
+.mk-fold-sum { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; color:var(--dim); font-size:13px; }
+.mk-fold-note { margin:0 16px 12px; color:var(--dim); font-size:13px; }
+.mk-setups-fold .mk-setups { padding:0 12px 12px; }

@@ -58,7 +58,16 @@
 
   <section id="tab-chart" class="hidden">
     <div class="row ch-bar">
-      <label class="ch-count">Candles <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select></label>
+      <div class="ch-mode" role="group" aria-label="How much markup">
+        <button type="button" data-chmode="clean" aria-pressed="true" title="Candles, volume, VWAP and the key levels. The price action, nothing in its way">Clean</button>
+        <button type="button" data-chmode="full" aria-pressed="false" title="Every layer: sessions, gaps, structure, order blocks">Full markup</button>
+      </div>
+      <div class="ch-zoom" role="group" aria-label="Zoom">
+        <button type="button" id="ch-zoom-out" title="Show more candles" aria-label="Zoom out">&minus;</button>
+        <button type="button" id="ch-zoom-in" title="Show fewer, bigger candles" aria-label="Zoom in">+</button>
+        <button type="button" id="ch-latest" hidden title="Jump back to the latest candle">Latest &rsaquo;</button>
+      </div>
+      <label class="ch-count" title="How much history to load. Scroll or use − and + to zoom; drag to look back">History <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select></label>
       <div class="ch-layers" role="group" aria-label="Chart layers">
         <label class="ch-toggle"><input type="checkbox" id="show-fvg" checked><span>Gaps</span></label>
         <label class="ch-toggle"><input type="checkbox" id="show-sessions" checked><span>Sessions</span></label>
@@ -71,12 +80,13 @@
     </div>
     <div class="ch-frame">
       <div class="ch-head" id="chart-head"><span class="muted" id="chart-status"></span></div>
-      <canvas id="chart" class="chart"></canvas>
+      <div class="ch-plot"><canvas id="chart" class="chart"></canvas><canvas id="chart-x" class="chart-x" aria-hidden="true"></canvas></div>
       <div class="legend"><span class="lg-asia">Asia</span><span class="lg-london">London</span><span class="lg-ny">New York</span><span class="lg-fvgb">bullish gap</span><span class="lg-fvgs">bearish gap</span><span class="lg-ifvg">inverted gap</span><span class="lg-sweep">sweep</span><span class="lg-ob">order block</span><span class="lg-brk">breaker</span><span class="lg-vwap">VWAP</span></div>
     </div>
     <details class="ch-help">
       <summary>How to read this chart</summary>
       <ul>
+        <li>Clean shows candles, volume, VWAP and the key levels; Full markup adds sessions, gaps, structure and order blocks. Scroll to zoom, drag to look back, double-click to return to the latest candle.</li>
         <li>Hover (or touch) for prices and New York time, and for what any box or label means.</li>
         <li>Session boxes span each session's high and low.</li>
         <li>A gap turns grey when price closes through it. That's an inversion, and the retest of a grey box is the entry Mr. Cash waits for.</li>
@@ -279,7 +289,7 @@
   <div class="muted">A paper-trading partner that explains everything, prompts you when something matters, and learns as it trades. No real money, ever.</div>
   <div class="map">
     <div><b>Today</b> — the brief, the checklist, your plan, the paper account</div>
-    <div><b>Home</b> — the brain: every model he runs, what each one sees, and what he decides</div>
+    <div><b>Home</b> — the core: every model he runs, what each one sees, and what he decides</div>
     <div><b>Chart</b> — what he sees: sessions, levels, gaps, sweeps</div>
     <div><b>Flow</b> — where the big orders are</div>
     <div><b>News</b> — what could move price, and when he'll stand aside</div>
@@ -719,59 +729,80 @@ function shareCard() {
 $('btn-card').onclick = shareCard
 
 // ---------- chart ----------
-const canvas = $('chart'), tip = $('tip')
+// Seeing the market clearly: a clean view by default (candles, volume, VWAP and
+// the key levels), everything else one tap away; zoom and pan so the candles are
+// big enough to read; labels that step aside instead of printing over each other.
+const canvas = $('chart'), xcv = $('chart-x'), tip = $('tip')
 let view = null
+const CH_MODES = {
+  clean: { 'show-fvg': false, 'show-sessions': false, 'show-levels': true, 'show-vwap': true, 'show-structure': false, 'show-ob': false, 'show-range': false },
+  full: { 'show-fvg': true, 'show-sessions': true, 'show-levels': true, 'show-vwap': true, 'show-structure': true, 'show-ob': true, 'show-range': false },
+}
+const chWin = { count: 0, end: 0 } // 0 = automatic: a readable number of candles, ending at the latest
+const chAuto = () => (canvas.clientWidth < 600 ? 60 : 110)
+function chMode(m, save = true) {
+  const set = CH_MODES[m]; if (!set) return
+  for (const [id, on] of Object.entries(set)) $(id).checked = on
+  document.querySelectorAll('[data-chmode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.chmode === m)))
+  if (save) { try { localStorage.setItem('mrcash-chart-mode', m) } catch {} }
+  drawChart()
+}
+// A tidy price step: 1, 2, 2.5 or 5 times a power of ten, about six lines tall.
+function niceStep(span, lines) { const raw = span / lines, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p }
 function drawChart() {
   if (!data || !data.candles.length) return
   const ctx = canvas.getContext('2d'), dpr = window.devicePixelRatio || 1
   const W = canvas.clientWidth, H = canvas.clientHeight
   canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H)
-  const cs = data.candles, n = cs.length, padL = 8, padR = 70, padT = 14, padB = 28, plotW = W - padL - padR, plotH = H - padT - padB
+  const all = data.candles, N = all.length
+  const count = Math.max(20, Math.min(N, chWin.count || chAuto()))
+  const end = Math.max(count, Math.min(N, N - chWin.end))
+  const cs = all.slice(end - count, end), n = cs.length, t0 = cs[0].openTime, tN = cs[n-1].openTime
+  const padL = 8, padR = 74, padT = 14, padB = 28, plotW = W - padL - padR, plotH = H - padT - padB
   const showF = $('show-fvg').checked, showS = $('show-sessions').checked, showL = $('show-levels').checked, showV = $('show-vwap').checked
   const showSt = $('show-structure').checked, showOb = $('show-ob').checked, showR = $('show-range').checked
   let lo = Infinity, hi = -Infinity
   for (const c of cs) { lo = Math.min(lo, c.low); hi = Math.max(hi, c.high) }
-  if (showL && data.analysis) for (const l of data.analysis.levels) if (l.price > lo*0.985 && l.price < hi*1.015) { lo = Math.min(lo, l.price); hi = Math.max(hi, l.price) }
-  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad
-  const x = (i) => padL + (i + 0.5) * plotW / n, y = (p) => padT + (hi - p) / (hi - lo) * plotH, cw = Math.max(1, plotW / n * 0.65)
+  // The scale follows the candles, so they fill the chart; a level off-screen gets a tag at the edge instead of squashing them.
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad
+  const volH = plotH * 0.14, priceH = plotH - volH - 8
+  const x = (i) => padL + (i + 0.5) * plotW / n, y = (p) => padT + (hi - p) / (hi - lo) * priceH, cw = Math.max(1, plotW / n * 0.68)
   const idxAt = (t) => { let a=0,b=n-1; while(a<b){const m=(a+b)>>1; if(cs[m].openTime<t)a=m+1; else b=m} return a }
-  view = { x, y, lo, hi, n, padL, padT, plotW, plotH }
+  const inWin = (t) => t >= t0 && t <= tN + 1
+  view = { x, y, lo, hi, n, cs, padL, padT, padR, plotW, plotH, priceH, W, H, count, end }
+  // Grid first, on round numbers.
+  const step = niceStep(hi - lo, 6)
+  ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
+  for (let p = Math.ceil(lo / step) * step; p <= hi; p += step) { const yy = y(p); if (yy < padT || yy > padT + priceH) continue; ctx.strokeStyle = 'rgba(255,255,255,0.045)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(W-padR, yy); ctx.stroke(); ctx.fillStyle = '#7C85A6'; ctx.fillText(px(p), W-padR+8, yy+4) }
+  ctx.save(); ctx.beginPath(); ctx.rect(padL, padT, plotW, plotH); ctx.clip()
+  // Volume along the bottom, quiet, so price stays the subject.
+  const vmax = Math.max(...cs.map((c) => c.volume || 0), 1e-9)
+  for (let i = 0; i < n; i++) { const c = cs[i], vh = (c.volume || 0) / vmax * volH; ctx.fillStyle = c.close >= c.open ? 'rgba(74,222,154,0.2)' : 'rgba(255,107,122,0.2)'; ctx.fillRect(x(i)-cw/2, padT + plotH - vh, cw, vh) }
   if (showS) for (const s of data.sessions) {
-    const i0 = idxAt(s.startTime), i1 = Math.min(n-1, idxAt(s.endTime)); if (i1 < 0 || i0 > n-1) continue
+    if (s.endTime < t0 || s.startTime > tN) continue
+    const i0 = idxAt(s.startTime), i1 = Math.min(n-1, idxAt(s.endTime))
     const col = s.name==='asia' ? '88,166,255' : s.name==='london' ? '255,166,0' : s.name==='newYork' ? '74,222,154' : '160,160,160'
-    ctx.fillStyle = `rgba(${col},0.10)`; ctx.fillRect(x(i0)-cw/2, y(s.high), x(i1)-x(i0)+cw, y(s.low)-y(s.high))
-    ctx.strokeStyle = `rgba(${col},0.55)`; ctx.setLineDash([4,3]); ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(x(i0)-cw/2, y(s.high)); ctx.lineTo(W-padR, y(s.high)); ctx.moveTo(x(i0)-cw/2, y(s.low)); ctx.lineTo(W-padR, y(s.low)); ctx.stroke(); ctx.setLineDash([])
-    ctx.fillStyle = `rgba(${col},0.9)`; ctx.font = '11px sans-serif'; ctx.fillText(s.label, x(i0)+2, y(s.high)-3)
+    ctx.fillStyle = `rgba(${col},0.07)`; ctx.fillRect(x(i0)-cw/2, y(s.high), x(i1)-x(i0)+cw, y(s.low)-y(s.high))
+    ctx.fillStyle = `rgba(${col},0.85)`; ctx.font = "600 11px 'Instrument Sans', system-ui, sans-serif"; ctx.fillText(s.label, x(i0)+3, y(s.high)-4)
   }
   if (showF) for (const f of data.fvgs) {
-    const i0 = idxAt(f.createdTime); if (i0 > n-1) continue
+    if (f.createdTime > tN) continue
+    const i0 = idxAt(f.createdTime)
     const iEnd = f.state === 'expired' ? Math.min(n-1, i0 + 60) : n-1, inv = f.state === 'inverted' || f.role
+    if (f.state === 'expired' && f.createdTime < t0 && iEnd === i0) continue
     const col = inv ? '180,180,180' : f.direction === 'bullish' ? '74,222,154' : '255,107,122'
-    ctx.fillStyle = `rgba(${col},${inv?0.22:0.10})`; ctx.fillRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top))
-    if (inv) { ctx.strokeStyle = `rgba(${col},0.8)`; ctx.lineWidth = 1; ctx.strokeRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top)) }
+    ctx.fillStyle = `rgba(${col},${inv?0.18:0.09})`; ctx.fillRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top))
+    if (inv) { ctx.strokeStyle = `rgba(${col},0.7)`; ctx.lineWidth = 1; ctx.strokeRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top)) }
   }
-  if (showL && data.analysis) for (const l of data.analysis.levels) {
-    if (l.price < lo || l.price > hi) continue
-    const swept = l.sweptAt || l.brokenAt
-    ctx.strokeStyle = swept ? 'rgba(139,152,165,0.45)' : (l.kind==='pdh'||l.kind==='pdl') ? 'rgba(188,140,255,0.8)' : 'rgba(230,237,243,0.5)'
-    ctx.setLineDash(swept ? [2,4] : [6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, y(l.price)); ctx.lineTo(W-padR, y(l.price)); ctx.stroke(); ctx.setLineDash([])
-    const label = `${l.label} ${px(l.price)}${l.sweptAt ? ' · swept' : l.brokenAt ? ' · broken' : ''}`
-    ctx.font = '11px sans-serif'; const tw = ctx.measureText(label).width
-    ctx.fillStyle = 'rgba(11,15,20,0.85)'; ctx.fillRect(padL + 4, y(l.price) - 14, tw + 8, 13)
-    ctx.fillStyle = swept ? 'rgba(139,152,165,0.9)' : '#EEF1FB'; ctx.fillText(label, padL + 8, y(l.price) - 4)
-  }
-  // Order blocks (outlined boxes) and breakers (purple): the last candle against a forceful move, and what became of it
   if (showOb && data.orderBlocks) for (const ob of data.orderBlocks) {
-    const i0 = idxAt(ob.time); if (i0 > n-1) continue
-    const brk = ob.state === 'broken'
+    if (ob.time > tN) continue
+    const i0 = idxAt(ob.time), brk = ob.state === 'broken'
     const col = brk ? '188,140,255' : ob.direction === 'bullish' ? '74,222,154' : '255,107,122'
     const x0 = x(i0)-cw/2, w = W-padR-x0
-    ctx.fillStyle = `rgba(${col},${brk?0.10:0.07})`; ctx.fillRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top))
-    ctx.strokeStyle = `rgba(${col},${ob.state==='mitigated'?0.45:0.85})`; ctx.lineWidth = 1; ctx.setLineDash(brk ? [2,2] : [5,3]); ctx.strokeRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top)); ctx.setLineDash([])
-    ctx.fillStyle = `rgba(${col},0.95)`; ctx.font = 'bold 10px sans-serif'; ctx.fillText(brk ? 'BRK' : 'OB', x0 + 3, y(ob.bottom) - 3)
+    ctx.fillStyle = `rgba(${col},${brk?0.08:0.06})`; ctx.fillRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top))
+    ctx.strokeStyle = `rgba(${col},${ob.state==='mitigated'?0.4:0.75})`; ctx.lineWidth = 1; ctx.setLineDash(brk ? [2,2] : [5,3]); ctx.strokeRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top)); ctx.setLineDash([])
+    ctx.fillStyle = `rgba(${col},0.95)`; ctx.font = 'bold 10px sans-serif'; ctx.fillText(brk ? 'BRK' : 'OB', Math.max(padL + 3, x0 + 3), y(ob.bottom) - 3)
   }
-  // The dealing range: premium above the middle, discount below, on the right of the chart
   if (showR && data.dealingRange) {
     const d = data.dealingRange, x0 = x(Math.max(0, n - Math.round(n * 0.3)))
     const top = Math.min(hi, d.high), bot = Math.max(lo, d.low)
@@ -781,13 +812,25 @@ function drawChart() {
     ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(255,107,122,0.9)'; ctx.fillText('premium', x0 + 3, y(top) + 11); ctx.fillStyle = 'rgba(74,222,154,0.9)'; ctx.fillText('discount', x0 + 3, y(bot) - 4)
     ctx.fillStyle = 'rgba(230,237,243,0.8)'; ctx.fillText(`EQ · price at ${Math.round(d.position)}% (${d.zone})`, x0 + 3, y(d.equilibrium) - 3)
   }
+  // Key levels: a line across, the name on the right beside the price axis.
+  const tags = []
+  if (showL && data.analysis) for (const l of data.analysis.levels) {
+    const swept = l.sweptAt || l.brokenAt, key = l.kind==='pdh'||l.kind==='pdl'
+    if (l.price < lo || l.price > hi) {
+      // Off the chart: say where it is, at the edge it would be beyond.
+      if (!swept) tags.push({ y: l.price > hi ? padT + 8 : padT + priceH - 8, text: `${l.price > hi ? '↑' : '↓'} ${l.label} ${px(l.price)}`, col: key ? '#C9B4FF' : 'rgba(238,241,251,0.75)', pri: key ? 1 : 3 })
+      continue
+    }
+    ctx.strokeStyle = swept ? 'rgba(139,152,165,0.35)' : key ? 'rgba(188,140,255,0.75)' : 'rgba(230,237,243,0.4)'
+    ctx.setLineDash(swept ? [2,4] : [6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, y(l.price)); ctx.lineTo(W-padR, y(l.price)); ctx.stroke(); ctx.setLineDash([])
+    tags.push({ y: y(l.price), text: `${l.label}${l.sweptAt ? ' · swept' : l.brokenAt ? ' · broken' : ''}`, col: swept ? 'rgba(154,163,194,0.85)' : key ? '#C9B4FF' : '#EEF1FB', pri: key ? 0 : swept ? 2 : 1 })
+  }
   for (let i = 0; i < n; i++) {
     const c = cs[i], up = c.close >= c.open
-    ctx.strokeStyle = ctx.fillStyle = up ? '#4ADE9A' : '#FF6B7A'; ctx.lineWidth = 1
+    ctx.strokeStyle = ctx.fillStyle = up ? '#4ADE9A' : '#FF6B7A'; ctx.lineWidth = Math.max(1, Math.min(1.5, cw / 6))
     ctx.beginPath(); ctx.moveTo(x(i), y(c.high)); ctx.lineTo(x(i), y(c.low)); ctx.stroke()
     ctx.fillRect(x(i)-cw/2, y(Math.max(c.open,c.close)), cw, Math.max(1, Math.abs(y(c.open)-y(c.close))))
   }
-  // VWAP lines (a shared feature: exact from the tape, approximate from candles) and the day's value area
   if (showV && data.features && data.features.series && data.features.series.length) {
     const byTime = new Map(data.features.series.map(p => [p.openTime, p]))
     // The pen lifts wherever the anchor moves (a new day or session), so two anchors are never joined by a fake line.
@@ -795,55 +838,70 @@ function drawChart() {
       ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath(); let pen = false, anchor = null
       for (let i = 0; i < n; i++) {
         const p = byTime.get(cs[i].openTime); const v = p ? p[key] : null
-        if (v === null || v === undefined || v < lo || v > hi) { pen = false; continue }
+        if (v === null || v === undefined) { pen = false; continue }
         if (p[anchorKey] !== anchor) { pen = false; anchor = p[anchorKey] }
         if (pen) ctx.lineTo(x(i), y(v)); else ctx.moveTo(x(i), y(v)); pen = true
       }
       ctx.stroke(); ctx.setLineDash([])
     }
-    line('vwapDayUpper', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1); line('vwapDayLower', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1)
-    line('vwapDay', 'dayAnchor', '#FFC061', [], 1.5); line('vwapSession', 'sessionAnchor', 'rgba(88,166,255,0.9)', [5,3], 1.2)
+    line('vwapDay', 'dayAnchor', '#FFC061', [], 1.6)
+    if (!$('show-structure').checked) { /* the clean view keeps one VWAP; the full view adds the session line and bands */ } else {
+      line('vwapDayUpper', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1); line('vwapDayLower', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1)
+      line('vwapSession', 'sessionAnchor', 'rgba(88,166,255,0.9)', [5,3], 1.2)
+    }
     const prof = data.features.latest && data.features.latest.profileDay && data.features.latest.profileDay.value
-    if (prof) {
-      const x0 = x(Math.max(0, n - Math.round(n * 0.22)))
-      for (const [p, label, col] of [[prof.vah, 'VAH', 'rgba(188,140,255,0.7)'], [prof.poc, 'POC', 'rgba(188,140,255,1)'], [prof.val, 'VAL', 'rgba(188,140,255,0.7)']]) {
-        if (p < lo || p > hi) continue
-        ctx.strokeStyle = col; ctx.lineWidth = label === 'POC' ? 1.5 : 1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x0, y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.setLineDash([])
-        ctx.fillStyle = col; ctx.font = 'bold 10px sans-serif'; ctx.fillText(label + (data.features.latest.profileDay.approximate ? ' ~' : ''), x0 + 2, y(p) - 3)
-      }
+    if (prof && chWin.end === 0) for (const [p, label] of [[prof.vah, 'VAH'], [prof.poc, 'POC'], [prof.val, 'VAL']]) {
+      if (p < lo || p > hi) continue
+      const x0 = x(Math.max(0, n - Math.round(n * 0.18)))
+      ctx.strokeStyle = label === 'POC' ? 'rgba(188,140,255,0.95)' : 'rgba(188,140,255,0.6)'; ctx.lineWidth = label === 'POC' ? 1.5 : 1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x0, y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.setLineDash([])
+      tags.push({ y: y(p), text: label + (data.features.latest.profileDay.approximate ? ' ~' : ''), col: '#C9B4FF', pri: 1 })
     }
   }
-  for (const s of data.sweeps) {
-    const i = idxAt(s.time); if (i > n-1) continue
-    ctx.fillStyle = '#FFC061'; ctx.beginPath()
-    if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) } else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
-    ctx.closePath(); ctx.fill()
-  }
-  // Swing sweeps: hollow triangles, so they are told apart from raids on session levels (filled)
-  if (showSt && data.swingSweeps) for (const s of data.swingSweeps) {
-    const i = idxAt(s.time); if (i > n-1) continue
-    ctx.strokeStyle = '#FFC061'; ctx.lineWidth = 1.2; ctx.beginPath()
-    if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) } else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
-    ctx.closePath(); ctx.stroke()
-  }
-  // Swing labels and structure breaks
+  // Sweeps of session levels (filled) and swing sweeps (hollow, full view only).
+  const tri = (i, wick, side, fill) => { ctx.beginPath(); if (side === 'below') { ctx.moveTo(x(i), y(wick)+4); ctx.lineTo(x(i)-5, y(wick)+12); ctx.lineTo(x(i)+5, y(wick)+12) } else { ctx.moveTo(x(i), y(wick)-4); ctx.lineTo(x(i)-5, y(wick)-12); ctx.lineTo(x(i)+5, y(wick)-12) } ctx.closePath(); fill ? ctx.fill() : ctx.stroke() }
+  ctx.fillStyle = '#FFC061'; for (const s of data.sweeps) if (inWin(s.time)) tri(idxAt(s.time), s.wick, s.side, true)
+  if (showSt && data.swingSweeps) { ctx.strokeStyle = '#FFC061'; ctx.lineWidth = 1.2; for (const s of data.swingSweeps) if (inWin(s.time)) tri(idxAt(s.time), s.wick, s.side, false) }
+  // Structure: breaks always, swing names only when zoomed in enough to read them; nothing printed on top of anything else.
   if (showSt) {
-    ctx.font = '9px sans-serif'; ctx.fillStyle = 'rgba(139,152,165,0.95)'
-    if (data.swings) for (const s of data.swings) { const i = idxAt(s.time); if (i > n-1 || cs[i].openTime !== s.time) continue; ctx.fillText(s.label, x(i)-6, s.kind === 'high' ? y(s.price)-4 : y(s.price)+11) }
-    for (const s of data.shifts) { const i = idxAt(s.time); if (i > n-1) continue; ctx.fillStyle = s.direction === 'bullish' ? 'rgba(74,222,154,0.95)' : 'rgba(255,107,122,0.95)'; ctx.font = 'bold 10px sans-serif'; const lbl = s.kind || 'MSS'; ctx.fillText(lbl, x(i) - ctx.measureText(lbl).width/2, s.direction === 'bullish' ? y(cs[i].low)+22 : y(cs[i].high)-14) }
+    const placed = []
+    const free = (bx, by, bw) => !placed.some((r) => bx < r.x + r.w + 4 && bx + bw + 4 > r.x && Math.abs(by - r.y) < 12)
+    ctx.font = 'bold 10px sans-serif'
+    for (const s of data.shifts) {
+      if (!inWin(s.time)) continue
+      const i = idxAt(s.time), lbl = s.kind || 'MSS', tw = ctx.measureText(lbl).width
+      const bx = x(i) - tw/2, by = s.direction === 'bullish' ? y(cs[i].low)+22 : y(cs[i].high)-14
+      if (!free(bx, by, tw)) continue
+      placed.push({ x: bx, y: by, w: tw }); ctx.fillStyle = s.direction === 'bullish' ? 'rgba(74,222,154,0.95)' : 'rgba(255,107,122,0.95)'; ctx.fillText(lbl, bx, by)
+    }
+    if (data.swings && plotW / n >= 7) { ctx.font = '9.5px sans-serif'; ctx.fillStyle = 'rgba(154,163,194,0.9)'
+      for (const s of data.swings) { if (!inWin(s.time)) continue; const i = idxAt(s.time); if (cs[i].openTime !== s.time) continue; const tw = ctx.measureText(s.label).width, bx = x(i)-tw/2, by = s.kind === 'high' ? y(s.price)-5 : y(s.price)+12; if (!free(bx, by, tw)) continue; placed.push({ x: bx, y: by, w: tw }); ctx.fillText(s.label, bx, by) } }
   }
   const sig = data.signal
-  if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#8B93FF','entry'],[sig.plan.stop,'#FF6B7A','stop'],[sig.plan.takeProfit,'#4ADE9A','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,n-41)), y(p)-3) }
-  ctx.fillStyle = '#9AA3C2'; ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
-  for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+6, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
-  const slots = Math.max(3, Math.floor((W - padL - padR) / 92)) // one time label per ~92px so they never overlap on a phone
-  const every = Math.max(1, Math.round(n / slots)); for (let i = 0; i < n; i += every) ctx.fillText(cs[i].et + ' ET', x(i)-18, H-8)
-  // The last close, tagged on the price axis like a trading terminal: green if the candle closed up, red if down.
-  const last = cs[n-1], up = last.close >= last.open, tagCol = up ? '#4ADE9A' : '#FF6B7A', ly = y(last.close)
-  ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore()
+  if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#8B93FF','entry'],[sig.plan.stop,'#FF6B7A','stop'],[sig.plan.takeProfit,'#4ADE9A','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); tags.push({ y: y(p), text: label, col, pri: 0 }) }
+  const last = all[N-1], lastUp = last.close >= last.open, tagCol = lastUp ? '#4ADE9A' : '#FF6B7A', ly = y(last.close)
+  ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore()
+  ctx.restore() // end of the plot clip
+  // Level names, right-aligned by the axis; the most important wins a tight spot, the rest step aside.
+  ctx.font = "600 11px 'Instrument Sans', system-ui, sans-serif"
+  const taken = [{ y: ly, h: 18 }]
+  for (const t of tags.sort((a, b) => a.pri - b.pri)) {
+    let yy = t.y
+    for (let k = 0; k < 6 && taken.some((r) => Math.abs(r.y - yy) < 14); k++) yy += (k % 2 ? -1 : 1) * 14 * (k + 1)
+    if (taken.some((r) => Math.abs(r.y - yy) < 14) || yy < padT + 6 || yy > padT + priceH + 4) continue
+    taken.push({ y: yy, h: 14 })
+    const tw = ctx.measureText(t.text).width, bx = W - padR - tw - 12
+    ctx.fillStyle = 'rgba(7,10,16,0.88)'; ctx.fillRect(bx - 4, yy - 8, tw + 8, 16)
+    ctx.fillStyle = t.col; ctx.fillText(t.text, bx, yy + 4)
+  }
   ctx.fillStyle = tagCol; ctx.fillRect(W-padR+1, ly-9, padR-2, 18)
   ctx.fillStyle = '#05070b'; ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; ctx.fillText(px(last.close), W-padR+6, ly+4)
+  ctx.fillStyle = '#7C85A6'; ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
+  const slots = Math.max(3, Math.floor(plotW / 96)) // one time label per ~96px so they never overlap on a phone
+  const every = Math.max(1, Math.round(n / slots)); for (let i = Math.floor(every / 2); i < n; i += every) ctx.fillText(cs[i].et + ' ET', Math.min(W - padR - 50, Math.max(padL, x(i)-20)), H-8)
   chartHead(cs)
+  const zi = $('ch-zoom-in'), zo = $('ch-zoom-out'), lt = $('ch-latest')
+  if (zi) zi.disabled = count <= 20; if (zo) zo.disabled = count >= N; if (lt) lt.hidden = chWin.end === 0
+  drawCross(null)
 }
 // The strip above the chart: what is on it, the last close and the move across the candles shown.
 function chartHead(cs) {
@@ -853,14 +911,30 @@ function chartHead(cs) {
   $('chart-head').innerHTML = `<div class="ch-sym"><b>${esc(cfg.symbol)}</b><span>${esc(cfg.interval)}</span></div>
     <div class="ch-last"><b>${px(last.close)}</b>${chg === null ? '' : `<span class="${chg >= 0 ? 'win' : 'loss'}" title="From the first candle's open to the last close shown">${pct(chg)}</span>`}</div>
     <div class="ch-kv"><span>High</span><b>${px(wHi)}</b></div><div class="ch-kv"><span>Low</span><b>${px(wLo)}</b></div>
-    <span class="ch-range" id="chart-status">${esc(first.day)} → ${esc(last.day)} · ${n} candles</span>`
+    <span class="ch-range" id="chart-status">${esc(first.day)} ${esc(first.et)} → ${esc(last.day)} ${esc(last.et)} ET · ${n} of ${data.candles.length} candles</span>`
+}
+// Crosshair on its own layer, so moving the pointer never redraws the chart.
+function drawCross(pt) {
+  if (!xcv || !view) return
+  const dpr = window.devicePixelRatio || 1, W = view.W, H = view.H
+  if (xcv.width !== Math.round(W * dpr) || xcv.height !== Math.round(H * dpr)) { xcv.width = Math.round(W * dpr); xcv.height = Math.round(H * dpr) }
+  const c = xcv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H)
+  if (!pt) return
+  const { i, p } = pt, xx = view.x(i), yy = view.y(p)
+  c.strokeStyle = 'rgba(238,241,251,0.35)'; c.lineWidth = 1; c.setLineDash([4, 4])
+  c.beginPath(); c.moveTo(xx, view.padT); c.lineTo(xx, view.padT + view.plotH); if (yy <= view.padT + view.priceH) { c.moveTo(view.padL, yy); c.lineTo(W - view.padR, yy) } c.stroke(); c.setLineDash([])
+  c.fillStyle = '#2A3150'; c.fillRect(W - view.padR + 1, yy - 9, view.padR - 2, 18)
+  c.fillStyle = '#EEF1FB'; c.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; c.fillText(px(p), W - view.padR + 6, yy + 4)
+  const t = `${view.cs[i].et} ET`, tw = c.measureText(t).width + 12, bx = Math.max(view.padL, Math.min(W - view.padR - tw, xx - tw / 2))
+  c.fillStyle = '#2A3150'; c.fillRect(bx, H - 22, tw, 18); c.fillStyle = '#EEF1FB'; c.fillText(t, bx + 6, H - 9)
 }
 function chartHover(clientX, clientY) {
   if (!view || !data) return
   const rect = canvas.getBoundingClientRect()
   const i = Math.max(0, Math.min(view.n-1, Math.floor((clientX - rect.left - view.padL) / view.plotW * view.n)))
-  const c = data.candles[i]; if (!c) return
-  const p = view.hi - (clientY - rect.top - view.padT) / view.plotH * (view.hi - view.lo)
+  const c = view.cs[i]; if (!c) return
+  const p = view.hi - (clientY - rect.top - view.padT) / view.priceH * (view.hi - view.lo)
+  drawCross({ i, p: Math.max(view.lo, Math.min(view.hi, p)) })
   tip.style.display = 'block'; tip.style.left = Math.min(window.innerWidth - 350, clientX + 14) + 'px'; tip.style.top = (clientY + 14) + 'px'
   const fp = data.features && data.features.series ? data.features.series.find(q => q.openTime === c.openTime) : null
   // What the cursor is on: an order block or breaker under it, a swing or a break at this candle
@@ -872,13 +946,47 @@ function chartHover(clientX, clientY) {
     if (data.swingSweeps) for (const s of data.swingSweeps) if (s.time === c.openTime) notes.push(`Swing sweep: price ran the stops ${s.side} the ${s.level.label} by ${s.depthAtr.toFixed(2)} ATR and closed back.`)
   }
   if ($('show-range').checked && data.dealingRange && i === view.n - 1) notes.push(data.dealingRange.description)
-  tip.textContent = `${c.day} ${c.et} ET\nO ${px(c.open)}  H ${px(c.high)}\nL ${px(c.low)}  C ${px(c.close)}${fp && fp.vwapDay !== null ? `\nVWAP ${px(fp.vwapDay)}${fp.vwapSession !== null ? ` · session ${px(fp.vwapSession)}` : ''}` : ''}\ncursor ${px(p)}${notes.length ? '\n\n' + notes.join('\n') : ''}`
+  const chg = c.open ? (c.close - c.open) / c.open * 100 : 0
+  tip.textContent = `${c.day} ${c.et} ET\nO ${px(c.open)}  H ${px(c.high)}\nL ${px(c.low)}  C ${px(c.close)}  ${pct(chg)}${c.volume !== undefined ? `\nVolume ${Number(c.volume).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : ''}${fp && fp.vwapDay !== null ? `\nVWAP ${px(fp.vwapDay)}${fp.vwapSession !== null ? ` · session ${px(fp.vwapSession)}` : ''}` : ''}${notes.length ? '\n\n' + notes.join('\n') : ''}`
 }
-canvas.addEventListener('mousemove', (e) => chartHover(e.clientX, e.clientY))
+function chartLeave() { tip.style.display = 'none'; drawCross(null) }
+// Zoom around a point, keeping the candle under it where it is; pan by dragging.
+function chZoom(factor, atFrac = 1) {
+  if (!view || !data) return
+  const N = data.candles.length, cur = view.count, next = Math.max(20, Math.min(N, Math.round(cur * factor)))
+  if (next === cur) return
+  const rightGap = Math.round((cur - next) * (1 - atFrac))
+  chWin.count = next; chWin.end = Math.max(0, Math.min(N - next, chWin.end + rightGap))
+  drawChart()
+}
+let chDrag = null
+canvas.addEventListener('mousemove', (e) => {
+  if (chDrag && view) {
+    const per = view.plotW / view.n, moved = Math.round((e.clientX - chDrag.x) / per)
+    const N = data.candles.length, nextEnd = Math.max(0, Math.min(N - view.count, chDrag.end + moved))
+    if (nextEnd !== chWin.end) { chWin.end = nextEnd; drawChart() }
+    return
+  }
+  chartHover(e.clientX, e.clientY)
+})
+canvas.addEventListener('mousedown', (e) => { if (e.button === 0) { chDrag = { x: e.clientX, end: chWin.end }; canvas.style.cursor = 'grabbing'; tip.style.display = 'none' } })
+window.addEventListener('mouseup', () => { if (chDrag) { chDrag = null; canvas.style.cursor = '' } })
+canvas.addEventListener('wheel', (e) => { if (!view) return; e.preventDefault(); const r = canvas.getBoundingClientRect(); chZoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, Math.max(0, Math.min(1, (e.clientX - r.left - view.padL) / view.plotW))) }, { passive: false })
+canvas.addEventListener('dblclick', () => { chWin.count = 0; chWin.end = 0; drawChart() })
 canvas.addEventListener('touchmove', (e) => { const t = e.touches[0]; chartHover(t.clientX, t.clientY) }, {passive:true})
-canvas.addEventListener('mouseleave', () => tip.style.display = 'none'); canvas.addEventListener('touchend', () => tip.style.display = 'none')
-$('candle-count').onchange = () => loadToday(false)
-;['show-fvg','show-sessions','show-levels','show-vwap','show-structure','show-ob','show-range'].forEach(id => $(id).onchange = drawChart)
+canvas.addEventListener('mouseleave', chartLeave); canvas.addEventListener('touchend', chartLeave)
+$('ch-zoom-in').onclick = () => chZoom(1 / 1.4)
+$('ch-zoom-out').onclick = () => chZoom(1.4)
+$('ch-latest').onclick = () => { chWin.end = 0; drawChart() }
+document.querySelectorAll('[data-chmode]').forEach((b) => { b.onclick = () => chMode(b.dataset.chmode) })
+$('candle-count').onchange = () => { chWin.count = 0; chWin.end = 0; loadToday(false) }
+;['show-fvg','show-sessions','show-levels','show-vwap','show-structure','show-ob','show-range'].forEach(id => $(id).onchange = () => {
+  // Any hand-picked layer means neither preset is exactly on.
+  const m = Object.entries(CH_MODES).find(([, set]) => Object.entries(set).every(([k, v]) => $(k).checked === v))
+  document.querySelectorAll('[data-chmode]').forEach((b) => b.setAttribute('aria-pressed', String(!!m && b.dataset.chmode === m[0])))
+  drawChart()
+})
+;(() => { let m = 'clean'; try { m = localStorage.getItem('mrcash-chart-mode') || 'clean' } catch {} ; chMode(CH_MODES[m] ? m : 'clean', false) })()
 window.addEventListener('resize', () => { if (!$('tab-chart').classList.contains('hidden')) drawChart() })
 
 // ---------- flow ----------
@@ -1469,7 +1577,7 @@ $('btn-ask').onclick = () => ask(); $('q').addEventListener('keydown', e => { if
 loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const saved = location.hash.slice(1) || (()=>{ try { return localStorage.getItem('mrcash-tab') } catch { return null } })(); const start = saved && TABS.some(t=>t[0]===saved) ? saved : 'desk'; if (start !== 'today') showTab(start, false); let toured = false; try { toured = localStorage.getItem('mrcash-toured') === '1' } catch {}; if (!toured) openTour() })
 </script>
 <script type="module" src="/js/replay.js"></script>
-<script type="module" src="/js/brain.js"></script>
+<script type="module" src="/js/core.js"></script>
 <script type="module" src="/js/desk.js"></script>
 <script type="module" src="/js/accounts.js"></script>
 <script type="module" src="/js/markets.js"></script>
