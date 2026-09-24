@@ -101,6 +101,7 @@ import type { Goal, JournalEntry } from './journal.ts'
 import * as ui from './ui.ts'
 import { fetchPortfolio } from './broker/alpaca.ts'
 import { brokerStatus, fetchKrakenPortfolio } from './broker/kraken.ts'
+import { MarketWatch } from './markets/service.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -399,6 +400,14 @@ const server = createServer(async (req, res) => {
     }
     if (path === '/api/portfolio/kraken') {
       json(res, 200, { ok: true, data: await fetchKrakenPortfolio() })
+      return
+    }
+    // Every watched market (crypto, stocks, forex, indexes), READ-ONLY: prices,
+    // the move, and what changed. Observations only; nothing here can trade.
+    if (path === '/api/markets') {
+      const snap = marketWatch.snapshot()
+      const wantFresh = url.searchParams.get('refresh') === '1' && Date.now() - snap.asOf > 30_000
+      json(res, 200, { ok: true, data: wantFresh || !snap.asOf ? await marketWatch.refresh() : snap })
       return
     }
     // Which brokers are wired up. No network call, no secrets: just configured yes/no.
@@ -1439,7 +1448,12 @@ startOpsMonitor({
   log: (line) => console.log(ui.warn(`${new Date().toLocaleTimeString()}  ● ${line}`)),
 })
 
+// The market watch: every market on the list, rescanned in the background.
+// MRCASH_MARKETS=0 turns the background loop off (the page still loads on demand).
+const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
+
 server.listen(PORT, host, () => {
+  if (process.env.MRCASH_MARKETS !== '0') marketWatch.start()
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good(`  ● ${describeMode()}`))

@@ -7,7 +7,7 @@
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
-<meta name="theme-color" content="#080b11" />
+<meta name="theme-color" content="#080B16" />
 <meta name="color-scheme" content="dark" />
 <meta name="description" content="Mr. Cash — a paper-trading desk that explains every decision. Live market data, simulated execution, no real money." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -38,37 +38,57 @@
 <div class="events hidden" id="events"></div>
 <main>
   <section id="tab-today">
-    <div class="row">
-      <button class="btn" id="btn-refresh">Refresh</button>
-      <button class="btn ghost" id="btn-scan">Check the market now</button>
-      <button class="btn ghost" id="btn-journal-now">Journal this moment</button>
-      <button class="btn ghost" id="btn-card">Share card</button>
-      <button class="btn ghost" id="btn-read" title="Mr. Cash reads the brief aloud">Read it to me</button>
-      <button class="btn ghost" id="btn-narrate" title="The market read in five sections, from the engine">Market read</button>
-      <button class="btn danger" id="btn-kill" title="Kill switch: no new positions until you resume">⏹ Stop</button>
+    <div class="row td-bar">
+      <button class="btn" id="btn-scan">Check the market now</button>
+      <button class="btn ghost" id="btn-refresh">Refresh</button>
+      <span class="td-tools" role="group" aria-label="More actions">
+        <button class="td-tool" id="btn-narrate" title="The market read in five sections, from the engine">Market read</button>
+        <button class="td-tool" id="btn-read" title="Mr. Cash reads the brief aloud">Read aloud</button>
+        <button class="td-tool" id="btn-journal-now" title="Open the journal with this moment filled in">Journal</button>
+        <button class="td-tool" id="btn-card" title="A 1080×1350 image of today's brief">Share card</button>
+      </span>
       <span class="muted" id="today-status"></span>
+      <button class="btn danger" id="btn-kill" title="Kill switch: no new positions until you resume">⏹ Stop</button>
     </div>
     <div id="narrate-out"></div>
     <div id="today-out"><div class="card"><span class="spin">◐</span> Reading the market, the news and the order book…</div></div>
   </section>
 
   <section id="tab-chart" class="hidden">
-    <div class="row">
-      <label class="muted">Show <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select> candles</label>
-      <label class="muted"><input type="checkbox" id="show-fvg" checked> gaps</label>
-      <label class="muted"><input type="checkbox" id="show-sessions" checked> sessions</label>
-      <label class="muted"><input type="checkbox" id="show-levels" checked> levels</label>
-      <label class="muted" title="Volume-weighted average price since the day started (solid) and since the session started (dotted), with the day's value area on the right"><input type="checkbox" id="show-vwap" checked> VWAP &amp; volume</label>
-      <label class="muted" title="Swing labels (HH, HL, LH, LL) and structure breaks: BOS continues the trend, CHoCH is the first break against it"><input type="checkbox" id="show-structure" checked> structure</label>
-      <label class="muted" title="Order blocks: the last candle against a forceful move. A broken one becomes a breaker and flips its role"><input type="checkbox" id="show-ob" checked> order blocks</label>
-      <label class="muted" title="The dealing range between the last swing high and low: premium above the middle, discount below"><input type="checkbox" id="show-range"> premium/discount</label>
-      <span class="muted" id="chart-status"></span>
+    <div class="row ch-bar">
+      <label class="ch-count">Candles <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select></label>
+      <div class="ch-layers" role="group" aria-label="Chart layers">
+        <label class="ch-toggle"><input type="checkbox" id="show-fvg" checked><span>Gaps</span></label>
+        <label class="ch-toggle"><input type="checkbox" id="show-sessions" checked><span>Sessions</span></label>
+        <label class="ch-toggle"><input type="checkbox" id="show-levels" checked><span>Levels</span></label>
+        <label class="ch-toggle" title="Volume-weighted average price since the day started (solid) and since the session started (dotted), with the day's value area on the right"><input type="checkbox" id="show-vwap" checked><span>VWAP &amp; volume</span></label>
+        <label class="ch-toggle" title="Swing labels (HH, HL, LH, LL) and structure breaks: BOS continues the trend, CHoCH is the first break against it"><input type="checkbox" id="show-structure" checked><span>Structure</span></label>
+        <label class="ch-toggle" title="Order blocks: the last candle against a forceful move. A broken one becomes a breaker and flips its role"><input type="checkbox" id="show-ob" checked><span>Order blocks</span></label>
+        <label class="ch-toggle" title="The dealing range between the last swing high and low: premium above the middle, discount below"><input type="checkbox" id="show-range"><span>Premium/discount</span></label>
+      </div>
     </div>
-    <div class="card" style="padding:8px">
+    <div class="ch-frame">
+      <div class="ch-head" id="chart-head"><span class="muted" id="chart-status"></span></div>
       <canvas id="chart" class="chart"></canvas>
       <div class="legend"><span class="lg-asia">Asia</span><span class="lg-london">London</span><span class="lg-ny">New York</span><span class="lg-fvgb">bullish gap</span><span class="lg-fvgs">bearish gap</span><span class="lg-ifvg">inverted gap</span><span class="lg-sweep">sweep</span><span class="lg-ob">order block</span><span class="lg-brk">breaker</span><span class="lg-vwap">VWAP</span></div>
     </div>
-    <div class="plain">Hover (or touch) for prices and New York time — and for what any box or label means. Session boxes span each session's high and low. A gap turns grey when price closes through it — that's an inversion, and the retest of a grey box is the entry Mr. Cash waits for. Filled triangles mark raids on session levels; hollow ones mark raids on swing points. Dashed boxes are order blocks (the last candle against a forceful move); a purple one has been broken and flipped into a breaker. HH/HL/LH/LL label the swings; BOS is a break that continues the trend, CHoCH the first break against it. Turn on premium/discount to see which half of the dealing range price is in.</div>
+    <details class="ch-help">
+      <summary>How to read this chart</summary>
+      <ul>
+        <li>Hover (or touch) for prices and New York time, and for what any box or label means.</li>
+        <li>Session boxes span each session's high and low.</li>
+        <li>A gap turns grey when price closes through it. That's an inversion, and the retest of a grey box is the entry Mr. Cash waits for.</li>
+        <li>Filled triangles mark raids on session levels; hollow ones mark raids on swing points.</li>
+        <li>Dashed boxes are order blocks (the last candle against a forceful move); a purple one has been broken and flipped into a breaker.</li>
+        <li>HH/HL/LH/LL label the swings. BOS is a break that continues the trend, CHoCH the first break against it.</li>
+        <li>Turn on premium/discount to see which half of the dealing range price is in.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section id="tab-markets" class="hidden">
+    <div class="row td-bar"><button class="btn ghost" id="btn-markets-refresh">Rescan now</button><span class="muted" id="markets-status"></span></div>
+    <div id="markets-out"></div>
   </section>
 
   <section id="tab-flow" class="hidden">
@@ -82,10 +102,10 @@
   </section>
 
   <section id="tab-journal" class="hidden">
-    <div class="row">
+    <div class="row td-bar">
       <button class="btn" id="btn-j-new">New entry</button>
       <button class="btn ghost" id="btn-j-prefill">From current setup</button>
-      <button class="btn ghost" id="btn-j-ask">Ask Mr. Cash about my journal</button>
+      <span class="td-tools" role="group" aria-label="More actions"><button class="td-tool" id="btn-j-ask">Ask Mr. Cash about my journal</button></span>
       <span class="muted" id="j-status"></span>
     </div>
     <div id="j-form" class="card hidden"></div>
@@ -221,21 +241,28 @@
   </section>
 
   <section id="tab-ask" class="hidden">
-    <div class="card">
-      <div id="ai-status" class="muted" style="margin-bottom:10px">…</div>
-      <div class="muted" style="font-size:12px;margin-bottom:6px">Pick a hat — same brain, different focus</div>
-      <div class="skills" id="skills"></div>
-      <div class="chips" id="chips"></div>
-      <div class="chat" id="chat"></div>
-      <div class="row" style="margin:12px 0 0">
-        <button class="mic" id="btn-mic" title="Hold a conversation: press, speak, release">🎙</button>
-        <input id="q" placeholder="Ask about today's setup, a level, the plan… or paste a chart screenshot" style="flex:1;min-width:180px">
-        <input type="file" id="pic" accept="image/*" class="hidden">
-        <button class="btn ghost" id="btn-pic">📷 Picture</button>
-        <button class="btn" id="btn-ask">Ask</button>
+    <div class="ask-shell">
+      <aside class="ask-side">
+        <div id="ai-status" class="ask-status">…</div>
+        <div class="td-label ask-side-label">Who answers</div>
+        <div class="skills" id="skills" role="radiogroup" aria-label="Who answers"></div>
+      </aside>
+      <div class="ask-main">
+        <div class="ask-convo">
+          <div class="ask-intro" id="ask-intro"></div>
+          <div class="chat" id="chat" aria-live="polite"></div>
+        </div>
+        <div class="chips ask-chips" id="chips"></div>
+        <div id="pic-preview" class="hidden ask-pic"></div>
+        <div class="ask-composer">
+          <button class="mic" id="btn-mic" title="Hold a conversation: press, speak, release" aria-label="Talk"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <input id="q" placeholder="Ask about today's setup, a level, the plan… or paste a chart screenshot" aria-label="Your question">
+          <input type="file" id="pic" accept="image/*" class="hidden">
+          <button class="ask-icon" id="btn-pic" title="Attach a chart screenshot" aria-label="Attach a chart screenshot"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg></button>
+          <button class="btn" id="btn-ask">Ask</button>
+        </div>
+        <p class="ask-foot">Attach or paste a chart screenshot and Mr. Cash breaks it down: what it sees, the levels, the gaps, an entry zone, stop and target with the reasoning, what would invalidate it, and what news to check. It says "I can't read this" rather than guess a price.</p>
       </div>
-      <div id="pic-preview" class="hidden" style="margin-top:10px"></div>
-      <div class="plain">Paste or attach a screenshot of any chart and Mr. Cash breaks it down: what it sees, the levels, the gaps, an entry zone / stop / target with the reasoning, what would invalidate it, and what news to check. It says "I can't read this" rather than guess a price.</div>
     </div>
   </section>
 </main>
@@ -246,7 +273,7 @@
   <div class="muted">A paper-trading partner that explains everything, prompts you when something matters, and learns as it trades. No real money, ever.</div>
   <div class="map">
     <div><b>Today</b> — the brief, the checklist, your plan, the paper account</div>
-    <div><b>Desk</b> — six agents on one surface, each saying what it can and cannot see</div>
+    <div><b>Home</b> — the brain: every model he runs, what each one sees, and what he decides</div>
     <div><b>Chart</b> — what he sees: sessions, levels, gaps, sweeps</div>
     <div><b>Flow</b> — where the big orders are</div>
     <div><b>News</b> — what could move price, and when he'll stand aside</div>
@@ -274,19 +301,20 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Desk','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
-const PRIMARY = ['desk','today','chart','journal','ask']
+const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Vault','🗄'],['memory','Memory','🧠']]
+const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'what price is doing right now, and planning your own trades', ['planner','flow','news','intel','tv']],
+  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','planner','flow','news','intel','tv']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
-  ['Learn', 'the school, the lab, what it remembers, and what it is observing now', ['school','research','knowledge','observer']],
+  ['You and learning', 'your journal, the school, the lab, and what it remembers', ['journal','school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
 ]
 const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
 
 // Line icons for the tabs: one 24-px grid, one stroke weight, drawn in the text colour.
 const TICON_PATHS = {
-  desk:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  markets:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.4 3.8 9s-1.3 6.6-3.8 9c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3z"/>',
+  desk:'<path d="M12 5.5A3 3 0 0 0 6.2 4.8 3 3 0 0 0 4 8.9a3.2 3.2 0 0 0 .7 5.6A3.3 3.3 0 0 0 8.5 19a3 3 0 0 0 3.5 1V5.5z"/><path d="M12 5.5a3 3 0 0 1 5.8-.7A3 3 0 0 1 20 8.9a3.2 3.2 0 0 1-.7 5.6 3.3 3.3 0 0 1-3.8 4.5 3 3 0 0 1-3.5 1"/><path d="M8 10.5c1.2 0 2 .8 2 2M16 10.5c-1.2 0-2 .8-2 2M12 12v3"/>',
   today:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   chart:'<path d="M7 3v4M7 17v4M17 3v6M17 15v6"/><rect x="5" y="7" width="4" height="10" rx="1"/><rect x="15" y="9" width="4" height="6" rx="1"/>',
   journal:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/>',
@@ -368,6 +396,7 @@ function showTab(id, push=true) {
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
   if (id === 'desk' && window.loadDesk) window.loadDesk()
+  if (id === 'markets' && window.loadMarkets) window.loadMarkets()
   if (id === 'evidence' && window.loadEvidence) window.loadEvidence()
   if (id === 'school' && window.loadSchool) window.loadSchool()
   if (id === 'research' && window.loadResearch) window.loadResearch()
@@ -460,7 +489,9 @@ async function loadConfig() {
   renderStop()
   const lb = $('lb-days'); if (lb) lb.textContent = cfg.replay.lookbackDays
   const ai = cfg.ai
-  $('ai-status').innerHTML = ai.available ? `Mr. Cash is ready to talk: <code>${esc(ai.model)}</code>. Each answer shows what it cost.` : `The assistant is off — ${esc(ai.reason)}<div class="warnbox">Typed questions still get a short rule-based answer where I can manage one.</div>`
+  $('ai-status').innerHTML = ai.available
+    ? `<span class="ask-dot on"></span><div><b>Assistant on</b><span><code>${esc(ai.model)}</code> · each answer shows what it cost</span></div>`
+    : `<span class="ask-dot"></span><div><b>Assistant off</b><span>${esc(ai.reason)}</span><span>Typed questions still get a short rule-based answer where I can manage one.</span></div>`
 }
 
 // ---------- kill switch ----------
@@ -500,14 +531,22 @@ function riskCard(r) {
 function decisionCard(d) {
   if (!d) return ''
   const cls = d.action === 'LONG' ? 'win' : d.action === 'SHORT' ? 'loss' : d.action.includes('WATCH') ? 'skip' : 'muted'
-  const bar = d.direction === 'long' ? 'g' : d.direction === 'short' ? 'r' : ''
-  return `<div class="card"><h2>Playbook decision <span class="muted" title="The strategy votes, weighted by regime, fused into one call. Drives paper trades only when config.fusion.driveTrading is on.">— the votes, combined</span></h2>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span class="decision ${cls}" style="font-size:22px;margin:0">${esc(d.action)}</span><span class="muted">agreement</span><div class="bar ${bar}" style="width:120px"><i style="width:${d.score}%"></i></div><b>${d.score}</b><span class="muted">/100 · regime ${esc(d.regime||'—')}</span></div>
-    <div class="muted" style="font-size:13px;margin-top:6px">${esc(d.reason)}</div>
-    ${d.confirms.length?`<div style="margin-top:8px"><b class="win" style="font-size:12px">FOR</b><ul style="margin:4px 0 0;padding-left:18px;color:var(--dim);font-size:13px">${d.confirms.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`:''}
-    ${d.invalidates.length?`<div style="margin-top:8px"><b class="loss" style="font-size:12px">AGAINST / MISSING</b><ul style="margin:4px 0 0;padding-left:18px;color:var(--dim);font-size:13px">${d.invalidates.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`:''}
-    <div class="scroll" style="margin-top:10px"><table><tr><th>Strategy</th><th>Vote</th><th>Conf</th><th>Weight</th></tr>${d.contributors.map(c=>`<tr><td>${esc(c.name)}</td><td class="${c.action==='BUY'?'win':c.action==='SELL'?'loss':'muted'}">${c.action}</td><td class="num">${c.action==='HOLD'?'—':c.confidence}</td><td class="num ${c.weight===0?'muted':''}">${c.weight.toFixed(2)}${c.weight===0?' (off)':''}</td></tr>`).join('')}</table></div>
-    <div class="muted" style="font-size:12px;margin-top:6px">Only the ICT session model opens paper trades today. Turn on <code>fusion.driveTrading</code> to let this fused call drive them (still through the risk check).</div>
+  const pct = (v) => Math.max(0, Math.min(100, Number(v) || 0))
+  const need = typeof d.enterScore === 'number' ? d.enterScore : null
+  const list = (items) => `<ul>${items.slice(0,4).map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`
+  const rows = d.contributors.map(c => {
+    const k = c.weight === 0 ? 'off' : c.action === 'BUY' ? 'buy' : c.action === 'SELL' ? 'sell' : 'hold'
+    const conf = c.action === 'HOLD' ? 0 : pct(c.confidence)
+    return `<div class="dk2-vote ${k}" title="${esc(c.name)}: ${c.action}${c.action==='HOLD'?'':` at confidence ${c.confidence}`}, regime weight ${c.weight.toFixed(2)}${c.weight===0?' (not allowed in this regime)':''}"><span class="n">${esc(c.name)}</span><span class="a">${c.action==='HOLD'?'hold':`${c.action.toLowerCase()} ${conf}`}</span><span class="bar"><i style="width:${conf}%"></i></span><span class="w">×${c.weight.toFixed(2)}</span></div>`
+  }).join('')
+  return `<div class="card td-playbook"><h2>Playbook decision <span class="muted" title="The strategy votes, weighted by regime, fused into one call. Drives paper trades only when config.fusion.driveTrading is on.">the votes, combined</span></h2>
+    <div class="td-pb-head"><span class="decision ${cls}">${esc(d.action)}</span>
+      <div class="td-pb-meter"><div class="dk2-meter" title="Agreement ${d.score} of 100${need!==null?`; acts at ${need}`:''}"><i style="width:${pct(d.score)}%"></i>${need!==null?`<b style="left:${pct(need)}%"></b>`:''}</div>
+      <div class="dk2-meter-cap"><span>agreement ${d.score}/100</span><span>${need!==null?`acts at ${need} · `:''}regime ${esc(d.regime||'—')}</span></div></div></div>
+    <p class="td-pb-reason">${esc(d.reason)}</p>
+    ${d.confirms.length || d.invalidates.length ? `<div class="td-pb-why">${d.confirms.length?`<div class="td-pb-col for"><b>For</b>${list(d.confirms)}</div>`:''}${d.invalidates.length?`<div class="td-pb-col against"><b>Against or missing</b>${list(d.invalidates)}</div>`:''}</div>` : ''}
+    <details class="td-fold"><summary>Every vote (${d.contributors.length})</summary><div class="dk2-vote-list">${rows}</div></details>
+    <div class="muted td-pb-note">Only the ICT session model opens paper trades today. Turn on <code>fusion.driveTrading</code> to let this fused call drive them (still through the risk check).</div>
   </div>`
 }
 function stateCard(s) {
@@ -549,20 +588,31 @@ function renderToday() {
   const a = data.analysis, s = data.signal, b = data.brief, plan = data.plan
   if (!a) { $('today-out').innerHTML = `<div class="card"><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div><div class="plain">You're on the simple crossover strategy. Set <code>strategy: 'ict'</code> in config.ts for sessions, sweeps and the daily plan.</div></div>`; return }
   const bias = a.bias.direction
+  const sessionLabel = a.session ? esc(cfg.ict.sessions[a.session].label) : 'Between sessions'
+  const windowNote = a.inKillzone ? '<span class="badge good">killzone open</span>' : a.nextKillzone ? `<span class="td-next">next window ${esc(a.nextKillzone.label)} in ${Math.round(a.nextKillzone.startsIn/60000)} min</span>` : ''
+  const openFolds = [...$('today-out').querySelectorAll('details')].map(x => x.open)
   $('today-out').innerHTML = `
-    <div class="card"><div class="kv">
-      <span class="k">Now</span><span>${esc(a.weekday)} ${esc(a.etClock)} ET · ${a.session ? esc(cfg.ict.sessions[a.session].label) : 'between sessions'} ${a.inKillzone ? '<span class="badge good">killzone open</span>' : a.nextKillzone ? `· next window ${esc(a.nextKillzone.label)} in ${Math.round(a.nextKillzone.startsIn/60000)} min` : ''}</span>
-      <span class="k">Price</span><span><b>${px(a.price)}</b> · one candle moves about ${px(a.atr)}</span>
-      <span class="k">Bias</span><span><b class="${bias==='bullish'?'win':bias==='bearish'?'loss':'muted'}">${bias.toUpperCase()}</b> — ${esc(a.bias.reason)}</span>
-    </div></div>
-    <div class="card"><h2>Decision right now</h2><div class="decision ${s.action}">${s.action}</div><div>${esc(s.reason)}</div>
-      ${s.plan ? `<div class="stats" style="margin-top:12px"><div class="stat"><div class="k">Entry</div><div class="v">${px(s.plan.entry)}</div></div><div class="stat"><div class="k">Stop</div><div class="v loss">${px(s.plan.stop)}</div></div><div class="stat"><div class="k">Target</div><div class="v win">${px(s.plan.takeProfit)}</div></div><div class="stat"><div class="k">Reward:risk</div><div class="v">${s.plan.rr.toFixed(1)}:1</div></div><div class="stat"><div class="k">Quality</div><div class="v">${s.quality}/100</div></div></div>` : ''}
-    </div>
+    <section class="td-hero">
+      <div class="td-now">
+        <div class="td-label">${esc(cfg.symbol)} · last price</div>
+        <div class="td-price">${px(a.price)}</div>
+        <div class="td-sub">One candle moves about ${px(a.atr)}</div>
+        <div class="td-clock"><span>${esc(a.weekday)} ${esc(a.etClock)} ET</span><span class="td-sess">${sessionLabel}</span>${windowNote}</div>
+        <div class="td-bias ${bias}"><span class="td-label">Bias</span><b>${esc(bias.charAt(0).toUpperCase() + bias.slice(1))}</b><p>${esc(a.bias.reason)}</p></div>
+      </div>
+      <div class="td-decide">
+        <div class="td-label">Decision right now</div>
+        <div class="decision ${s.action}">${s.action}</div>
+        <p class="td-reason">${esc(s.reason)}</p>
+        ${s.plan ? `<div class="td-plan"><div><span>Entry</span><b>${px(s.plan.entry)}</b></div><div><span>Stop</span><b class="loss">${px(s.plan.stop)}</b></div><div><span>Target</span><b class="win">${px(s.plan.takeProfit)}</b></div><div><span>Reward : risk</span><b>${s.plan.rr.toFixed(1)}:1</b></div><div><span>Quality</span><b>${s.quality}/100</b></div></div>` : '<p class="td-noplan">No plan, no trade: nothing has cleared the checklist.</p>'}
+      </div>
+    </section>
     ${decisionCard(data.decision)}
+    <div class="td-grid">
+    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>
+    ${stateCard(data.state)}
     ${riskCard(data.risk)}
     ${paperCard(data.paper)}
-    ${stateCard(data.state)}
-    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>
     ${flowCard(data.flow)}
     <div class="card"><h2>Today's plan</h2>
       ${plan ? `<div><span class="badge ${plan.allow==='none'?'high':'good'}">ARMED</span> &nbsp; <b>${esc(plan.allow.toUpperCase())}</b> · ${plan.riskPerTradePercent}% risk · max ${plan.maxTrades} trade(s)${plan.notes?` · <i>${esc(plan.notes)}</i>`:''}</div>` : `<div><span class="badge medium">PROPOSED</span> &nbsp; <b>${esc(b.proposal.allow.toUpperCase())}</b> · ${b.proposal.riskPerTradePercent}% risk · max ${b.proposal.maxTrades} trade(s)</div><div class="muted" style="margin-top:6px">${esc(b.proposal.proposal)}</div>`}
@@ -573,8 +623,10 @@ function renderToday() {
       <div class="row" style="margin:10px 0 0"><button class="btn ok" id="btn-arm">${plan?'Update plan':'Arm this plan'}</button>${plan?'<button class="btn ghost" id="btn-plan-clear">Clear plan</button>':''}</div>
       <div class="plain">The bot proposes, you decide, every scan obeys. Arming a plan places nothing — it narrows what Mr. Cash may do on paper today.</div>
     </div>
-    <div class="card"><h2>The brief</h2><pre class="brief">${esc(b.lines.join('\n'))}</pre></div>
+    </div>
+    <details class="card td-fold td-brief"><summary>Read the full brief</summary><pre class="brief">${esc(b.lines.join('\n'))}</pre></details>
     ${data.news && data.news.errors.length ? `<div class="warnbox">News feed problems: ${esc(data.news.errors.join(' | '))}</div>` : ''}`
+  $('today-out').querySelectorAll('details').forEach((x, k) => { if (openFolds[k]) x.open = true })
   document.querySelectorAll('[data-close]').forEach(btn => btn.onclick = async () => { if (!confirm('Close this paper position at the current price?')) return; setBusy(true); await call('/api/paper/close', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({id: btn.dataset.close})}); setBusy(false); loadToday(true) })
   $('plan-allow').value = plan ? plan.allow : b.proposal.allow
   $('btn-arm').onclick = async () => { setBusy(true); await call('/api/plan', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({allow:$('plan-allow').value, riskPerTradePercent:$('plan-risk').value, maxTrades:$('plan-max').value, notes:$('plan-notes').value})}); setBusy(false); loadToday(false) }
@@ -626,33 +678,33 @@ function shareCard() {
   const a = data.analysis, s = data.state, b = data.brief, W = 1080, H = 1350
   const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d')
   const F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif'
-  const T = (t, x, y, size, color='#e6edf3', weight='600') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; ctx.fillText(t, x, y) }
+  const T = (t, x, y, size, color='#EEF1FB', weight='600') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; ctx.fillText(t, x, y) }
   const wrap = (t, x, y, size, maxW, lh, color='#c9d1d9', weight='500') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; let line = '', yy = y; for (const w of String(t).split(' ')) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, yy); line = w; yy += lh } else line = test } if (line) ctx.fillText(line, x, yy); return yy + lh }
   ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H)
   ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, 150)
-  T('MR. CASH', 60, 78, 44, '#3fb950', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#8b98a5', '600')
-  T(`${a.weekday} ${a.etClock} ET`, W - 60 - ctx.measureText(`${a.weekday} ${a.etClock} ET`).width * 0.9, 78, 24, '#8b98a5')
+  T('MR. CASH', 60, 78, 44, '#4ADE9A', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#9AA3C2', '600')
+  T(`${a.weekday} ${a.etClock} ET`, W - 60 - ctx.measureText(`${a.weekday} ${a.etClock} ET`).width * 0.9, 78, 24, '#9AA3C2')
   let y = 215
-  T(cfg.symbol, 60, y, 48, '#e6edf3', '800'); T(px(a.price), 60 + ctx.measureText(cfg.symbol).width * 1.15 + 20, y, 48, '#e6edf3', '500')
+  T(cfg.symbol, 60, y, 48, '#EEF1FB', '800'); T(px(a.price), 60 + ctx.measureText(cfg.symbol).width * 1.15 + 20, y, 48, '#EEF1FB', '500')
   y += 70
-  if (s) { const col = s.trend === 'uptrend' ? '#3fb950' : s.trend === 'downtrend' ? '#f85149' : '#d29922'; T(s.trend.toUpperCase(), 60, y, 40, col, '800'); T(`strength ${s.strength}/100 · ${s.continuation.label}`, 60 + ctx.measureText(s.trend.toUpperCase()).width * 1.15 + 24, y, 26, '#8b98a5'); y += 44; y = wrap(s.evidence[0] || '', 60, y, 24, W - 120, 32) }
-  y += 10; T('BIAS', 60, y, 20, '#8b98a5', '700'); y += 34
-  T(a.bias.direction.toUpperCase(), 60, y, 34, a.bias.direction === 'bullish' ? '#3fb950' : a.bias.direction === 'bearish' ? '#f85149' : '#8b98a5', '800'); y += 40
+  if (s) { const col = s.trend === 'uptrend' ? '#4ADE9A' : s.trend === 'downtrend' ? '#FF6B7A' : '#FFC061'; T(s.trend.toUpperCase(), 60, y, 40, col, '800'); T(`strength ${s.strength}/100 · ${s.continuation.label}`, 60 + ctx.measureText(s.trend.toUpperCase()).width * 1.15 + 24, y, 26, '#9AA3C2'); y += 44; y = wrap(s.evidence[0] || '', 60, y, 24, W - 120, 32) }
+  y += 10; T('BIAS', 60, y, 20, '#9AA3C2', '700'); y += 34
+  T(a.bias.direction.toUpperCase(), 60, y, 34, a.bias.direction === 'bullish' ? '#4ADE9A' : a.bias.direction === 'bearish' ? '#FF6B7A' : '#9AA3C2', '800'); y += 40
   y = wrap(a.bias.reason, 60, y, 24, W - 120, 32); y += 10
-  T('THE RANGES', 60, y, 20, '#8b98a5', '700'); y += 36
+  T('THE RANGES', 60, y, 20, '#9AA3C2', '700'); y += 36
   const S = data.analysis && data.sessions ? null : null; void S
   const ranges = [['Asia', b.lines.find(l => l.trim().startsWith('Asia'))], ['London', b.lines.find(l => l.trim().startsWith('London'))], ['New York', b.lines.find(l => l.trim().startsWith('New York'))], ['Yesterday', b.lines.find(l => l.trim().startsWith('Yesterday'))]]
   for (const [, line] of ranges) if (line) { T(line.trim().replace(/\s+/g, ' '), 60, y, 24, '#c9d1d9', '500'); y += 34 }
-  y += 10; T('LEVELS', 60, y, 20, '#8b98a5', '700'); y += 36
-  for (const l of b.levels.slice(0, 7)) { T(`${l.label}`, 60, y, 24, '#e6edf3', '600'); T(px(l.price), 420, y, 24, '#e6edf3', '500'); T(l.status, 600, y, 22, /SWEPT|broken/.test(l.status) ? '#d29922' : '#8b98a5', '500'); y += 34 }
-  y += 10; T("TODAY'S PLAN", 60, y, 20, '#8b98a5', '700'); y += 36
+  y += 10; T('LEVELS', 60, y, 20, '#9AA3C2', '700'); y += 36
+  for (const l of b.levels.slice(0, 7)) { T(`${l.label}`, 60, y, 24, '#EEF1FB', '600'); T(px(l.price), 420, y, 24, '#EEF1FB', '500'); T(l.status, 600, y, 22, /SWEPT|broken/.test(l.status) ? '#FFC061' : '#9AA3C2', '500'); y += 34 }
+  y += 10; T("TODAY'S PLAN", 60, y, 20, '#9AA3C2', '700'); y += 36
   y = wrap(data.plan ? `${data.plan.allow.toUpperCase()} · ${data.plan.riskPerTradePercent}% risk · max ${data.plan.maxTrades} trades${data.plan.notes ? ' · ' + data.plan.notes : ''}` : b.proposal.proposal, 60, y, 24, W - 120, 32)
   ctx.fillStyle = '#161b22'; ctx.fillRect(0, H - 90, W, 90)
-  T('Paper trading · educational · not financial advice · the bot shows its losses too', 60, H - 38, 20, '#8b98a5', '500')
+  T('Paper trading · educational · not financial advice · the bot shows its losses too', 60, H - 38, 20, '#9AA3C2', '500')
   const url = c.toDataURL('image/png')
   const w = window.open('', '_blank')
   if (!w) { alert('Pop-up blocked — allow pop-ups for Mr. Cash to see the card.'); return }
-  w.document.write(`<title>Mr. Cash card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#3fb950;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
+  w.document.write(`<title>Mr. Cash card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#4ADE9A;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
 }
 $('btn-card').onclick = shareCard
 
@@ -676,7 +728,7 @@ function drawChart() {
   view = { x, y, lo, hi, n, padL, padT, plotW, plotH }
   if (showS) for (const s of data.sessions) {
     const i0 = idxAt(s.startTime), i1 = Math.min(n-1, idxAt(s.endTime)); if (i1 < 0 || i0 > n-1) continue
-    const col = s.name==='asia' ? '88,166,255' : s.name==='london' ? '255,166,0' : s.name==='newYork' ? '63,185,80' : '160,160,160'
+    const col = s.name==='asia' ? '88,166,255' : s.name==='london' ? '255,166,0' : s.name==='newYork' ? '74,222,154' : '160,160,160'
     ctx.fillStyle = `rgba(${col},0.10)`; ctx.fillRect(x(i0)-cw/2, y(s.high), x(i1)-x(i0)+cw, y(s.low)-y(s.high))
     ctx.strokeStyle = `rgba(${col},0.55)`; ctx.setLineDash([4,3]); ctx.lineWidth = 1
     ctx.beginPath(); ctx.moveTo(x(i0)-cw/2, y(s.high)); ctx.lineTo(W-padR, y(s.high)); ctx.moveTo(x(i0)-cw/2, y(s.low)); ctx.lineTo(W-padR, y(s.low)); ctx.stroke(); ctx.setLineDash([])
@@ -685,7 +737,7 @@ function drawChart() {
   if (showF) for (const f of data.fvgs) {
     const i0 = idxAt(f.createdTime); if (i0 > n-1) continue
     const iEnd = f.state === 'expired' ? Math.min(n-1, i0 + 60) : n-1, inv = f.state === 'inverted' || f.role
-    const col = inv ? '180,180,180' : f.direction === 'bullish' ? '63,185,80' : '248,81,73'
+    const col = inv ? '180,180,180' : f.direction === 'bullish' ? '74,222,154' : '255,107,122'
     ctx.fillStyle = `rgba(${col},${inv?0.22:0.10})`; ctx.fillRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top))
     if (inv) { ctx.strokeStyle = `rgba(${col},0.8)`; ctx.lineWidth = 1; ctx.strokeRect(x(i0)-cw/2, y(f.top), x(iEnd)-x(i0)+cw, y(f.bottom)-y(f.top)) }
   }
@@ -697,13 +749,13 @@ function drawChart() {
     const label = `${l.label} ${px(l.price)}${l.sweptAt ? ' · swept' : l.brokenAt ? ' · broken' : ''}`
     ctx.font = '11px sans-serif'; const tw = ctx.measureText(label).width
     ctx.fillStyle = 'rgba(11,15,20,0.85)'; ctx.fillRect(padL + 4, y(l.price) - 14, tw + 8, 13)
-    ctx.fillStyle = swept ? 'rgba(139,152,165,0.9)' : '#e6edf3'; ctx.fillText(label, padL + 8, y(l.price) - 4)
+    ctx.fillStyle = swept ? 'rgba(139,152,165,0.9)' : '#EEF1FB'; ctx.fillText(label, padL + 8, y(l.price) - 4)
   }
   // Order blocks (outlined boxes) and breakers (purple): the last candle against a forceful move, and what became of it
   if (showOb && data.orderBlocks) for (const ob of data.orderBlocks) {
     const i0 = idxAt(ob.time); if (i0 > n-1) continue
     const brk = ob.state === 'broken'
-    const col = brk ? '188,140,255' : ob.direction === 'bullish' ? '63,185,80' : '248,81,73'
+    const col = brk ? '188,140,255' : ob.direction === 'bullish' ? '74,222,154' : '255,107,122'
     const x0 = x(i0)-cw/2, w = W-padR-x0
     ctx.fillStyle = `rgba(${col},${brk?0.10:0.07})`; ctx.fillRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top))
     ctx.strokeStyle = `rgba(${col},${ob.state==='mitigated'?0.45:0.85})`; ctx.lineWidth = 1; ctx.setLineDash(brk ? [2,2] : [5,3]); ctx.strokeRect(x0, y(ob.top), w, y(ob.bottom)-y(ob.top)); ctx.setLineDash([])
@@ -713,15 +765,15 @@ function drawChart() {
   if (showR && data.dealingRange) {
     const d = data.dealingRange, x0 = x(Math.max(0, n - Math.round(n * 0.3)))
     const top = Math.min(hi, d.high), bot = Math.max(lo, d.low)
-    ctx.fillStyle = 'rgba(248,81,73,0.06)'; ctx.fillRect(x0, y(top), W-padR-x0, y(d.equilibrium)-y(top))
-    ctx.fillStyle = 'rgba(63,185,80,0.06)'; ctx.fillRect(x0, y(d.equilibrium), W-padR-x0, y(bot)-y(d.equilibrium))
+    ctx.fillStyle = 'rgba(255,107,122,0.06)'; ctx.fillRect(x0, y(top), W-padR-x0, y(d.equilibrium)-y(top))
+    ctx.fillStyle = 'rgba(74,222,154,0.06)'; ctx.fillRect(x0, y(d.equilibrium), W-padR-x0, y(bot)-y(d.equilibrium))
     ctx.strokeStyle = 'rgba(230,237,243,0.5)'; ctx.setLineDash([6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y(d.equilibrium)); ctx.lineTo(W-padR, y(d.equilibrium)); ctx.stroke(); ctx.setLineDash([])
-    ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(248,81,73,0.9)'; ctx.fillText('premium', x0 + 3, y(top) + 11); ctx.fillStyle = 'rgba(63,185,80,0.9)'; ctx.fillText('discount', x0 + 3, y(bot) - 4)
+    ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(255,107,122,0.9)'; ctx.fillText('premium', x0 + 3, y(top) + 11); ctx.fillStyle = 'rgba(74,222,154,0.9)'; ctx.fillText('discount', x0 + 3, y(bot) - 4)
     ctx.fillStyle = 'rgba(230,237,243,0.8)'; ctx.fillText(`EQ · price at ${Math.round(d.position)}% (${d.zone})`, x0 + 3, y(d.equilibrium) - 3)
   }
   for (let i = 0; i < n; i++) {
     const c = cs[i], up = c.close >= c.open
-    ctx.strokeStyle = ctx.fillStyle = up ? '#3fb950' : '#f85149'; ctx.lineWidth = 1
+    ctx.strokeStyle = ctx.fillStyle = up ? '#4ADE9A' : '#FF6B7A'; ctx.lineWidth = 1
     ctx.beginPath(); ctx.moveTo(x(i), y(c.high)); ctx.lineTo(x(i), y(c.low)); ctx.stroke()
     ctx.fillRect(x(i)-cw/2, y(Math.max(c.open,c.close)), cw, Math.max(1, Math.abs(y(c.open)-y(c.close))))
   }
@@ -740,7 +792,7 @@ function drawChart() {
       ctx.stroke(); ctx.setLineDash([])
     }
     line('vwapDayUpper', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1); line('vwapDayLower', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1)
-    line('vwapDay', 'dayAnchor', '#d29922', [], 1.5); line('vwapSession', 'sessionAnchor', 'rgba(88,166,255,0.9)', [5,3], 1.2)
+    line('vwapDay', 'dayAnchor', '#FFC061', [], 1.5); line('vwapSession', 'sessionAnchor', 'rgba(88,166,255,0.9)', [5,3], 1.2)
     const prof = data.features.latest && data.features.latest.profileDay && data.features.latest.profileDay.value
     if (prof) {
       const x0 = x(Math.max(0, n - Math.round(n * 0.22)))
@@ -753,14 +805,14 @@ function drawChart() {
   }
   for (const s of data.sweeps) {
     const i = idxAt(s.time); if (i > n-1) continue
-    ctx.fillStyle = '#d29922'; ctx.beginPath()
+    ctx.fillStyle = '#FFC061'; ctx.beginPath()
     if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) } else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
     ctx.closePath(); ctx.fill()
   }
   // Swing sweeps: hollow triangles, so they are told apart from raids on session levels (filled)
   if (showSt && data.swingSweeps) for (const s of data.swingSweeps) {
     const i = idxAt(s.time); if (i > n-1) continue
-    ctx.strokeStyle = '#d29922'; ctx.lineWidth = 1.2; ctx.beginPath()
+    ctx.strokeStyle = '#FFC061'; ctx.lineWidth = 1.2; ctx.beginPath()
     if (s.side === 'below') { ctx.moveTo(x(i), y(s.wick)+4); ctx.lineTo(x(i)-5, y(s.wick)+12); ctx.lineTo(x(i)+5, y(s.wick)+12) } else { ctx.moveTo(x(i), y(s.wick)-4); ctx.lineTo(x(i)-5, y(s.wick)-12); ctx.lineTo(x(i)+5, y(s.wick)-12) }
     ctx.closePath(); ctx.stroke()
   }
@@ -768,15 +820,30 @@ function drawChart() {
   if (showSt) {
     ctx.font = '9px sans-serif'; ctx.fillStyle = 'rgba(139,152,165,0.95)'
     if (data.swings) for (const s of data.swings) { const i = idxAt(s.time); if (i > n-1 || cs[i].openTime !== s.time) continue; ctx.fillText(s.label, x(i)-6, s.kind === 'high' ? y(s.price)-4 : y(s.price)+11) }
-    for (const s of data.shifts) { const i = idxAt(s.time); if (i > n-1) continue; ctx.fillStyle = s.direction === 'bullish' ? 'rgba(63,185,80,0.95)' : 'rgba(248,81,73,0.95)'; ctx.font = 'bold 10px sans-serif'; const lbl = s.kind || 'MSS'; ctx.fillText(lbl, x(i) - ctx.measureText(lbl).width/2, s.direction === 'bullish' ? y(cs[i].low)+22 : y(cs[i].high)-14) }
+    for (const s of data.shifts) { const i = idxAt(s.time); if (i > n-1) continue; ctx.fillStyle = s.direction === 'bullish' ? 'rgba(74,222,154,0.95)' : 'rgba(255,107,122,0.95)'; ctx.font = 'bold 10px sans-serif'; const lbl = s.kind || 'MSS'; ctx.fillText(lbl, x(i) - ctx.measureText(lbl).width/2, s.direction === 'bullish' ? y(cs[i].low)+22 : y(cs[i].high)-14) }
   }
   const sig = data.signal
-  if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#58a6ff','entry'],[sig.plan.stop,'#f85149','stop'],[sig.plan.takeProfit,'#3fb950','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,n-41)), y(p)-3) }
-  ctx.fillStyle = '#8b98a5'; ctx.font = '11px sans-serif'
-  for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+4, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
+  if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#8B93FF','entry'],[sig.plan.stop,'#FF6B7A','stop'],[sig.plan.takeProfit,'#4ADE9A','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,n-41)), y(p)-3) }
+  ctx.fillStyle = '#9AA3C2'; ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
+  for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+6, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
   const slots = Math.max(3, Math.floor((W - padL - padR) / 92)) // one time label per ~92px so they never overlap on a phone
   const every = Math.max(1, Math.round(n / slots)); for (let i = 0; i < n; i += every) ctx.fillText(cs[i].et + ' ET', x(i)-18, H-8)
-  $('chart-status').textContent = `${cs[0].day} → ${cs[n-1].day} (${n} candles)`
+  // The last close, tagged on the price axis like a trading terminal: green if the candle closed up, red if down.
+  const last = cs[n-1], up = last.close >= last.open, tagCol = up ? '#4ADE9A' : '#FF6B7A', ly = y(last.close)
+  ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore()
+  ctx.fillStyle = tagCol; ctx.fillRect(W-padR+1, ly-9, padR-2, 18)
+  ctx.fillStyle = '#05070b'; ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; ctx.fillText(px(last.close), W-padR+6, ly+4)
+  chartHead(cs)
+}
+// The strip above the chart: what is on it, the last close and the move across the candles shown.
+function chartHead(cs) {
+  const n = cs.length, first = cs[0], last = cs[n-1]
+  let wHi = -Infinity, wLo = Infinity; for (const c of cs) { wHi = Math.max(wHi, c.high); wLo = Math.min(wLo, c.low) }
+  const chg = first.open ? (last.close - first.open) / first.open * 100 : null
+  $('chart-head').innerHTML = `<div class="ch-sym"><b>${esc(cfg.symbol)}</b><span>${esc(cfg.interval)}</span></div>
+    <div class="ch-last"><b>${px(last.close)}</b>${chg === null ? '' : `<span class="${chg >= 0 ? 'win' : 'loss'}" title="From the first candle's open to the last close shown">${pct(chg)}</span>`}</div>
+    <div class="ch-kv"><span>High</span><b>${px(wHi)}</b></div><div class="ch-kv"><span>Low</span><b>${px(wLo)}</b></div>
+    <span class="ch-range" id="chart-status">${esc(first.day)} → ${esc(last.day)} · ${n} candles</span>`
 }
 function chartHover(clientX, clientY) {
   if (!view || !data) return
@@ -852,8 +919,8 @@ async function loadFlow(fresh) {
     const ctx = hc.getContext('2d'), dpr = window.devicePixelRatio||1, W = hc.clientWidth, H = hc.clientHeight
     hc.width = W*dpr; hc.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0)
     const h = f.history, n = h.length, maxD = Math.max(1, ...h.map(r=>Math.abs(r.deltaUsd)))
-    for (let i = 0; i < n; i++) { const r = h[i], xx = i/n*W, bw = Math.max(1, W/n-1); ctx.fillStyle = r.deltaUsd>=0 ? 'rgba(63,185,80,.5)' : 'rgba(248,81,73,.5)'; const bh = Math.abs(r.deltaUsd)/maxD*(H/2-4); ctx.fillRect(xx, r.deltaUsd>=0 ? H/2-bh : H/2, bw, bh) }
-    ctx.strokeStyle = '#3fb950'; ctx.lineWidth = 1.5; ctx.beginPath()
+    for (let i = 0; i < n; i++) { const r = h[i], xx = i/n*W, bw = Math.max(1, W/n-1); ctx.fillStyle = r.deltaUsd>=0 ? 'rgba(74,222,154,.5)' : 'rgba(255,107,122,.5)'; const bh = Math.abs(r.deltaUsd)/maxD*(H/2-4); ctx.fillRect(xx, r.deltaUsd>=0 ? H/2-bh : H/2, bw, bh) }
+    ctx.strokeStyle = '#4ADE9A'; ctx.lineWidth = 1.5; ctx.beginPath()
     h.forEach((r, i) => { const xx = (i+0.5)/n*W, yy = H - r.imbalance*H; i ? ctx.lineTo(xx,yy) : ctx.moveTo(xx,yy) }); ctx.stroke()
     ctx.strokeStyle = 'rgba(139,152,165,.4)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke()
   }
@@ -917,24 +984,37 @@ async function loadJournal() {
 }
 function renderJournal() {
   const { entries, stats: s, review: rv, goals } = journal
-  const sc = (v) => v === null || v === undefined ? '—' : v
   $('j-out').innerHTML = `
-    <div class="card"><div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center"><div><div class="streak">🔥 ${rv.streakDays}</div><div class="muted" style="font-size:12px">day streak</div></div><div style="flex:1"><b>${esc(rv.headline)}</b><div class="muted" style="font-size:13.5px;margin-top:4px">Today's prompt: <i>${esc(rv.prompt)}</i></div></div></div></div>
-    <div class="card"><h2>The one thing to fix</h2><div style="font-size:15px">${esc(rv.oneThing)}</div>${rv.insights.length?`<ul style="margin:10px 0 0;padding-left:18px;color:var(--dim);font-size:13.5px">${rv.insights.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}</div>
-    <div class="card"><h2>Scoreboard — process first, outcome second</h2><div class="stats">
-      <div class="stat"><div class="k">Process score</div><div class="v ${s.processScore>=90?'win':s.processScore!==null&&s.processScore<70?'loss':''}">${sc(s.processScore)}${s.processScore!==null?'%':''}</div></div>
-      <div class="stat"><div class="k">Avg execution</div><div class="v">${s.avgExecution!==null?s.avgExecution.toFixed(1)+'/5':'—'}</div></div>
-      <div class="stat"><div class="k">Entries</div><div class="v">${s.total}</div></div><div class="stat"><div class="k">Closed</div><div class="v">${s.closed}</div></div>
-      <div class="stat"><div class="k">Win rate</div><div class="v">${s.winRate!==null?Math.round(s.winRate*100)+'%':'—'}</div></div>
-      <div class="stat"><div class="k">Avg R</div><div class="v ${s.avgR>0?'win':s.avgR<0?'loss':''}">${s.avgR!==null?R(s.avgR):'—'}</div></div>
-      <div class="stat"><div class="k">Total R</div><div class="v ${s.totalR>0?'win':s.totalR<0?'loss':''}">${R(s.totalR)}</div></div>
-      <div class="stat"><div class="k">Days journaled (7d)</div><div class="v">${s.journaledDays7}</div></div></div>
+    <section class="td-hero jn-hero">
+      <div class="td-now jn-streak"><div class="td-label">Day streak</div>
+        <div class="jn-streak-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.5 3-1.6 4.6-3 6.4C7.7 11 7 12.4 7 14.2A5 5 0 0 0 12 19a5 5 0 0 0 5-4.8c0-2-1-3.6-2.2-4.9-.3 1.3-1 2.2-2 2.7.5-2.9-.2-5.7-.8-8z"/></svg><b>${rv.streakDays}</b></div>
+        <div class="td-sub">${rv.streakDays === 1 ? 'day' : 'days'} in a row with an entry</div>
+        <div class="jn-prompt"><span class="td-label">Today's prompt</span><p>${esc(rv.prompt)}</p></div></div>
+      <div class="td-decide"><p class="jn-headline">${esc(rv.headline)}</p>
+        <div class="jn-fix"><span class="td-label">The one thing to fix</span><p>${esc(rv.oneThing)}</p></div>
+        ${rv.insights.length ? `<ul class="jn-insights">${rv.insights.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : ''}</div>
+    </section>
+    <div class="td-grid jn-grid">
+    <div class="card jn-score"><h2>Scoreboard <span class="muted">process first, outcome second</span></h2><div class="dk2-stat-grid">
+      ${[['Process score', s.processScore!==null?s.processScore+'%':null, s.processScore>=90?'win':s.processScore!==null&&s.processScore<70?'loss':''],
+         ['Avg execution', s.avgExecution!==null?s.avgExecution.toFixed(1)+'/5':null, ''],
+         ['Entries', String(s.total), ''], ['Closed', String(s.closed), ''],
+         ['Win rate', s.winRate!==null?Math.round(s.winRate*100)+'%':null, ''],
+         ['Avg R', s.avgR!==null?R(s.avgR):null, s.avgR>0?'win':s.avgR<0?'loss':''],
+         ['Total R', s.closed?R(s.totalR):null, s.totalR>0?'win':s.totalR<0?'loss':''],
+         ['Days journaled (7d)', String(s.journaledDays7), '']].map(([k,v,c])=>`<div class="dk2-stat"><span class="k">${k}</span><b class="${v===null?'none':c}">${v===null?'—':v}</b></div>`).join('')}</div>
       ${s.closed>=3?`<div class="scroll" style="margin-top:12px"><table><tr><th>By emotion</th><th>n</th><th>avg R</th><th>By session</th><th>n</th><th>avg R</th></tr>${Array.from({length:Math.max(s.byEmotion.length,s.bySession.length)}).map((_,i)=>{const e=s.byEmotion[i],q=s.bySession[i];return `<tr><td>${e?esc(e.label):''}</td><td class="num">${e?e.n:''}</td><td class="num ${e&&e.avgR>0?'win':e&&e.avgR<0?'loss':''}">${e&&e.avgR!==null?R(e.avgR):''}</td><td>${q?esc(q.label):''}</td><td class="num">${q?q.n:''}</td><td class="num ${q&&q.avgR>0?'win':q&&q.avgR<0?'loss':''}">${q&&q.avgR!==null?R(q.avgR):''}</td></tr>`}).join('')}</table></div>
       <div class="muted" style="font-size:13px;margin-top:8px">Followed the plan: ${s.byPlan.followed.n} trades, avg ${s.byPlan.followed.avgR!==null?R(s.byPlan.followed.avgR):'—'} · Broke it: ${s.byPlan.broke.n} trades, avg ${s.byPlan.broke.avgR!==null?R(s.byPlan.broke.avgR):'—'}</div>`:''}
     </div>
-    <div class="card"><h2>Goals</h2>${rv.goals.map(g=>`<div class="goal"><span class="badge ${g.status==='done'?'good':g.status==='on track'?'medium':g.status==='manual'?'low':'high'}">${esc(g.status)}</span><span style="flex:2">${esc(g.title)}</span>${g.progress!==null&&g.progress!==undefined?`<span class="muted">${typeof g.progress==='number'?(g.metric==='avgExecution'?g.progress.toFixed(1):Math.round(g.progress)):g.progress}${g.metric==='processScore'?'%':''} / ${g.target}${g.metric==='processScore'?'%':''}</span>`:''}${g.kind==='manual'?`<input type="checkbox" data-goal="${esc(g.id)}" ${g.done?'checked':''}>`:''}<button class="chip" data-delgoal="${esc(g.id)}">✕</button></div>`).join('')}
+    <div class="card jn-goals"><h2>Goals</h2>${rv.goals.map(g=>{
+      // A goal with nothing to measure yet says so, instead of "behind".
+      const st = g.kind !== 'manual' && (g.progress === null || g.progress === undefined) ? 'no data yet' : g.status
+      const cls = st === 'done' ? 'good' : st === 'on track' ? 'brand' : st === 'behind' ? 'medium' : 'low'
+      const bar = typeof g.progress === 'number' && g.target > 0 && g.metric !== 'revengeCount7' ? Math.max(0, Math.min(100, g.progress / g.target * 100)) : null
+      return `<div class="goal"><span class="badge ${cls}">${esc(st)}</span><span class="jn-goal-t" style="flex:2">${esc(g.title)}${bar !== null ? `<span class="jn-goal-bar"><i style="width:${bar}%"></i></span>` : ''}</span>${g.progress!==null&&g.progress!==undefined?`<span class="muted">${typeof g.progress==='number'?(g.metric==='avgExecution'?g.progress.toFixed(1):Math.round(g.progress)):g.progress}${g.metric==='processScore'?'%':''} / ${g.target}${g.metric==='processScore'?'%':''}</span>`:''}${g.kind==='manual'?`<input type="checkbox" data-goal="${esc(g.id)}" ${g.done?'checked':''}>`:''}<button class="chip" data-delgoal="${esc(g.id)}">✕</button></div>`}).join('')}
       <div class="row" style="margin:10px 0 0"><input id="goal-title" placeholder="Add a goal of your own, e.g. 'No trades before the London killzone'" style="flex:1;min-width:200px"><button class="btn ghost" id="btn-goal">Add</button></div></div>
-    <div class="card"><h2>Entries — newest first</h2>${entries.length ? entries.map(e=>`<div class="entry"><div class="head"><b>${when(e.tradeTime)}</b><span class="badge ${e.outcome==='win'?'good':e.outcome==='loss'?'high':'low'}">${esc(e.outcome)}</span>${e.direction!=='none'?`<span>${esc(e.direction)}</span>`:''}${e.session?`<span class="muted">${esc(e.session)}</span>`:''}${e.rMultiple!==null?`<b class="${e.rMultiple>0?'win':'loss'}">${R(e.rMultiple)}</b>`:''}<span class="muted">exec ${'★'.repeat(e.execution)}${'☆'.repeat(5-e.execution)}</span>${e.followedPlan===false?'<span class="badge high">broke plan</span>':e.followedPlan===true?'<span class="badge good">plan ✓</span>':''}${e.emotions.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${e.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}<span class="spacer"></span><button class="chip" data-edit="${esc(e.id)}">edit</button><button class="chip" data-del="${esc(e.id)}">✕</button></div>${e.lesson?`<div class="body"><b>Lesson:</b> ${esc(e.lesson)}</div>`:''}${e.wentWell?`<div class="body">＋ ${esc(e.wentWell)}</div>`:''}${e.improve?`<div class="body">− ${esc(e.improve)}</div>`:''}${e.botSnapshot?`<div class="body muted">Mr. Cash at the time: ${esc(e.botSnapshot.decision)}${e.botSnapshot.firstFail?` (waiting on ${esc(e.botSnapshot.firstFail)})`:''} · bias ${esc(e.botSnapshot.bias)}${e.botSnapshot.state?` · ${esc(e.botSnapshot.state)}`:''}</div>`:''}</div>`).join('') : '<div class="muted">No entries yet. "From current setup" fills one in from what Mr. Cash sees right now — you add how you felt and what you did.</div>'}</div>`
+    </div>
+    <div class="card jn-entries"><h2>Entries <span class="muted">newest first</span></h2>${entries.length ? entries.map(e=>`<div class="entry"><div class="head"><b>${when(e.tradeTime)}</b><span class="badge ${e.outcome==='win'?'good':e.outcome==='loss'?'high':'low'}">${esc(e.outcome)}</span>${e.direction!=='none'?`<span>${esc(e.direction)}</span>`:''}${e.session?`<span class="muted">${esc(e.session)}</span>`:''}${e.rMultiple!==null?`<b class="${e.rMultiple>0?'win':'loss'}">${R(e.rMultiple)}</b>`:''}<span class="muted">exec ${'★'.repeat(e.execution)}${'☆'.repeat(5-e.execution)}</span>${e.followedPlan===false?'<span class="badge high">broke plan</span>':e.followedPlan===true?'<span class="badge good">plan ✓</span>':''}${e.emotions.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${e.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}<span class="spacer"></span><button class="chip" data-edit="${esc(e.id)}">edit</button><button class="chip" data-del="${esc(e.id)}">✕</button></div>${e.lesson?`<div class="body"><b>Lesson:</b> ${esc(e.lesson)}</div>`:''}${e.wentWell?`<div class="body">＋ ${esc(e.wentWell)}</div>`:''}${e.improve?`<div class="body">− ${esc(e.improve)}</div>`:''}${e.botSnapshot?`<div class="body muted">Mr. Cash at the time: ${esc(e.botSnapshot.decision)}${e.botSnapshot.firstFail?` (waiting on ${esc(e.botSnapshot.firstFail)})`:''} · bias ${esc(e.botSnapshot.bias)}${e.botSnapshot.state?` · ${esc(e.botSnapshot.state)}`:''}</div>`:''}</div>`).join('') : '<div class="muted">No entries yet. "From current setup" fills one in from what Mr. Cash sees right now — you add how you felt and what you did.</div>'}</div>`
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { editing = journal.entries.find(e => e.id === b.dataset.edit); openJournalForm(false) })
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('Delete this entry?')) return; await call('/api/journal/delete', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({id:b.dataset.del})}); loadJournal() })
   document.querySelectorAll('[data-goal]').forEach(c => c.onchange = () => saveGoalsFromUI(g => { if (g.id === c.dataset.goal) g.done = c.checked }))
@@ -1177,7 +1257,7 @@ async function loadMemory() {
     const pts = [{equity:p.startUsd}, ...p.curve], lo = Math.min(...pts.map(q=>q.equity)), hi = Math.max(...pts.map(q=>q.equity)), span = (hi-lo)||1
     const Y = (v) => H - ((v-lo)/span)*(H-10) - 5
     ctx.strokeStyle = 'rgba(139,152,165,.4)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(0,Y(p.startUsd)); ctx.lineTo(W,Y(p.startUsd)); ctx.stroke(); ctx.setLineDash([])
-    ctx.strokeStyle = p.equityUsd >= p.startUsd ? '#3fb950' : '#f85149'; ctx.lineWidth = 2; ctx.beginPath()
+    ctx.strokeStyle = p.equityUsd >= p.startUsd ? '#4ADE9A' : '#FF6B7A'; ctx.lineWidth = 2; ctx.beginPath()
     pts.forEach((q,i) => { const x = i/(pts.length-1)*W; i ? ctx.lineTo(x,Y(q.equity)) : ctx.moveTo(x,Y(q.equity)) }); ctx.stroke()
   }
 }
@@ -1192,10 +1272,27 @@ $('btn-doctor').onclick = async () => {
 // ---------- ask + picture ----------
 const CHIPS = ['Why is Mr. Cash holding right now?', 'Are we in an uptrend or a downtrend, and will it continue?', 'Where are the big orders sitting?', 'What is an inversion fair value gap?', 'Should I arm longs only today?', 'Which news today could hurt this plan?']
 let skill = (()=>{ try { return localStorage.getItem('mrcash-skill') || '' } catch { return '' } })()
+// Line icons for the hats, drawn like the tab icons (24 grid, 1.6 stroke).
+const HAT_ICONS = {
+  '':'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',
+  analyst:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5M8.5 12.5l2-2 1.5 1.5 2-2.5"/>',
+  risk:'<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/>',
+  coach:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  news:'<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5M8 17h3"/>',
+  execution:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  cio:'<path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  narrator:'<path d="M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6"/>',
+  researcher:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7.5 15h9"/>',
+  teacher:'<path d="m2 9 10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>',
+}
+const hatIcon = (id) => `<svg viewBox="0 0 24 24" aria-hidden="true">${HAT_ICONS[id] || HAT_ICONS['']}</svg>`
 function renderSkills() {
   if (!cfg) return
-  $('skills').innerHTML = `<button class="${!skill?'on':''}" data-skill=""><b>💬 Mr. Cash</b><span>plain, no hat</span></button>` + cfg.skills.map(s=>`<button class="${skill===s.id?'on':''}" data-skill="${esc(s.id)}"><b>${esc(s.icon)} ${esc(s.name)}</b><span>${esc(s.tagline)}</span></button>`).join('')
+  const hats = [{ id: '', name: 'Mr. Cash', tagline: 'plain, no hat' }, ...cfg.skills]
+  const cur = hats.find(h => h.id === skill) || hats[0]
+  $('skills').innerHTML = hats.map(h=>`<button class="${cur.id===h.id?'on':''}" data-skill="${esc(h.id)}" role="radio" aria-checked="${cur.id===h.id}">${hatIcon(h.id)}<span><b>${esc(h.name)}</b><span>${esc(h.tagline)}</span></span></button>`).join('')
   $('skills').querySelectorAll('button').forEach(b => b.onclick = () => { skill = b.dataset.skill; try { localStorage.setItem('mrcash-skill', skill) } catch {}; renderSkills() })
+  $('ask-intro').innerHTML = `<div class="ask-intro-ic">${hatIcon(cur.id)}</div><h2>${cur.id ? `Ask the ${esc(cur.name)}` : 'Ask Mr. Cash'}</h2><p>${esc(cur.tagline.charAt(0).toUpperCase() + cur.tagline.slice(1))}. Same brain, same data; the hat changes what it looks at first.</p>`
   const prompts = skill ? (cfg.skills.find(s=>s.id===skill)||{}).prompts || CHIPS : CHIPS
   $('chips').innerHTML = prompts.map(c=>`<button>${esc(c)}</button>`).join('')
   $('chips').querySelectorAll('button').forEach(b => b.onclick = () => { $('q').value = b.textContent; ask() })
@@ -1213,7 +1310,7 @@ function ruleAnswer(q) {
   if (/news/.test(s)) return data.news ? data.news.summary : 'News not available.'
   return null
 }
-function setPic(dataUrl) { pendingPic = dataUrl; $('pic-preview').classList.toggle('hidden', !dataUrl); $('pic-preview').innerHTML = dataUrl ? `<img src="${dataUrl}" style="max-height:160px;border-radius:8px;border:1px solid var(--line)"> <button class="chip" id="pic-x">remove</button>` : ''; const x = $('pic-x'); if (x) x.onclick = () => setPic(null) }
+function setPic(dataUrl) { pendingPic = dataUrl; $('pic-preview').classList.toggle('hidden', !dataUrl); $('pic-preview').innerHTML = dataUrl ? `<img src="${dataUrl}" alt="Attached chart screenshot"><button class="chip" id="pic-x">remove</button>` : ''; const x = $('pic-x'); if (x) x.onclick = () => setPic(null) }
 function fileToDataUrl(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file) }) }
 $('btn-pic').onclick = () => $('pic').click()
 $('pic').onchange = async () => { const f = $('pic').files[0]; if (f) setPic(await fileToDataUrl(f)); $('pic').value = '' }
@@ -1359,11 +1456,13 @@ $('tour-wrap').addEventListener('click', (e) => { if (e.target === $('tour-wrap'
 $('btn-ask').onclick = () => ask(); $('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask() })
 
 // ---------- boot ----------
-loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const saved = location.hash.slice(1) || (()=>{ try { return localStorage.getItem('mrcash-tab') } catch { return null } })(); if (saved && TABS.some(t=>t[0]===saved) && saved !== 'today') showTab(saved, false); let toured = false; try { toured = localStorage.getItem('mrcash-toured') === '1' } catch {}; if (!toured) openTour() })
+loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const saved = location.hash.slice(1) || (()=>{ try { return localStorage.getItem('mrcash-tab') } catch { return null } })(); const start = saved && TABS.some(t=>t[0]===saved) ? saved : 'desk'; if (start !== 'today') showTab(start, false); let toured = false; try { toured = localStorage.getItem('mrcash-toured') === '1' } catch {}; if (!toured) openTour() })
 </script>
 <script type="module" src="/js/replay.js"></script>
+<script type="module" src="/js/brain.js"></script>
 <script type="module" src="/js/desk.js"></script>
 <script type="module" src="/js/accounts.js"></script>
+<script type="module" src="/js/markets.js"></script>
 <script type="module" src="/js/planner.js"></script>
 <script type="module" src="/js/evidence.js"></script>
 <script type="module" src="/js/school.js"></script>

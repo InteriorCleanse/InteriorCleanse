@@ -282,3 +282,15 @@ test('the signal core is drawn from the payload only: no thresholds, fetches or 
   assert.match(js, /cancelAnimationFrame/, 'the animation must stop when the desk is not on screen')
   assert.equal(/Math\.random/.test(js), false, 'nothing on the desk may be invented: no random motion, no fake ticks')
 })
+
+test('the brain only draws: no fetches, no randomness, no order paths, and it names what is dressing', () => {
+  const js = readFileSync(join(ROOT, 'web', 'js', 'brain.js'), 'utf8')
+  assert.equal(/fetch\(|XMLHttpRequest|WebSocket|EventSource/.test(js), false, 'the brain draws what desk.js hands it and fetches nothing')
+  assert.equal(/Math\.random/.test(js), false, 'every position in the brain comes from a seeded generator, never Math.random')
+  assert.equal(/\/api\//.test(js), false, 'the brain must not reach any route, least of all an order path')
+  assert.equal(/setInterval|setTimeout|requestAnimationFrame/.test(js), false, 'the frame loop belongs to desk.js, which stops it off screen')
+  assert.match(js, /reduced/, 'the brain must draw a still frame under reduced motion')
+  assert.match(js, /DRESSING/, 'the brain must say which parts carry no data')
+  const desk = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
+  assert.match(desk, /MrBrain\.draw\(/, 'desk.js runs the brain from its own loop')
+})
