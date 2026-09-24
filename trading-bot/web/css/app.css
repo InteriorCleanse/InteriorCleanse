@@ -1185,3 +1185,85 @@ button:disabled { cursor:not-allowed; }
 .td-pb-col ul { margin:6px 0 0; padding-left:17px; font-size:13px; color:color-mix(in srgb, var(--text) 75%, var(--dim)); line-height:1.5; }
 .td-pb-note { font-size:12px; margin-top:12px; }
 @media (max-width:720px) { .td-pb-head { grid-template-columns:minmax(0,1fr); gap:10px; } .td-pb-why { grid-template-columns:minmax(0,1fr); } }
+
+/* ============================================================
+   CHART: layers as toggle keys, a quote strip above the plot,
+   the chart in a HUD frame, the reading guide folded away.
+   ============================================================ */
+.ch-bar { gap:10px; align-items:center; }
+.ch-count { display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--dim); }
+.ch-layers { display:inline-flex; flex-wrap:wrap; gap:2px; padding:3px; border-radius:12px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.02); }
+.ch-toggle { position:relative; display:inline-flex; cursor:pointer; }
+.ch-toggle input { position:absolute; opacity:0; width:1px; height:1px; margin:0; pointer-events:none; }
+.ch-toggle span { display:inline-flex; align-items:center; gap:7px; padding:7px 11px; border-radius:9px; font:500 13px var(--font-sans); color:var(--dim); white-space:nowrap;
+  transition:color var(--dur-quick) var(--ease), background-color var(--dur-quick) var(--ease), box-shadow var(--dur-quick) var(--ease); }
+.ch-toggle span::before { content:''; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.18); transition:background-color var(--dur-quick) var(--ease), box-shadow var(--dur-quick) var(--ease); }
+.ch-toggle:hover span { color:var(--text); background:rgba(255,255,255,.04); }
+.ch-toggle input:checked + span { color:var(--text); background:rgba(52,211,153,.09); box-shadow:inset 0 0 0 1px rgba(52,211,153,.28); }
+.ch-toggle input:checked + span::before { background:var(--brand); box-shadow:0 0 8px rgba(52,211,153,.7); }
+.ch-toggle input:focus-visible + span { outline:2px solid var(--brand); outline-offset:1px; }
+
+.ch-frame { position:relative; margin-bottom:14px; padding:14px 14px 12px; border-radius:18px; border:1px solid rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 24px 48px -32px rgba(0,0,0,.9);
+  background:radial-gradient(60% 90% at 0% 0%, rgba(52,211,153,.07), transparent 60%), linear-gradient(180deg, rgba(20,27,39,.86), rgba(12,17,26,.9)); }
+.ch-frame::after { content:''; position:absolute; inset:7px; pointer-events:none; opacity:.5;
+  background:
+    linear-gradient(var(--hud),var(--hud)) 0 0/14px 1px, linear-gradient(var(--hud),var(--hud)) 0 0/1px 14px,
+    linear-gradient(var(--hud),var(--hud)) 100% 0/14px 1px, linear-gradient(var(--hud),var(--hud)) 100% 0/1px 14px,
+    linear-gradient(var(--hud),var(--hud)) 0 100%/14px 1px, linear-gradient(var(--hud),var(--hud)) 0 100%/1px 14px,
+    linear-gradient(var(--hud),var(--hud)) 100% 100%/14px 1px, linear-gradient(var(--hud),var(--hud)) 100% 100%/1px 14px;
+  background-repeat:no-repeat; }
+.ch-frame canvas.chart { background:#070a10; border-color:rgba(255,255,255,.06); border-radius:12px; }
+.ch-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px; padding:4px 6px 12px; min-height:40px; }
+.ch-sym { display:flex; align-items:center; gap:8px; }
+.ch-sym b { font:600 15px var(--font-sans); letter-spacing:-.01em; }
+.ch-sym span { padding:2px 7px; border-radius:6px; border:1px solid rgba(255,255,255,.1); font:500 11px var(--font-mono); color:var(--dim); }
+.ch-last { display:flex; align-items:baseline; gap:9px; }
+.ch-last b { font:700 22px var(--font-sans); letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.ch-last span { font:600 12.5px var(--font-mono); font-variant-numeric:tabular-nums; }
+.ch-kv { display:flex; align-items:baseline; gap:6px; }
+.ch-kv span { font-size:11.5px; color:var(--dim); }
+.ch-kv b { font:600 13px var(--font-mono); font-variant-numeric:tabular-nums; }
+.ch-range { margin-left:auto; font:500 11.5px var(--font-mono); color:var(--dim); }
+.ch-frame .legend { margin:10px 4px 0; gap:6px 14px; }
+
+.ch-help { margin-bottom:14px; border-radius:12px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.02); }
+.ch-help summary { padding:11px 14px; font:500 13px var(--font-sans); color:var(--dim); list-style:none; display:flex; align-items:center; gap:8px; }
+.ch-help summary::-webkit-details-marker { display:none; }
+.ch-help summary::before { content:''; width:7px; height:7px; border-right:1.6px solid currentColor; border-bottom:1.6px solid currentColor; transform:rotate(-45deg); transition:transform var(--dur-quick) var(--ease); }
+.ch-help[open] summary::before { transform:rotate(45deg); }
+.ch-help summary:hover { color:var(--text); }
+.ch-help ul { margin:0; padding:0 18px 14px 36px; font-size:13.5px; line-height:1.55; color:color-mix(in srgb, var(--text) 78%, var(--dim)); max-width:80ch; }
+.ch-help li + li { margin-top:5px; }
+
+@media (max-width:720px) {
+  .ch-layers { flex-wrap:nowrap; width:100%; overflow-x:auto; scrollbar-width:none; }
+  .ch-layers::-webkit-scrollbar { display:none; }
+  .ch-frame { padding:10px 8px 10px; border-radius:14px; }
+  .ch-head { gap:6px 14px; padding:2px 4px 10px; }
+  .ch-last b { font-size:20px; }
+  .ch-range { margin-left:0; width:100%; }
+  .ch-frame canvas.chart { height:420px; }
+}
+
+/* ============================================================
+   JOURNAL: the streak and the one thing to fix as a hero; score
+   and goals side by side; amber, not red, for a goal that is
+   behind (red stays for losses).
+   ============================================================ */
+@media (min-width:981px) { .jn-hero { grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); } }
+.jn-streak-n { display:flex; align-items:center; gap:8px; margin:6px 0 2px; }
+.jn-streak-n svg { width:30px; height:30px; fill:none; stroke:var(--amber); stroke-width:1.6; stroke-linejoin:round; filter:drop-shadow(0 0 10px rgba(210,153,34,.35)); }
+.jn-streak-n b { font:700 44px/1.05 var(--font-sans); letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+.jn-prompt { margin-top:18px; padding:12px 14px; border-radius:12px; background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.07); border-left:2px solid var(--brand); }
+.jn-prompt p { margin:5px 0 0; font-size:14px; line-height:1.5; font-style:italic; color:color-mix(in srgb, var(--text) 85%, var(--dim)); }
+.jn-headline { margin:0 0 18px; font:600 17px/1.45 var(--font-sans); letter-spacing:-.01em; max-width:58ch; text-wrap:pretty; }
+.jn-fix p { margin:5px 0 0; font-size:15px; line-height:1.5; max-width:60ch; }
+.jn-insights { margin:12px 0 0; padding-left:18px; font-size:13px; line-height:1.5; color:var(--dim); }
+.jn-score .dk2-stat .k { white-space:normal; }
+.jn-goal-t { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.jn-goal-bar { display:block; height:3px; border-radius:3px; background:rgba(255,255,255,.07); overflow:hidden; }
+.jn-goal-bar i { display:block; height:100%; border-radius:inherit; background:var(--brand); }
+.jn-goals .goal:last-of-type { border-bottom:0; }
+.badge.brand { background:rgba(52,211,153,.12); color:var(--brand); }
+.jn-entries .entry:last-child { border-bottom:0; }

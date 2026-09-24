@@ -55,22 +55,35 @@
   </section>
 
   <section id="tab-chart" class="hidden">
-    <div class="row">
-      <label class="muted">Show <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select> candles</label>
-      <label class="muted"><input type="checkbox" id="show-fvg" checked> gaps</label>
-      <label class="muted"><input type="checkbox" id="show-sessions" checked> sessions</label>
-      <label class="muted"><input type="checkbox" id="show-levels" checked> levels</label>
-      <label class="muted" title="Volume-weighted average price since the day started (solid) and since the session started (dotted), with the day's value area on the right"><input type="checkbox" id="show-vwap" checked> VWAP &amp; volume</label>
-      <label class="muted" title="Swing labels (HH, HL, LH, LL) and structure breaks: BOS continues the trend, CHoCH is the first break against it"><input type="checkbox" id="show-structure" checked> structure</label>
-      <label class="muted" title="Order blocks: the last candle against a forceful move. A broken one becomes a breaker and flips its role"><input type="checkbox" id="show-ob" checked> order blocks</label>
-      <label class="muted" title="The dealing range between the last swing high and low: premium above the middle, discount below"><input type="checkbox" id="show-range"> premium/discount</label>
-      <span class="muted" id="chart-status"></span>
+    <div class="row ch-bar">
+      <label class="ch-count">Candles <select id="candle-count"><option>150</option><option selected>300</option><option>600</option><option>1000</option></select></label>
+      <div class="ch-layers" role="group" aria-label="Chart layers">
+        <label class="ch-toggle"><input type="checkbox" id="show-fvg" checked><span>Gaps</span></label>
+        <label class="ch-toggle"><input type="checkbox" id="show-sessions" checked><span>Sessions</span></label>
+        <label class="ch-toggle"><input type="checkbox" id="show-levels" checked><span>Levels</span></label>
+        <label class="ch-toggle" title="Volume-weighted average price since the day started (solid) and since the session started (dotted), with the day's value area on the right"><input type="checkbox" id="show-vwap" checked><span>VWAP &amp; volume</span></label>
+        <label class="ch-toggle" title="Swing labels (HH, HL, LH, LL) and structure breaks: BOS continues the trend, CHoCH is the first break against it"><input type="checkbox" id="show-structure" checked><span>Structure</span></label>
+        <label class="ch-toggle" title="Order blocks: the last candle against a forceful move. A broken one becomes a breaker and flips its role"><input type="checkbox" id="show-ob" checked><span>Order blocks</span></label>
+        <label class="ch-toggle" title="The dealing range between the last swing high and low: premium above the middle, discount below"><input type="checkbox" id="show-range"><span>Premium/discount</span></label>
+      </div>
     </div>
-    <div class="card" style="padding:8px">
+    <div class="ch-frame">
+      <div class="ch-head" id="chart-head"><span class="muted" id="chart-status"></span></div>
       <canvas id="chart" class="chart"></canvas>
       <div class="legend"><span class="lg-asia">Asia</span><span class="lg-london">London</span><span class="lg-ny">New York</span><span class="lg-fvgb">bullish gap</span><span class="lg-fvgs">bearish gap</span><span class="lg-ifvg">inverted gap</span><span class="lg-sweep">sweep</span><span class="lg-ob">order block</span><span class="lg-brk">breaker</span><span class="lg-vwap">VWAP</span></div>
     </div>
-    <div class="plain">Hover (or touch) for prices and New York time — and for what any box or label means. Session boxes span each session's high and low. A gap turns grey when price closes through it — that's an inversion, and the retest of a grey box is the entry Mr. Cash waits for. Filled triangles mark raids on session levels; hollow ones mark raids on swing points. Dashed boxes are order blocks (the last candle against a forceful move); a purple one has been broken and flipped into a breaker. HH/HL/LH/LL label the swings; BOS is a break that continues the trend, CHoCH the first break against it. Turn on premium/discount to see which half of the dealing range price is in.</div>
+    <details class="ch-help">
+      <summary>How to read this chart</summary>
+      <ul>
+        <li>Hover (or touch) for prices and New York time, and for what any box or label means.</li>
+        <li>Session boxes span each session's high and low.</li>
+        <li>A gap turns grey when price closes through it. That's an inversion, and the retest of a grey box is the entry Mr. Cash waits for.</li>
+        <li>Filled triangles mark raids on session levels; hollow ones mark raids on swing points.</li>
+        <li>Dashed boxes are order blocks (the last candle against a forceful move); a purple one has been broken and flipped into a breaker.</li>
+        <li>HH/HL/LH/LL label the swings. BOS is a break that continues the trend, CHoCH the first break against it.</li>
+        <li>Turn on premium/discount to see which half of the dealing range price is in.</li>
+      </ul>
+    </details>
   </section>
 
   <section id="tab-flow" class="hidden">
@@ -84,10 +97,10 @@
   </section>
 
   <section id="tab-journal" class="hidden">
-    <div class="row">
+    <div class="row td-bar">
       <button class="btn" id="btn-j-new">New entry</button>
       <button class="btn ghost" id="btn-j-prefill">From current setup</button>
-      <button class="btn ghost" id="btn-j-ask">Ask Mr. Cash about my journal</button>
+      <span class="td-tools" role="group" aria-label="More actions"><button class="td-tool" id="btn-j-ask">Ask Mr. Cash about my journal</button></span>
       <span class="muted" id="j-status"></span>
     </div>
     <div id="j-form" class="card hidden"></div>
@@ -793,11 +806,26 @@ function drawChart() {
   }
   const sig = data.signal
   if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#58a6ff','entry'],[sig.plan.stop,'#f85149','stop'],[sig.plan.takeProfit,'#3fb950','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.fillStyle = col; ctx.font = 'bold 11px sans-serif'; ctx.fillText(label, x(Math.max(0,n-41)), y(p)-3) }
-  ctx.fillStyle = '#8b98a5'; ctx.font = '11px sans-serif'
-  for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+4, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
+  ctx.fillStyle = '#8b98a5'; ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
+  for (let k = 0; k <= 6; k++) { const p = lo + (hi-lo)*k/6; ctx.fillText(px(p), W-padR+6, y(p)+4); ctx.strokeStyle='rgba(38,48,61,0.6)'; ctx.beginPath(); ctx.moveTo(padL,y(p)); ctx.lineTo(W-padR,y(p)); ctx.stroke() }
   const slots = Math.max(3, Math.floor((W - padL - padR) / 92)) // one time label per ~92px so they never overlap on a phone
   const every = Math.max(1, Math.round(n / slots)); for (let i = 0; i < n; i += every) ctx.fillText(cs[i].et + ' ET', x(i)-18, H-8)
-  $('chart-status').textContent = `${cs[0].day} → ${cs[n-1].day} (${n} candles)`
+  // The last close, tagged on the price axis like a trading terminal: green if the candle closed up, red if down.
+  const last = cs[n-1], up = last.close >= last.open, tagCol = up ? '#3fb950' : '#f85149', ly = y(last.close)
+  ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore()
+  ctx.fillStyle = tagCol; ctx.fillRect(W-padR+1, ly-9, padR-2, 18)
+  ctx.fillStyle = '#05070b'; ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; ctx.fillText(px(last.close), W-padR+6, ly+4)
+  chartHead(cs)
+}
+// The strip above the chart: what is on it, the last close and the move across the candles shown.
+function chartHead(cs) {
+  const n = cs.length, first = cs[0], last = cs[n-1]
+  let wHi = -Infinity, wLo = Infinity; for (const c of cs) { wHi = Math.max(wHi, c.high); wLo = Math.min(wLo, c.low) }
+  const chg = first.open ? (last.close - first.open) / first.open * 100 : null
+  $('chart-head').innerHTML = `<div class="ch-sym"><b>${esc(cfg.symbol)}</b><span>${esc(cfg.interval)}</span></div>
+    <div class="ch-last"><b>${px(last.close)}</b>${chg === null ? '' : `<span class="${chg >= 0 ? 'win' : 'loss'}" title="From the first candle's open to the last close shown">${pct(chg)}</span>`}</div>
+    <div class="ch-kv"><span>High</span><b>${px(wHi)}</b></div><div class="ch-kv"><span>Low</span><b>${px(wLo)}</b></div>
+    <span class="ch-range" id="chart-status">${esc(first.day)} → ${esc(last.day)} · ${n} candles</span>`
 }
 function chartHover(clientX, clientY) {
   if (!view || !data) return
@@ -938,24 +966,37 @@ async function loadJournal() {
 }
 function renderJournal() {
   const { entries, stats: s, review: rv, goals } = journal
-  const sc = (v) => v === null || v === undefined ? '—' : v
   $('j-out').innerHTML = `
-    <div class="card"><div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center"><div><div class="streak">🔥 ${rv.streakDays}</div><div class="muted" style="font-size:12px">day streak</div></div><div style="flex:1"><b>${esc(rv.headline)}</b><div class="muted" style="font-size:13.5px;margin-top:4px">Today's prompt: <i>${esc(rv.prompt)}</i></div></div></div></div>
-    <div class="card"><h2>The one thing to fix</h2><div style="font-size:15px">${esc(rv.oneThing)}</div>${rv.insights.length?`<ul style="margin:10px 0 0;padding-left:18px;color:var(--dim);font-size:13.5px">${rv.insights.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}</div>
-    <div class="card"><h2>Scoreboard — process first, outcome second</h2><div class="stats">
-      <div class="stat"><div class="k">Process score</div><div class="v ${s.processScore>=90?'win':s.processScore!==null&&s.processScore<70?'loss':''}">${sc(s.processScore)}${s.processScore!==null?'%':''}</div></div>
-      <div class="stat"><div class="k">Avg execution</div><div class="v">${s.avgExecution!==null?s.avgExecution.toFixed(1)+'/5':'—'}</div></div>
-      <div class="stat"><div class="k">Entries</div><div class="v">${s.total}</div></div><div class="stat"><div class="k">Closed</div><div class="v">${s.closed}</div></div>
-      <div class="stat"><div class="k">Win rate</div><div class="v">${s.winRate!==null?Math.round(s.winRate*100)+'%':'—'}</div></div>
-      <div class="stat"><div class="k">Avg R</div><div class="v ${s.avgR>0?'win':s.avgR<0?'loss':''}">${s.avgR!==null?R(s.avgR):'—'}</div></div>
-      <div class="stat"><div class="k">Total R</div><div class="v ${s.totalR>0?'win':s.totalR<0?'loss':''}">${R(s.totalR)}</div></div>
-      <div class="stat"><div class="k">Days journaled (7d)</div><div class="v">${s.journaledDays7}</div></div></div>
+    <section class="td-hero jn-hero">
+      <div class="td-now jn-streak"><div class="td-label">Day streak</div>
+        <div class="jn-streak-n"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.5 3-1.6 4.6-3 6.4C7.7 11 7 12.4 7 14.2A5 5 0 0 0 12 19a5 5 0 0 0 5-4.8c0-2-1-3.6-2.2-4.9-.3 1.3-1 2.2-2 2.7.5-2.9-.2-5.7-.8-8z"/></svg><b>${rv.streakDays}</b></div>
+        <div class="td-sub">${rv.streakDays === 1 ? 'day' : 'days'} in a row with an entry</div>
+        <div class="jn-prompt"><span class="td-label">Today's prompt</span><p>${esc(rv.prompt)}</p></div></div>
+      <div class="td-decide"><p class="jn-headline">${esc(rv.headline)}</p>
+        <div class="jn-fix"><span class="td-label">The one thing to fix</span><p>${esc(rv.oneThing)}</p></div>
+        ${rv.insights.length ? `<ul class="jn-insights">${rv.insights.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : ''}</div>
+    </section>
+    <div class="td-grid jn-grid">
+    <div class="card jn-score"><h2>Scoreboard <span class="muted">process first, outcome second</span></h2><div class="dk2-stat-grid">
+      ${[['Process score', s.processScore!==null?s.processScore+'%':null, s.processScore>=90?'win':s.processScore!==null&&s.processScore<70?'loss':''],
+         ['Avg execution', s.avgExecution!==null?s.avgExecution.toFixed(1)+'/5':null, ''],
+         ['Entries', String(s.total), ''], ['Closed', String(s.closed), ''],
+         ['Win rate', s.winRate!==null?Math.round(s.winRate*100)+'%':null, ''],
+         ['Avg R', s.avgR!==null?R(s.avgR):null, s.avgR>0?'win':s.avgR<0?'loss':''],
+         ['Total R', s.closed?R(s.totalR):null, s.totalR>0?'win':s.totalR<0?'loss':''],
+         ['Days journaled (7d)', String(s.journaledDays7), '']].map(([k,v,c])=>`<div class="dk2-stat"><span class="k">${k}</span><b class="${v===null?'none':c}">${v===null?'—':v}</b></div>`).join('')}</div>
       ${s.closed>=3?`<div class="scroll" style="margin-top:12px"><table><tr><th>By emotion</th><th>n</th><th>avg R</th><th>By session</th><th>n</th><th>avg R</th></tr>${Array.from({length:Math.max(s.byEmotion.length,s.bySession.length)}).map((_,i)=>{const e=s.byEmotion[i],q=s.bySession[i];return `<tr><td>${e?esc(e.label):''}</td><td class="num">${e?e.n:''}</td><td class="num ${e&&e.avgR>0?'win':e&&e.avgR<0?'loss':''}">${e&&e.avgR!==null?R(e.avgR):''}</td><td>${q?esc(q.label):''}</td><td class="num">${q?q.n:''}</td><td class="num ${q&&q.avgR>0?'win':q&&q.avgR<0?'loss':''}">${q&&q.avgR!==null?R(q.avgR):''}</td></tr>`}).join('')}</table></div>
       <div class="muted" style="font-size:13px;margin-top:8px">Followed the plan: ${s.byPlan.followed.n} trades, avg ${s.byPlan.followed.avgR!==null?R(s.byPlan.followed.avgR):'—'} · Broke it: ${s.byPlan.broke.n} trades, avg ${s.byPlan.broke.avgR!==null?R(s.byPlan.broke.avgR):'—'}</div>`:''}
     </div>
-    <div class="card"><h2>Goals</h2>${rv.goals.map(g=>`<div class="goal"><span class="badge ${g.status==='done'?'good':g.status==='on track'?'medium':g.status==='manual'?'low':'high'}">${esc(g.status)}</span><span style="flex:2">${esc(g.title)}</span>${g.progress!==null&&g.progress!==undefined?`<span class="muted">${typeof g.progress==='number'?(g.metric==='avgExecution'?g.progress.toFixed(1):Math.round(g.progress)):g.progress}${g.metric==='processScore'?'%':''} / ${g.target}${g.metric==='processScore'?'%':''}</span>`:''}${g.kind==='manual'?`<input type="checkbox" data-goal="${esc(g.id)}" ${g.done?'checked':''}>`:''}<button class="chip" data-delgoal="${esc(g.id)}">✕</button></div>`).join('')}
+    <div class="card jn-goals"><h2>Goals</h2>${rv.goals.map(g=>{
+      // A goal with nothing to measure yet says so, instead of "behind".
+      const st = g.kind !== 'manual' && (g.progress === null || g.progress === undefined) ? 'no data yet' : g.status
+      const cls = st === 'done' ? 'good' : st === 'on track' ? 'brand' : st === 'behind' ? 'medium' : 'low'
+      const bar = typeof g.progress === 'number' && g.target > 0 && g.metric !== 'revengeCount7' ? Math.max(0, Math.min(100, g.progress / g.target * 100)) : null
+      return `<div class="goal"><span class="badge ${cls}">${esc(st)}</span><span class="jn-goal-t" style="flex:2">${esc(g.title)}${bar !== null ? `<span class="jn-goal-bar"><i style="width:${bar}%"></i></span>` : ''}</span>${g.progress!==null&&g.progress!==undefined?`<span class="muted">${typeof g.progress==='number'?(g.metric==='avgExecution'?g.progress.toFixed(1):Math.round(g.progress)):g.progress}${g.metric==='processScore'?'%':''} / ${g.target}${g.metric==='processScore'?'%':''}</span>`:''}${g.kind==='manual'?`<input type="checkbox" data-goal="${esc(g.id)}" ${g.done?'checked':''}>`:''}<button class="chip" data-delgoal="${esc(g.id)}">✕</button></div>`}).join('')}
       <div class="row" style="margin:10px 0 0"><input id="goal-title" placeholder="Add a goal of your own, e.g. 'No trades before the London killzone'" style="flex:1;min-width:200px"><button class="btn ghost" id="btn-goal">Add</button></div></div>
-    <div class="card"><h2>Entries — newest first</h2>${entries.length ? entries.map(e=>`<div class="entry"><div class="head"><b>${when(e.tradeTime)}</b><span class="badge ${e.outcome==='win'?'good':e.outcome==='loss'?'high':'low'}">${esc(e.outcome)}</span>${e.direction!=='none'?`<span>${esc(e.direction)}</span>`:''}${e.session?`<span class="muted">${esc(e.session)}</span>`:''}${e.rMultiple!==null?`<b class="${e.rMultiple>0?'win':'loss'}">${R(e.rMultiple)}</b>`:''}<span class="muted">exec ${'★'.repeat(e.execution)}${'☆'.repeat(5-e.execution)}</span>${e.followedPlan===false?'<span class="badge high">broke plan</span>':e.followedPlan===true?'<span class="badge good">plan ✓</span>':''}${e.emotions.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${e.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}<span class="spacer"></span><button class="chip" data-edit="${esc(e.id)}">edit</button><button class="chip" data-del="${esc(e.id)}">✕</button></div>${e.lesson?`<div class="body"><b>Lesson:</b> ${esc(e.lesson)}</div>`:''}${e.wentWell?`<div class="body">＋ ${esc(e.wentWell)}</div>`:''}${e.improve?`<div class="body">− ${esc(e.improve)}</div>`:''}${e.botSnapshot?`<div class="body muted">Mr. Cash at the time: ${esc(e.botSnapshot.decision)}${e.botSnapshot.firstFail?` (waiting on ${esc(e.botSnapshot.firstFail)})`:''} · bias ${esc(e.botSnapshot.bias)}${e.botSnapshot.state?` · ${esc(e.botSnapshot.state)}`:''}</div>`:''}</div>`).join('') : '<div class="muted">No entries yet. "From current setup" fills one in from what Mr. Cash sees right now — you add how you felt and what you did.</div>'}</div>`
+    </div>
+    <div class="card jn-entries"><h2>Entries <span class="muted">newest first</span></h2>${entries.length ? entries.map(e=>`<div class="entry"><div class="head"><b>${when(e.tradeTime)}</b><span class="badge ${e.outcome==='win'?'good':e.outcome==='loss'?'high':'low'}">${esc(e.outcome)}</span>${e.direction!=='none'?`<span>${esc(e.direction)}</span>`:''}${e.session?`<span class="muted">${esc(e.session)}</span>`:''}${e.rMultiple!==null?`<b class="${e.rMultiple>0?'win':'loss'}">${R(e.rMultiple)}</b>`:''}<span class="muted">exec ${'★'.repeat(e.execution)}${'☆'.repeat(5-e.execution)}</span>${e.followedPlan===false?'<span class="badge high">broke plan</span>':e.followedPlan===true?'<span class="badge good">plan ✓</span>':''}${e.emotions.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${e.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}<span class="spacer"></span><button class="chip" data-edit="${esc(e.id)}">edit</button><button class="chip" data-del="${esc(e.id)}">✕</button></div>${e.lesson?`<div class="body"><b>Lesson:</b> ${esc(e.lesson)}</div>`:''}${e.wentWell?`<div class="body">＋ ${esc(e.wentWell)}</div>`:''}${e.improve?`<div class="body">− ${esc(e.improve)}</div>`:''}${e.botSnapshot?`<div class="body muted">Mr. Cash at the time: ${esc(e.botSnapshot.decision)}${e.botSnapshot.firstFail?` (waiting on ${esc(e.botSnapshot.firstFail)})`:''} · bias ${esc(e.botSnapshot.bias)}${e.botSnapshot.state?` · ${esc(e.botSnapshot.state)}`:''}</div>`:''}</div>`).join('') : '<div class="muted">No entries yet. "From current setup" fills one in from what Mr. Cash sees right now — you add how you felt and what you did.</div>'}</div>`
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { editing = journal.entries.find(e => e.id === b.dataset.edit); openJournalForm(false) })
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('Delete this entry?')) return; await call('/api/journal/delete', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({id:b.dataset.del})}); loadJournal() })
   document.querySelectorAll('[data-goal]').forEach(c => c.onchange = () => saveGoalsFromUI(g => { if (g.id === c.dataset.goal) g.done = c.checked }))
