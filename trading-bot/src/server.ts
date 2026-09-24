@@ -102,6 +102,7 @@ import * as ui from './ui.ts'
 import { fetchPortfolio } from './broker/alpaca.ts'
 import { brokerStatus, fetchKrakenPortfolio } from './broker/kraken.ts'
 import { MarketWatch } from './markets/service.ts'
+import { VaultGate, vaultCookie, VAULT_COOKIE_PATH } from './security/vault.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -117,6 +118,8 @@ const SESSION_TOKEN = randomBytes(24).toString('hex')
 /** Handed to the app's own page via /api/config; every state-changing request must carry it back. */
 const CSRF_TOKEN = randomBytes(24).toString('hex')
 const pinThrottle = new PinThrottle(10, 15 * 60_000)
+// The vault: a second lock (passcode + authenticator code) on real balances. See src/security/vault.ts.
+const vaultGate = new VaultGate()
 
 const STATIC: Record<string, { file: string; type: string }> = {
   '/manifest.json': { file: 'manifest.json', type: 'application/manifest+json' },
@@ -390,6 +393,42 @@ const server = createServer(async (req, res) => {
       // Phase 25: the ops monitor's last verdict rides along (the full document is /api/ops/health).
       const oh = opsApi.opsHealthLast(feed, watcher.lastError())
       json(res, 200, { ok: true, data: { healthy, checks, version: VERSION, mode: runtimeMode(), modeLabel: describeMode(), stop: stopState(), dataDir: DATA_DIR, dataDirWritable, store: storeIntegrity, feed, uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000), watchEveryMinutes: config.app.watchEveryMinutes, lastWatchAt, watchStaleSec, ops: { overall: oh.overall, feed: oh.feed.verdict, dataSource: oh.dataSource.label, execution: oh.dataSource.execution, alerts: oh.alerts.length, securityOk: oh.security.ok, at: oh.at } } })
+      return
+    }
+    // THE VAULT. Status is public to the app; unlock and lock are POSTs, so the
+    // CSRF and same-origin guard above has already run. The balances behind it
+    // are read-only.
+    if (path === '/api/vault/status') {
+      const v = vaultGate.check(vaultCookie(req.headers.cookie))
+      json(res, 200, { ok: true, data: { configured: vaultGate.configured(), open: v.open, expiresAt: v.expiresAt, idleMinutes: vaultGate.idleMs / 60_000 } })
+      return
+    }
+    if (path === '/api/vault/unlock' && req.method === 'POST') {
+      let body: { passcode?: unknown; code?: unknown } = {}
+      try { body = JSON.parse((await readBody(req, 2048)) || '{}') } catch { body = {} }
+      const r = vaultGate.unlock(client, body.passcode, body.code)
+      if (!r.ok) { json(res, r.status, { ok: false, error: r.reason }); return }
+      res.setHeader('set-cookie', `mrcash_vault=${r.token}; Path=${VAULT_COOKIE_PATH}; HttpOnly; SameSite=Strict; Max-Age=${vaultGate.maxMs / 1000}`)
+      json(res, 200, { ok: true, data: { open: true, expiresAt: r.expiresAt } })
+      return
+    }
+    if (path === '/api/vault/lock' && req.method === 'POST') {
+      vaultGate.lock(vaultCookie(req.headers.cookie))
+      res.setHeader('set-cookie', `mrcash_vault=; Path=${VAULT_COOKIE_PATH}; HttpOnly; SameSite=Strict; Max-Age=0`)
+      json(res, 200, { ok: true, data: { open: false } })
+      return
+    }
+    if (path === '/api/vault/portfolio') {
+      const v = vaultGate.check(vaultCookie(req.headers.cookie))
+      if (!v.open) { json(res, 403, { ok: false, locked: true, error: vaultGate.configured() ? 'The vault is locked.' : 'The vault is not set up yet.' }); return }
+      const [alpaca, kraken] = await Promise.all([fetchPortfolio(), fetchKrakenPortfolio()])
+      const p = paperStats()
+      json(res, 200, { ok: true, data: { asOf: Date.now(), expiresAt: v.expiresAt, paper: { mode: 'PAPER', startUsd: p.startUsd, equityUsd: p.equityUsd, trades: p.trades, wins: p.wins, losses: p.losses, totalR: p.totalR, open: p.open.length }, alpaca, kraken } })
+      return
+    }
+    // Once the vault is set up, real balances are only shown through it.
+    if ((path === '/api/portfolio' || path === '/api/portfolio/kraken') && vaultGate.configured() && !vaultGate.check(vaultCookie(req.headers.cookie)).open) {
+      json(res, 403, { ok: false, locked: true, error: 'Locked in the vault. Open the vault to see real balances.' })
       return
     }
     // Your real brokerage account, READ-ONLY. Keys come from the environment;

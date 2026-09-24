@@ -50,6 +50,29 @@ That last row is the biggest single control and it is easy to overlook. Most
 real-world compromises of small Node apps arrive through a transitive package,
 not through the author's own code. There is no supply chain here to poison.
 
+## The vault (real balances)
+
+Your real broker balances sit behind a second lock, separate from the PIN:
+the Portfolio vault opens only with a passcode **and** a six-digit code from an
+authenticator app (TOTP, RFC 6238), and it applies on the computer running
+Mr. Cash too.
+
+- Set up once with `npm run vault:setup`. It prints a fresh authenticator secret
+  for your phone and the two `.env` lines (`MRCASH_VAULT_TOTP`,
+  `MRCASH_VAULT_PASSCODE`). Nothing is written to disk by the script, and neither
+  secret ever reaches the repo, a log or a response.
+- Passcode and code are compared in constant time; a wrong attempt never says
+  which half was wrong. Five wrong attempts lock that device out for 15
+  minutes. A code opens the vault once — a replay inside its 30 seconds fails.
+- An open vault is a random token in an `HttpOnly; SameSite=Strict` cookie on
+  `/api`. It closes after 15 minutes idle, 60 minutes in total, or on Lock.
+  Unlock and lock are POSTs, so the CSRF and same-origin guard applies.
+- Once the vault is set up, `/api/portfolio` and `/api/portfolio/kraken`
+  answer "locked" until it is open. Everything behind the door is read-only.
+
+Code: `src/security/vault.ts`; tests: `test/security/vault.test.ts` (including
+the RFC 6238 test vectors).
+
 ## What this pass fixed
 
 An audit found two real problems.
