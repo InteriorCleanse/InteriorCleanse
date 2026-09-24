@@ -8,7 +8,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Candle } from '../../src/types.ts'
 import { parseKrakenOhlc, parseAlpacaBars, parseWatchlist, safeReason, fetchStocks, fetchForex } from '../../src/markets/sources.ts'
-import { scanMarket } from '../../src/markets/scan.ts'
+import { scanMarket, rsi } from '../../src/markets/scan.ts'
 import { MarketWatch } from '../../src/markets/service.ts'
 
 const ROOT = join(import.meta.dirname, '..', '..')
@@ -148,4 +148,41 @@ test('the market watch has no order path: reads only, and never touches the engi
     assert.equal(/\/v2\/orders|\/order\b|AddOrder|CancelOrder|method:\s*['"](POST|PUT|DELETE|PATCH)/i.test(src), false, `${f} must not reach an order endpoint`)
     assert.equal(/paperTrader|riskEngine|live\/|execution\.ts|placeOrder|submitOrder/.test(src), false, `${f} must not reach the paper book, risk engine or execution`)
   }
+})
+
+test('RSI: all gains is 100, all losses is 0, flat is 50, too short is null', () => {
+  assert.equal(rsi(Array.from({ length: 30 }, (_, i) => 100 + i)), 100)
+  assert.equal(rsi(Array.from({ length: 30 }, (_, i) => 100 - i)), 0)
+  assert.equal(rsi(Array.from({ length: 30 }, () => 100)), 50)
+  assert.equal(rsi([1, 2, 3]), null)
+})
+
+test('setup checklist: a steady climb leans up with an invalidation below price; a flat tape has no lean', () => {
+  // SYNTHETIC: 120 hourly candles climbing steadily, ending above the previous day's high.
+  const up = candles(120, T0, (i) => 100 + i * 0.4)
+  const s = scanMarket(up, 'crypto', 'TESTUSDT', up[119].closeTime + 1000)
+  assert.ok(s.setup)
+  assert.equal(s.setup!.total, 5)
+  assert.equal(s.setup!.lean, 'bull')
+  assert.ok(s.setup!.aligned >= 3, `aligned was ${s.setup!.aligned}`)
+  assert.ok(s.setup!.invalidation && s.setup!.invalidation.price < s.price!)
+  assert.match(s.setup!.summary, /of 5 checks lean up/)
+  for (const c of s.setup!.checks) assert.ok(c.text.length > 0)
+  const flat = scanMarket(candles(120, T0, () => 100), 'crypto', 'TESTUSDT', T0 + 120 * H)
+  assert.equal(flat.setup!.lean, 'none')
+  assert.equal(flat.setup!.invalidation, null)
+  assert.equal(scanMarket(candles(30, T0), 'crypto', 'TESTUSDT', T0 + 30 * H).setup, null, 'too few candles: no checklist, never a guess')
+})
+
+test('overview: markets, signals, alerts in 24h and setups are counted from the rows', async () => {
+  const up = candles(120, T0, (i) => 100 + i * 0.4)
+  const w = new MarketWatch({ watchlist: parseWatchlist('crypto:TESTUSDT,forex:EURUSD'), now: () => up[119].closeTime + 1000,
+    fetchers: { crypto: async () => ({ ok: true, candles: up }), forex: async () => ({ ok: false, reason: 'down' }), stocks: async () => ({}) } })
+  const snap = await w.refresh()
+  assert.equal(snap.overview.markets, 2)
+  assert.equal(snap.overview.signals, snap.rows.reduce((n, r) => n + r.scan.notes.length, 0))
+  assert.equal(snap.overview.alerts24h, 0, 'the first pass raises nothing')
+  const crypto = snap.groups.find((g) => g.kind === 'crypto')!
+  assert.equal(crypto.rows, 1)
+  assert.equal(snap.overview.setups, snap.rows.filter((r) => r.scan.setup && r.scan.setup.aligned >= 4).length)
 })

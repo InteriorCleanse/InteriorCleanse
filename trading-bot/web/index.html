@@ -46,6 +46,7 @@
         <button class="td-tool" id="btn-narrate" title="The market read in five sections, from the engine">Market read</button>
         <button class="td-tool" id="btn-read" title="Mr. Cash reads the brief aloud">Read aloud</button>
         <button class="td-tool" id="btn-journal-now" title="Open the journal with this moment filled in">Journal</button>
+        <button class="td-tool" id="btn-accounts" title="Your broker balances, in the vault">Accounts</button>
         <button class="td-tool" id="btn-card" title="A 1080×1350 image of today's brief">Share card</button>
       </span>
       <span class="muted" id="today-status"></span>
@@ -469,6 +470,7 @@ function renderEvents(evs, prepend=false) {
   if (prepend) el.insertAdjacentHTML('afterbegin', html); else el.innerHTML = html || '<div class="e muted">Nothing yet. Mr. Cash re-reads the market every few minutes and tells you here when something matters.</div>'
 }
 $('btn-vault').onclick = () => showTab('portfolio')
+$('btn-accounts').onclick = () => showTab('portfolio')
 $('btn-bell').onclick = () => { $('events').classList.toggle('hidden'); $('bell-n').textContent = '0'; $('bell-n').classList.add('hidden') }
 document.addEventListener('click', (e) => { if (!$('events').contains(e.target) && e.target !== $('btn-bell')) $('events').classList.add('hidden') })
 setInterval(pollEvents, 30000)

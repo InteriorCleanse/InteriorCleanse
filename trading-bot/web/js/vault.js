@@ -131,8 +131,8 @@ function lockPanel(msg) {
   </form>`
 }
 
-function acctCard(title, sub, body, cls = '') {
-  return `<article class="vx-acct ${cls}"><div class="vx-acct-hd"><b>${esc(title)}</b><span>${esc(sub)}</span></div>${body}</article>`
+function acctCard(title, sub, body, cls = '', show = '') {
+  return `<article class="vx-acct ${cls}"${show ? ` data-show="${show}"` : ''}><div class="vx-acct-hd"><b>${esc(title)}</b><span>${esc(sub)}</span></div>${body}</article>`
 }
 
 function balances(d) {
@@ -149,18 +149,32 @@ function balances(d) {
     ? `<div class="vx-big">${usd(k.account.totalUsd ?? k.account.equityUsd)}</div>${k.holdings.length ? `<ul class="vx-pos">${k.holdings.slice(0, 10).map((h) => `<li><b>${esc(h.asset)}</b><span>${h.qty}</span></li>`).join('')}</ul>` : ''}`
     : `<p class="vx-none">${esc(k ? k.note : 'Not linked.')}</p>`
   const left = Math.max(0, Math.round((state.expiresAt - Date.now()) / 60000))
-  return `<div class="vx-panel vx-open-panel">
+  const view = savedView()
+  const tabs = [['all', 'All'], ['alpaca', 'Alpaca'], ['kraken', 'Kraken'], ['paper', 'Paper']]
+  return `<div class="vx-panel vx-open-panel" data-view="${view}">
     <div class="vx-kicker">Vault open · closes in <span id="vx-left">${left}</span> min</div>
-    <div class="vx-total"><span>Held in your linked real accounts</span><b>${total === null ? 'No real account linked' : usd(total)}</b><em>read-only · as of ${new Date(d.asOf).toLocaleTimeString()}</em></div>
+    <div class="vx-switch" role="tablist" aria-label="Which account">${tabs.map(([k, l]) => `<button type="button" role="tab" data-vx-view="${k}" aria-selected="${k === view}" class="${k === view ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="vx-total" data-show="all"><span>Held in your linked real accounts</span><b>${total === null ? 'No real account linked' : usd(total)}</b><em>read-only · as of ${new Date(d.asOf).toLocaleTimeString()}</em></div>
     <div class="vx-accts">
-      ${acctCard('Alpaca', a && a.connected ? `${a.mode === 'LIVE' ? 'live account' : 'Alpaca paper account'} · read-only` : 'not linked', alpacaBody, a && a.connected ? '' : 'off')}
-      ${acctCard('Kraken', k && k.connected ? 'live account · read-only' : 'not linked', krakenBody, k && k.connected ? '' : 'off')}
-      ${acctCard('Mr. Cash paper account', 'PAPER · simulated, no real money', `<div class="vx-big">${usd(p.equityUsd)}</div><dl><dt>Started with</dt><dd>${usd(p.startUsd)}</dd><dt>Closed trades</dt><dd>${p.trades}</dd><dt>Open now</dt><dd>${p.open}</dd></dl>`, 'paper')}
+      ${acctCard('Alpaca', a && a.connected ? `${a.mode === 'LIVE' ? 'live account' : 'Alpaca paper account'} · read-only` : 'not linked', alpacaBody, a && a.connected ? '' : 'off', 'alpaca')}
+      ${acctCard('Kraken', k && k.connected ? 'live account · read-only' : 'not linked', krakenBody, k && k.connected ? '' : 'off', 'kraken')}
+      ${acctCard('Mr. Cash paper account', 'PAPER · simulated, no real money', `<div class="vx-big">${usd(p.equityUsd)}</div><dl><dt>Started with</dt><dd>${usd(p.startUsd)}</dd><dt>Closed trades</dt><dd>${p.trades}</dd><dt>Open now</dt><dd>${p.open}</dd></dl>`, 'paper', 'paper')}
     </div>
     <div class="vx-actions"><button class="btn ghost" id="vx-lock" type="button">Lock the vault</button></div>
     <p class="vx-fine">Balances are read with read-only keys. Nothing in the vault can move money or place an order.</p>
   </div>`
 }
+
+/* ---------------- the broker switcher ---------------- */
+function savedView() { try { const v = localStorage.getItem('mrcash-vault-view'); return ['all', 'alpaca', 'kraken', 'paper'].includes(v) ? v : 'all' } catch { return 'all' } }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-vx-view]')
+  if (!b) return
+  const panel = b.closest('.vx-open-panel'); if (!panel) return
+  panel.dataset.view = b.dataset.vxView
+  panel.querySelectorAll('[data-vx-view]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)) })
+  try { localStorage.setItem('mrcash-vault-view', b.dataset.vxView) } catch { /* the choice just is not remembered */ }
+})
 
 /* ---------------- flow ---------------- */
 function root() { return document.getElementById('vault-out') }
