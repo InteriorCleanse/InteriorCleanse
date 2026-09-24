@@ -35,7 +35,11 @@ is not the right tool and no dashboard change would fix it.
 | Control | Where |
 |---|---|
 | CSRF token + same-origin check on every `POST /api/*` | `src/guard.ts`, `server.ts` |
-| PIN gate for any non-loopback device, with throttling → 429 | `guard.PinThrottle`, `server.ts` |
+| PIN gate for any non-loopback device, with throttling → 429 | `src/security/login.ts`, `server.ts` |
+| Two-factor login for other devices (PIN + authenticator code) once `vault:setup` is done | `src/security/login.ts` |
+| Made-up PIN drawn from the OS secure random source | `server.ts` (`randomInt`) |
+| `npm run security:audit`: keys in tracked files, `.env` exposure, phone access, 2FA, the live flag | `src/security/audit.ts` |
+| Docker builds exclude `.env` and the data folders; compose publishes on 127.0.0.1 only | `.dockerignore`, `docker-compose.yml` |
 | Loopback detection from the **socket**, never from a header | `server.ts` `isLocal()` |
 | Constant-time comparison of every secret | `src/security/harden.ts` `safeEqual` |
 | Content-Security-Policy with a per-request nonce | `src/security/harden.ts` |
@@ -75,7 +79,76 @@ Mr. Cash too.
 Code: `src/security/vault.ts`; tests: `test/security/vault.test.ts` (including
 the RFC 6238 test vectors).
 
-## What this pass fixed
+## Two-factor login and the audit (third pass)
+
+**The front door.** With phone access on, another device used to need only
+the PIN. Once the authenticator is set up (`npm run vault:setup`, the same
+secret the vault uses), the login page asks for the PIN **and** the six-digit
+code, and a failure never says which half was wrong. Ten failures lock that
+device out for fifteen minutes; a code works once. The PIN field is now a
+password field. `MRCASH_LOGIN_2FA=0` turns the second factor off (not
+recommended). Behind a TLS proxy, `MRCASH_COOKIE_SECURE=1` marks the session
+cookie `Secure`.
+
+**Found and fixed:**
+
+- The made-up PIN came from `Math.random`, which is predictable. It now comes
+  from `crypto.randomInt`.
+- There was no `.dockerignore`, so the Dockerfile's `COPY . .` would have baked
+  `.env` (broker keys, the vault secret and passcode) and the paper record into
+  any image built from the folder. There is one now.
+- `docker-compose.yml` published the port on every network interface of the
+  host. It now publishes on 127.0.0.1 only.
+- The systemd unit now sets `UMask=0077` (files it writes are private) and
+  `NoNewPrivileges=yes`.
+
+**`npm run security:audit`** reads the repository, `.env` and the config and
+prints PASS / WARN / FAIL with the fix for each. It scans every tracked file
+for keys by their published shapes: private key blocks, Alpaca, Kraken,
+Anthropic, OpenAI-style, Stripe live, GitHub, AWS and Slack, plus any line that
+gives one of Mr. Cash's own secrets a value. It also checks that `.env` is ignored and
+private to you, that Docker builds leave it out, the phone PIN and 2FA,
+whether the vault guards the broker keys, the live flag, runtime
+dependencies, the Node version and the webhook secret. It never prints a
+value, only the file and line. It exits 1 on any FAIL, so it can run in CI or
+a pre-push hook. Tests: `test/security/login.test.ts`.
+
+## Why not Supabase (or another hosted service)?
+
+Supabase is a hosted Postgres database with login built in. It is a good way
+to build a multi-user web app. It would not make this app safer:
+
+- **It adds a door.** Today your keys and record never leave your machine.
+  A hosted database means your data, and the keys to reach it, live on
+  someone else's servers and cross the internet. That is a new place to be
+  breached, not one fewer.
+- **Auth is not the weak point.** The login here is already constant-time,
+  throttled, and now two-factor. Supabase Auth would replace it with a
+  remote dependency and a new set of keys to leak.
+- **"Backdoors" come in through dependencies.** Most real compromises of small
+  Node apps arrive through a poisoned package. Mr. Cash has zero runtime
+  dependencies; a hosted SDK would be the first.
+
+What actually protects your money, in order:
+
+1. **Broker keys that cannot move money out.** At Kraken and Alpaca, create
+   keys with **withdrawals disabled**, and for reading balances, trading
+   disabled too. A stolen read-only key can look but not take. The doctor
+   already refuses a key that can withdraw.
+2. **IP allowlisting at the broker.** Both Kraken and Alpaca let you pin a key
+   to your own IP address, so a stolen key is useless from anywhere else.
+3. **2FA on the broker accounts themselves**, with an authenticator app, not
+   SMS. That protects the money even if this machine is lost.
+4. **Never expose the port.** Leave `allowPhone` off, or use it on your home
+   wifi only. To reach Mr. Cash from outside, use a VPN such as Tailscale or
+   WireGuard. Never port-forward it.
+5. **Run `npm run security:audit`** after any change to keys or settings, and
+   rotate any key that ever appeared in a screenshot, a chat or a commit.
+6. **Keep the computer itself safe**: OS updates, disk encryption, and a
+   screen lock. Anyone who can sit at the machine can read `.env`; no app
+   setting changes that.
+
+## What the first pass fixed
 
 An audit found two real problems.
 
@@ -106,8 +179,12 @@ is the one nobody will notice.
   attributes throughout and CSP has no nonce mechanism for those. This permits
   injected *CSS*, not injected script. Removing it means moving every inline
   style into the stylesheet; worth doing, not yet done.
-- **The PIN is six digits by default.** Throttled, but short. Set
-  `MRCASH_PIN` to something longer if the network is not one you trust.
+- **The PIN is six digits by default.** Throttled, but short. Set up the
+  authenticator (`npm run vault:setup`) so other devices also need a code,
+  or set `MRCASH_PIN` to something longer.
+- **One session for every device.** A signed-in device keeps its cookie for
+  30 days or until Mr. Cash restarts, and there is no per-device sign-out
+  yet: restarting is how you sign every device out.
 - **Prompt injection is mitigated, not solved.** The AI narration is validated
   against the engine's own context and rejected if it invents a number
   (`src/ai/narrator.ts`), and the CIO decision is *exactly* the fused decision
@@ -126,7 +203,9 @@ is the one nobody will notice.
 
 1. Leave `config.app.allowPhone` **off** unless you need it.
 2. Do not port-forward this to the internet. It is not built for that.
-3. Set a long `MRCASH_PIN` if phone access is on.
-4. Keep `LIVE_TRADING_ENABLED = false` until the validation gates are met — see
+3. If phone access is on, run `npm run vault:setup` so the login needs an
+   authenticator code, and set a long `MRCASH_PIN`.
+4. Run `npm run security:audit` and fix every FAIL.
+5. Keep `LIVE_TRADING_ENABLED = false` until the validation gates are met — see
    `docs/PAPER_VALIDATION_PLAN.md`. Security and trading safety are different
    problems, and this file only covers the first.

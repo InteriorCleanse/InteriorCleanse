@@ -29,3 +29,5 @@ jobs:
         run: npm run selftest
       - name: Test suite
         run: npm test
+      - name: Security audit (no keys in tracked files, live flag off)
+        run: npm run security:audit

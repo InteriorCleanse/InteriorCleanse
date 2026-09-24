@@ -5,7 +5,9 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "4173:4173"
+      # This computer only. Publishing on every interface would put the app on
+      # any network the host joins; reach it from elsewhere through a VPN.
+      - "127.0.0.1:4173:4173"
     environment:
       - MRCASH_DATA_DIR=/data
       # LIVE stays off. Do not set MRCASH_LIVE here.

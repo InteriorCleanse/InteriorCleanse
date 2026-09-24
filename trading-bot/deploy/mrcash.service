@@ -14,6 +14,9 @@ Environment=MRCASH_DATA_DIR=%h/trading-bot/data
 ExecStart=/usr/bin/node src/index.ts paper
 Restart=on-failure
 RestartSec=5
+# Files it writes are private to you, and it can never gain privileges.
+UMask=0077
+NoNewPrivileges=yes
 StartLimitIntervalSec=0
 
 [Install]

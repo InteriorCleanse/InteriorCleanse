@@ -1,0 +1,11 @@
+# Keep secrets and private records out of any image built from this folder.
+# Without this file, the Dockerfile's `COPY . .` would bake .env (broker keys,
+# the vault secret) and your paper record into the image.
+.env
+.env.*
+!.env.example
+data
+data-*
+node_modules
+.git
+*.log
