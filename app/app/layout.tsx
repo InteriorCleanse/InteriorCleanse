@@ -5,6 +5,8 @@ import { requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
 import { AssistantDock } from '@/components/assistant/AssistantDock'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
+import { CommandPalette } from '@/components/CommandPalette'
+import { CommandHint } from '@/components/CommandHint'
 
 // These segments resolve the session from cookies on every request, so there
 // is nothing meaningful to prerender — and prerendering would evaluate the
@@ -66,12 +68,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Sign out
               </button>
             </form>
+            <CommandHint />
             <ThemeSwitcher />
           </nav>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">{children}</main>
+
+      <CommandPalette nav={NAV} />
 
       {/* The dock rides every app screen: the questions it answers are asked
           while looking at a number, not on a separate page. */}

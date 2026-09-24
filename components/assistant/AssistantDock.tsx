@@ -151,6 +151,14 @@ export function AssistantDock(props: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, close])
 
+  // The command palette can open the dock without a direct prop path between
+  // them: it dispatches this event and the dock is the one thing that answers.
+  useEffect(() => {
+    const openDock = () => setOpen(true)
+    window.addEventListener('aurelis:open-assistant', openDock)
+    return () => window.removeEventListener('aurelis:open-assistant', openDock)
+  }, [])
+
   const ask = useCallback(
     async (question: string, spoken: boolean) => {
       const text = question.trim()
