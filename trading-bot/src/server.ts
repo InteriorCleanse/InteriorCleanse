@@ -19,7 +19,7 @@ import { readFileSync, existsSync, appendFileSync, writeFileSync, accessSync, co
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
-import { randomBytes } from 'node:crypto'
+import { randomBytes, randomInt } from 'node:crypto'
 import { config } from '../config.ts'
 import { analyzeNow, runScan } from './bot.ts'
 import type { Snapshot } from './bot.ts'
@@ -87,7 +87,8 @@ import { assess, riskLimits } from './riskEngine.ts'
 import type { RiskState, RiskVerdict } from './riskEngine.ts'
 import { entriesAllowed } from './killswitch.ts'
 import { SKILLS, skillById } from './skills.ts'
-import { checkStateChange, PinThrottle } from './guard.ts'
+import { checkStateChange } from './guard.ts'
+import { LoginGate } from './security/login.ts'
 import { describeMode, runtimeMode, shadowEnabled } from './mode.ts'
 import { stopState, stop as engageStop, resume as releaseStop } from './killswitch.ts'
 import { systemState } from './systemState.ts'
@@ -112,12 +113,16 @@ const PORT = Number(process.env.MRCASH_PORT) || config.webPort
 const STARTED_AT = Date.now()
 
 // Secrets for this run. Printed once at startup, never written to disk.
-const PIN = process.env.MRCASH_PIN || config.app.pin || String(100000 + Math.floor(Math.random() * 900000))
+// A made-up PIN comes from the OS's secure random source, so it cannot be predicted.
+const PIN = process.env.MRCASH_PIN || config.app.pin || String(randomInt(100000, 1000000))
 const WEBHOOK_SECRET = config.tradingview.webhookSecret || randomBytes(12).toString('hex')
 const SESSION_TOKEN = randomBytes(24).toString('hex')
 /** Handed to the app's own page via /api/config; every state-changing request must carry it back. */
 const CSRF_TOKEN = randomBytes(24).toString('hex')
-const pinThrottle = new PinThrottle(10, 15 * 60_000)
+// The front door for other devices: the PIN, plus an authenticator code once one is set up.
+const loginGate = new LoginGate({ pin: PIN })
+// Behind a TLS reverse proxy, MRCASH_COOKIE_SECURE=1 marks the session cookie Secure.
+const COOKIE_SECURE = process.env.MRCASH_COOKIE_SECURE === '1' ? '; Secure' : ''
 // The vault: a second lock (passcode + authenticator code) on real balances. See src/security/vault.ts.
 const vaultGate = new VaultGate()
 
@@ -181,8 +186,8 @@ const LOGIN_PAGE = (msg = '') => `<!doctype html><html lang="en"><head><meta cha
 <style>body{margin:0;background:#0d1117;color:#e6edf3;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
 form{background:#161b22;border:1px solid #26303d;border-radius:14px;padding:28px;width:min(92vw,360px);text-align:center}h1{font-size:22px;margin:0 0 6px}p{color:#8b98a5;margin:0 0 18px;font-size:14px}
 input{width:100%;box-sizing:border-box;font-size:28px;letter-spacing:.3em;text-align:center;padding:12px;border-radius:10px;border:1px solid #26303d;background:#0d1117;color:#e6edf3}
-button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:#58a6ff;color:#04111f;font-weight:700;font-size:16px}.err{color:#f85149;font-size:14px;margin-top:10px}</style></head>
-<body><form method="post" action="/login"><h1>Mr. Cash</h1><p>Enter the PIN shown in the terminal on your computer.</p><input name="pin" inputmode="numeric" autocomplete="one-time-code" autofocus maxlength="12"><button>Open</button>${msg ? `<div class="err">${msg}</div>` : ''}</form></body></html>`
+.code{margin-top:10px;font-size:22px}button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:#58a6ff;color:#04111f;font-weight:700;font-size:16px}.err{color:#f85149;font-size:14px;margin-top:10px}</style></head>
+<body><form method="post" action="/login"><h1>Mr. Cash</h1><p>${loginGate.needsCode() ? 'Enter the PIN shown in the terminal on your computer, then the 6-digit code from your authenticator app.' : 'Enter the PIN shown in the terminal on your computer.'}</p><input name="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" autofocus maxlength="32">${loginGate.needsCode() ? '<input name="code" inputmode="numeric" autocomplete="one-time-code" aria-label="Authenticator code" placeholder="code" maxlength="6" pattern="[0-9]{6}" class="code">' : ''}<button>Open</button>${msg ? `<div class="err">${msg}</div>` : ''}</form></body></html>`
 
 // ---------------------------------------------------------------
 // The market snapshot the app reads from
@@ -337,16 +342,13 @@ const server = createServer(async (req, res) => {
     if (path === '/login') {
       if (req.method === 'POST') {
         const form = new URLSearchParams(await readBody(req, 4096))
-        const allowed = pinThrottle.allowed(client)
-        if (!allowed.ok) { res.writeHead(429, { 'content-type': 'text/html; charset=utf-8' }); res.end(LOGIN_PAGE(`Too many tries from this device. Wait ${Math.ceil(allowed.retryInMs / 60_000)} minute(s).`)); return }
-        if (safeEqual((form.get('pin') ?? '').trim(), PIN)) {
-          pinThrottle.succeeded(client)
-          res.writeHead(302, { 'set-cookie': `mrcash=${SESSION_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`, location: '/' })
+        const r = loginGate.attempt(client, form.get('pin'), form.get('code'))
+        if (r.ok) {
+          res.writeHead(302, { 'set-cookie': `mrcash=${SESSION_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${COOKIE_SECURE}`, location: '/' })
           res.end()
         } else {
-          pinThrottle.failed(client)
-          res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' })
-          res.end(LOGIN_PAGE('Wrong PIN.'))
+          res.writeHead(r.status, { 'content-type': 'text/html; charset=utf-8' })
+          res.end(LOGIN_PAGE(r.reason))
         }
         return
       }
@@ -1504,7 +1506,10 @@ server.listen(PORT, host, () => {
     const lan = lanUrls()
     console.log(`  On your phone:     ${ui.bold(lan.join('  or  ') || '(no network address found)')}`)
     console.log(`  Phone PIN:         ${ui.bold(PIN)}`)
-    console.log(ui.dim('  Same wifi only. Open the address, enter the PIN once, then Share → Add to Home Screen.'))
+    console.log(loginGate.needsCode()
+      ? ui.dim('  Same wifi only. Other devices need the PIN AND the 6-digit code from your authenticator app.')
+      : ui.warn('  Same wifi only. Other devices need only the PIN — run npm run vault:setup to add an authenticator code.'))
+    console.log(ui.dim('  Then Share → Add to Home Screen.'))
   } else {
     console.log(ui.dim('  Phone access is off. Set app.allowPhone: true in config.ts to turn it on.'))
   }

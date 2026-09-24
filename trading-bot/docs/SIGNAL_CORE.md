@@ -14,7 +14,8 @@ it ("Charts, the track record and each model's notes").
 | Agent inputs | One node per desk agent round the outside. Aqua reading, amber estimating, iris standing by; a blind agent is grey and dashed. | A blind agent sends nothing and says "can't see". |
 | Pulses | A reading or a vote on its way to the core. Only a model that is reporting sends one; speed follows the strategy's confidence or the agent's state. The rhythm measures nothing. | No pulse from a blind agent or a switched-off strategy. |
 | The core | The fused agreement score in the middle, an arc for the score and a tick where the panel acts; its light is the fused direction. | An em dash. |
-| Dressing | The outline, folds, cerebellum, stem, dust and the slow wave across the brain. They carry no data. | Always drawn. |
+| Dressing | The cortex itself (two hemispheres of folds and dust), the cerebellum, the stem, the slow turn, the breathing and the wave of light across the brain. They carry no data. The flash round a neuron marks its pulse leaving and nothing more. | Always drawn. |
+| Touch | Drag turns the brain; pointing at a neuron or an agent shows a card with the same numbers as its row in the list; clicking one scrolls to that row. Nothing on the brain can place, change or cancel anything. | — |
 | FILL | Simulated fills over signals, from the paper record. | "no signal yet". |
 | HIT | Wins over wins plus losses, from closed paper trades. | "no closed trade". Under ten trades it says INSUFFICIENT SAMPLE. |
 | EXPECTANCY | Mean R per closed trade. Never labelled "edge". | "no closed trade". |

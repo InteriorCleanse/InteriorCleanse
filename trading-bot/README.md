@@ -913,6 +913,8 @@ npm run memory:show     # what it remembers
 npm run memory:reset    # forget everything
 npm run plan:clear      # forget today's armed plan
 npm run selftest        # offline logic check
+npm run vault:setup     # authenticator secret for the vault and two-factor phone login
+npm run security:audit  # keys in tracked files, .env exposure, phone access, 2FA, the live flag
 npm test                # the test suite: guard, kill switch, server routes
 npm run check           # type check + self-test + test suite
 npm run stop            # KILL SWITCH — no new positions until you resume

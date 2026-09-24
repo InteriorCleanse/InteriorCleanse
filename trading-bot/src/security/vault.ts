@@ -99,6 +99,19 @@ function loadEnvOnce(): void {
 
 export type VaultConfig = { passcode: string; secret: Buffer } | null
 
+/** The authenticator secret alone, for the front door (src/security/login.ts), or null. */
+export function totpSecretFromEnv(): Buffer | null {
+  loadEnvOnce()
+  const raw = process.env.MRCASH_VAULT_TOTP || ''
+  if (!raw) return null
+  try {
+    const secret = base32Decode(raw)
+    return secret.length >= 10 ? secret : null
+  } catch {
+    return null
+  }
+}
+
 export function vaultConfigFromEnv(): VaultConfig {
   loadEnvOnce()
   const passcode = process.env.MRCASH_VAULT_PASSCODE || ''

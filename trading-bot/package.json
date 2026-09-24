@@ -47,6 +47,7 @@
     "backup": "node scripts/backup.ts",
     "live:check": "node scripts/live-arm.ts",
     "vault:setup": "node scripts/vault-setup.ts",
+    "security:audit": "node scripts/security-audit.ts",
     "help": "node src/index.ts help"
   },
   "optionalDependencies": {

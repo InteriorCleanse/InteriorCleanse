@@ -293,4 +293,8 @@ test('the brain only draws: no fetches, no randomness, no order paths, and it na
   assert.match(js, /DRESSING/, 'the brain must say which parts carry no data')
   const desk = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
   assert.match(desk, /MrBrain\.draw\(/, 'desk.js runs the brain from its own loop')
+  // Touching the brain turns it, shows a card or scrolls to a row. Nothing more.
+  assert.match(js, /window\.MrBrain = \{ draw, attach \}/)
+  const attach = desk.slice(desk.indexOf('function attachBrain'), desk.indexOf('function attachBrain') + 1200)
+  assert.equal(/fetch\(|\/api\/|showTab|\.click\(\)/.test(attach), false, 'a click on the brain only scrolls to the model it names')
 })

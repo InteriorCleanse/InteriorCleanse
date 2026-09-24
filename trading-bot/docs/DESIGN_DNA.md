@@ -69,7 +69,8 @@ dashboard):
 One entrance: fade and an 8px rise, staggered 45ms, capped at five steps.
 It plays when a tab opens, never on a data refresh. The one bold motion is
 the brain on Home (below). Everything stops under `prefers-reduced-motion`;
-the brain then draws one still frame with each pulse parked on its synapse.
+the brain then draws one still frame with each pulse parked on its synapse,
+and turns only while you drag it.
 
 **Icons.** One set of line drawings on a 24px grid at a 1.6 stroke, drawn in
 the text colour. No emoji in navigation.
@@ -92,7 +93,7 @@ the text colour. No emoji in navigation.
 
 | Effect | Where | Technique |
 |---|---|---|
-| The brain | Home | 2D canvas (`web/js/brain.js`): a side-view brain with every model as a node. Strategy neurons inside, coloured by vote and sized by confidence; agent inputs outside, coloured by what they can see; pulses carry each reading or vote to the core, whose arc is the agreement score. Seeded folds and dust; paused off-screen and still under reduced motion. Pointing at a model in the list lights its neuron |
+| The brain | Home | A 3D brain on a 2D canvas (`web/js/brain.js`, no library): two hemispheres of glowing folds, a cerebellum and a stem, projected with perspective and lit from the upper left with a rim glow. It turns slowly and breathes; drag to turn it (it keeps a little momentum), point at a node for a card, click one to jump to its row. Strategy neurons sit inside the volume, coloured by vote and sized by confidence, and the cortex round a neuron flashes when its pulse leaves; agent inputs stay outside, coloured by what they can see; pulses carry each reading or vote to the core, whose arc is the agreement score. Seeded geometry; paused off-screen and still under reduced motion. Pointing at a model in the list lights its neuron, and pointing at a neuron lights its row |
 | Ambient light | page background | four slow colour fields in the palette's own hues (`web/js/bg.js`), plus 3.5% SVG grain |
 | Glass | header, nav, bottom bar | `backdrop-filter`, switched off under reduced transparency |
 | Mascot | header | SMIL-animated SVG |

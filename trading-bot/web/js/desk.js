@@ -134,6 +134,7 @@ function homeHero(d) {
       <div class="hm-legend" aria-hidden="true">
         <span><i class="buy"></i>buy</span><span><i class="sell"></i>sell</span><span><i class="hold"></i>hold</span>
         <span><i class="live"></i>reading</span><span><i class="est"></i>estimating</span><span><i class="blind"></i>can't see</span>
+        <span class="hm-hint">drag to turn · point at a node to read it</span>
       </div>
     </div>
     <div class="hm-side">
@@ -453,6 +454,7 @@ async function loadDesk() {
     deskData = j.data
     // The accounts card (web/js/accounts.js) fills itself in; the desk only says it has drawn.
     document.dispatchEvent(new CustomEvent('desk:rendered'))
+    attachBrain()
     if (deskVisible()) { startDeskRefresh(); startCore() } else { stopDeskRefresh(); stopCore() }
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't read the desk just now: ${esc(e.message)}. Showing you nothing rather than making something up.</div>`
@@ -521,6 +523,25 @@ function focusNode(id) {
   if (brainFocus === id) return
   brainFocus = id
   if (REDUCED && deskData && deskVisible()) startCore()
+}
+// And the other way round: point at a neuron and its row lights; click it to go to the row.
+const modelRow = (id) => [...document.querySelectorAll('#desk-out .hm-model')].find((r) => r.dataset.node === id)
+function attachBrain() {
+  const cv = document.getElementById('dk-core-canvas')
+  if (!cv || !window.MrBrain || !window.MrBrain.attach) return
+  window.MrBrain.attach(cv, {
+    // The loop is already running unless motion is reduced; then draw the one frame the drag asked for.
+    redraw: () => { if (REDUCED && deskData && deskVisible()) startCore() },
+    onHover: (id) => {
+      document.querySelectorAll('#desk-out .hm-model.is-lit').forEach((r) => r.classList.remove('is-lit'))
+      const r = id && modelRow(id); if (r) r.classList.add('is-lit')
+    },
+    onPick: (id) => {
+      const r = modelRow(id); if (!r) return
+      r.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' })
+      r.focus({ preventScroll: true })
+    },
+  })
 }
 document.addEventListener('pointerover', (e) => { const r = e.target.closest?.('#desk-out .hm-model'); focusNode(r ? r.dataset.node : null) })
 document.addEventListener('focusin', (e) => { const r = e.target.closest?.('#desk-out .hm-model'); focusNode(r ? r.dataset.node : null) })
