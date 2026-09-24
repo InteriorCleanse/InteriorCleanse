@@ -876,10 +876,13 @@ function drawChart() {
     if (data.swings && plotW / n >= 7) { ctx.font = '9.5px sans-serif'; ctx.fillStyle = 'rgba(154,163,194,0.9)'
       for (const s of data.swings) { if (!inWin(s.time)) continue; const i = idxAt(s.time); if (cs[i].openTime !== s.time) continue; const tw = ctx.measureText(s.label).width, bx = x(i)-tw/2, by = s.kind === 'high' ? y(s.price)-5 : y(s.price)+12; if (!free(bx, by, tw)) continue; placed.push({ x: bx, y: by, w: tw }); ctx.fillText(s.label, bx, by) } }
   }
+  // Live-only marks (the current plan and the last price) belong to the latest candles, not to a look back.
+  const live = chWin.end === 0
   const sig = data.signal
-  if (sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#8B93FF','entry'],[sig.plan.stop,'#FF6B7A','stop'],[sig.plan.takeProfit,'#4ADE9A','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); tags.push({ y: y(p), text: label, col, pri: 0 }) }
-  const last = all[N-1], lastUp = last.close >= last.open, tagCol = lastUp ? '#4ADE9A' : '#FF6B7A', ly = y(last.close)
-  ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore()
+  if (live && sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#8B93FF','entry'],[sig.plan.stop,'#FF6B7A','stop'],[sig.plan.takeProfit,'#4ADE9A','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); tags.push({ y: y(p), text: label, col, pri: 0 }) }
+  // Panned back, the tag shows the last candle on screen, in grey, so it is never mistaken for the live price.
+  const last = live ? all[N-1] : cs[n-1], lastUp = last.close >= last.open, tagCol = live ? (lastUp ? '#4ADE9A' : '#FF6B7A') : '#9AA3C2', ly = y(last.close)
+  if (live) { ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore() }
   ctx.restore() // end of the plot clip
   // Level names, right-aligned by the axis; the most important wins a tight spot, the rest step aside.
   ctx.font = "600 11px 'Instrument Sans', system-ui, sans-serif"
