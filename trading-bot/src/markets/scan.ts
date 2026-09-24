@@ -20,9 +20,30 @@ import type { MarketKind } from './sources.ts'
 export type ScanNote = {
   /** Stable id, so the same observation raises one alert, not one per scan. */
   key: string
-  kind: 'swept-high' | 'swept-low' | 'broke-high' | 'broke-low' | 'gap-up' | 'gap-down' | 'big-candle'
+  kind: 'swept-high' | 'swept-low' | 'broke-high' | 'broke-low' | 'gap-up' | 'gap-down' | 'big-candle' | 'setup'
   at: number
   text: string
+}
+
+export type SetupCheck = {
+  key: 'trend' | 'momentum' | 'levels' | 'volume' | 'context'
+  label: string
+  lean: 'bull' | 'bear' | 'none'
+  text: string
+}
+
+/**
+ * The setup checklist: five plain checks, each leaning up, down or neither.
+ * It counts how many agree; it is not a probability and not a signal, and it
+ * never feeds the engine. With too few candles it is null.
+ */
+export type Setup = {
+  lean: 'bull' | 'bear' | 'none'
+  aligned: number
+  total: number
+  checks: SetupCheck[]
+  invalidation: { price: number; text: string } | null
+  summary: string
 }
 
 export type MarketScan = {
@@ -40,6 +61,7 @@ export type MarketScan = {
   notes: ScanNote[]
   /** The last 48 closes, oldest first, for a sparkline. */
   spark: number[]
+  setup: Setup | null
 }
 
 const HOUR = 3_600_000
@@ -52,8 +74,72 @@ export function fmtPrice(n: number): string {
   return n.toFixed(4)
 }
 
+/** Wilder's RSI over closes; null with too few candles. For display only. */
+export function rsi(closes: number[], period = 14): number | null {
+  if (closes.length <= period) return null
+  let gain = 0, loss = 0
+  for (let i = 1; i <= period; i++) { const d = closes[i] - closes[i - 1]; if (d >= 0) gain += d; else loss -= d }
+  gain /= period; loss /= period
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1]
+    gain = (gain * (period - 1) + Math.max(0, d)) / period
+    loss = (loss * (period - 1) + Math.max(0, -d)) / period
+  }
+  if (loss === 0) return gain === 0 ? 50 : 100
+  return 100 - 100 / (1 + gain / loss)
+}
+
+/** The five checks. Every threshold is written in the text the page shows. */
+export function assessSetup(candles: Candle[], s: MarketScan): Setup | null {
+  const n = candles.length
+  if (n < 60 || s.price === null) return null
+  const checks: SetupCheck[] = []
+  const T = s.trend
+  checks.push({ key: 'trend', label: 'Trend', lean: T === 'uptrend' ? 'bull' : T === 'downtrend' ? 'bear' : 'none',
+    text: T ? `${T === 'range' ? 'Ranging' : T === 'uptrend' ? 'Uptrend' : 'Downtrend'}${s.strength !== null ? `, strength ${s.strength}/100` : ''} (the engine's market-state vote).` : 'NOT ENOUGH DATA' })
+  const closes = candles.map((c) => c.close)
+  const r = rsi(closes), r3 = rsi(closes.slice(0, -3))
+  checks.push({ key: 'momentum', label: 'Momentum', lean: r === null ? 'none' : r >= 55 ? 'bull' : r <= 45 ? 'bear' : 'none',
+    text: r === null ? 'NOT ENOUGH DATA' : `RSI ${r.toFixed(0)}${r3 !== null ? (r > r3 ? ' and rising' : r < r3 ? ' and falling' : '') : ''} (up at 55 or more, down at 45 or less).` })
+  const last = candles[n - 1]
+  const pd = s.prevDay
+  let lv: SetupCheck = { key: 'levels', label: 'Key levels', lean: 'none', text: 'No previous day to measure against.' }
+  if (pd) {
+    const f = fmtPrice
+    const raidHigh = s.notes.some((x) => x.kind === 'swept-high'), raidLow = s.notes.some((x) => x.kind === 'swept-low')
+    if (last.close > pd.high) lv = { ...lv, lean: 'bull', text: `Holding above yesterday's high (${f(pd.high)}).` }
+    else if (last.close < pd.low) lv = { ...lv, lean: 'bear', text: `Holding below yesterday's low (${f(pd.low)}).` }
+    else if (raidLow && !raidHigh) lv = { ...lv, lean: 'bull', text: `Raided yesterday's low (${f(pd.low)}) and closed back inside.` }
+    else if (raidHigh && !raidLow) lv = { ...lv, lean: 'bear', text: `Raided yesterday's high (${f(pd.high)}) and closed back inside.` }
+    else lv = { ...lv, text: `Inside yesterday's range (${f(pd.low)} – ${f(pd.high)}).` }
+  }
+  checks.push(lv)
+  const prev = candles.slice(-21, -1).map((c) => c.volume).filter((v) => v > 0)
+  const avg = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : 0
+  const ratio = avg > 0 ? last.volume / avg : null
+  checks.push({ key: 'volume', label: 'Volume', lean: ratio !== null && ratio >= 1.5 ? (last.close >= last.open ? 'bull' : 'bear') : 'none',
+    text: ratio === null ? 'No volume on this feed.' : `${ratio.toFixed(1)}× the average of the last 20 candles${ratio >= 1.5 ? `, on a ${last.close >= last.open ? 'rising' : 'falling'} candle` : ' — nothing unusual'} (counts at 1.5× or more).` })
+  const ch = s.changePct24h
+  checks.push({ key: 'context', label: 'Market context', lean: s.volatility === 'wild' || ch === null ? 'none' : ch >= 0.5 ? 'bull' : ch <= -0.5 ? 'bear' : 'none',
+    text: ch === null ? 'NOT ENOUGH DATA' : s.volatility === 'wild' ? `Volatility is wild (${ch >= 0 ? '+' : ''}${ch.toFixed(2)}% over 24h) — moves are noise-heavy.` : `${ch >= 0 ? 'Up' : 'Down'} ${Math.abs(ch).toFixed(2)}% over 24 hours${s.volatility ? `, volatility ${s.volatility}` : ''} (counts beyond ±0.5%).` })
+
+  const bull = checks.filter((c) => c.lean === 'bull').length, bear = checks.filter((c) => c.lean === 'bear').length
+  const lean: Setup['lean'] = bull > bear ? 'bull' : bear > bull ? 'bear' : 'none'
+  const aligned = lean === 'bull' ? bull : lean === 'bear' ? bear : 0
+  let invalidation: Setup['invalidation'] = null
+  if (lean === 'bull') {
+    const lvl = pd && pd.low < last.close ? pd.low : s.low24h
+    if (lvl !== null) invalidation = { price: lvl, text: `A close below ${fmtPrice(lvl)} ${pd && lvl === pd.low ? "(yesterday's low)" : '(the 24-hour low)'} would say the lean is wrong.` }
+  } else if (lean === 'bear') {
+    const lvl = pd && pd.high > last.close ? pd.high : s.high24h
+    if (lvl !== null) invalidation = { price: lvl, text: `A close above ${fmtPrice(lvl)} ${pd && lvl === pd.high ? "(yesterday's high)" : '(the 24-hour high)'} would say the lean is wrong.` }
+  }
+  const summary = lean === 'none' ? 'No clear lean: the checks disagree.' : `${aligned} of 5 checks lean ${lean === 'bull' ? 'up' : 'down'}.`
+  return { lean, aligned, total: checks.length, checks, invalidation, summary }
+}
+
 export function scanMarket(candles: Candle[], kind: MarketKind, symbol: string, now = Date.now()): MarketScan {
-  const empty: MarketScan = { price: null, changePct24h: null, high24h: null, low24h: null, prevDay: null, trend: null, strength: null, volatility: null, lastCloseAt: null, status: 'no data', statusText: 'NOT ENOUGH DATA', notes: [], spark: [] }
+  const empty: MarketScan = { price: null, changePct24h: null, high24h: null, low24h: null, prevDay: null, trend: null, strength: null, volatility: null, lastCloseAt: null, status: 'no data', statusText: 'NOT ENOUGH DATA', notes: [], spark: [], setup: null }
   const n = candles.length
   if (n === 0) return empty
   const last = candles[n - 1]
@@ -119,6 +205,13 @@ export function scanMarket(candles: Candle[], kind: MarketKind, symbol: string, 
       const body = Math.abs(candles[i].close - candles[i].open)
       if (atr > 0 && body >= 2.5 * atr) out.notes.push({ key: `${symbol}:big:${candles[i].openTime}`, kind: 'big-candle', at: candles[i].closeTime, text: `One-hour candle moved ${(body / atr).toFixed(1)}× its usual range, ${candles[i].close > candles[i].open ? 'up' : 'down'}.` })
     }
+  }
+  // The setup checklist, and one note the first time four or more line up.
+  out.setup = assessSetup(candles, out)
+  if (out.setup && out.setup.aligned >= 4) {
+    const s4 = out.setup
+    const agree = s4.checks.filter((c) => c.lean === s4.lean).map((c) => c.label.toLowerCase()).join(', ')
+    out.notes.push({ key: `${symbol}:setup:${s4.lean}:${today}`, kind: 'setup', at: last.closeTime, text: `${s4.aligned} of 5 checks lean ${s4.lean === 'bull' ? 'up' : 'down'} (${agree}).${s4.invalidation ? ' ' + s4.invalidation.text : ''} An observation, not a signal.` })
   }
   // One note per key, newest kept.
   const byKey = new Map<string, ScanNote>()

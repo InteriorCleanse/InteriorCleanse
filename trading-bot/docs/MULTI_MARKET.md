@@ -68,6 +68,19 @@ MRCASH_WATCHLIST="crypto:BTCUSDT,crypto:ETHUSDT,forex:EURUSD,stock:AAPL,index:SP
 MRCASH_MARKETS=0 npm start      # no background scan; the page still loads on demand
 ```
 
+**Setups worth a look.** Each market also gets a five-check setup card, in
+the shape of a chart analysis: trend (the engine's market-state vote),
+momentum (RSI 14 — leans up at 55 or more, down at 45 or less), key levels
+(holding beyond, or raiding and closing back inside, yesterday's high or low),
+volume (1.5× the 20-candle average on a rising or falling candle) and market
+context (the 24-hour move beyond ±0.5%, unless volatility is wild). The card
+shows how many of the five lean the same way and the price that would say the
+lean is wrong. It is a checklist, not a score and not a forecast: "4 of 5 line
+up" means four simple checks agree, nothing more. The first time four or more
+line up on a market that day, the bell says so once. The page's scan overview
+counts markets, observations on the board, alerts raised in 24 hours and
+markets where four or more checks line up.
+
 It cannot trade: `src/markets` has no order path and does not reach the paper
 book, the risk engine or the live gate (a test pins this). Paper-trading a
 crypto pair is still the fleet's job, one isolated engine per market.

@@ -31,7 +31,9 @@ export type MarketsSnapshot = {
   asOf: number
   everyMinutes: number
   rows: MarketRow[]
-  groups: Array<{ kind: MarketKind; label: string; rows: number; live: number }>
+  groups: Array<{ kind: MarketKind; label: string; rows: number; live: number; signals: number; setups: number; top: string | null }>
+  /** The scan overview: markets watched, observations on the board, alerts raised in 24h, markets where 4+ of 5 checks line up. */
+  overview: { markets: number; signals: number; alerts24h: number; setups: number }
   note: string
 }
 
@@ -55,6 +57,7 @@ export class MarketWatch {
   private running: Promise<MarketsSnapshot> | null = null
   private raised = new Set<string>()
   private primed = false
+  private alertTimes: number[] = []
   readonly list: WatchItem[]
 
   private readonly opts: {
@@ -85,7 +88,13 @@ export class MarketWatch {
 
   snapshot(): MarketsSnapshot {
     const groups = (['crypto', 'stock', 'forex', 'index'] as MarketKind[])
-      .map((k) => ({ kind: k, label: GROUP_LABEL[k], rows: this.rows.filter((r) => r.kind === k).length, live: this.rows.filter((r) => r.kind === k && r.scan.status === 'live').length }))
+      .map((k) => {
+        const rs = this.rows.filter((r) => r.kind === k)
+        const lined = rs.filter((r) => r.scan.setup && r.scan.setup.aligned >= 4).sort((a, b) => b.scan.setup!.aligned - a.scan.setup!.aligned)
+        const newest = rs.flatMap((r) => r.scan.notes.map((x) => ({ x, r }))).sort((a, b) => b.x.at - a.x.at)[0]
+        const top = lined[0] ? `${lined[0].label}: ${lined[0].scan.setup!.summary}` : newest ? `${newest.r.label}: ${newest.x.kind.replace('-', ' ')}` : null
+        return { kind: k, label: GROUP_LABEL[k], rows: rs.length, live: rs.filter((r) => r.scan.status === 'live').length, signals: rs.reduce((n, r) => n + r.scan.notes.length, 0), setups: lined.length, top }
+      })
       .filter((g) => g.rows > 0)
     return {
       kind: 'MARKET WATCH',
@@ -94,6 +103,12 @@ export class MarketWatch {
       everyMinutes: this.everyMinutes,
       rows: this.rows,
       groups,
+      overview: {
+        markets: this.rows.length,
+        signals: this.rows.reduce((n, r) => n + r.scan.notes.length, 0),
+        alerts24h: this.alertTimes.filter((t) => this.now() - t < 24 * 3_600_000).length,
+        setups: this.rows.filter((r) => r.scan.setup && r.scan.setup.aligned >= 4).length,
+      },
       note: this.asOf
         ? 'Observations, not signals: Mr. Cash watches these markets and tells you what changed. He paper-trades only the engine\'s own market, and nothing here can place an order.'
         : 'First look still running.',
@@ -149,9 +164,11 @@ export class MarketWatch {
         // The first pass after start-up only learns what is already on the board;
         // replaying hours of old observations into the bell would be noise.
         if (first || now - note.at > 3 * 3_600_000) continue
-        this.opts.alert?.(`${row.label}: ${note.kind.replace('-', ' ')}`, note.text)
+        this.opts.alert?.(`${row.label}: ${note.kind === 'setup' ? 'checks line up' : note.kind.replace('-', ' ')}`, note.text)
+        this.alertTimes.push(now)
       }
     }
     if (this.raised.size > 5000) this.raised = new Set([...this.raised].slice(-2000))
+    this.alertTimes = this.alertTimes.filter((t) => now - t < 24 * 3_600_000)
   }
 }

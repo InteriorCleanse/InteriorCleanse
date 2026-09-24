@@ -69,6 +69,8 @@ Mr. Cash too.
   Unlock and lock are POSTs, so the CSRF and same-origin guard applies.
 - Once the vault is set up, `/api/portfolio` and `/api/portfolio/kraken`
   answer "locked" until it is open. Everything behind the door is read-only.
+- Inside, a switcher shows all accounts or one at a time (Alpaca, Kraken,
+  Paper); the choice is remembered in the browser only.
 
 Code: `src/security/vault.ts`; tests: `test/security/vault.test.ts` (including
 the RFC 6238 test vectors).

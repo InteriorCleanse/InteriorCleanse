@@ -99,8 +99,48 @@ function row(r) {
     <div class="mk-px">${s.price === null ? '<b class="none">—</b>' : `<b>${price(s.price)}</b><span class="${up ? 'up' : 'down'}">${pct(s.changePct24h)}</span>`}</div>
     ${spark(s.spark, up)}
     <div class="mk-state">${s.price === null ? `<span class="mk-why">${esc(r.error || s.statusText)}</span>` : `<span class="mk-trend ${esc(s.trend || '')}">${esc(s.trend ? TREND[s.trend] : 'NOT ENOUGH DATA')}${s.strength !== null ? ` · ${s.strength}/100` : ''}</span><span class="mk-status ${esc(s.status)}">${esc(s.statusText)}</span>`}</div>
+    ${s.setup ? `<details class="mk-row-setup"><summary>${pips(s.setup)} ${esc(s.setup.summary)}</summary>${s.setup.checks.map((c) => `<p class="${c.lean}"><b>${esc(c.label)}</b> ${esc(c.text)}</p>`).join('')}${s.setup.invalidation ? `<p class="inval"><b>Invalidation</b> ${esc(s.setup.invalidation.text)}</p>` : ''}</details>` : ''}
     ${s.notes.length ? `<ul class="mk-notes">${s.notes.slice(0, 2).map((n) => `<li>${esc(n.text)} <time>${new Date(n.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></li>`).join('')}</ul>` : ''}
   </div>`
+}
+
+const LEAN_WORD = { bull: 'leans up', bear: 'leans down', none: 'no clear lean' }
+const CHECK_ICON = {
+  trend: '<path d="m4 16 5-5 4 4 7-8"/><path d="M15 7h5v5"/>',
+  momentum: '<path d="M5 20V12M10 20V8M15 20v-6M20 20V5"/>',
+  levels: '<path d="M4 7h16M4 17h16"/><path d="m8 12 3-3 3 3 3-3"/>',
+  volume: '<rect x="4" y="10" width="3" height="10"/><rect x="10.5" y="5" width="3" height="15"/><rect x="17" y="12" width="3" height="8"/>',
+  context: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.1 3.6 8.5s-1.2 6.2-3.6 8.5"/>',
+}
+const cic = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${CHECK_ICON[k] || ''}</svg>`
+const pips = (st) => `<span class="mk-pips ${st.lean}" aria-label="${st.aligned} of ${st.total} checks line up">${Array.from({ length: st.total }, (_, i) => `<i class="${i < st.aligned ? 'on' : ''}"></i>`).join('')}</span>`
+
+/** The scan overview: what the watch is doing right now, in numbers from the rows. */
+function overview(d) {
+  const o = d.overview || { markets: d.rows.length, signals: 0, alerts24h: 0, setups: 0 }
+  return `<section class="mk-over">
+    <div class="mk-over-hd"><span class="mk-scan"><i></i>Scan ${d.asOf ? 'running' : 'starting'}</span><span>every ${d.everyMinutes} minutes · last ${d.asOf ? new Date(d.asOf).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span></div>
+    <div class="mk-kpis">
+      <div><b>${o.markets}</b><span>markets</span></div>
+      <div><b>${o.signals}</b><span>signals on the board</span></div>
+      <div><b>${o.alerts24h}</b><span>alerts in 24h</span></div>
+      <div><b class="${o.setups ? 'hot' : ''}">${o.setups}</b><span>setups lining up</span></div>
+    </div>
+    <table class="mk-table"><thead><tr><th>Market</th><th>Status</th><th>Signals</th><th>Top result</th></tr></thead><tbody>
+      ${d.groups.map((g) => `<tr><td><i class="mk-ic ${g.kind}">${ic(g.kind)}</i>${esc(g.label)}</td><td><span class="mk-dot ${g.live ? 'on' : ''}"></span>${g.live ? `${g.live}/${g.rows} updating` : 'closed or not connected'}</td><td>${g.signals}</td><td>${g.top ? esc(g.top) : '<span class="muted">nothing yet</span>'}</td></tr>`).join('')}
+    </tbody></table>
+  </section>`
+}
+
+/** One market's checklist, in the shape of the analysis card: five checks, the count, the invalidation. */
+function setupCard(r) {
+  const st = r.scan.setup
+  return `<article class="mk-setup ${st.lean}">
+    <div class="mk-setup-hd"><div><b>${esc(r.label)}</b><span>${esc(r.symbol)} · 1h · ${prov(r.provenance)}</span></div>
+      <div class="mk-q"><span class="mk-lean ${st.lean}">${LEAN_WORD[st.lean]}</span>${pips(st)}<em>${st.aligned} of ${st.total} line up</em></div></div>
+    <div class="mk-checks">${st.checks.map((c) => `<div class="mk-check ${c.lean}"><i>${cic(c.key)}</i><div><b>${esc(c.label)}</b><p>${esc(c.text)}</p></div><span class="mk-arrow" aria-label="${c.lean === 'bull' ? 'leans up' : c.lean === 'bear' ? 'leans down' : 'no lean'}">${c.lean === 'bull' ? '▲' : c.lean === 'bear' ? '▼' : '–'}</span></div>`).join('')}</div>
+    <p class="mk-inval">${st.invalidation ? `<b>Invalidation</b> ${esc(st.invalidation.text)}` : '<b>No lean</b> The checks disagree, so there is nothing to be wrong about yet.'}</p>
+  </article>`
 }
 
 function renderTab(d) {
@@ -108,12 +148,16 @@ function renderTab(d) {
   if (!out) return
   const kinds = ['crypto', 'stock', 'forex', 'index'].filter((k) => d.rows.some((r) => r.kind === k))
   const notes = d.rows.flatMap((r) => r.scan.notes.map((n) => ({ ...n, label: r.label }))).sort((a, b) => b.at - a.at).slice(0, 12)
+  const ranked = d.rows.filter((r) => r.scan.setup && r.scan.setup.lean !== 'none').sort((a, b) => b.scan.setup.aligned - a.scan.setup.aligned).slice(0, 4)
   out.innerHTML = `
     <section class="mk-hero">
       <div><h2>Every market, watched around the clock</h2>
       <p>${esc(d.note)}</p></div>
-      <div class="mk-hero-stats">${d.groups.map((g) => `<span><i class="mk-ic ${g.kind}">${ic(g.kind)}</i>${esc(g.label)} <b>${g.live}/${g.rows}</b> updating</span>`).join('')}</div>
     </section>
+    ${overview(d)}
+    <h3 class="mk-h">Setups worth a look <span>five checks per market — trend, momentum, key levels, volume, context — and where the idea would be wrong. A checklist, not a forecast.</span></h3>
+    ${ranked.length ? `<div class="mk-setups">${ranked.map(setupCard).join('')}</div>` : '<p class="muted mk-none-yet">No market has a clear lean right now. That is an answer too.</p>'}
+    <h3 class="mk-h">Every market</h3>
     <div class="mk-grid">
       ${kinds.map((k) => `<section class="mk-group"><h3><i class="mk-ic ${k}">${ic(k)}</i>${KIND_LABEL[k]}</h3>${d.rows.filter((r) => r.kind === k).map(row).join('')}</section>`).join('')}
     </div>
