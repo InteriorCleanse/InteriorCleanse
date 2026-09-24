@@ -28,7 +28,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://js.stripe.com https://plausible.io",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://images.unsplash.com https://files.cdn.printful.com https://images-api.printify.com https://*.printify.com",
+  "img-src 'self' data: blob: https://images.unsplash.com https://files.cdn.printful.com https://images-api.printify.com https://*.printify.com https://d8j0ntlcm91z4.cloudfront.net",
   "font-src 'self' data:",
   "media-src 'self'",
   "connect-src 'self' https://api.stripe.com https://plausible.io",
