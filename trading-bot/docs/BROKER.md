@@ -43,6 +43,12 @@ Interactive Brokers (which adds futures and forex but is harder to wire).
   shown in the app.
 - Keys are sent only to Alpaca, over HTTPS.
 
+## Keep the balances in the vault
+
+Run `npm run vault:setup` once and your real balances move into the Portfolio
+vault: they show only after your passcode and a code from your authenticator
+app, and the vault locks itself after 15 minutes idle. See docs/SECURITY.md.
+
 ## Kraken (crypto), read-only
 
 `src/broker/kraken.ts` reads your real Kraken balances and the account's total

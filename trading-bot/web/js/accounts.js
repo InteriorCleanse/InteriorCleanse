@@ -18,6 +18,14 @@ async function loadAccounts() {
   const box = document.getElementById('dk-accounts')
   if (!box) return
   try {
+    // Once the vault is set up, real balances live behind it: say so and point there.
+    try {
+      const vs = await fetch('/api/vault/status'); const vj = await vs.json()
+      if (vj.ok && vj.data.configured && !vj.data.open) {
+        box.innerHTML = `<div class="dk-accounts-head"><b>Your accounts</b><span>read-only — he can see them, never trade them</span></div><div class="dk-acct-row"><div class="dk-acct"><b>Locked in the vault</b><span class="muted">Real balances open with your passcode and a code from your authenticator app.</span><button class="btn ghost" data-tab="portfolio">Open the vault</button></div></div>`
+        return
+      }
+    } catch { /* no vault route: fall through to the plain list */ }
     const r = await fetch('/api/brokers'); const j = await r.json()
     if (!j.ok) throw new Error(j.error || 'could not read the broker list')
     const linked = j.data.brokers.filter((b) => b.configured && b.route && READ_ONLY_ROUTE.test(b.route))
