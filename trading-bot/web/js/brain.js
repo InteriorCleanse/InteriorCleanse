@@ -34,7 +34,7 @@
  * same brain.
  */
 (() => {
-  const C = { iris: '139,147,255', aqua: '92,225,230', mint: '74,222,154', coral: '255,107,122', amber: '255,192,97', grey: '112,121,156', text: '238,241,251', dim: '154,163,194' }
+  const C = { iris: '139,147,255', aqua: '92,225,230', spark: '196,246,255', mint: '74,222,154', coral: '255,107,122', amber: '255,192,97', grey: '112,121,156', text: '238,241,251', dim: '154,163,194' }
   const FONT = "'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
   const AGENT_STATE = {
     LIVE: { col: C.aqua, label: 'reading', speed: 0.42, n: 2, alpha: 1 },
@@ -45,6 +45,7 @@
   const CAM = 4.2 // camera distance, in brain half-lengths: enough perspective to read as solid
   const PITCH_REST = 0.26
   const AUTO_YAW = 0.14 // radians a second: one slow turn in about 45 s
+  const hash = (n) => frac(Math.sin(n * 12.9898 + 78.233) * 43758.5453) // deterministic, not random
   const LEVELS = 14
   const LIGHT = (() => { const v = [-0.45, 0.65, 0.62], l = Math.hypot(...v); return v.map((c) => c / l) })()
 
@@ -107,8 +108,9 @@
 
   function buildModel() {
     const rnd = seeded(20260924)
-    const pts = [], segs = []
+    const pts = [], segs = [], folds = []
     const line = (list, base, kind) => {
+      if (kind === 0) folds.push([pts.length, pts.length + list.length - 1])
       list.forEach((q, k) => {
         pts.push({ x: q.x, y: q.y, z: q.z, n: q.n || null, base: q.medial ? base * 0.5 : base, kind })
         if (k) segs.push(pts.length - 2, pts.length - 1)
@@ -148,8 +150,15 @@
       line(col, 0.18, 3)
     }
     const core = { x: 0, y: 0.02, z: 0.02 }
-    for (const p of pts) p.dc = Math.hypot(p.x - core.x, p.y - core.y, p.z - core.z)
-    return { pts, segs: Int32Array.from(segs), core }
+    // A second generator for the life in it, so the shape above never moves.
+    const life = seeded(99173)
+    for (const p of pts) {
+      p.dc = Math.hypot(p.x - core.x, p.y - core.y, p.z - core.z)
+      p.tw = life() * Math.PI * 2; p.ts = 0.7 + life() * 2.2
+    }
+    // Motes: specks of light drifting round the brain on slow orbits.
+    const motes = Array.from({ length: 54 }, () => ({ r: 1.08 + life() * 0.5, a: life() * Math.PI * 2, y: (life() * 2 - 1) * 0.75, w: (0.04 + life() * 0.1) * (life() > 0.5 ? 1 : -1), bob: life() * 6, sz: 0.8 + life() * 1.4 }))
+    return { pts, segs: Int32Array.from(segs), folds, motes, core }
   }
 
   // Strategy neurons: seeded places deep in the volume, alternating
@@ -166,7 +175,7 @@
       model.pts.forEach((q, k) => {
         if (q.kind !== 0 && q.kind !== 4) return
         const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2 + (q.z - p.z) ** 2
-        if (dd < 0.12) near.push(k, Math.exp(-dd / 0.03))
+        if (dd < 0.36) near.push(k, Math.sqrt(dd))
       })
       const mid = { x: (p.x + model.core.x) / 2, y: (p.y + model.core.y) / 2 + 0.16, z: (p.z + model.core.z) / 2 }
       return { v, p, mid, near, phase: frac(i * 0.618034) }
@@ -242,12 +251,15 @@
     cam.lastT = tMs
 
     // The turn: a slow drift, plus whatever momentum a drag left behind.
+    // It never turns like a turntable: the speed swells and eases, and the head
+    // nods a little, the way something alive holds itself.
     if (!reduced && !cam.dragging) {
-      cam.yaw += (AUTO_YAW + cam.vyaw) * dt
+      cam.yaw += (AUTO_YAW * (1 + 0.4 * Math.sin(sec * 0.13)) + cam.vyaw) * dt
       cam.vyaw *= Math.pow(0.06, dt)
-      cam.pitch += (PITCH_REST - cam.pitch) * (1 - Math.pow(0.4, dt))
+      const rest = PITCH_REST + 0.07 * Math.sin(sec * 0.21) + 0.03 * Math.sin(sec * 0.53)
+      cam.pitch += (rest - cam.pitch) * (1 - Math.pow(0.4, dt))
     }
-    const breath = reduced ? 1 : 1 + 0.018 * Math.sin(sec * 1.1)
+    const breath = reduced ? 1 : 1 + 0.024 * Math.sin(sec * 1.1) + 0.006 * Math.sin(sec * 2.3)
     const focus = st.focus || hover
     const dirCol = st.core.direction === 'long' ? C.mint : st.core.direction === 'short' ? C.coral : C.iris
     const core = project(model.core, g, breath)
@@ -268,17 +280,41 @@
       const speed = voting ? 0.28 + 0.55 * conf : 0.12
       const count = voting ? 1 + Math.round(conf * 2) : 1
       const since = (frac(sec * speed * count + n.phase) / (speed * count))
-      if (since < 0.9) firing.push({ n, amt: Math.exp(-since / 0.3) * (voting ? 1 : 0.45), col: voteCol(v) })
+      if (since < 1.3) firing.push({ n, since, amt: Math.exp(-since / 0.3) * (voting ? 1 : 0.45), wave: Math.exp(-since / 0.55) * (voting ? 0.85 : 0.35), col: voteCol(v) })
     }
     const lit = new Float32Array(model.pts.length)
     const litCol = new Uint8Array(model.pts.length)
+    // A firing neuron flashes the cortex beside it, then a ring of light spreads out across it.
     firing.forEach((fz, j) => {
-      const near = fz.n.near
+      const near = fz.n.near, r = 0.06 + fz.since * 0.5
       for (let k = 0; k < near.length; k += 2) {
-        const add = fz.amt * near[k + 1]
+        const d = near[k + 1]
+        const add = fz.amt * Math.exp(-(d * d) / 0.03) + fz.wave * Math.exp(-Math.pow((d - r) / 0.045, 2))
         if (add > lit[near[k]]) { lit[near[k]] = add; litCol[near[k]] = j + 1 }
       }
     })
+
+    // Sparks: signals racing along the folds. How many run follows how many
+    // models are reporting right now; where they run is dressing.
+    const spark = new Float32Array(model.pts.length)
+    const heads = []
+    if (!reduced) {
+      const talking = st.agents.filter((a) => a.status === 'LIVE' || a.status === 'PARTIAL').length + st.votes.filter((v) => v.weight !== 0).length
+      const nSpark = Math.min(90, 16 + talking * 7)
+      const F = model.folds
+      for (let k = 0; k < nSpark; k++) {
+        const rate = 0.45 + hash(k) * 0.7, cyc = sec * rate + hash(k + 500) * 7
+        const f = F[Math.floor(hash(k * 3 + Math.floor(cyc) * 17) * F.length)]
+        const len = f[1] - f[0], TAIL = 7
+        const head = frac(cyc) * (len + TAIL)
+        const fade = Math.sin(Math.PI * frac(cyc))
+        for (let j = Math.max(0, Math.floor(head - TAIL)); j <= Math.min(len, Math.floor(head)); j++) {
+          const v = (1 - (head - j) / TAIL) * fade
+          if (v > spark[f[0] + j]) spark[f[0] + j] = v
+        }
+        if (head <= len) heads.push({ i: f[0] + Math.floor(head), a: fade })
+      }
+    }
 
     // The cortex. Every vertex is lit once, then the folds are stroked and the
     // dust is dotted in buckets of colour and brightness, so a frame is a few
@@ -307,9 +343,11 @@
         shade = (nz2 > 0 ? 0.35 + 0.9 * lam : 0.2) + 0.7 * rim
       }
       const wave = waveR < 0 ? 0 : waveA * Math.exp(-Math.pow((p.dc - waveR) / 0.07, 2))
-      const fire = lit[i]
-      LUM[i] = clamp((p.base * shade + wave * 0.6) * depth + fire * 0.85, 0, 1)
-      COL[i] = fire > 0.12 ? firing[litCol[i] - 1].col : wave > p.base * 0.5 ? C.aqua : C.iris
+      const fire = lit[i], spk = spark[i]
+      // Dust twinkles, each speck on its own slow beat.
+      const tw = reduced || (p.kind !== 4 && p.kind !== 1) ? 1 : 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(sec * p.ts + p.tw))
+      LUM[i] = clamp(((p.base * shade + wave * 0.6) * tw) * depth + fire * 0.85 + spk * 0.8 * (0.45 + 0.55 * depth), 0, 1)
+      COL[i] = fire > 0.12 ? firing[litCol[i] - 1].col : spk > 0.3 ? C.spark : wave > p.base * 0.5 ? C.aqua : C.iris
     }
     const lines = new Map(), dots = new Map()
     const bucket = (m, col, lum) => {
@@ -348,6 +386,24 @@
       ctx.fill(path)
     }
     ctx.lineCap = 'butt'
+    // The bright tip of each spark.
+    for (const hd of heads) {
+      const x = SX[hd.i], y = SY[hd.i], r = 5.5 * DD[hd.i]
+      const a = hd.a * clamp(LUM[hd.i] + 0.2, 0.3, 1)
+      const gr = ctx.createRadialGradient(x, y, 0, x, y, r)
+      gr.addColorStop(0, `rgba(255,255,255,${(0.9 * a).toFixed(3)})`); gr.addColorStop(0.4, `rgba(${C.spark},${(0.5 * a).toFixed(3)})`); gr.addColorStop(1, `rgba(${C.spark},0)`)
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+    }
+    // Motes drifting round the outside.
+    if (!reduced) {
+      for (const m of model.motes) {
+        const a = m.a + sec * m.w
+        const q = project({ x: Math.cos(a) * m.r, y: m.y + 0.05 * Math.sin(sec * 0.6 + m.bob), z: Math.sin(a) * m.r * 1.15 }, g, breath)
+        const al = clamp(0.12 + 0.35 * (q.z + 1.4) / 2.8, 0.08, 0.5) * (0.6 + 0.4 * Math.sin(sec * 1.3 + m.bob))
+        ctx.fillStyle = `rgba(${C.aqua},${al.toFixed(3)})`
+        ctx.beginPath(); ctx.arc(q.x, q.y, m.sz * q.d, 0, Math.PI * 2); ctx.fill()
+      }
+    }
 
     hits = []
     let arrive = 0
@@ -418,8 +474,16 @@
       hits.push({ id: v.id, x: q.x, y: q.y, r: Math.max(8, r + 4), z: q.z, lines: [shortName(v.name), off ? 'switched off in this regime' : voting ? `${v.action.toLowerCase()} · confidence ${Math.round(conf * 100)}` : 'hold · no vote this candle', `regime weight ${Number(v.weight).toFixed(2)}`], col })
     }
 
-    // The core: glow that brightens as pulses land, the agreement arc, the act-at tick.
+    // Orbits round the core: two tilted rings, each with a bead of light running on it.
     ctx.globalCompositeOperation = 'lighter'
+    for (let o = 0; o < 2; o++) {
+      const tilt = o ? 1.1 : -0.5, R3 = 0.19 + o * 0.05, spin = reduced ? 0 : sec * (o ? -0.9 : 0.7)
+      const at = (u) => { const cx = Math.cos(u) * R3, cz = Math.sin(u) * R3; return project({ x: model.core.x + cx, y: model.core.y + cz * Math.sin(tilt), z: model.core.z + cz * Math.cos(tilt) }, g, breath) }
+      ctx.beginPath()
+      for (let k = 0; k <= 48; k++) { const q = at((k / 48) * Math.PI * 2); k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y) }
+      ctx.strokeStyle = `rgba(${dirCol},0.22)`; ctx.lineWidth = 1; ctx.setLineDash([2, 5]); ctx.stroke(); ctx.setLineDash([])
+      comet(ctx, (ss) => at(spin + ss * 2.4), 1, dirCol, 0.8, 2.2)
+    }
     const glow = 0.35 + Math.min(0.45, arrive * 0.12)
     const cg = ctx.createRadialGradient(core.x, core.y, 0, core.x, core.y, 66)
     cg.addColorStop(0, `rgba(${dirCol},${glow.toFixed(3)})`); cg.addColorStop(0.4, `rgba(${dirCol},${(glow * 0.35).toFixed(3)})`); cg.addColorStop(1, `rgba(${dirCol},0)`)
