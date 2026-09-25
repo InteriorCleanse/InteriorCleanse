@@ -18,9 +18,9 @@
  *
  * The port comes from the kernel (`listen(0)`) instead of a dice roll, the port
  * is checked to be silent before we spawn, liveness is checked before the probe
- * rather than after it, and a child that loses the port is caught by a settle
- * window — measured at 444/464/481ms to exit, with empty stderr, so the exit
- * code is the only evidence available.
+ * rather than after it, and the server that answers must report the data
+ * directory we gave our child. That identity check replaced a fixed 1000ms
+ * "wait for the loser to die" window, which a cold machine could outlast.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

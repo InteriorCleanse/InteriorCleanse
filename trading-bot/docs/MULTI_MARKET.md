@@ -21,11 +21,33 @@ MRCASH_SYMBOLS=BTCUSDT,ETHUSDT,SOLUSDT,ADAUSDT npm run fleet
 MRCASH_DATA_DIR=./data-soak MRCASH_PORT=4173 npm run fleet
 ```
 
+### Around the clock
+
+Double-click **`start-fleet-24-7.bat`** (Windows) or **`start-fleet-24-7.command`**
+(Mac) next to the normal `start-24-7` window. The BTC window keeps its own
+record, the frozen validation run; the fleet window adds ETH, SOL, BNB and XRP
+on ports 4174 to 4177, with records in `data-fleet/<SYMBOL>`. Set
+`MRCASH_SYMBOLS` first to choose other pairs.
+
+- A market whose engine stops is restarted on its own after 10 seconds, then
+  20, 40 and so on up to five minutes if it keeps falling over. The wait resets
+  once it has stayed up for ten minutes.
+- If the whole fleet window stops, the launcher restarts it too.
+- Only one all-markets scan runs (the BTC window's). Every fleet lane runs with
+  `MRCASH_MARKETS=0`, so the feeds are not asked the same questions five times.
+- A lane never inherits `MRCASH_LIVE`, whatever the shell holds. Every lane is
+  PAPER.
+
 Each market gets:
 - its own **full engine** — watch loop, paper record, research, learning, ops;
 - its own **data-dir lane** (`<MRCASH_DATA_DIR>/<SYMBOL>`), so records never
   collide and the one-process-per-directory lock holds per market;
-- its own **web app** on its own port (printed on start).
+- its own **web app** on its own port (printed on start);
+- its own **self-learning**: the observer records every candle's events and the
+  research scheduler re-reads that market's record every 15 minutes (failures,
+  drift, the research queue, daily and weekly reviews). Home shows the count of
+  research runs, when the last and next run are, and how many candles it has
+  observed. It writes lessons; it never changes how the engine trades.
 
 The default watchlist is five majors. Running literally hundreds of pairs at
 once is not practical on one machine — each engine keeps its own streams and

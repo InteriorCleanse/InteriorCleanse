@@ -17,7 +17,7 @@ import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -181,26 +181,28 @@ export async function startBot(feeds: MockFeeds, opts: { dir?: string; env?: Rec
   })
   let stderr = ''
   child.stderr?.on('data', (d) => { stderr += String(d) })
-  let up = false
+  // Identity, not timing: the server that answers must report OUR data
+  // directory. This used to be a fixed 1000ms wait for a child that lost the
+  // port to die, which a cold or busy machine could outlast (it did, right after
+  // a container restart), letting a foreign server pass for ours.
+  const same = (a: string, b: string) => { try { return realpathSync(a) === realpathSync(b) } catch { return a === b } }
+  let up = false, foreign: string | null = null
   for (let i = 0; i < 150; i++) {
     // Liveness first: a dead child can never be the thing answering us.
     if (child.exitCode !== null) throw new Error(`server exited early (code ${child.exitCode}): ${stderr}`)
     try {
       const r = await fetch(`${base}/api/health`)
-      if (r.ok) { up = true; break }
+      if (r.ok) {
+        const got = ((await r.json().catch(() => null)) as { data?: { dataDir?: string } } | null)?.data?.dataDir
+        if (got && same(got, dir)) { up = true; break }
+        foreign = got ?? 'no data directory reported'
+        break
+      }
     } catch { /* not up yet */ }
     await new Promise((r) => setTimeout(r, 200))
   }
+  if (foreign !== null) { child.kill('SIGKILL'); throw new Error(`something else is answering on ${base} — it is not ours (${foreign}); our server could not bind`) }
   if (!up) { child.kill('SIGKILL'); throw new Error(`server never became healthy on ${base} after 30s: ${stderr}`) }
-  // A child that lost the port answers nothing and dies — but not instantly, and
-  // meanwhile the winner answers the probe on its behalf. Measured here: a child
-  // that cannot bind exits code 1 after 444/464/481ms, with EMPTY stderr, so the
-  // exit code is the only evidence there is. Waiting 1000ms covers that with
-  // room to spare; it costs a second on the two calls that use this helper, and
-  // it is the difference between a loud failure and a whole file quietly
-  // asserting against someone else's server.
-  await new Promise((r) => setTimeout(r, 1000))
-  if (child.exitCode !== null) throw new Error(`something else is answering on ${base} — our server could not bind and exited (code ${child.exitCode})${stderr ? `: ${stderr}` : ' with no stderr'}`)
   let cachedToken = ''
   const token = async () => {
     if (!cachedToken) cachedToken = ((await (await fetch(`${base}/api/config`)).json()) as { csrf: string }).csrf

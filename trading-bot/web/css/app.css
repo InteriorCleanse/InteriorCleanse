@@ -1770,3 +1770,11 @@ button.btn.vx-open:hover:not(:disabled) { background:linear-gradient(180deg, #ff
 .mk-fold-sum { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; color:var(--dim); font-size:13px; }
 .mk-fold-note { margin:0 16px 12px; color:var(--dim); font-size:13px; }
 .mk-setups-fold .mk-setups { padding:0 12px 12px; }
+
+/* Self-learning line on Home */
+.hm-learn { display:flex; align-items:flex-start; gap:9px; margin:14px 0 0; font-size:12.5px; color:var(--dim); line-height:1.45; }
+.hm-learn i { flex:none; width:7px; height:7px; margin-top:5px; border-radius:50%; background:var(--aqua); box-shadow:0 0 0 0 rgba(var(--aqua-rgb),.5); animation:hm-learn-pulse 2.4s var(--ease) infinite; }
+.hm-learn b { color:var(--text); font-weight:600; }
+.hm-learn b.warn { color:var(--amber); }
+@keyframes hm-learn-pulse { 0% { box-shadow:0 0 0 0 rgba(var(--aqua-rgb),.45); } 70% { box-shadow:0 0 0 7px rgba(var(--aqua-rgb),0); } 100% { box-shadow:0 0 0 0 rgba(var(--aqua-rgb),0); } }
+@media (prefers-reduced-motion: reduce) { .hm-learn i { animation:none; } }

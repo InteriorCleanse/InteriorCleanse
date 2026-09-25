@@ -298,3 +298,14 @@ test('the core only draws: no fetches, no randomness, no order paths, and it nam
   const attach = desk.slice(desk.indexOf('function attachBrain'), desk.indexOf('function attachBrain') + 1200)
   assert.equal(/fetch\(|\/api\/|showTab|\.click\(\)/.test(attach), false, 'a click on the core only scrolls to the model it names')
 })
+
+test('Home shows self-learning from the research scheduler\'s own state, and it promises nothing', () => {
+  const server = readFileSync(join(ROOT, 'src', 'server.ts'), 'utf8')
+  assert.match(server, /const ops = learn\.opsState\(\)/, 'the line reads the scheduler\'s saved state, not a guess')
+  assert.match(server, /data: \{ \.\.\.desk, learning \}/)
+  const desk = readFileSync(join(ROOT, 'web', 'js', 'desk.js'), 'utf8')
+  const fn = desk.slice(desk.indexOf('function learningLine'), desk.indexOf('function homeHero'))
+  assert.ok(fn.length > 50)
+  assert.equal(/profit|proven|guarantee|edge/i.test(fn), false, 'no profitability language')
+  assert.match(fn, /never changes how he trades/)
+})
