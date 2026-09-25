@@ -1,0 +1,33 @@
+# Gitleaks configuration for AURELIS OS.
+#
+# Keeps the full default ruleset — this only ADDS an allowlist, it does not
+# replace the rules that catch a real leaked key.
+#
+# Two documented false positives are allowed, nothing broader:
+#
+#  1. tests/readiness.test.ts assigns obvious placeholder credentials
+#     (sk-test-placeholder-000, whsec-placeholder-000, sk_live_placeholder) to
+#     exercise the deployment-readiness check. They are fixtures, and that
+#     test's whole purpose is asserting no key material reaches the report.
+#
+#  2. PostHog project keys (the `phc_` prefix) are public, write-only analytics
+#     ingestion keys that PostHog designs to ship in client code. One appears in
+#     a vendored third-party skill (.claude/skills/media-use), whose own comment
+#     documents it as "a write-only ingestion key, safe to ship". The generic
+#     high-entropy rule flags it; it is not a secret.
+#
+# Scoped narrowly — a real key (sk_live, a token, a private key) committed
+# anywhere still fails the build.
+title = "AURELIS gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder test fixtures and public write-only PostHog project keys — not real secrets."
+paths = [
+  '''tests/readiness\.test\.ts''',
+]
+regexes = [
+  '''phc_[A-Za-z0-9]{40,}''',
+]

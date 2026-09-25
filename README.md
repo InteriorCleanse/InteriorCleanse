@@ -4,7 +4,9 @@ A multi-tenant subscription business operating system: connect a business's real
 data, calculate profit that can be traced back to source records, and talk to an
 analyst that answers from that data.
 
-**Status: Checkpoint 1 of 8 — identity and tenancy.** See
+**Status: all eight checkpoints have had their substantive work done; three
+remain partly open and say exactly what is missing.** See
+`docs/LAUNCH_CHECKLIST.md` for what still blocks taking real customer data, and
 `docs/IMPLEMENTATION_PLAN.md` for what is done and what is next.
 
 `AURELIS OS` and `Aurelis` are working names set by environment variables, not
@@ -25,6 +27,17 @@ honest *Not Configured* state rather than failing or faking data.
 ```bash
 npm run verify   # lint → typecheck → test → build
 ```
+
+Tenant isolation is proved separately, against a real database — no TypeScript
+test can prove a database guarantee:
+
+```bash
+createdb aurelis_test
+RLS_TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5432/aurelis_test npm run test:rls
+```
+
+Any Postgres 14+ works; `tests/sql/supabase-shim.sql` supplies the `auth` schema
+and roles Supabase would. Without the variable the suite skips and says so.
 
 ## Database setup
 
@@ -94,6 +107,6 @@ and includes a third-party review that has not happened.
 | `docs/SECURITY.md` | Threat model, isolation, secrets, open items |
 | `docs/INTEGRATIONS.md` | Connector contract and priority |
 | `docs/IMPLEMENTATION_PLAN.md` | Checkpoint status |
-| `docs/TEST_PLAN.md` | What runs, and the RLS tests that need a live database |
+| `docs/TEST_PLAN.md` | What runs, including the tenant-isolation suite and how it is kept honest |
 | `docs/LAUNCH_CHECKLIST.md` | Honest gate list |
 | `docs/reference-audit.md` | Reference material audit |

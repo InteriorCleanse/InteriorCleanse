@@ -1,7 +1,12 @@
 import Link from 'next/link'
-import { branding } from '@/lib/env'
+import { branding, isAssistantConfigured } from '@/lib/env'
+import { can } from '@/lib/authz'
 import { requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
+import { AssistantDock } from '@/components/assistant/AssistantDock'
+import { ThemeSwitcher } from '@/components/ThemeSwitcher'
+import { CommandPalette } from '@/components/CommandPalette'
+import { CommandHint } from '@/components/CommandHint'
 
 // These segments resolve the session from cookies on every request, so there
 // is nothing meaningful to prerender — and prerendering would evaluate the
@@ -12,6 +17,15 @@ export const metadata = { robots: { index: false, follow: false } }
 
 const NAV = [
   { href: '/app/command-center', label: 'Command center' },
+  { href: '/app/revenue', label: 'Revenue' },
+  { href: '/app/pipeline', label: 'Pipeline' },
+  { href: '/app/products', label: 'Products' },
+  { href: '/app/briefings', label: 'Briefings' },
+  { href: '/app/knowledge', label: 'Knowledge' },
+  { href: '/app/import', label: 'Import' },
+  { href: '/app/integrations', label: 'Integrations' },
+  { href: '/app/notifications', label: 'Notifications' },
+  { href: '/app/billing', label: 'Billing' },
   { href: '/app/onboarding', label: 'Onboarding' },
 ]
 
@@ -54,11 +68,34 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Sign out
               </button>
             </form>
+            <CommandHint />
+            <ThemeSwitcher />
           </nav>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">{children}</main>
+
+      <CommandPalette nav={NAV} />
+
+      {/* The dock rides every app screen: the questions it answers are asked
+          while looking at a number, not on a separate page. */}
+      {active ? (
+        <AssistantDock
+          workspaceName={active.name}
+          isDemo={active.isDemo}
+          assistantName={branding.assistantName()}
+          configured={isAssistantConfigured()}
+          canApproveActions={can(
+            {
+              userId: session.userId,
+              tenantRole: active.role,
+              platformRole: session.platformRole,
+            },
+            'assistant:approve_action',
+          )}
+        />
+      ) : null}
     </div>
   )
 }

@@ -9,13 +9,25 @@
   --panel-raised: 245 245 244;
   --hairline: 214 211 209;
   --ink: 28 25 23;
-  --muted: 120 113 108;
-  --signal: 8 145 178;
+  /* muted, signal and amber are used as body-size text, so they are held at
+     WCAG AA 4.5:1 against every surface — including the raised panel, which is
+     the darkest light-theme background and the one that fails first. The
+     values are the lightest that pass, found by tests/contrast.test.ts, and
+     that test refuses any regression. */
+  --muted: 116 109 104;
+  --signal: 7 120 148;
   --cobalt: 37 99 235;
-  --amber: 180 120 20;
+  --amber: 150 100 16;
   --positive: 21 128 61;
   --negative: 190 50 42;
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Categorical series slots — validated for colour-vision separation.
+     Fixed order, never cycled; past four, fold into "Other". */
+  --series-1: 42 120 214;
+  --series-2: 235 104 52;
+  --series-3: 27 175 122;
+  --series-4: 237 161 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +43,10 @@
     --amber: 232 168 74;
     --positive: 74 222 128;
     --negative: 248 113 113;
+    --series-1: 57 135 229;
+    --series-2: 217 89 38;
+    --series-3: 25 158 112;
+    --series-4: 201 133 0;
   }
 }
 
@@ -46,6 +62,36 @@
   --amber: 232 168 74;
   --positive: 74 222 128;
   --negative: 248 113 113;
+  /* The series slots were missing from this block, so an explicit dark toggle
+     rendered charts with the light-tuned hues on a dark ground. The two dark
+     blocks are now asserted identical by tests/contrast.test.ts. */
+  --series-1: 57 135 229;
+  --series-2: 217 89 38;
+  --series-3: 25 158 112;
+  --series-4: 201 133 0;
+}
+
+/* ── Arch: the signature futuristic theme, and the default ──────────────
+   A near-black violet ground with electric-violet and azure primaries,
+   aurora-mint for good and hot-pink for bad. Every text token below is held
+   to WCAG AA 4.5:1 on all three surfaces by tests/contrast.test.ts, exactly
+   like light and dark — the default look does not get to skip the bar. */
+:root[data-theme='arch'] {
+  --ground: 8 8 16;
+  --panel: 16 16 28;
+  --panel-raised: 24 22 40;
+  --hairline: 60 56 96;
+  --ink: 236 234 252;
+  --muted: 158 158 190;
+  --signal: 167 148 255;
+  --cobalt: 96 165 255;
+  --amber: 255 190 110;
+  --positive: 74 240 190;
+  --negative: 255 110 150;
+  --series-1: 139 122 255;
+  --series-2: 45 212 218;
+  --series-3: 240 110 200;
+  --series-4: 240 180 90;
 }
 
 * { box-sizing: border-box; }
@@ -67,6 +113,120 @@ body {
     radial-gradient(60rem 30rem at 15% -10%, rgb(var(--signal) / 0.10), transparent 60%),
     radial-gradient(50rem 26rem at 92% 4%, rgb(var(--cobalt) / 0.10), transparent 60%);
 }
+
+/* ── Arch chrome ────────────────────────────────────────────────────────
+   The HUD atmosphere, scoped to the theme so light and dark are untouched.
+   The motion is deliberate: everything that moves — the drifting grid, the
+   breathing aurora — sits BEHIND the content on a negative z-index, so it
+   reads as depth and never touches the contrast of anything you read. There
+   is no scanline blend over text. All of it freezes under reduced-motion. */
+:root[data-theme='arch'] body {
+  background:
+    radial-gradient(72rem 42rem at 6% -12%, rgb(var(--signal) / 0.16), transparent 58%),
+    radial-gradient(60rem 38rem at 110% -6%, rgb(var(--cobalt) / 0.13), transparent 55%),
+    radial-gradient(82rem 60rem at 50% 122%, rgb(240 110 200 / 0.08), transparent 60%),
+    rgb(var(--ground));
+  background-attachment: fixed;
+}
+
+/* Grid field, behind everything, slowly drifting one cell for a living feel. */
+:root[data-theme='arch'] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(var(--signal) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--signal) / 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask: radial-gradient(130% 100% at 50% 0%, #000 52%, transparent 100%);
+  mask: radial-gradient(130% 100% at 50% 0%, #000 52%, transparent 100%);
+  animation: arch-grid-drift 26s linear infinite;
+}
+@keyframes arch-grid-drift {
+  to { background-position: 46px 46px; }
+}
+
+/* Aurora: two soft light sweeps that breathe and turn behind the content.
+   Blurred, low-opacity, oversized so its edges never show — pure atmosphere. */
+:root[data-theme='arch'] body::after {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    conic-gradient(from 0deg at 30% 25%, transparent 0deg, rgb(var(--signal) / 0.12) 55deg, transparent 130deg),
+    conic-gradient(from 200deg at 75% 78%, transparent 0deg, rgb(var(--cobalt) / 0.11) 65deg, transparent 150deg);
+  filter: blur(46px);
+  opacity: 0.65;
+  animation: arch-aurora 48s ease-in-out infinite;
+}
+@keyframes arch-aurora {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(16deg) scale(1.12); }
+}
+
+/* Every Panel gets a neon edge and a lift. `.shadow-panel` is the panel class. */
+:root[data-theme='arch'] .shadow-panel {
+  border-color: rgb(var(--signal) / 0.22);
+  box-shadow:
+    0 0 0 1px rgb(var(--signal) / 0.06),
+    0 18px 40px -26px rgb(0 0 0 / 0.9),
+    0 0 34px -20px rgb(var(--signal) / 0.55);
+}
+
+/* The assistant launcher reads as an arc reactor: a pulsing signal glow. */
+:root[data-theme='arch'] .assistant-orb {
+  border-color: rgb(var(--signal) / 0.5);
+  box-shadow:
+    0 0 24px -6px rgb(var(--signal) / 0.7),
+    inset 0 0 12px -6px rgb(var(--signal) / 0.6);
+  animation: aurelis-orb 3s ease-in-out infinite;
+}
+@keyframes aurelis-orb {
+  50% {
+    box-shadow:
+      0 0 36px -4px rgb(var(--signal) / 0.9),
+      inset 0 0 16px -4px rgb(var(--signal) / 0.85);
+  }
+}
+
+/* The reactor core inside the launcher — concentric rings and a pulsing
+   centre, built from tokens so it reads in every theme, brightest in arch
+   where the button also glows. */
+.assistant-reactor {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+}
+.assistant-reactor-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgb(var(--signal) / 0.55);
+}
+.assistant-reactor-ring::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed rgb(var(--signal) / 0.35);
+  animation: aurelis-orb-spin 9s linear infinite;
+}
+.assistant-reactor-core {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--signal));
+  box-shadow: 0 0 10px rgb(var(--signal));
+  animation: aurelis-core 2.6s ease-in-out infinite;
+}
+@keyframes aurelis-orb-spin { to { transform: rotate(360deg); } }
+@keyframes aurelis-core { 50% { transform: scale(1.35); filter: brightness(1.3); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

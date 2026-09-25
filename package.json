@@ -12,26 +12,32 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "keygen": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+    "keygen": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+    "harness": "vitest run --config vitest.harness.config.mts",
+    "test:rls": "vitest run tests/rls.integration.test.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.47.10",
     "next": "^16.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.0",
+    "pg": "^8.23.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.11"
   }
 }

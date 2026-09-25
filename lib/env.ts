@@ -27,6 +27,20 @@ const serverSchema = z.object({
   PLATFORM_OWNER_EMAILS: z.string().default(''),
 })
 
+/**
+ * Assistant configuration is validated separately from the rest of the server
+ * env. Without it the product is still a working analytics workspace — the
+ * dashboards, imports and briefings all compute locally — so a missing model
+ * key must degrade one surface, not break the boot.
+ */
+const assistantSchema = z.object({
+  ANTHROPIC_API_KEY: z.string().min(20),
+  ASSISTANT_MODEL: z.string().default('claude-opus-5'),
+  ASSISTANT_MAX_TOKENS: z.coerce.number().int().min(1_024).max(32_000).default(8_000),
+})
+
+export type AssistantEnv = z.infer<typeof assistantSchema>
+
 export type PublicEnv = z.infer<typeof publicSchema>
 export type ServerEnv = z.infer<typeof serverSchema>
 
@@ -66,6 +80,25 @@ export function serverEnv(): ServerEnv {
   })
   if (!parsed.success) fail('server', parsed.error)
   return parsed.data
+}
+
+/** Server-only assistant configuration. Throws if reached from a client bundle. */
+export function assistantEnv(): AssistantEnv {
+  if (typeof window !== 'undefined') {
+    throw new Error('assistantEnv() was called in the browser. This is a bug — it reads a secret.')
+  }
+  const parsed = assistantSchema.safeParse({
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    ASSISTANT_MODEL: process.env.ASSISTANT_MODEL,
+    ASSISTANT_MAX_TOKENS: process.env.ASSISTANT_MAX_TOKENS,
+  })
+  if (!parsed.success) fail('assistant', parsed.error)
+  return parsed.data
+}
+
+/** True when the assistant can call a model — lets the dock explain itself when it cannot. */
+export function isAssistantConfigured(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY)
 }
 
 /** True when Supabase is configured — lets surfaces render an honest Not Configured state. */

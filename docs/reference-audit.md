@@ -39,7 +39,7 @@ carried over and what did not.
 | Reading integration keys from `process.env` | Fatal for multi-tenancy. One business's keys in the process environment cannot be scoped per customer. Replaced by per-tenant credentials in the database. |
 | A single shared admin password + HMAC cookie | Adequate for one owner; unusable for many customers with teams and roles. Replaced by Supabase Auth plus eight roles across two permission domains. |
 | App-layer-only access checks | Every query becomes a place to forget a filter. Replaced by Postgres RLS as the enforcement layer. |
-| The "JARVIS" name and Iron Man visual language | Marvel/Disney trademark and trade dress. Unacceptable in a product that is branded, marketed, and sold. Replaced by an original identity that is configurable via environment variables. |
+| The "Arch" name and Iron Man visual language | Marvel/Disney trademark and trade dress. Unacceptable in a product that is branded, marketed, and sold. Replaced by an original identity that is configurable via environment variables. |
 | Any code, asset, or copy | This is a separate product with separate ownership. Nothing was copied. |
 
 ## How this specification improves on the reference

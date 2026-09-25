@@ -12,9 +12,18 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
+// Arch is the default look. The inline script runs before paint so there is
+// no flash: it honours a saved choice from a future theme switcher, and falls
+// back to arch. Wrapped in try/catch because storage can throw in private
+// windows, and a theme preference is never worth failing a page load over.
+const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem('aurelis-theme');document.documentElement.setAttribute('data-theme',t||'arch')}catch(e){document.documentElement.setAttribute('data-theme','arch')}})()`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="arch" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+      </head>
       <body className="min-h-screen">{children}</body>
     </html>
   )

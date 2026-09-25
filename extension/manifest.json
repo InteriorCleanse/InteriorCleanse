@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Aurelis",
+  "description": "Talk to your business. The Aurelis assistant in a side panel: ask about revenue, profit, ad spend, pipeline and notes, by voice or by typing.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Open Aurelis (Ctrl+Shift+Space)"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["sidePanel", "storage"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*"],
+  "commands": {
+    "open-panel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Space",
+        "mac": "Command+Shift+Space"
+      },
+      "description": "Open the Aurelis side panel"
+    }
+  }
+}

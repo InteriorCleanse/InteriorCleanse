@@ -22,6 +22,10 @@ export type Membership = {
   slug: string
   role: TenantRole
   isDemo: boolean
+  /** The workspace's reporting currency. Every surface must read it from here:
+      a dashboard and an assistant disagreeing about the currency symbol is a
+      worse bug than either of them being slow. */
+  baseCurrency: string
   planKey: string
   subscriptionStatus: string
 }
@@ -48,7 +52,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
     supabase
       .from('organization_members')
       .select(
-        'role, organizations!inner(id, name, slug, is_demo, plan_key, subscription_status, deleted_at)',
+        'role, organizations!inner(id, name, slug, is_demo, base_currency, plan_key, subscription_status, deleted_at)',
       )
       .eq('user_id', user.id)
       .eq('status', 'active'),
@@ -61,6 +65,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
       name: string
       slug: string
       is_demo: boolean
+      base_currency: string
       plan_key: string
       subscription_status: string
       deleted_at: string | null
@@ -76,6 +81,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
       slug: row.organizations!.slug,
       role: row.role as TenantRole,
       isDemo: row.organizations!.is_demo,
+      baseCurrency: row.organizations!.base_currency ?? 'USD',
       planKey: row.organizations!.plan_key,
       subscriptionStatus: row.organizations!.subscription_status,
     }))

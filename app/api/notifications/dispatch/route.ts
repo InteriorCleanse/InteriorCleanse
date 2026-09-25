@@ -1,0 +1,516 @@
+import { buildBriefing, BRIEFING_LABELS, type BriefingKind } from '@/lib/assistant/briefings'
+import { cronDenied, isCronAuthorized } from '@/lib/cron'
+import { publicEnv } from '@/lib/env'
+import { DEFAULT_PREFERENCES, type Preferences, type Severity } from '@/lib/notifications/delivery'
+import { dispatch, localHourIn, type DeliveryRecord, type Recipient } from '@/lib/notifications/dispatch'
+import { emailTransport } from '@/lib/notifications/email'
+import { slackWebhookTransport, type SlackTransport } from '@/lib/notifications/slack'
+import { createBriefingPage } from '@/lib/knowledge/notion-write'
+import { loadDeals } from '@/lib/crm/load'
+import { closedSince } from '@/lib/crm/pipeline'
+import { openSecret, vaultProvider, type SealedSecret } from '@/lib/vault'
+import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
+import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
+import { isCalendarDue, syncCalendar, type CalendarConnectionRow } from '@/lib/calendar/sync'
+import { runRetention } from '@/lib/retention'
+import { purgeCutoff, purgeExpiredWorkspaces } from '@/lib/workspace/purge'
+import { supabaseAdmin } from '@/lib/supabase/server'
+
+/**
+ * The scheduled sweep: evaluate rules, build due briefings, deliver both.
+ *
+ * Run it hourly. Everything about it is built to be safe to run more often than
+ * that, and safe to miss an hour:
+ *
+ * **Idempotent by dedupe key.** Notifications carry a key naming the thing
+ * being reported and the period it covers. A second sweep in the same hour
+ * collides on the unique index and writes nothing, so a scheduler that
+ * double-fires — or a deploy that replays — does not send twice.
+ *
+ * **One workspace's failure does not stop the others.** Each is wrapped, and a
+ * failure is counted and skipped. The alternative is that the first workspace
+ * with bad data silences everyone else's alerts.
+ *
+ * **The response carries counts, not content.** It is behind a shared secret,
+ * but it still crosses tenants, and there is no reason for one workspace's
+ * figures to appear in a response about all of them.
+ */
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300
+
+/** Bounded so one invocation terminates. The next sweep takes the rest. */
+const BATCH_SIZE = 100
+
+export async function GET(request: Request) {
+  if (!isCronAuthorized(request)) return cronDenied()
+
+  const admin = supabaseAdmin()
+  const transport = emailTransport()
+  const siteUrl = publicEnv().NEXT_PUBLIC_SITE_URL
+  const now = new Date()
+
+  const { data: organizations } = await admin
+    .from('organizations')
+    .select('id, name, base_currency, timezone, is_demo')
+    .is('deleted_at', null)
+    .limit(BATCH_SIZE)
+
+  let rulesRaised = 0
+  let briefingsSent = 0
+  let delivered = 0
+  let suppressed = 0
+  let failed = 0
+  const problems: string[] = []
+
+  for (const org of organizations ?? []) {
+    try {
+      const recipients = await loadRecipients(admin, org.id, org.timezone, now)
+      const notion = await notionFor(admin, org.id)
+      // Once per workspace, not per recipient: every due briefing this hour
+      // describes the same pipeline. A demo workspace uses its own fixtures.
+      const deals = org.is_demo ? undefined : await loadDeals(admin, org.id, closedSince(now))
+      const context = {
+        transport,
+        slack: await slackFor(admin, org.id),
+        workspaceName: org.name,
+        isDemo: org.is_demo,
+        siteUrl,
+      }
+
+      // ── Rule evaluation ────────────────────────────────────────────────────
+      const { data: ruleRows } = await admin
+        .from('notification_rules')
+        .select('id, organization_id, name, metric_key, comparator, threshold, channel, enabled')
+        .eq('organization_id', org.id)
+        .eq('enabled', true)
+
+      const rules: NotificationRule[] = (ruleRows ?? []).map((row) => ({
+        id: row.id,
+        organizationId: row.organization_id,
+        name: row.name,
+        metricKey: row.metric_key,
+        comparator: row.comparator,
+        threshold: Number(row.threshold),
+        channel: row.channel,
+        enabled: row.enabled,
+      }))
+
+      if (rules.length > 0) {
+        const evaluation = evaluateRules({
+          rules,
+          isDemo: org.is_demo,
+          currency: org.base_currency,
+        })
+
+        for (const raised of evaluation.raised) {
+          const created = await insertNotification(admin, {
+            organizationId: org.id,
+            severity: raised.severity,
+            title: raised.title,
+            body: raised.body,
+            link: raised.link,
+            dedupeKey: raised.dedupeKey,
+            ruleId: raised.ruleId,
+            evidence: raised.evidence,
+          })
+          // Null means it already existed for this period — the dedupe working,
+          // not an error. Delivering again is exactly what must not happen.
+          if (!created) continue
+
+          rulesRaised += 1
+          const records = await dispatch(
+            {
+              id: created,
+              organizationId: org.id,
+              severity: raised.severity,
+              title: raised.title,
+              body: raised.body,
+              evidence: `${raised.evidence.observedDisplay} against a ${raised.evidence.thresholdDisplay} threshold.`,
+              period: raised.evidence.period,
+              link: raised.link,
+            },
+            recipients,
+            context,
+          )
+          const counts = await recordDeliveries(admin, org.id, records)
+          delivered += counts.delivered
+          suppressed += counts.suppressed
+          failed += counts.failed
+        }
+      }
+
+      // ── Scheduled briefings ────────────────────────────────────────────────
+      for (const recipient of recipients) {
+        const moment = localMoment(recipient.timezone, now)
+        const due = dueBriefings(recipient.briefings, moment)
+
+        for (const kind of due) {
+          const briefing = buildBriefing({
+            kind,
+            isDemo: org.is_demo,
+            currency: org.base_currency,
+            deals,
+            now,
+          })
+
+          const created = await insertNotification(admin, {
+            organizationId: org.id,
+            severity: 'info',
+            title: `${BRIEFING_LABELS[kind]} — ${briefing.period}`,
+            body: briefing.headline,
+            link: '/app/briefings',
+            dedupeKey: briefingDedupeKey(kind, recipient.userId, moment),
+            // A briefing belongs to the person who subscribed to it, not to
+            // the workspace — otherwise everyone sees everyone's.
+            userId: recipient.userId,
+            evidence: { kind, period: briefing.period },
+          })
+          if (!created) continue
+
+          briefingsSent += 1
+          const records = await dispatch(
+            {
+              id: created,
+              organizationId: org.id,
+              severity: 'info',
+              title: `${BRIEFING_LABELS[kind]} — ${briefing.period}`,
+              body: briefing.headline,
+              evidence: briefing.lines
+                .slice(0, 4)
+                .map((line) => `${line.label}: ${line.value}${line.change ? ` (${line.change})` : ''}`)
+                .join('\n'),
+              period: briefing.period,
+              link: '/app/briefings',
+            },
+            // A briefing goes only to the person who asked for it, not to
+            // everyone in the workspace.
+            [recipient],
+            context,
+          )
+          const counts = await recordDeliveries(admin, org.id, records)
+          delivered += counts.delivered
+          suppressed += counts.suppressed
+          failed += counts.failed
+
+          // One Notion page per briefing, for the workspace, not per
+          // recipient: the database is a shared place. Written only when
+          // the notification was newly created, so a double-fired sweep
+          // cannot create two pages — the dedupe key already decided.
+          if (notion) {
+            const written = await createBriefingPage({
+              token: notion.token,
+              databaseId: notion.databaseId,
+              briefing,
+              at: now,
+            })
+            const notionCounts = await recordDeliveries(admin, org.id, [
+              {
+                notificationId: created,
+                userId: null,
+                channel: 'notion',
+                status: written.ok ? 'delivered' : 'failed',
+                detail: written.ok ? written.url : written.detail,
+              },
+            ])
+            delivered += notionCounts.delivered
+            failed += notionCounts.failed
+          }
+        }
+      }
+    } catch (error) {
+      // Counted, named by workspace id only, and the sweep continues.
+      problems.push(`${org.id}: ${error instanceof Error ? error.message : 'unknown error'}`)
+    }
+  }
+
+  // Connected calendars, refreshed on the same sweep. Until this ran, a
+  // calendar was pulled once at connect time and never again.
+  const { data: calendars } = await admin
+    .from('calendar_connections')
+    .select('id, organization_id, user_id, provider, status, last_synced_at')
+    .in('status', ['connected', 'degraded'])
+    .limit(50)
+
+  let calendarsRefreshed = 0
+  let calendarsFailed = 0
+  for (const calendar of (calendars ?? []) as CalendarConnectionRow[]) {
+    if (!isCalendarDue(calendar, now)) continue
+    const outcome = await syncCalendar(admin, calendar, { now })
+    if (outcome.status === 'succeeded') calendarsRefreshed += 1
+    else if (outcome.status === 'failed') calendarsFailed += 1
+  }
+
+  // Retention runs on the same sweep rather than on a schedule of its own:
+  // one scheduled endpoint to configure and to notice the absence of, and a
+  // purge that has not run for a week is then visible in the same place.
+  const purged = await runRetention(async ({ table, column, cutoff }) => {
+    const { data, error } = await admin
+      .from(table)
+      .delete()
+      .lt(column, cutoff.toISOString())
+      .select('id')
+    if (error) throw new Error(error.message)
+    return data?.length ?? 0
+  })
+
+  // Workspaces whose grace period has run out. The deletion endpoint tells the
+  // customer their records are removed after 30 days; this is what makes that
+  // sentence true rather than a hope.
+  const { data: expired } = await admin
+    .from('organizations')
+    .select('id, name, deleted_at')
+    .not('deleted_at', 'is', null)
+    .lt('deleted_at', purgeCutoff(now).toISOString())
+    .limit(25)
+
+  const workspacePurge = await purgeExpiredWorkspaces({
+    candidates: (expired ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      deletedAt: new Date(row.deleted_at as string),
+    })),
+    now,
+    // One statement: every tenant table cascades from the organization row, so
+    // a hand-written table list — which would go stale the next time a table is
+    // added — is not needed and would be a liability.
+    remove: async (id) => {
+      const { error } = await admin.from('organizations').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+  })
+
+  return Response.json({
+    workspaces: organizations?.length ?? 0,
+    calendarsRefreshed,
+    calendarsFailed,
+    workspacesPurged: workspacePurge.purged.length,
+    workspacePurgeFailures: workspacePurge.failed.length,
+    purged: purged.map((p) => ({ table: p.table, deleted: p.deleted, failed: Boolean(p.error) })),
+    rulesRaised,
+    briefingsSent,
+    delivered,
+    suppressed,
+    failed,
+    emailConfigured: transport.configured,
+    problems: problems.length,
+  })
+}
+
+type LoadedRecipient = Recipient & { timezone: string; briefings: string[] }
+
+/**
+ * The workspace's Notion briefing target, or null.
+ *
+ * Null whenever any piece is missing — no connection, no database chosen, no
+ * openable token — and the sweep simply does not write. The token is opened
+ * here, handed to the writer, and never stored or logged.
+ */
+async function notionFor(
+  admin: ReturnType<typeof supabaseAdmin>,
+  organizationId: string,
+): Promise<{ token: string; databaseId: string } | null> {
+  const { data: connection } = await admin
+    .from('integration_connections')
+    .select('id, settings')
+    .eq('organization_id', organizationId)
+    .eq('provider', 'notion')
+    .eq('status', 'connected')
+    .maybeSingle()
+  const databaseId = String((connection?.settings as { briefingDatabaseId?: string } | null)?.briefingDatabaseId ?? '').trim()
+  if (!connection || !databaseId) return null
+
+  const { data: credential } = await admin
+    .from('integration_credentials')
+    .select('id, sealed')
+    .eq('connection_id', connection.id)
+    .eq('field', 'api_key')
+    .is('revoked_at', null)
+    .maybeSingle()
+  if (!credential) return null
+
+  try {
+    const token = await openSecret(
+      credential.sealed as SealedSecret,
+      { organizationId, credentialId: credential.id, field: 'api_key' },
+      vaultProvider(),
+    )
+    return { token, databaseId }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The workspace's Slack transport, or null.
+ *
+ * The webhook URL is the credential and lives sealed in the vault under the
+ * workspace's Slack connection. It is opened here, handed to the transport,
+ * and never logged or stored anywhere else — the same rule as every other
+ * secret the sweep touches.
+ */
+async function slackFor(admin: ReturnType<typeof supabaseAdmin>, organizationId: string): Promise<SlackTransport | null> {
+  const { data: connection } = await admin
+    .from('integration_connections')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('provider', 'slack')
+    .eq('status', 'connected')
+    .maybeSingle()
+  if (!connection) return null
+
+  const { data: credential } = await admin
+    .from('integration_credentials')
+    .select('id, sealed')
+    .eq('connection_id', connection.id)
+    .eq('field', 'webhook_url')
+    .is('revoked_at', null)
+    .maybeSingle()
+  if (!credential) return null
+
+  try {
+    const webhookUrl = await openSecret(
+      credential.sealed as SealedSecret,
+      { organizationId, credentialId: credential.id, field: 'webhook_url' },
+      vaultProvider(),
+    )
+    return slackWebhookTransport({ webhookUrl })
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Active members of a workspace, with their preferences.
+ *
+ * A member with no preferences row gets the defaults rather than being skipped:
+ * "we never sent it because they never opened settings" is not a defensible
+ * reason for missing a critical alert.
+ */
+async function loadRecipients(
+  admin: ReturnType<typeof supabaseAdmin>,
+  organizationId: string,
+  workspaceTimezone: string,
+  now: Date,
+): Promise<LoadedRecipient[]> {
+  const [{ data: members }, { data: prefs }] = await Promise.all([
+    admin
+      .from('organization_members')
+      .select('user_id, profiles(email, timezone)')
+      .eq('organization_id', organizationId)
+      .eq('status', 'active'),
+    admin
+      .from('notification_preferences')
+      .select(
+        'user_id, email_enabled, email_min_severity, quiet_hours_start, quiet_hours_end, briefings',
+      )
+      .eq('organization_id', organizationId),
+  ])
+
+  const byUser = new Map((prefs ?? []).map((p) => [p.user_id, p]))
+
+  return (members ?? []).map((member) => {
+    const profile = member.profiles as unknown as { email?: string; timezone?: string } | null
+    const pref = byUser.get(member.user_id)
+    const timezone = profile?.timezone || workspaceTimezone || 'UTC'
+
+    const preferences: Preferences = pref
+      ? {
+          emailEnabled: pref.email_enabled,
+          emailMinSeverity: pref.email_min_severity as Severity,
+          quietHoursStart: pref.quiet_hours_start,
+          quietHoursEnd: pref.quiet_hours_end,
+        }
+      : DEFAULT_PREFERENCES
+
+    return {
+      userId: member.user_id,
+      email: profile?.email ?? null,
+      preferences,
+      localHour: localHourIn(timezone, now),
+      timezone,
+      briefings: pref?.briefings ?? [],
+    }
+  })
+}
+
+/**
+ * Inserts a notification, returning its id, or null if the dedupe key already
+ * exists for this workspace.
+ *
+ * The unique index does the work. Checking first and then inserting has a race
+ * that a scheduler firing twice will find.
+ */
+async function insertNotification(
+  admin: ReturnType<typeof supabaseAdmin>,
+  input: {
+    organizationId: string
+    severity: Severity
+    title: string
+    body: string
+    link: string
+    dedupeKey: string
+    userId?: string | null
+    ruleId?: string | null
+    evidence?: Record<string, unknown>
+  },
+): Promise<string | null> {
+  const { data, error } = await admin
+    .from('notifications')
+    .insert({
+      organization_id: input.organizationId,
+      severity: input.severity,
+      title: input.title,
+      body: input.body,
+      link: input.link,
+      dedupe_key: input.dedupeKey,
+      user_id: input.userId ?? null,
+      rule_id: input.ruleId ?? null,
+      // Stored so the notice can be audited like any other claim in the
+      // product: what was measured, against what, over which period.
+      evidence: input.evidence ?? {},
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    // 23505 is the dedupe working. Anything else is a real problem and is
+    // raised to the per-workspace handler.
+    if (error.code === '23505') return null
+    throw new Error(error.message)
+  }
+
+  return data?.id ?? null
+}
+
+async function recordDeliveries(
+  admin: ReturnType<typeof supabaseAdmin>,
+  organizationId: string,
+  records: readonly DeliveryRecord[],
+): Promise<{ delivered: number; suppressed: number; failed: number }> {
+  if (records.length === 0) return { delivered: 0, suppressed: 0, failed: 0 }
+
+  await admin.from('notification_deliveries').insert(
+    records.map((record) => ({
+      organization_id: organizationId,
+      notification_id: record.notificationId,
+      user_id: record.userId,
+      channel: record.channel,
+      // The enum calls a successful delivery 'sent'; the dispatcher calls it
+      // 'delivered'. Mapped here rather than renaming either — 'sent' is wrong
+      // for an in-app notice, and the column is shared.
+      status: record.status === 'delivered' ? 'sent' : record.status,
+      detail: record.detail,
+      delivered_at: record.status === 'delivered' ? new Date().toISOString() : null,
+    })),
+  )
+
+  return {
+    delivered: records.filter((r) => r.status === 'delivered').length,
+    suppressed: records.filter((r) => r.status === 'suppressed').length,
+    failed: records.filter((r) => r.status === 'failed').length,
+  }
+}
+
+export type { BriefingKind }

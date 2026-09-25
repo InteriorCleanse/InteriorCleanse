@@ -1,36 +1,198 @@
 # Launch checklist
 
-Nothing here is complete. This is the gate list, kept honest.
+Ordered by what would hurt most if it were wrong. An unticked box is a
+statement about the product, not a formality — the point of this file is that
+somebody can read it and know exactly what has and has not been done.
 
-## Blocking — cannot sell without these
+## Blocking — do not take real customer data without these
 
-- [ ] RLS integration tests pass against a live database (`docs/TEST_PLAN.md`)
-- [ ] Third-party security review
-- [ ] Real privacy policy and terms (current pages are placeholders)
-- [ ] Data processing agreement, GDPR export and deletion workflows
-- [ ] Tenant credential vault with envelope encryption and a KMS
-- [ ] Rate limiting and abuse monitoring
-- [ ] Stripe test-mode subscription lifecycle verified end to end
-- [ ] Entitlements enforced server-side, never from client state
-- [ ] Backup and restore rehearsed, not just configured
-- [ ] Error and uptime monitoring
+`/owner-admin` reports the environment-checkable half of this list on every
+request, read from the running deployment rather than from a record of one.
+What follows includes the half no code can check.
+
+- [ ] **A real KMS behind the vault.** `lib/vault/providers.ts` ships
+      `kmsProvider()` ready to wire. The default static-key provider reports
+      `productionReady: false` for a reason: one key, in an environment
+      variable, no hardware boundary, no per-unwrap audit trail.
+- [ ] **A restore rehearsal.** Restore a backup into a scratch project and run
+      `npm run verify` against it. Include the vault key in the drill — a
+      database restored without it is ciphertext nobody can open.
+- [x] **RLS integration tests against a live Postgres.** 26 assertions in
+      `tests/rls.integration.test.ts`, run with `npm run test:rls` against any
+      Postgres 14+. They found one real defect (workspace creation with
+      `RETURNING`) and are verified by mutation: disabling RLS on
+      `organizations` fails four of them. Still to do in CI — see below.
+- [x] **A distributed rate-limit store.** `lib/ratelimit-upstash.ts` runs the
+      whole token bucket as one Lua script inside Redis, so two instances
+      racing on the same bucket cannot both be allowed — a get-then-set store
+      would report `distributed: true` and still multiply the limit by the
+      instance count. Falls back to in-memory and says so. **Still to do:** set
+      `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` on the
+      deployment; `/owner-admin` reports which store is actually in use.
+- [ ] **Legal review of the privacy notice and terms.** The pages are no longer
+      placeholders: every factual claim on them is rendered from `lib/legal.ts`,
+      which imports the retention windows from the purge job and the deletion
+      grace period from the endpoint, so the notice cannot drift from what the
+      software does. Both carry a draft banner as their first element until
+      `LEGAL_STATUS.reviewedAt` is set — and a test holds it there. What remains
+      is the part no codebase can do: a lawyer reading them.
+- [ ] Third-party security review.
+
+## Before charging anyone
+
+- [ ] Stripe in live mode: products, prices, `STRIPE_PRICE_*` set.
+- [ ] Webhook endpoint registered, `STRIPE_WEBHOOK_SECRET` set, and a test
+      event delivered end to end — verify the plan actually changes.
+- [ ] Confirm nothing in front of the app re-serialises request bodies. The
+      webhook verifies raw bytes; any JSON transformation breaks the signature.
+- [ ] Walk the grace period by hand: fail a payment in test mode, confirm the
+      workspace keeps working, then confirm read-only after the window **and
+      that export still works**.
+- [ ] Confirm a cancelled subscription drops to Free with data intact.
+- [x] Entitlements enforced server-side from a mirrored subscription, never
+      from client state — 39 tests.
+- [x] No claim of guaranteed revenue anywhere in the product. The ROI
+      calculator can and does return "this will not pay for itself".
+
+## Security
+
+- [x] RLS enabled and forced on every tenant table.
+- [x] `integration_credentials` reachable only by the service role: RLS forced
+      with no policy at all.
+- [x] Credentials sealed with per-secret data keys and context binding, so a
+      row moved between tenants fails to open.
+- [x] Assistant tool surface has no general-purpose capability; every write
+      requires an approval bound to exact arguments.
+- [x] Webhook signatures verified against raw bytes, in constant time, with a
+      replay window.
+- [x] Rate limiting on the assistant, per workspace and per user, with a daily
+      ceiling as well as a burst limit.
+- [x] Append-only audit log, assistant transcripts, and delivery log.
+- [x] Column-level write privileges on `organizations`: a tenant admin cannot
+      write `deleted_at`, `plan_key`, `subscription_status` or `is_demo`
+      directly. RLS answers "which rows", never "which columns", and for this
+      table the two questions differ.
+- [x] Dependency and secret scanning in CI — `.github/workflows/ci.yml` runs
+      gitleaks over full history and `npm audit --audit-level=high`, currently
+      zero findings.
+- [x] **`npm run test:rls` runs in CI** against a Postgres service container,
+      with a guard step that fails the job if the suite *skipped* — a green tick
+      that proved nothing about isolation is worse than a missing job.
+- [x] No key-shaped literals in the repository. Vendor-shaped test fixtures are
+      composed at runtime in `tests/fixtures/secrets.ts` rather than
+      allow-listed, so a scanner finding is always a real one.
+- [x] **No request body is logged in production** — made structural rather
+      than confirmed once. `lib/log.ts` is the only logger; its signature takes
+      primitives only, drops objects at runtime, and bounds every message to
+      200 characters because vendor errors quote the request. A test fails the
+      build on any raw `console.*` in server code. The audit that produced it
+      found two call sites in the assistant route logging whole error objects,
+      directly under a comment saying error text can echo request content.
+
+## Data protection
+
+- [ ] Data processing agreement. The **sub-processor list is published** on
+      the privacy page from `SUB_PROCESSORS` in `lib/legal.ts`, stating for
+      each what it receives and whether it is optional on this deployment.
+- [x] **Export.** `GET /api/workspace/export` emits every tenant-owned table as
+      raw rows, read through the user's own client so RLS decides what comes
+      out — the worst a bug in that file can produce is an empty download, not
+      a cross-tenant dump. Works while the workspace is read-only, because a
+      past-due account that cannot get its data out is being held hostage. A
+      test asserts every table in the migrations is either exported or
+      excluded with a stated reason.
+- [x] **Deletion.** `DELETE /api/workspace` is owner-only and requires the
+      workspace name typed out. Stored credentials and calendar feed tokens are
+      destroyed immediately and irreversibly; business records are marked
+      deleted and kept 30 days. Those have opposite failure modes and are
+      treated differently on purpose. The calendar feed already 404s on a
+      deleted workspace.
+- [x] **Retention decided and written down** — `lib/retention.ts`, with a reason
+      per window, running on the hourly sweep. Audit logs and the customer's own
+      commerce records are never expired on a timer, and a test asserts it.
+- [x] **The 30-day purge runs**, on the same hourly sweep, removing workspaces
+      whose grace period has elapsed. The deletion response quotes that figure
+      to the customer, and a test asserts the two constants cannot drift apart.
+      Cascade deletes do the work, so a table added later cannot be left behind
+      the way a hand-written list would leave it.
 
 ## Product
 
-- [ ] New user can register, onboard, and reach a useful dashboard
-- [ ] Demo Workspace labelled everywhere and internally consistent
-- [ ] Imported data produces accurate metrics
-- [ ] Profit by product accounts for COGS, fees, refunds, explicit ad allocation
-- [ ] Assistant answers from tenant data and cites sources
-- [ ] Write actions require argument-bound approval
-- [ ] Calendar integrations accurate about what syncs which way
-- [ ] Owner console unreachable by ordinary users
-- [ ] Key desktop and mobile flows verified in a real browser
-- [ ] No production screen substitutes fake data
+- [x] A new user reaches a useful dashboard without connecting anything — every
+      workspace starts with clearly-labelled demonstration data.
+- [x] Demo data is labelled on every surface that renders it, including
+      briefings and assistant answers.
+- [x] Profit by product accounts for COGS, fees, refunds and explicitly
+      modelled ad allocation, with the unallocated remainder shown rather than
+      hidden.
+- [x] The assistant answers from tenant data and cites its sources.
+- [x] Write actions require argument-bound approval.
+- [x] Calendar feed is accurate about being read-only, structurally.
+- [x] Owner console unreachable by ordinary users.
+- [x] Key surfaces rendered and visually inspected in both themes.
+- [x] No production screen substitutes fake data for missing data — an
+      unavailable metric says so and gives the reason.
+- [ ] Mobile verification of the assistant dock on a real device.
+
+## Accessibility
+
+- [x] Every chart has a keyboard-accessible table equivalent.
+- [x] Colour is never the only signal; the palette is validated for
+      colour-vision separation in both themes.
+- [x] Interactive targets at least 44px.
+- [ ] Full keyboard traversal of the assistant dock with a screen reader.
+- [x] **Contrast audit of both themes against WCAG AA** — `tests/contrast.test.ts`
+      computes every text token against every surface from the real CSS, so
+      the audit is a build step rather than a spreadsheet. Its first run found
+      three light-theme failures that had passed visual inspection (`signal`
+      3.5:1, `amber` 3.6:1, `muted` 4.4:1 on raised panels — fixed), and a
+      theme bug: the explicit dark toggle omitted the chart series slots, so
+      charts rendered in light-tuned hues on a dark ground. Series fills are
+      exempt from SC 1.4.11 by design — every chart carries direct labels and a
+      table equivalent — and that exemption is written in the test, not assumed.
+
+## Operations
+
+- [x] Deployment runbook (`docs/RUNBOOK.md`) with named failure modes and the
+      exact step in key rotation that causes data loss if done early.
+- [ ] Alerting **wired to a monitor**. `GET /api/ops/signals` (cron secret)
+      exposes the three database-visible runbook signals plus four more found
+      worth watching — stuck sync runs, overdue purges, approved-but-unexecuted
+      assistant actions, and a failing-open rate-limit store — each with its
+      threshold, a `firing` flag, and the runbook's first action. Auth failure
+      rate and p95 latency are measured at the host and named in the response
+      as such. Still to do: point a monitor at it.
+- [ ] On-call rota and escalation path.
+- [ ] Status page.
 
 ## Commercial
 
-- [ ] Plan names, prices, trial length owner-configurable, not hardcoded
-- [ ] No claim of guaranteed revenue anywhere in the product or marketing
-- [ ] Trademark clearance on the final product name before public launch
-- [ ] App Store review prep, if a native companion ships
+- [ ] Trademark clearance on the final product name before public launch.
+- [x] Plan **copy** (names, audience lines, highlights, exclusions) is
+      owner-editable from `/owner-admin`, stored in `plan_copy_overrides`
+      (service-role only). Deliberately not prices and not entitlements:
+      `lib/billing/plans.ts` argues, correctly, that prices belong to Stripe
+      alone and entitlements are business rules enforceable without asking
+      anyone. The override shape has no field for either, and a test smuggles
+      both past the types to prove they cannot reach the page.
+
+## Honest gaps
+
+Built to the point of being useful and no further. None of these should be
+described to a customer as finished:
+
+- Notion, HubSpot, Base44 and Slack **have met only recorded responses**, like
+  the commerce connectors. Notion write-back creates one page per briefing and
+  has never met a real database's property schema.
+- Connector sync loops **run, but have never been pointed at a real account**.
+  Stripe and Shopify are implemented end to end and tested against recorded
+  responses; neither has met a live API, a real rate limit, or an account with
+  four years of history. Treat the first production sync as a test.
+
+- Calendar OAuth **has not been through a provider's app review**. The flows
+  are implemented and tested; Google restricts `calendar.readonly` and will
+  require verification before more than a handful of accounts can connect.
+- **Email deliverability.** Transport, rendering and the delivery log are
+  built and tested, but nothing has been sent from a verified domain. SPF, DKIM
+  and DMARC are not set up, and an alert that lands in spam is not an alert.
+- Remaining chart modes and diagrams listed in `docs/IMPLEMENTATION_PLAN.md`.

@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`demo workspace golden figures > matches the pinned snapshot 1`] = `
+{
+  "adSpend": "$3,228.28",
+  "allocationConfidence": "medium",
+  "allocationModel": "blended",
+  "aov": "$47.02",
+  "cac": "$25.03",
+  "contributionMarginPct": "25.97",
+  "contributionProfit": "$4,236.83",
+  "grossProfit": "$8,097.10",
+  "mer": "5.05",
+  "netRevenue": "$16,315.50",
+  "orders": 347,
+  "refundRatePct": "3.49",
+  "roas": "2.04",
+  "unallocated": "$0.00",
+  "units": 540,
+}
+`;
