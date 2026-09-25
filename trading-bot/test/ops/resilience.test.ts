@@ -221,7 +221,10 @@ test('security regression: the live flag in the environment is a CRITICAL alert 
 })
 
 test('alerts: a duplicate process on the lock, stale data and a stopped watcher are named; each rings the bell once per hour and is counted on the ops log', () => {
-  const now = Date.now()
+  // Alerts ring once per CLOCK hour. Start just after the top of the current
+  // hour, so the "a minute later" check below never crosses into the next one
+  // (a run at hh:59:30 used to).
+  const now = Math.floor(Date.now() / 3_600_000) * 3_600_000 + 1_000
   // No stored candle at all: the feed verdict is STALE regardless of what the socket says.
   store().db.exec(`DELETE FROM candles WHERE symbol='${config.symbol}' AND interval='${config.interval}'`)
   const hbOld = HB.heartbeat({ feed: feedAt(now - 10 * STEP), now, probe: false, processStartedAt: now - 86_400_000 })
