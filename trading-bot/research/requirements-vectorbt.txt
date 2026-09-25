@@ -1,0 +1,4 @@
+# Research only. Never imported by Mr. Cash. Installed into research/.venv-vbt by setup.
+vectorbt==1.1.0
+# vectorbt 1.1.0 fails to import with plotly 7 (it registers the removed "scattermapbox" trace).
+plotly<6

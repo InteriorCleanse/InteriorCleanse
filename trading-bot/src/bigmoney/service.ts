@@ -42,6 +42,26 @@ export function tickersFromEnv(spec = process.env.MRCASH_BIGMONEY_TICKERS || DEF
 }
 
 const within = (d: string | null, since: string) => !!d && d >= since
+
+/** New York's offset from UTC, in minutes, at an instant (−240 in summer, −300 in winter). */
+function nyOffsetMinutes(ms: number): number {
+  const part = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }).formatToParts(new Date(ms)).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-5'
+  const m = /GMT([+-]\d{1,2})(?::(\d{2}))?/.exec(part)
+  return m ? Number(m[1]) * 60 + Math.sign(Number(m[1])) * Number(m[2] ?? 0) : -300
+}
+
+/** Milliseconds until the next `hour`:00 in New York (DST-aware). Always in the future. */
+export function msUntilNextNy(hour: number, now: number): number {
+  const ymd = (ms: number) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).split('-').map(Number)
+  for (let add = 0; add < 3; add++) {
+    const [y, m, d] = ymd(now + add * 86_400_000)
+    const guess = Date.UTC(y, m - 1, d, hour, 0, 0)
+    const first = guess - nyOffsetMinutes(guess) * 60_000
+    const at = guess - nyOffsetMinutes(first) * 60_000  // re-read the offset at the answer: the clocks may change between midnight and 6:00
+    if (at > now) return at - now
+  }
+  return 86_400_000
+}
 const overridden = (env: string) => !!process.env[env]
 
 export class BigMoney {
@@ -50,7 +70,8 @@ export class BigMoney {
   private running = false
   private seen = new Map<string, InsiderTrade[]>()
   private readonly file: string
-  private readonly opts: { everyHours?: number; fetchImpl?: FetchLike; now?: () => number; dir?: string; tickers?: string[]; gapMs?: number }
+  private morning: NodeJS.Timeout | null = null
+  private readonly opts: { everyHours?: number; fetchImpl?: FetchLike; now?: () => number; dir?: string; tickers?: string[]; gapMs?: number; alert?: (title: string, body: string) => void; morningHourNy?: number }
   constructor(opts: BigMoney['opts'] = {}) {
     this.opts = opts
     this.file = join(opts.dir ?? DATA_DIR, 'bigmoney.json')
@@ -83,9 +104,24 @@ export class BigMoney {
     first.unref?.()
     this.timer = setInterval(() => { void this.refresh().catch(() => {}) }, every)
     this.timer.unref?.()
+    this.scheduleMorning()
   }
 
-  stop(): void { if (this.timer) { clearInterval(this.timer); this.timer = null } }
+  /** The morning filings brief: a fresh read at 6:00 New York time, rung in the bell as a plain summary. */
+  private scheduleMorning(): void {
+    const hour = this.opts.morningHourNy ?? 6
+    this.morning = setTimeout(() => {
+      void this.refresh().then((s) => {
+        if (s.board.length || s.congress.length || s.insiders.length) this.opts.alert?.('Morning filings brief', s.digest.join(' '))
+      }).catch(() => {}).finally(() => { if (this.morning) this.scheduleMorning() })  // stop() clears it: no re-arm after stop
+    }, msUntilNextNy(hour, this.now()))
+    this.morning.unref?.()
+  }
+
+  stop(): void {
+    if (this.timer) { clearInterval(this.timer); this.timer = null }
+    if (this.morning) { clearTimeout(this.morning); this.morning = null }
+  }
 
   async refresh(): Promise<BigMoneySnapshot> {
     if (this.running) return this.snap

@@ -1,0 +1,3 @@
+# Research only. Never imported by Mr. Cash. Installed into research/.venv-hbt by setup.
+# Kept apart from vectorbt: the two pin different numpy versions.
+hftbacktest==2.4.4

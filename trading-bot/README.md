@@ -444,8 +444,13 @@ attention to. None can place an order.
 
 The repo also ships **Claude Code skills** in `trading-bot/.claude/skills/`
 — `/mr-cash-brief`, `/mr-cash-trade-review`, `/mr-cash-journal-coach`,
-`/mr-cash-tune`, `/mr-cash-chart-read` — so when you open this folder in
-Claude Code, Claude already knows how to run and reason about Mr. Cash.
+`/mr-cash-tune`, `/mr-cash-chart-read`, `/mr-cash-morning-filings` — so
+when you open this folder in Claude Code, Claude already knows how to run and
+reason about Mr. Cash. Three research skills sit beside them:
+`/vectorbt-research` and `/hftbacktest-research` drive the Python research
+bench in `research/` (BACKTEST only, never imported by the bot), and
+`/market-making-study` explains market making with a runnable study instead of
+a live bot (docs/RESEARCH_TOOLS.md).
 
 ### Navigation — ⌘K
 

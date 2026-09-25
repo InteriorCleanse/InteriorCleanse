@@ -3,8 +3,8 @@
 Each folder below was copied from an upstream repository at the commit shown
 and carries that repository's licence as `LICENSE` inside the folder. They
 are instructions for the agent working on this repo (Claude Code); none of
-them is loaded or executed by Mr. Cash. The six `mr-cash-*` folders are the
-bot's own and are not listed.
+them is loaded or executed by Mr. Cash. The seven `mr-cash-*` folders are the
+bot's own and are not in the vendored tables.
 
 Review note: every vendored SKILL.md was skimmed at import for instructions
 that would fetch remote code, send data out, or touch credentials. None found
@@ -80,6 +80,24 @@ The rest of the taste-skill collection (image-generation boards, a Codex-only
 image-to-code flow, a "full output" override, a v1 copy and others) was left
 out to keep the standing list of skill descriptions short; install it at user
 level from upstream if wanted.
+
+### Research skills written here (added 2026-09-25)
+
+From the owner's list: VectorBT, HftBacktest, a Kalshi market maker, and a
+Quiver morning-filings job. These folders were **written in this repository**,
+not copied from upstream. They drive Python libraries installed with pip into
+`research/.venv-*`. The libraries are not vendored, and nothing in `src/`
+imports them. See `docs/RESEARCH_TOOLS.md`.
+
+| Folder | Library it drives | Library licence | What it does |
+|---|---|---|---|
+| `vectorbt-research` | vectorbt 1.1.0 (github.com/polakowo/vectorbt) | Apache 2.0 with Commons Clause | Parameter sweeps on exported candles, with in-sample and out-of-sample results side by side. Labelled BACKTEST. |
+| `hftbacktest-research` | hftbacktest 2.4.4 (github.com/nkaz001/hftbacktest) | MIT | Tick-level backtests with queue, latency and fee models. The live connector is never used. |
+| `market-making-study` | hftbacktest | MIT | Explains market making and prediction-market books. A study only: no live market maker and no Kalshi keys. |
+| `mr-cash-morning-filings` | none (the bot's own `/api/bigmoney`) | — | Reads the 6:00 New York filings brief. Read-only, and it places nothing. |
+
+The Higgsfield / Seedance website prompt from the same list is a media tool,
+not a trading skill, so it was not added here.
 
 **Considered and not vendored:**
 

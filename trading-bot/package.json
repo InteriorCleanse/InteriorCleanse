@@ -13,6 +13,7 @@
     "fleet": "node scripts/fleet.mjs",
     "talk": "node src/talk.ts",
     "brief": "node src/index.ts brief",
+    "research:export": "node scripts/research-export.ts",
     "news": "node src/index.ts news",
     "state": "node src/index.ts state",
     "flow": "node src/index.ts flow",
