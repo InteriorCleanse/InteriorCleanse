@@ -43,7 +43,7 @@ type Fetchers = {
   stocks: (symbols: string[], now: number) => Promise<Record<string, FetchResult>>
 }
 
-const GROUP_LABEL: Record<MarketKind, string> = { crypto: 'Crypto', stock: 'Stocks', forex: 'Forex', index: 'Indexes' }
+const GROUP_LABEL: Record<MarketKind, string> = { crypto: 'Crypto', stock: 'Stocks', forex: 'Forex', index: 'Indexes & funds' }
 const FEED: Record<SourceId, string> = {
   binance: 'Binance public candles',
   kraken: "Kraken's public FX book (a crypto venue's rate, not interbank)",

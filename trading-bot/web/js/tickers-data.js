@@ -21,7 +21,7 @@ export const REVIEWED = '2026-09'
 
 export const TICKERS = {
   SPY: {
-    symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', kind: 'ETF', watched: true,
+    symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', kind: 'ETF', group: 'stocks', watched: true,
     what: 'An exchange-traded fund that holds the 500 stocks of the S&P 500. Its price is roughly the index divided by 10.',
     options: { multiplier: 100, exercise: 'american', settlement: '100 shares of SPY', expiries: 'Every weekday (Monday to Friday), plus monthly and quarterly series', strikes: '$1 apart near the money' },
     session: 'Regular session 9:30–16:00 ET. The ETF also trades before and after hours, with thinner books.',
@@ -40,9 +40,9 @@ export const TICKERS = {
     ],
   },
   ES: {
-    symbol: 'ES', name: 'E-mini S&P 500 futures (CME)', kind: 'Futures', watched: false,
+    symbol: 'ES', name: 'E-mini S&P 500 futures (CME)', kind: 'Futures', group: 'index', watched: false, proxy: 'SPY',
     what: 'A futures contract on the S&P 500 index. One contract is $50 × the index; a one-point move is $50. The Micro E-mini (MES) is one tenth: $5 × the index.',
-    contract: { multiplier: 50, tick: 0.25, tickValue: 12.5, microMultiplier: 5, months: 'March (H), June (M), September (U), December (Z)', settlement: 'Cash, to the Special Opening Quotation of the S&P 500 on the third Friday of the contract month' },
+    contract: { multiplier: 50, unit: 'index point', tick: 0.25, tickValue: 12.5, size: '$50 × the S&P 500', micro: 'Micro E-mini (MES): $5 × the index, $1.25 a tick', monthCodes: [3, 6, 9, 12], months: 'March (H), June (M), September (U), December (Z)', settlement: 'Cash, to the Special Opening Quotation of the S&P 500 on the third Friday of the contract month', lastTradeRule: 'third-friday', lastTradeText: 'The third Friday of the contract month.', physical: false },
     options: { multiplier: 50, exercise: 'check', settlement: 'an ES futures position', expiries: 'Every weekday, end-of-month and quarterly', strikes: 'Commonly 5 index points apart' },
     exerciseText: 'The standard quarterly options are American-style; the weekday, weekly and end-of-month series are European-style. Check the series you trade.',
     session: 'Nearly around the clock: Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
@@ -60,7 +60,7 @@ export const TICKERS = {
     ],
   },
   NVDA: {
-    symbol: 'NVDA', name: 'NVIDIA Corporation', kind: 'Stock', watched: true,
+    symbol: 'NVDA', name: 'NVIDIA Corporation', kind: 'Stock', group: 'stocks', watched: true,
     what: 'The chip designer behind most AI data-center accelerators. It is among the largest weights in the S&P 500 and the Nasdaq-100, so its moves show up in SPY and ES.',
     options: { multiplier: 100, exercise: 'american', settlement: '100 shares', expiries: 'Weekly (Fridays) and monthly (third Friday)', strikes: 'Varies with price; often $1–$5 apart' },
     session: 'Nasdaq regular session 9:30–16:00 ET, with pre- and after-hours trading.',
@@ -80,7 +80,7 @@ export const TICKERS = {
     ],
   },
   TSLA: {
-    symbol: 'TSLA', name: 'Tesla, Inc.', kind: 'Stock', watched: true,
+    symbol: 'TSLA', name: 'Tesla, Inc.', kind: 'Stock', group: 'stocks', watched: true,
     what: 'An electric-vehicle, energy-storage and autonomy company. It is one of the most actively traded stocks and single-stock options in the US, and a member of the S&P 500 since December 2020.',
     options: { multiplier: 100, exercise: 'american', settlement: '100 shares', expiries: 'Weekly (Fridays) and monthly (third Friday)', strikes: 'Varies with price; often $2.50–$5 apart' },
     session: 'Nasdaq regular session 9:30–16:00 ET, with pre- and after-hours trading.',
@@ -99,7 +99,7 @@ export const TICKERS = {
     ],
   },
   AAPL: {
-    symbol: 'AAPL', name: 'Apple Inc.', kind: 'Stock', watched: true,
+    symbol: 'AAPL', name: 'Apple Inc.', kind: 'Stock', group: 'stocks', watched: true,
     what: 'The maker of the iPhone, Mac and a large services business. It is among the largest weights in the S&P 500 and the Nasdaq-100.',
     options: { multiplier: 100, exercise: 'american', settlement: '100 shares', expiries: 'Weekly (Fridays) and monthly (third Friday)', strikes: 'Often $2.50–$5 apart' },
     session: 'Nasdaq regular session 9:30–16:00 ET, with pre- and after-hours trading.',
@@ -118,9 +118,145 @@ export const TICKERS = {
       'An in-the-money short call can be assigned just before the ex-dividend date.',
     ],
   },
+  NQ: {
+    symbol: 'NQ', name: 'E-mini Nasdaq-100 futures (CME)', kind: 'Futures', group: 'index', watched: false, proxy: 'QQQ',
+    what: 'A futures contract on the Nasdaq-100: the largest non-financial Nasdaq companies. NVDA, AAPL and TSLA carry far more weight here than in the S&P 500, so NQ usually swings harder than ES.',
+    contract: { multiplier: 20, unit: 'index point', tick: 0.25, tickValue: 5, size: '$20 × the Nasdaq-100', micro: 'Micro E-mini (MNQ): $2 × the index, $0.50 a tick', monthCodes: [3, 6, 9, 12], months: 'March (H), June (M), September (U), December (Z)', settlement: 'Cash, to the Special Opening Quotation of the Nasdaq-100 on the third Friday of the contract month', lastTradeRule: 'third-friday', lastTradeText: 'The third Friday of the contract month.', physical: false },
+    options: { multiplier: 20, exercise: 'check', settlement: 'an NQ futures position', expiries: 'Every weekday, end-of-month and quarterly', strikes: 'Commonly 10–25 index points apart' },
+    exerciseText: 'As with ES, the quarterly options are American-style and the weekday and end-of-month series European-style. Check the series you trade.',
+    session: 'Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
+    earningsMonths: [], earningsText: 'None: it is an index future. Earnings from its largest weights (NVDA, AAPL, Microsoft, Amazon and others) move it most.',
+    dividendMonths: [], dividendText: 'None paid; expected dividends and interest are in the futures price.',
+    drivers: [
+      'Big-tech earnings, above all NVDA, AAPL, Microsoft, Amazon, Alphabet and Meta.',
+      'Interest rates: growth stocks are sensitive to the 10-year yield (see ZN).',
+      'The same macro calendar as ES: Fed, CPI, jobs.',
+    ],
+    spreadNotes: [
+      'Each point is $20, and the Nasdaq-100 sits at several times the S&P 500\'s level, so NQ moves many more points than ES. Size the width of a spread in dollars, not points.',
+      'Exercise or assignment delivers an NQ futures position. Close spreads before expiry if a leg is near the money.',
+    ],
+  },
+  CL: {
+    symbol: 'CL', name: 'WTI crude oil futures (NYMEX)', kind: 'Futures', group: 'commodities', watched: false, proxy: 'USO',
+    what: 'The US benchmark for crude oil: West Texas Intermediate, delivered at Cushing, Oklahoma. One contract is 1,000 barrels.',
+    contract: { multiplier: 1000, unit: 'dollar a barrel', tick: 0.01, tickValue: 10, size: '1,000 barrels', micro: 'Micro WTI (MCL): 100 barrels, $1 a tick', monthCodes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], months: 'Every month', settlement: 'Physical delivery of oil at Cushing, Oklahoma', lastTradeRule: 'cl', lastTradeText: 'Three business days before the 25th of the month BEFORE the contract month (four if the 25th is not a business day).', physical: true },
+    options: { multiplier: 1000, exercise: 'check', settlement: 'a CL futures position', expiries: 'Monthly, plus weekly series', strikes: 'Commonly $0.50–$1 apart' },
+    exerciseText: 'The standard monthly WTI options (LO) are American-style and exercise into CL futures; other WTI option contracts are European-style. Check the one you trade.',
+    session: 'Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
+    earningsMonths: [], earningsText: 'None. The scheduled movers are weekly inventory reports and OPEC+ meetings.',
+    dividendMonths: [], dividendText: 'None.',
+    history: 'In April 2020 the expiring May contract settled at minus $37.63 a barrel: holders who could not take delivery paid to get out. Physically delivered futures can do that.',
+    drivers: [
+      'The EIA weekly petroleum report, Wednesdays at 10:30 am ET (the private API estimate comes Tuesdays at 4:30 pm ET).',
+      'OPEC+ production decisions and compliance.',
+      'Geopolitics in producing regions and shipping lanes; sanctions.',
+      'Global demand, especially China, and the US dollar.',
+      'Hurricane season in the Gulf of Mexico (June to November); the Baker Hughes rig count, Fridays at 1:00 pm ET.',
+    ],
+    spreadNotes: [
+      '$1 a barrel is $1,000 per contract. A $2 wide spread risks up to $2,000 per spread before premium.',
+      'Never hold a CL future into delivery: most brokers close retail positions days before the last trading day, and the exercise of an option gives you a future that must then be closed.',
+    ],
+  },
+  NG: {
+    symbol: 'NG', name: 'Henry Hub natural gas futures (NYMEX)', kind: 'Futures', group: 'commodities', watched: false, proxy: 'UNG',
+    what: 'The US benchmark for natural gas, delivered at the Henry Hub in Louisiana. One contract is 10,000 MMBtu. It is one of the most volatile major futures markets.',
+    contract: { multiplier: 10000, unit: 'dollar per MMBtu', tick: 0.001, tickValue: 10, size: '10,000 MMBtu', micro: 'Smaller contracts exist; check what your broker offers', monthCodes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], months: 'Every month', settlement: 'Physical delivery at the Henry Hub, Louisiana', lastTradeRule: 'ng', lastTradeText: 'Three business days before the first day of the contract month.', physical: true },
+    options: { multiplier: 10000, exercise: 'check', settlement: 'an NG futures position or cash, depending on the contract', expiries: 'Monthly, plus weekly series', strikes: 'Commonly $0.05 apart' },
+    exerciseText: 'Natural gas has more than one options contract; some are American-style and exercise into futures, others are European-style and settle in cash. Check the one you trade.',
+    session: 'Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
+    earningsMonths: [], earningsText: 'None. The scheduled mover is the weekly storage report.',
+    dividendMonths: [], dividendText: 'None.',
+    drivers: [
+      'Weather forecasts: heating demand in winter, air-conditioning power demand in summer.',
+      'The EIA weekly storage report, Thursdays at 10:30 am ET, against what traders expected.',
+      'LNG export flows, production, and pipeline or plant outages.',
+      'Hurricanes in the Gulf of Mexico, and seasonality: winter contracts usually cost more than spring ones.',
+    ],
+    spreadNotes: [
+      '$0.10 is $1,000 per contract, and NG can move far more than that in a day. A narrow spread in price terms can still be wide in dollars.',
+      'Physically delivered: do not hold into delivery. The ETF stand-in (UNG) holds futures and rolls them, so over months it can drift far from the price of gas itself.',
+    ],
+  },
+  GC: {
+    symbol: 'GC', name: 'Gold futures (COMEX)', kind: 'Futures', group: 'commodities', watched: false, proxy: 'GLD',
+    what: 'The main gold futures contract. One contract is 100 troy ounces.',
+    contract: { multiplier: 100, unit: 'dollar an ounce', tick: 0.1, tickValue: 10, size: '100 troy ounces', micro: 'Micro Gold (MGC): 10 ounces, $1 a tick', monthCodes: [2, 4, 6, 8, 10, 12], months: 'Most active: February (G), April (J), June (M), August (Q), October (V), December (Z)', settlement: 'Physical delivery of gold at approved vaults', lastTradeRule: 'third-last-business', lastTradeText: 'The third-last business day of the contract month. First notice comes earlier, at the end of the month before.', physical: true },
+    options: { multiplier: 100, exercise: 'american', settlement: 'a GC futures position', expiries: 'Monthly, plus weekly series', strikes: 'Commonly $5–$25 apart' },
+    session: 'Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
+    earningsMonths: [], earningsText: 'None.',
+    dividendMonths: [], dividendText: 'None. Gold pays no income, which is why the interest you give up by holding it matters.',
+    drivers: [
+      'Real interest rates: when inflation-adjusted yields fall, gold usually gets support, and the other way round.',
+      'The US dollar: gold is priced in dollars.',
+      'Central-bank buying, and demand for safety in crises.',
+      'Fed decisions, CPI and the jobs report.',
+    ],
+    spreadNotes: [
+      '$1 an ounce is $100 per contract; a $20 move is $2,000.',
+      'Close or roll before first notice (the end of the month before the contract month). Most brokers will not let a retail account take delivery.',
+    ],
+  },
+  SI: {
+    symbol: 'SI', name: 'Silver futures (COMEX)', kind: 'Futures', group: 'commodities', watched: false, proxy: 'SLV',
+    what: 'The main silver futures contract. One contract is 5,000 troy ounces. Silver follows gold but swings harder, and it has more industrial demand (electronics, solar panels).',
+    contract: { multiplier: 5000, unit: 'dollar an ounce', tick: 0.005, tickValue: 25, size: '5,000 troy ounces', micro: 'Micro Silver (SIL): 1,000 ounces, $5 a tick', monthCodes: [3, 5, 7, 9, 12], months: 'Most active: March (H), May (K), July (N), September (U), December (Z)', settlement: 'Physical delivery of silver at approved vaults', lastTradeRule: 'third-last-business', lastTradeText: 'The third-last business day of the contract month. First notice comes earlier, at the end of the month before.', physical: true },
+    options: { multiplier: 5000, exercise: 'american', settlement: 'an SI futures position', expiries: 'Monthly, plus weekly series', strikes: 'Commonly $0.25–$0.50 apart' },
+    session: 'Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
+    earningsMonths: [], earningsText: 'None.',
+    dividendMonths: [], dividendText: 'None.',
+    drivers: [
+      'Gold, and the same real-rate and dollar forces behind it.',
+      'Industrial demand, especially solar panels and electronics.',
+      'The gold-to-silver ratio, which traders watch for stretches.',
+    ],
+    spreadNotes: [
+      '$0.10 an ounce is $500 per contract; a $1 move is $5,000. The micro contract is often the sensible size to learn on.',
+      'Close or roll before first notice, as with gold.',
+    ],
+  },
+  ZN: {
+    symbol: 'ZN', name: '10-Year US Treasury Note futures (CBOT)', kind: 'Futures', group: 'rates', watched: false, proxy: 'IEF',
+    what: 'A futures contract on US Treasury notes with about 6½–10 years left, $100,000 face value. The price moves opposite to yields: when the 10-year yield rises, ZN falls. Rates feed into every other market here.',
+    contract: { multiplier: 1000, unit: 'point', tick: 1 / 64, tickValue: 15.625, size: '$100,000 face value; one point is $1,000', micro: 'A micro 10-year yield contract exists (quoted in yield, not price); check your broker', monthCodes: [3, 6, 9, 12], months: 'March (H), June (M), September (U), December (Z)', settlement: 'Physical delivery of eligible Treasury notes', lastTradeRule: 'zn', lastTradeText: 'The seventh business day before the last business day of the contract month. First notice comes earlier, at the end of the month before.', physical: true },
+    options: { multiplier: 1000, exercise: 'american', settlement: 'a ZN futures position', expiries: 'Monthly and quarterly, plus weekly series', strikes: 'Commonly ½ point apart' },
+    session: 'Sunday 6:00 pm ET to Friday 5:00 pm ET, with a daily one-hour break from 5:00 to 6:00 pm ET.',
+    earningsMonths: [], earningsText: 'None.',
+    dividendMonths: [], dividendText: 'None paid; the notes\' interest is already in the futures price.',
+    drivers: [
+      'Fed decisions and the path of rates the market expects.',
+      'CPI and the jobs report, both at 8:30 am ET.',
+      'Treasury auctions, including the monthly 10-year note auction.',
+      'Flight to safety: in a stock-market scare, money often moves into Treasuries.',
+    ],
+    spreadNotes: [
+      'Prices are quoted in points and 32nds (options in 64ths). Type them here as decimals: 110-16 is 110.5, and an option at 0-32 is 0.50.',
+      'One full point is $1,000 per contract. Close or roll before first notice.',
+    ],
+  },
 }
 
-export const ORDER = ['SPY', 'ES', 'NVDA', 'TSLA', 'AAPL']
+export const ORDER = ['SPY', 'NVDA', 'TSLA', 'AAPL', 'ES', 'NQ', 'CL', 'NG', 'GC', 'SI', 'ZN']
+
+/** How the chips are grouped on the page. */
+export const GROUPS = [
+  { id: 'stocks', label: 'Stocks & ETF', symbols: ['SPY', 'NVDA', 'TSLA', 'AAPL'] },
+  { id: 'index', label: 'Index futures', symbols: ['ES', 'NQ'] },
+  { id: 'commodities', label: 'Commodities', symbols: ['CL', 'NG', 'GC', 'SI'] },
+  { id: 'rates', label: 'Rates', symbols: ['ZN'] },
+]
+
+/** What the ETF stand-ins are, so a proxy price is never read as the future's price. */
+export const PROXY_NOTE = {
+  SPY: 'an ETF on the S&P 500, about the index ÷ 10',
+  QQQ: 'an ETF on the Nasdaq-100',
+  USO: 'a fund that holds oil futures and rolls them monthly, so over months it drifts away from the price of oil',
+  UNG: 'a fund that holds natural-gas futures and rolls them monthly, so over months it can drift far from the price of gas',
+  GLD: 'a fund that holds physical gold; each share is a fraction of an ounce',
+  SLV: 'a fund that holds physical silver; each share is a little under an ounce, shrinking slowly with fees',
+  IEF: 'a fund of 7–10-year Treasury notes, close to but not the same as what ZN delivers',
+}
 
 /** Words this file and the page must never use about a trade. */
 export const NEVER_SAY = /\b(profitable|proven|guaranteed?|superior|best)\b|edge established|expected return/i
@@ -135,31 +271,79 @@ export function thirdFriday(year, month) {
   return utc(year, month, firstFriday + 14)
 }
 
-const CODE = { 3: 'H', 6: 'M', 9: 'U', 12: 'Z' }
+const CODE = { 1: 'F', 2: 'G', 3: 'H', 4: 'J', 5: 'K', 6: 'M', 7: 'N', 8: 'Q', 9: 'U', 10: 'V', 11: 'X', 12: 'Z' }
+const DAY_MS = 86_400_000
+const isBiz = (d) => d.getUTCDay() !== 0 && d.getUTCDay() !== 6
+/** Step back n weekdays. Exchange holidays are NOT known here; the page says so. */
+function backBiz(d, n) { let x = new Date(d); while (n > 0) { x = new Date(x.getTime() - DAY_MS); if (isBiz(x)) n-- } return x }
+function lastBiz(y, m) { let x = utc(y, m + 1, 1); do { x = new Date(x.getTime() - DAY_MS) } while (!isBiz(x)); return x }
+
+/** The last trading day of a futures contract month, by the exchange's published rule (weekdays only). */
+export function lastTradeDay(rule, year, month) {
+  switch (rule) {
+    case 'third-friday': return thirdFriday(year, month)
+    // CL: 3 business days before the 25th of the prior month; 4 if the 25th is not a business day.
+    case 'cl': { const py = month === 1 ? year - 1 : year, pm = month === 1 ? 12 : month - 1; const d25 = utc(py, pm, 25); return backBiz(d25, isBiz(d25) ? 3 : 4) }
+    // NG: 3 business days before the first calendar day of the contract month.
+    case 'ng': return backBiz(utc(year, month, 1), 3)
+    // GC, SI: the third-last business day of the contract month.
+    case 'third-last-business': return backBiz(lastBiz(year, month), 2)
+    // ZN: the seventh business day before the last business day of the contract month.
+    case 'zn': return backBiz(lastBiz(year, month), 7)
+    default: throw new Error('unknown rule ' + rule)
+  }
+}
 
 /**
- * The ES contract calendar from a date: the front quarterly contract, its
- * last trading day (third Friday), the usual roll date (eight days earlier,
- * a Thursday), and the next contract. After the roll date most volume has
- * already moved to the next contract, and `rolled` says so.
+ * A futures calendar from a date: the front contract (the first whose last
+ * trading day has not passed), its last day, the next contract and, where it
+ * applies, the roll or first-notice date to be out by.
  */
-export function esCalendar(now = new Date()) {
+export function futuresCalendar(symbol, now = new Date()) {
+  const t = TICKERS[symbol]
+  if (!t || !t.contract) return null
+  const c = t.contract
   const today = utc(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
-  const quarters = []
-  for (let y = today.getUTCFullYear(); quarters.length < 3; y++) {
-    for (const m of [3, 6, 9, 12]) {
-      const expiry = thirdFriday(y, m)
-      if (expiry >= today && quarters.length < 3) quarters.push({ code: `ES${CODE[m]}${String(y).slice(-1)}`, month: m, year: y, expiry })
-    }
+  const list = []
+  for (let i = 0; list.length < 2 && i < 30; i++) {
+    const y = today.getUTCFullYear() + Math.floor((today.getUTCMonth() + i) / 12), m = ((today.getUTCMonth() + i) % 12) + 1
+    if (!c.monthCodes.includes(m)) continue
+    const last = lastTradeDay(c.lastTradeRule, y, m)
+    if (last >= today) list.push({ code: `${symbol}${CODE[m]}${String(y).slice(-1)}`, year: y, month: m, last })
   }
-  const [front, next] = quarters
-  const roll = new Date(front.expiry.getTime() - 8 * 86_400_000)
+  const [front, next] = list
+  let outBy = null, outByText = null
+  if (c.lastTradeRule === 'third-friday') { outBy = new Date(front.last.getTime() - 8 * DAY_MS); outByText = 'Usual roll (volume moves to the next contract)' }
+  else if (c.lastTradeRule === 'third-last-business' || c.lastTradeRule === 'zn') { outBy = lastBiz(front.month === 1 ? front.year - 1 : front.year, front.month === 1 ? 12 : front.month - 1); outByText = 'First notice day (be out before it)' }
   return {
-    front: { code: front.code, expiry: iso(front.expiry), roll: iso(roll) },
-    next: { code: next.code, expiry: iso(next.expiry) },
-    rolled: today > roll,
-    daysToExpiry: Math.round((front.expiry - today) / 86_400_000),
+    front: { code: front.code, last: iso(front.last) },
+    next: { code: next.code, last: iso(next.last) },
+    outBy: outBy ? iso(outBy) : null, outByText,
+    passedOutBy: outBy ? today > outBy : false,
+    daysToLast: Math.round((front.last - today) / DAY_MS),
+    physical: c.physical,
+    // Where traders actually are: past the roll or first notice, it is the next contract.
+    active: outBy && today > outBy ? next.code : front.code,
   }
+}
+
+/** ES in the shape the page first used: front contract, expiry, roll, next. */
+export function esCalendar(now = new Date()) {
+  const f = futuresCalendar('ES', now)
+  return {
+    front: { code: f.front.code, expiry: f.front.last, roll: f.outBy },
+    next: { code: f.next.code, expiry: f.next.last },
+    rolled: f.passedOutBy,
+    daysToExpiry: f.daysToLast,
+  }
+}
+
+/** What a price move is worth on a futures contract: dollars and ticks. */
+export function moveValue(symbol, { contracts = 1, move = 0 } = {}) {
+  const t = TICKERS[symbol]
+  if (!t || !t.contract) return null
+  const n = Number.isFinite(contracts) ? contracts : 0, mv = Number.isFinite(move) ? move : 0
+  return { dollars: Math.round(n * mv * t.contract.multiplier * 100) / 100, ticks: Math.round((mv / t.contract.tick) * 100) / 100, perTick: t.contract.tickValue }
 }
 
 /** The next monthly options expiry (third Friday) on or after a date, and whether it is a quarterly "quad witching" one. */
@@ -222,6 +406,10 @@ export function underlyingNotes(symbol, { expiry = null, now = new Date(), short
       if (shortCall && dv.length && t.options.exercise === 'american') notes.push(`${t.symbol} usually goes ex-dividend in ${months([...new Set(dv)])}. An in-the-money short call is likely to be assigned the day before.`)
     }
   }
-  if (t.symbol === 'ES') notes.push(`Options on ES futures: $50 a point, and exercise delivers an ES futures position. ${t.exerciseText}`)
+  if (t.contract) {
+    const c = t.contract
+    notes.push(`Options on ${t.symbol} futures: $${c.multiplier.toLocaleString('en-US')} per 1.00 move (${c.unit}), and exercise delivers ${t.options.settlement}.${t.exerciseText ? ' ' + t.exerciseText : ''}`)
+    if (c.physical) notes.push(`${t.symbol} futures are physically delivered. Close the spread, and any future it turns into, well before the last trading day; most brokers force-close retail positions before delivery.`)
+  }
   return { known: true, symbol: t.symbol, exercise: t.options.exercise, multiplier: t.options.multiplier, dte, notes }
 }

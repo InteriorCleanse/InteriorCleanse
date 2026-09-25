@@ -1844,3 +1844,9 @@ button.btn.vx-open:hover:not(:disabled) { background:linear-gradient(180deg, #ff
 .sp-about b { color:var(--text); }
 .sp-under-notes { margin:8px 0; font-size:12.5px; }
 @media (max-width:520px) { .tk-spark { margin-left:0; width:100%; } .tk-table th { width:38%; } }
+.tk-chips { display:flex; flex-wrap:wrap; gap:8px 18px; margin:2px 0 12px; }
+.tk-group { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.tk-group > span { font-size:11px; color:var(--dim); margin-right:2px; }
+.tk-proxy { border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; }
+.tk-proxy-h { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-bottom:6px; }
+.tk-proxy-h .badge { margin-left:0; }
