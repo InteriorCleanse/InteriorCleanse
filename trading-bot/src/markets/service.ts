@@ -52,6 +52,8 @@ const FEED: Record<SourceId, string> = {
 
 export class MarketWatch {
   private rows: MarketRow[] = []
+  /** The last closed candles per market, kept in memory for the pattern scanner; never sent in the snapshot. */
+  private candleCache = new Map<string, Candle[]>()
   private asOf = 0
   private timer: ReturnType<typeof setInterval> | null = null
   private running: Promise<MarketsSnapshot> | null = null
@@ -115,6 +117,9 @@ export class MarketWatch {
     }
   }
 
+  /** The candles behind one row ("stock:NVDA"), for the pattern scanner. Empty until the first refresh. */
+  candles(key: string): Candle[] { return this.candleCache.get(key) ?? [] }
+
   /** Refresh every market once. Concurrent callers share one run. */
   refresh(): Promise<MarketsSnapshot> {
     if (!this.running) this.running = this.run().finally(() => { this.running = null })
@@ -140,6 +145,7 @@ export class MarketWatch {
     this.rows = this.list.map((w) => {
       const r = results.get(w)!
       const candles: Candle[] = r.ok ? r.candles : []
+      this.candleCache.set(`${w.kind}:${w.symbol}`, candles)
       const scan = scanMarket(candles, w.kind, w.symbol, now)
       const notConnected = !r.ok && /not connected/i.test(r.reason)
       const provenance: MarketRow['provenance'] = !r.ok ? (notConnected ? 'NOT CONNECTED' : 'UNAVAILABLE')

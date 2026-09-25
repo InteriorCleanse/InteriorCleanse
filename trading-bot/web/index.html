@@ -166,6 +166,22 @@
     <div id="spreads-out"></div>
   </section>
 
+  <section id="tab-scanner" class="hidden">
+    <div class="card">
+      <h2>Chart scanner</h2>
+      <p class="plain" style="margin-top:0">Two ways to read a chart, both drawn on the chart itself. The <b>live pattern finder</b> checks every watched market's real candles with fixed rules you can verify, no AI involved. The <b>screenshot scan</b> reads any chart picture you give it with AI and marks it up. Neither is a signal, and Mr. Cash does not trade on them.</p>
+    </div>
+    <div id="scanner-out"></div>
+  </section>
+
+  <section id="tab-bigmoney" class="hidden">
+    <div class="card">
+      <h2>Big money</h2>
+      <p class="plain" style="margin-top:0">What large and connected money has <b>disclosed</b>: trades by members of Congress, insider buying and selling from SEC Form 4 filings, and how much volume trades off the public exchanges, plus the stocks trading the most today. Every row names its source and how late it is. None of it is a signal, and Mr. Cash does not trade on it.</p>
+    </div>
+    <div id="bigmoney-out"></div>
+  </section>
+
   <section id="tab-tickers" class="hidden">
     <div class="card">
       <h2>Tickers</h2>
@@ -334,10 +350,10 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','tickers','planner','spreads','flow','news','intel','tv']],
+  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','scanner','bigmoney','tickers','planner','spreads','flow','news','intel','tv']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
   ['You and learning', 'your vault, your journal, the school, the lab, and what it remembers', ['portfolio','journal','school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
@@ -367,6 +383,8 @@ const TICON_PATHS = {
   planner:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   spreads:'<path d="M3 16h4l5-9 5 9h4"/><path d="M3 20h18" opacity=".5"/>',
   tickers:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>',
+  bigmoney:'<path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  scanner:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7 12l2-2.5 2 1.5 2.5-3"/>',
   test:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/>',
   replay:'<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
   playbook:'<path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>',
@@ -1607,6 +1625,8 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/planner.js"></script>
 <script type="module" src="/js/spreads.js"></script>
 <script type="module" src="/js/tickers.js"></script>
+<script type="module" src="/js/bigmoney.js"></script>
+<script type="module" src="/js/scanner.js"></script>
 <script type="module" src="/js/evidence.js"></script>
 <script type="module" src="/js/school.js"></script>
 <script type="module" src="/js/research.js"></script>
