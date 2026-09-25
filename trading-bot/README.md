@@ -281,6 +281,29 @@ wifi address and a **PIN**. Your phone (same wifi) opens that address, enters
 the PIN once, and it's in. Nobody else on your network gets past the PIN, and
 nothing is exposed to the internet.
 
+Step by step:
+
+1. **Turn it on.** In `config.ts`, change `allowPhone: false` to `allowPhone: true`.
+2. **Pick a PIN that stays the same.** Add `MRCASH_PIN=` and eight or more
+   digits to `.env` (create the file next to `package.json` if it is not there).
+   Without it, Mr. Cash makes a new random PIN every start.
+3. **Add the second lock (recommended).** Run `npm run vault:setup` and follow
+   it. From then on the phone needs the PIN **and** the 6-digit code from your
+   authenticator app.
+4. **Start it** (`start-24-7.bat`). The first time, Windows asks whether Node.js
+   may use the network: tick **Private networks** only and allow it.
+5. **Open it on the phone.** Same wifi as the computer. Type the "On your phone"
+   address the window prints (like `http://192.168.1.23:4173`) into Safari or
+   Chrome, then enter the PIN (and the code).
+6. **Make it an app.** iPhone: Share → **Add to Home Screen**. Android: ⋮ →
+   **Add to Home screen** or **Install app**.
+
+The fleet's other markets use the next ports (4174 and up) at the same address,
+with the same PIN. Each restart of Mr. Cash signs the phone out, so after one
+it asks for the PIN again. Set the computer never to sleep while plugged in, or
+the bot stops when it does. If the address stops working, the router gave the
+computer a new one: read the new one from the window.
+
 Honest limits on the phone: the engine runs on your computer, so the computer
 has to be on. Over plain home wifi the phone shows alerts in the bell but not
 as system notifications (browsers need https for those). If you want it from
@@ -915,6 +938,7 @@ npm run plan:clear      # forget today's armed plan
 npm run selftest        # offline logic check
 npm run vault:setup     # authenticator secret for the vault and two-factor phone login
 npm run security:audit  # keys in tracked files, .env exposure, phone access, 2FA, the live flag
+npm run fleet           # paper-trade several crypto pairs at once, one full engine each (start-fleet-24-7 runs it unattended)
 npm test                # the test suite: guard, kill switch, server routes
 npm run check           # type check + self-test + test suite
 npm run stop            # KILL SWITCH — no new positions until you resume

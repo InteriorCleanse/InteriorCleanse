@@ -121,6 +121,17 @@ function fact(k, v, sub, cls = '') {
   return `<div class="hm-fact"><span class="k">${esc(k)}</span><b class="${cls}">${esc(v)}</b><span class="s">${esc(sub)}</span></div>`
 }
 
+// Self-learning at a glance, from the research scheduler's own saved state.
+// It studies the record and writes lessons; it never changes a trading setting.
+function learningLine(l) {
+  if (!l) return ''
+  const mins = (ms) => Math.max(0, Math.round(ms / 60_000))
+  const when = (t, future) => { if (!t) return null; const m = mins(future ? t - Date.now() : Date.now() - t); return m < 1 ? (future ? 'any moment' : 'just now') : m < 60 ? (future ? `in ${m} min` : `${m} min ago`) : (future ? `in ${Math.round(m / 60)} h` : `${Math.round(m / 60)} h ago`) }
+  const last = when(l.lastRun, false), next = when(l.nextRun, true)
+  const state = l.lastError ? `<b class="warn">last run failed</b>: ${esc(l.lastError)}` : l.running ? 'studying now' : l.runs ? `${l.runs} research run${l.runs === 1 ? '' : 's'}${last ? `, last ${last}` : ''}${next ? `, next ${next}` : ''}` : 'first research run starts shortly'
+  return `<p class="hm-learn" title="Every 15 minutes Mr. Cash re-reads his own paper record and what he has watched: failures, drift, the research queue, daily and weekly reviews. It writes lessons; it never changes how he trades."><i aria-hidden="true"></i><span><b>Self-learning</b> · ${state} · ${Number(l.candlesObserved || 0).toLocaleString()} candles observed</span></p>`
+}
+
 function homeHero(d) {
   const p = d.core?.panel
   const tone = p?.direction === 'long' ? 'long' : p?.direction === 'short' ? 'short' : 'flat'
@@ -158,6 +169,7 @@ function homeHero(d) {
         <button class="btn ghost" data-tab="chart">Chart</button>
         <button class="btn ghost" data-tab="ask">Ask Mr. Cash</button>
       </div>
+      ${learningLine(d.learning)}
       <p class="hm-stamp"><span id="desk-status"></span></p>
     </div>
   </section>`

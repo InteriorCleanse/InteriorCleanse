@@ -112,6 +112,10 @@ const TV_LOG = join(DATA_DIR, 'tv-alerts.csv')
 const PORT = Number(process.env.MRCASH_PORT) || config.webPort
 const STARTED_AT = Date.now()
 
+// Load .env before reading any setting from it (MRCASH_PIN above all), so a
+// fixed PIN in .env is honoured on every start. Values already set in the shell
+// win; a missing or malformed file changes nothing.
+try { process.loadEnvFile(join(HERE, '..', '.env')) } catch { /* no .env: fine */ }
 // Secrets for this run. Printed once at startup, never written to disk.
 // A made-up PIN comes from the OS's secure random source, so it cannot be predicted.
 const PIN = process.env.MRCASH_PIN || config.app.pin || String(randomInt(100000, 1000000))
@@ -1203,7 +1207,11 @@ const server = createServer(async (req, res) => {
         res.end(renderDesk(desk))
         return
       }
-      json(res, 200, { ok: true, data: desk })
+      // Self-learning at a glance: the research scheduler's own saved state, read only.
+      const ops = learn.opsState()
+      const lastSteps = ops.lastReport?.steps ?? []
+      const learning = { runs: ops.runs, candlesObserved: ops.cycles, lastRun: ops.lastRun, nextRun: ops.nextRun, running: ops.running, stepsOk: lastSteps.filter((x) => x.ok).length, steps: lastSteps.length, lastError: ops.lastError ? ops.lastError.message : null }
+      json(res, 200, { ok: true, data: { ...desk, learning } })
       return
     }
 
