@@ -40,7 +40,9 @@ import { getNews, summarizeNews, upcomingEvents } from './news.ts'
 import { buildBrief } from './brief.ts'
 import { readPlan, writePlan, clearPlan } from './plan.ts'
 import type { DayPlan } from './plan.ts'
-import { aiStatus, askAI, explainAiError, PICTURE_QUESTION } from './ai.ts'
+import { aiStatus, askAI, askAIJson, explainAiError, PICTURE_QUESTION } from './ai.ts'
+import { scanPatterns, UNTESTED } from './scanner/patterns.ts'
+import { PICTURE_INSTRUCTIONS, PICTURE_SCHEMA, cleanPictureRead } from './scanner/picture.ts'
 import type { AiImage } from './ai.ts'
 import { toET, tradingDayKey } from './sessions.ts'
 import { ifvgRole } from './fvg.ts'
@@ -103,6 +105,7 @@ import * as ui from './ui.ts'
 import { fetchPortfolio } from './broker/alpaca.ts'
 import { brokerStatus, fetchKrakenPortfolio } from './broker/kraken.ts'
 import { MarketWatch } from './markets/service.ts'
+import { BigMoney } from './bigmoney/service.ts'
 import { VaultGate, vaultCookie, VAULT_COOKIE_PATH } from './security/vault.ts'
 import type Anthropic from '@anthropic-ai/sdk'
 
@@ -453,6 +456,32 @@ const server = createServer(async (req, res) => {
       const snap = marketWatch.snapshot()
       const wantFresh = url.searchParams.get('refresh') === '1' && Date.now() - snap.asOf > 30_000
       json(res, 200, { ok: true, data: wantFresh || !snap.asOf ? await marketWatch.refresh() : snap })
+      return
+    }
+    // The pattern scanner: textbook shapes found by fixed rules in each watched market's candles. READ-ONLY, no AI.
+    if (path === '/api/scanner') {
+      const snap = marketWatch.snapshot()
+      const markets = snap.rows.map((r) => {
+        const key = `${r.kind}:${r.symbol}`
+        const scan = scanPatterns(marketWatch.candles(key))
+        return { key, label: r.label, kind: r.kind, symbol: r.symbol, provenance: r.provenance, price: r.scan.price, trend: scan.trend, summary: scan.summary, names: scan.patterns.filter((p) => p.kind !== 'zone').map((p) => ({ name: p.name, bias: p.bias, status: p.status })) }
+      })
+      json(res, 200, { ok: true, data: { kind: 'PATTERN SCAN', execution: 'READ-ONLY', asOf: snap.asOf, markets, note: UNTESTED } })
+      return
+    }
+    if (path === '/api/scanner/market') {
+      const key = String(url.searchParams.get('key') ?? '')
+      const row = marketWatch.snapshot().rows.find((r) => `${r.kind}:${r.symbol}` === key)
+      if (!row) { json(res, 404, { ok: false, error: 'Not a watched market.' }); return }
+      const candles = marketWatch.candles(key).slice(-150)
+      json(res, 200, { ok: true, data: { key, label: row.label, provenance: row.provenance, feed: row.feed, interval: '1h', candles: candles.map((c) => ({ t: c.openTime, o: c.open, h: c.high, l: c.low, c: c.close, v: c.volume })), scan: scanPatterns(candles), note: UNTESTED } })
+      return
+    }
+    // Disclosed filings and volume leaders, READ-ONLY. Refresh on request at most every 10 minutes.
+    if (path === '/api/bigmoney') {
+      const snap = bigMoney.snapshot()
+      const wantFresh = url.searchParams.get('refresh') === '1' && Date.now() - snap.asOf > 600_000
+      json(res, 200, { ok: true, data: wantFresh ? await bigMoney.refresh() : snap })
       return
     }
     // Which brokers are wired up. No network call, no secrets: just configured yes/no.
@@ -1399,6 +1428,23 @@ const server = createServer(async (req, res) => {
       await streamAnswer(res, question, contextFor(await snapshot(), withJournal), Array.isArray(body.history) ? body.history.slice(-20) : [], undefined, body.skill)
       return
     }
+    // A chart screenshot, read by the AI into a fixed shape the page draws on the picture.
+    if (path === '/api/scanner/picture' && req.method === 'POST') {
+      const status = await aiStatus()
+      if (!status.available) { json(res, 200, { ok: false, error: status.reason }); return }
+      const body = JSON.parse((await readBody(req)) || '{}') as { image?: string; note?: string }
+      const m = /^data:(image\/(?:png|jpeg|gif|webp));base64,(.+)$/.exec(String(body.image ?? ''))
+      if (!m) { json(res, 200, { ok: false, error: 'Attach a PNG, JPEG, GIF or WebP picture.' }); return }
+      let context = 'Live market data was not available. Work from the picture only.'
+      try { context = contextFor(await snapshot()) } catch { /* picture-only is fine */ }
+      const note = String(body.note ?? '').trim().slice(0, 300)
+      try {
+        const out = await askAIJson(PICTURE_INSTRUCTIONS + (note ? `\n\nThe user adds: ${note}` : ''), context, { mediaType: m[1] as AiImage['mediaType'], data: m[2] }, PICTURE_SCHEMA)
+        if (!out.json) { json(res, 200, { ok: false, error: out.reason ?? 'No answer.', costUsd: out.costUsd }); return }
+        json(res, 200, { ok: true, data: { ...cleanPictureRead(out.json), model: out.model, costUsd: Math.round(out.costUsd * 10000) / 10000, note: 'A read of a picture by the AI. Prices are as it read them from the image, not checked against market data. Not advice, and Mr. Cash does not trade on it.' } })
+      } catch (err) { json(res, 200, { ok: false, error: await explainAiError(err) }) }
+      return
+    }
     if (path === '/api/picture' && req.method === 'POST') {
       const status = await aiStatus()
       if (!status.available) { json(res, 200, { ok: false, error: status.reason }); return }
@@ -1500,9 +1546,12 @@ startOpsMonitor({
 // The market watch: every market on the list, rescanned in the background.
 // MRCASH_MARKETS=0 turns the background loop off (the page still loads on demand).
 const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
+// Big money: disclosed congress and insider trades, off-exchange volume, most-traded stocks.
+// Read-only, a few times a day, and never seen by the engine. Follows the same switch.
+const bigMoney = new BigMoney()
 
 server.listen(PORT, host, () => {
-  if (process.env.MRCASH_MARKETS !== '0') marketWatch.start()
+  if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good(`  ● ${describeMode()}`))

@@ -155,6 +155,48 @@ export async function askAI(
   return { text, refused, usage, costUsd }
 }
 
+/**
+ * One picture in, one JSON document out, constrained to `schema` with
+ * structured outputs. Used by the chart scanner, which draws the result on
+ * the screenshot. Streams under the hood (long thinking on a big image can
+ * outlast a plain request) and returns the parsed object, or null with the
+ * reason when the model declined or the output was cut short.
+ */
+export async function askAIJson(
+  instructions: string,
+  context: string,
+  image: AiImage,
+  schema: Record<string, unknown>,
+): Promise<{ json: unknown | null; refused: boolean; reason: string | null; usage: AiAnswer['usage']; costUsd: number; model: string }> {
+  loadEnv()
+  const Sdk = await loadSdk()
+  if (!Sdk) throw new Error('Anthropic SDK not installed')
+  const client = new Sdk()
+  const params = {
+    model: config.ai.model,
+    max_tokens: 16000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    thinking: { type: 'adaptive' },
+    output_config: { effort: config.ai.effort, format: { type: 'json_schema', schema } },
+    system: [
+      { type: 'text', text: SYSTEM_RULES, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: `CONTEXT — the bot's current analysis of its own market (use it only if the picture is that market):\n\n${context}` },
+    ],
+    messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } }, { type: 'text', text: instructions }] }],
+  }
+  const stream = client.beta.messages.stream(params as unknown as Parameters<typeof client.beta.messages.stream>[0])
+  const final = await stream.finalMessage()
+  const usage = { input: final.usage.input_tokens, output: final.usage.output_tokens, cacheRead: final.usage.cache_read_input_tokens ?? 0 }
+  const price = config.ai.prices[final.model] ?? config.ai.prices[config.ai.model] ?? { input: 5, output: 25 }
+  const costUsd = (usage.input * price.input + usage.cacheRead * price.input * 0.1 + usage.output * price.output) / 1_000_000
+  const base = { usage, costUsd, model: final.model }
+  if (final.stop_reason === 'refusal') return { ...base, json: null, refused: true, reason: 'The model declined to read this picture.' }
+  if (final.stop_reason === 'max_tokens') return { ...base, json: null, refused: false, reason: 'The answer was cut short before it finished. Try a smaller or clearer screenshot.' }
+  const text = final.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
+  try { return { ...base, json: JSON.parse(text), refused: false, reason: null } } catch { return { ...base, json: null, refused: false, reason: 'The answer was not valid JSON.' } }
+}
+
 /** A free call that proves the key works, for `npm run doctor`. */
 export async function pingAI(): Promise<{ ok: boolean; detail: string }> {
   loadEnv()
