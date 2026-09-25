@@ -11,6 +11,7 @@
  * clipboard. Your last inputs are remembered in this browser only.
  */
 import { STRUCTURES, VIEWS, spreadPlan, spreadTicket } from './spread-math.js'
+import { TICKERS, ORDER, REVIEWED, underlyingNotes } from './tickers-data.js'
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 const $ = (id) => document.getElementById(id)
@@ -37,10 +38,12 @@ function shell() {
 
   <div class="card">
     <h2>2 · Strikes and prices</h2>
+    <div class="sp-chips" role="radiogroup" aria-label="Underlying">${ORDER.map((sym) => `<button class="chip" role="radio" data-under="${sym}">${sym}</button>`).join('')}<button class="chip" role="radio" data-under="">Other</button></div>
+    <div id="sp-about" class="sp-about"></div>
     <div class="pl-grid">
       <label>Symbol<input id="sp-sym" type="text" maxlength="20" placeholder="e.g. SPY"></label>
       <label>Expiry<input id="sp-exp" type="date"></label>
-      ${field('sp-under', 'Stock price now (optional)')}
+      ${field('sp-under', 'Price now (optional)')}
     </div>
     <div id="sp-legs" class="sp-legs"></div>
     <div class="pl-grid sp-more">
@@ -56,6 +59,23 @@ function shell() {
   </div>
 
   <p class="muted pl-foot">This page only does the maths. It sends nothing and places nothing, and Mr. Cash does not trade options. You place the spread yourself, as one multi-leg order in your broker's app.</p>`
+}
+
+/** Pick an underlying: fills the symbol and contract size, and says what matters about it for a spread. */
+function setUnder(sym, fill = true) {
+  const t = TICKERS[sym]
+  if (fill) {
+    $('sp-sym').value = sym
+    if (t) $('sp-mult').value = t.options.multiplier
+  }
+  renderAbout()
+}
+
+function renderAbout() {
+  const sym = ($('sp-sym')?.value || '').trim().toUpperCase()
+  document.querySelectorAll('#spreads-out [data-under]').forEach((b) => { const on = b.dataset.under === (TICKERS[sym] ? sym : '') && (sym !== '' || b.dataset.under === ''); b.classList.toggle('on', on); b.setAttribute('aria-checked', on) })
+  const t = TICKERS[sym], box = $('sp-about'); if (!box) return
+  box.innerHTML = t ? `<p><b>${esc(t.symbol)}</b> · ${esc(t.name)} · options on ${esc(t.options.settlement)}, $${t.options.multiplier} a point, ${t.options.exercise === 'american' ? 'American-style' : 'check the exercise style of your series'}. ${esc(t.spreadNotes[0])} <button class="chip" data-tickers="${esc(t.symbol)}">More about ${esc(t.symbol)}</button></p>` : ''
 }
 
 function renderStructs() {
@@ -120,11 +140,15 @@ function renderOut() {
   s.legs.forEach((l, i) => { const td = document.querySelectorAll('#sp-legs .sp-legk')[i]; if (td) td.textContent = num(`sp-k${l.slot}`) ?? '—' })
   const strikes = s.slots.map((_, i) => num(`sp-k${i}`)), premiums = s.legs.map((_, i) => num(`sp-p${i}`))
   const all = load(); all.legs = { ...(all.legs || {}), [state.structure]: { k: strikes, p: premiums } }
-  save({ ...all, view: state.view, structure: state.structure, acct: $('sp-acct').value, risk: $('sp-risk').value, fee: $('sp-fee').value, sym: $('sp-sym').value })
+  save({ ...all, view: state.view, structure: state.structure, acct: $('sp-acct').value, risk: $('sp-risk').value, fee: $('sp-fee').value, sym: $('sp-sym').value, mult: $('sp-mult').value })
   if (strikes.some((k) => k === null) || premiums.some((q) => q === null)) { out.innerHTML = `<p class="muted">Enter all ${s.slots.length} strikes and the price of each leg to see the most it can lose, the most it can make and the break-evens.</p>`; return }
   const spot = num('sp-under')
-  const p = spreadPlan({ structure: state.structure, strikes, premiums, underlying: spot, multiplier: num('sp-mult') ?? 100, feePerContract: num('sp-fee') ?? 0, account: num('sp-acct'), riskPct: num('sp-risk') })
+  const sym = ($('sp-sym')?.value || '').trim().toUpperCase()
+  const shortCall = s.legs.some((l) => l.side < 0 && l.type === 'call')
+  const u = underlyingNotes(sym, { expiry: $('sp-exp')?.value || null, now: new Date(), shortCall })
+  const p = spreadPlan({ structure: state.structure, strikes, premiums, underlying: spot, multiplier: num('sp-mult') ?? 100, feePerContract: num('sp-fee') ?? 0, account: num('sp-acct'), riskPct: num('sp-risk'), exercise: u.known ? u.exercise : 'american' })
   if (!p.ok) { out.innerHTML = err(p.error); return }
+  if (u.known && u.multiplier && (num('sp-mult') ?? 100) !== u.multiplier) u.notes.unshift(`${u.symbol} options are $${u.multiplier} a point, but the multiplier above is ${num('sp-mult')}. Every dollar figure here uses the multiplier above.`)
   const n = p.sizing.ok ? p.sizing.spreads : 1
   out.innerHTML = `
     <div class="pl-kpis">
@@ -138,6 +162,7 @@ function renderOut() {
     <p class="pl-line">Per spread, with ${p.contractsPerSpread} contracts and ${usd(p.openFees)} in opening fees included.${p.sizing.ok ? ` ${p.sizing.spreads} spread${p.sizing.spreads === 1 ? '' : 's'} can lose at most <b>${usd(p.sizing.totalMaxLoss)}</b> of your ${usd(p.sizing.budget)} budget.` : ` <span class="muted">${esc(p.sizing.error)}</span>`}${p.atSpot !== null ? ` If the price is still ${spot} at expiry: <b class="${p.atSpot >= 0 ? 'win' : 'loss'}">${usd(p.atSpot)}</b>.` : ''}</p>
     ${chart(p, spot, out.clientWidth)}
     ${p.warnings.length ? `<ul class="pl-warn">${p.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+    ${u.known && (u.notes.length || u.dte !== null) ? `<div class="sp-under-notes"><b>${esc(u.symbol)}${u.dte !== null && u.dte >= 0 ? ` · ${u.dte} day${u.dte === 1 ? '' : 's'} to expiry` : ''}</b>${u.notes.length ? `<ul class="pl-warn">${u.notes.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}<p class="muted pl-note">From reference facts reviewed ${esc(REVIEWED)}: usual months, not exact dates. Confirm dates with the company or the exchange.</p></div>` : ''}
     <ul class="sp-rules">
       <li>Enter it as <b>one</b> multi-leg order at a limit price, never leg by leg: legging in can leave you with only half the spread.</li>
       <li>Close or roll before the final day if the price is near a sold strike. Where it settles decides whether you are assigned, and you may not know until the next morning.</li>
@@ -160,14 +185,19 @@ function init() {
   $('sp-risk').value = s.risk || pl.risk || '1'
   if (s.fee) $('sp-fee').value = s.fee
   if (s.sym) $('sp-sym').value = s.sym
-  renderStructs(); renderLegs(); renderOut()
+  if (s.mult) $('sp-mult').value = s.mult
+  renderStructs(); renderLegs(); renderAbout(); renderOut()
   root.addEventListener('click', (e) => {
+    const u = e.target.closest('[data-under]'); if (u) { setUnder(u.dataset.under); renderOut(); return }
+    const k = e.target.closest('[data-tickers]'); if (k) { window.dispatchEvent(new CustomEvent('mrcash:ticker', { detail: k.dataset.tickers })); if (typeof window.showTab === 'function') window.showTab('tickers'); return }
     const v = e.target.closest('[data-view]'); if (v) { state.view = v.dataset.view; renderStructs(); renderLegs(); renderOut(); return }
     const b = e.target.closest('[data-struct]'); if (b) { state.structure = b.dataset.struct; renderStructs(); renderLegs(); renderOut() }
   })
   // The Planner's pointer to this tab.
   document.addEventListener('click', (e) => { const j = e.target.closest('#tab-planner [data-tab="spreads"]'); if (j && typeof window.showTab === 'function') window.showTab('spreads') })
-  root.addEventListener('input', renderOut)
+  // The Tickers tab's "Plan a spread on …" button.
+  window.addEventListener('mrcash:spread-underlying', (e) => { if (TICKERS[e.detail]) { setUnder(e.detail); renderOut() } })
+  root.addEventListener('input', (e) => { if (e.target.id === 'sp-sym') renderAbout(); renderOut() })
   root.addEventListener('change', renderOut)
 }
 
