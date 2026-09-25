@@ -5172,3 +5172,34 @@ body { counter-reset: track-counter; }
   border-radius: inherit;
 }
 .depth-layer[data-hidden='true'] { opacity: 0; }
+
+/* ── TRACK SCENES — a living room behind each track ───────────────────
+   Real footage of the track's own environment, under a veil tinted with the
+   track colour. The veil carries legibility (dark ink stays well past AA);
+   the room only breathes beneath it. */
+.track-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.track-scene .scene-bg { position: absolute; inset: 0; }
+.track-scene-veil {
+  position: absolute;
+  inset: 0;
+  background: var(--track-veil, rgba(244, 240, 231, 0.84));
+}
+.track-mind   { --track-veil: rgba(234, 239, 226, 0.84); }
+.track-home   { --track-veil: rgba(231, 237, 241, 0.84); }
+.track-body   { --track-veil: rgba(241, 233, 219, 0.84); }
+.track-spirit { --track-veil: rgba(236, 230, 241, 0.84); }
+/* Keep the section numeral and the copy above the room. */
+.track-section::before { z-index: 1; }
+.track-inner { z-index: 2; }
+
+/* The image-reveal curtain (::after, parked at -101%) must be clipped by its own
+   card. Without a positioned ancestor it escaped and, now that a room sits
+   behind the tracks, showed as a cream slab above each cover. */
+.book-card-image,
+.article-card-image { position: relative; }

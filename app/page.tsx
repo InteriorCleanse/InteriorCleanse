@@ -5,6 +5,7 @@ import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
 import { ProductBrowser } from '@/components/browse/ProductBrowser'
 import { Marquee } from '@/components/motion/Marquee'
+import { TrackScene } from '@/components/TrackScene'
 import { GuestBook } from '@/components/GuestBook'
 import { LineIcon, type IconName } from '@/components/icons/LineIcon'
 import { TrackIcon } from '@/components/TrackIcon'
@@ -84,16 +85,16 @@ export default function Home() {
       <section className="triptych" aria-label="InteriorCleanse editorial">
         {[
           [
-            'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=700&q=90',
-            'Architectural interior with natural light and minimal furniture',
+            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_39dacf9b-ba7d-4cc7-ae1f-a812ae30cc77.png',
+            'A pale oak console with a hand-poured candle and a stack of linen-bound books in morning light',
           ],
           [
-            'https://images.unsplash.com/photo-1567767292278-a4f21aa2d36e?w=700&q=90',
-            'Warm minimal living room with botanical details',
+            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_3ec3cf93-a32b-49c0-aead-249d0bcb268e.png',
+            'A bed dressed in washed oatmeal linen in a calm sunlit bedroom',
           ],
           [
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=700&q=90',
-            'Moody modern bedroom interior',
+            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_a9fbe1d6-8801-4663-8d17-6e026debf376.png',
+            'A limestone kitchen counter with a stoneware mug and folded linen',
           ],
         ].map(([src, alt]) => (
           <div key={alt} className="triptych-col">
@@ -104,6 +105,7 @@ export default function Home() {
 
       {/* MIND */}
       <section className="track-section track-mind">
+        <TrackScene scene={getScene('library')} />
         <div className="track-inner">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -141,6 +143,7 @@ export default function Home() {
 
       {/* HOME */}
       <section className="track-section track-home">
+        <TrackScene scene={getScene('atrium')} />
         <div className="track-inner reverse">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -178,6 +181,7 @@ export default function Home() {
 
       {/* BODY */}
       <section className="track-section track-body">
+        <TrackScene scene={getScene('conservatory')} />
         <div className="track-inner">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -215,6 +219,7 @@ export default function Home() {
 
       {/* SPIRIT */}
       <section className="track-section track-spirit">
+        <TrackScene scene={getScene('chapel')} />
         <div className="track-inner reverse">
           <div className="track-text">
             <div className="track-eyebrow-row">
