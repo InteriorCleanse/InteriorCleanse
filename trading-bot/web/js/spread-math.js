@@ -87,7 +87,7 @@ export function payoffAt(legs, s, multiplier = 100, openFees = 0) {
  * Plan one spread from the strikes and per-leg prices you typed.
  * premiums[i] is the price of legs[i] of the structure, per share.
  */
-export function spreadPlan({ structure, strikes, premiums, underlying = null, multiplier = 100, feePerContract = 0, account = null, riskPct = null }) {
+export function spreadPlan({ structure, strikes, premiums, underlying = null, multiplier = 100, feePerContract = 0, account = null, riskPct = null, exercise = 'american' }) {
   const st = STRUCTURES[structure]
   if (!st) return { ok: false, error: 'Choose a spread.' }
   if (!pos(multiplier)) return { ok: false, error: 'The contract multiplier must be positive (100 for US equity options).' }
@@ -129,7 +129,9 @@ export function spreadPlan({ structure, strikes, premiums, underlying = null, mu
   for (let i = 1; i < ks.length; i++) widths.push(round(ks[i] - ks[i - 1], 4))
   const warnings = []
   if (st.family === 'Butterfly' && widths[0] !== widths[1]) warnings.push('The wings are not the same width (a "broken-wing" butterfly), so the loss is larger on one side. The numbers above already include that.')
-  if (st.kind === 'credit') warnings.push('Sold legs can be assigned early: US stock options can be exercised any day, most often in-the-money puts, and calls just before a dividend. The bought leg still caps the loss, but assignment can leave you holding shares overnight.')
+  // exercise: 'american' (US stock and ETF options), 'european' (no early exercise), or 'check' (the product has both).
+  if (st.kind === 'credit' && exercise === 'american') warnings.push('Sold legs can be assigned early: US stock options can be exercised any day, most often in-the-money puts, and calls just before a dividend. The bought leg still caps the loss, but assignment can leave you holding shares overnight.')
+  if (st.kind === 'credit' && exercise === 'check') warnings.push('Some series of this product are American-style, so a sold leg can be assigned early, and some are European-style, so it cannot. Check which one you are trading.')
   if (st.kind === 'credit' && maxProfit / maxLoss < 0.34) warnings.push(`You risk ${round(maxLoss / maxProfit, 1)}× what you can make. Spreads like this win often and lose big: one full loss can take back several wins.`)
   if (Number.isFinite(riskPct) && riskPct > 2) warnings.push(`${riskPct}% per trade is aggressive. Many traders keep it at 1–2%, so a losing streak does not sink the account.`)
 

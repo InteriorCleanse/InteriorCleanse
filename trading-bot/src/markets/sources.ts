@@ -11,7 +11,8 @@
  *   stocks,  Alpaca's market-data API with your existing read-only Alpaca keys
  *   indexes  (MRCASH_ALPACA_KEY / _SECRET). The free feed is IEX: one exchange's
  *            prints, a small slice of the day's volume. Indexes are watched
- *            through the ETFs that track them (SPY, QQQ, DIA) and are labelled
+ *            through the ETFs that track them (SPY, QQQ, DIA), and commodities and
+ *            Treasuries through funds (GLD, SLV, USO, UNG, IEF); all are labelled
  *            as such — an ETF is not the index.
  *
  * Nothing in this file can place, change or cancel an order: every call is a
@@ -45,10 +46,11 @@ const NAMES: Record<string, string> = {
   EURUSD: 'EUR/USD', GBPUSD: 'GBP/USD', USDJPY: 'USD/JPY', AUDUSD: 'AUD/USD', USDCAD: 'USD/CAD', USDCHF: 'USD/CHF',
   AAPL: 'Apple', NVDA: 'Nvidia', TSLA: 'Tesla', MSFT: 'Microsoft', AMZN: 'Amazon', META: 'Meta', GOOGL: 'Alphabet',
   SPY: 'S&P 500 (via SPY)', QQQ: 'Nasdaq 100 (via QQQ)', DIA: 'Dow 30 (via DIA)', IWM: 'Russell 2000 (via IWM)',
+  GLD: 'Gold (via GLD fund)', SLV: 'Silver (via SLV fund)', USO: 'WTI crude (via USO fund)', UNG: 'Natural gas (via UNG fund)', IEF: '7–10y Treasuries (via IEF fund)',
 }
 const SOURCE_FOR: Record<MarketKind, SourceId> = { crypto: 'binance', forex: 'kraken', stock: 'alpaca', index: 'alpaca' }
 
-export const DEFAULT_WATCHLIST = 'crypto:BTCUSDT,crypto:ETHUSDT,crypto:SOLUSDT,forex:EURUSD,forex:GBPUSD,forex:USDJPY,stock:AAPL,stock:NVDA,stock:TSLA,index:SPY,index:QQQ,index:DIA'
+export const DEFAULT_WATCHLIST = 'crypto:BTCUSDT,crypto:ETHUSDT,crypto:SOLUSDT,forex:EURUSD,forex:GBPUSD,forex:USDJPY,stock:AAPL,stock:NVDA,stock:TSLA,index:SPY,index:QQQ,index:DIA,index:GLD,index:SLV,index:USO,index:UNG,index:IEF'
 
 /**
  * The watchlist, from MRCASH_WATCHLIST ("crypto:BTCUSDT,forex:EURUSD,…") or

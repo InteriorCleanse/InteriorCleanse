@@ -28,6 +28,8 @@ leg's price from your broker's option chain. The page shows:
 - the payoff at expiry as a chart
 - how many spreads fit your risk budget, sized by the worst case
 
+Picking **SPY, ES, NVDA, TSLA or AAPL** fills in the contract size and adds that underlying's warnings: earnings months before expiry, ex-dividend risk on short calls, and exercise style. See `docs/TICKERS.md`.
+
 Opening fees are charged on every contract in the spread. **Copy the order
 ticket** puts a plain-text summary of the multi-leg order on your clipboard.
 

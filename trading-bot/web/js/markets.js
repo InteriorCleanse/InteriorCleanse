@@ -12,7 +12,7 @@
  * is no control here that can place an order.
  */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-const KIND_LABEL = { crypto: 'Crypto', stock: 'Stocks', forex: 'Forex', index: 'Indexes' }
+const KIND_LABEL = { crypto: 'Crypto', stock: 'Stocks', forex: 'Forex', index: 'Indexes & funds' }
 const KIND_ICON = {
   crypto: '<circle cx="12" cy="12" r="8.5"/><path d="M10 7.5h3.2a2.2 2.2 0 0 1 0 4.4H10zM10 11.9h3.8a2.3 2.3 0 0 1 0 4.6H10zM10 7.5v9M11 6v1.5M11 16.5V18"/>',
   stock: '<path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 3 5-6"/>',
