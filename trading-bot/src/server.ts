@@ -1548,7 +1548,7 @@ startOpsMonitor({
 const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
 // Big money: disclosed congress and insider trades, off-exchange volume, most-traded stocks.
 // Read-only, a few times a day, and never seen by the engine. Follows the same switch.
-const bigMoney = new BigMoney()
+const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
 
 server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }

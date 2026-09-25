@@ -11,7 +11,7 @@ import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseRange, parseQuiverCongress, parseQuiverInsiders, parseQuiverOffExchange, parseForm4Xml, form4FilingsFrom, buildBoard, digest } from '../../src/bigmoney/parse.ts'
-import { BigMoney, tickersFromEnv } from '../../src/bigmoney/service.ts'
+import { BigMoney, tickersFromEnv, msUntilNextNy } from '../../src/bigmoney/service.ts'
 
 const ROOT = join(import.meta.dirname, '..', '..')
 
@@ -194,3 +194,38 @@ test('walled off: nothing in the engine imports big money, the route is read-onl
   const src = readFileSync(join(ROOT, 'src', 'bigmoney', 'sources.ts'), 'utf8')
   assert.doesNotMatch(src, /method\s*:\s*['"](POST|PUT|DELETE|PATCH)/, 'every source call is a GET')
 })
+
+test('the morning brief is timed to 6:00 New York, summer and winter', () => {
+  const at = (iso: string) => msUntilNextNy(6, Date.parse(iso))
+  assert.equal(at('2026-09-25T09:30:00Z'), 30 * 60_000, 'EDT: 6:00 is 10:00Z, half an hour away')
+  assert.equal(at('2026-09-25T11:00:00Z'), 23 * 3_600_000, 'already past: tomorrow')
+  assert.equal(at('2026-09-25T10:00:00Z'), 24 * 3_600_000, 'exactly on the hour: the next one, never zero')
+  assert.equal(at('2026-12-15T10:00:00Z'), 3_600_000, 'EST: 6:00 is 11:00Z')
+  assert.equal(at('2026-03-08T05:00:00Z'), 5 * 3_600_000, 'the night clocks go forward: 6:00 EDT is 10:00Z')
+})
+
+// SYNTHETIC: a clock pinned 50 ms before 6:00 New York so the morning timer fires at once.
+const JUST_BEFORE_SIX = Date.parse('2026-09-25T10:00:00Z') - 50
+
+test('the morning brief rings the bell with a plain summary when filings came in', () => withEnv({ MRCASH_QUIVER_KEY: 'TESTFIXTUREQUIVERKEY', MRCASH_QUIVER_URL: 'http://quiver.test' }, async () => {
+  const reply = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => String(body) })
+  const fetchImpl = async (url: string) => reply(url.includes('/congresstrading') ? [{ Representative: 'Synthetic Member', ReportDate: '2026-09-20', TransactionDate: '2026-09-01', Ticker: 'TSTX', Transaction: 'Purchase', Range: '$1,001 - $15,000' }] : [])
+  const alerts: Array<[string, string]> = []
+  const bm = new BigMoney({ fetchImpl, dir: mkdtempSync(join(tmpdir(), 'bm-')), tickers: ['TSTX'], gapMs: 0, now: () => JUST_BEFORE_SIX, alert: (t, b) => { alerts.push([t, b]) } })
+  bm.start()
+  for (let i = 0; i < 40 && !alerts.length; i++) await new Promise((r) => setTimeout(r, 25))
+  bm.stop()
+  assert.ok(alerts.length >= 1, 'the bell rang')
+  assert.equal(alerts[0][0], 'Morning filings brief')
+  assert.match(alerts[0][1], /TSTX/)
+  assert.doesNotMatch(alerts[0][1], /TESTFIXTUREQUIVERKEY/, 'no key in the bell')
+}))
+
+test('the morning brief stays quiet when nothing is connected, and stop() ends it', () => withEnv({}, async () => {
+  const alerts: string[] = []
+  const bm = new BigMoney({ fetchImpl: async () => ({ ok: false, status: 500, json: async () => null }), dir: mkdtempSync(join(tmpdir(), 'bm-')), tickers: ['TSTX'], gapMs: 0, now: () => JUST_BEFORE_SIX, alert: (t) => { alerts.push(t) } })
+  bm.start()
+  await new Promise((r) => setTimeout(r, 200))
+  bm.stop()
+  assert.deepEqual(alerts, [], 'NOT ENOUGH DATA is not news')
+}))

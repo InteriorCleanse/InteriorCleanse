@@ -67,6 +67,10 @@ up to 25. The default is `AAPL,NVDA,TSLA,MSFT,AMZN,META,GOOGL,AMD,AVGO,JPM`.
 
 - **Refresh interval:** every 3 hours, with the first run a minute after
   start-up.
+- **Morning filings brief:** a fresh read at 6:00 New York time, adjusted
+  for daylight saving. If anything came in, the digest rings the bell as
+  "Morning filings brief". If nothing is connected it stays quiet. Claude Code
+  can explain it with `/mr-cash-morning-filings`.
 - **Check now:** the page button runs a refresh on demand, at most every
   10 minutes.
 - **Persistence:** the last result is saved to `bigmoney.json` in the data
