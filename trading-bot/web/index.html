@@ -7,7 +7,7 @@
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
-<meta name="theme-color" content="#080B16" />
+<meta name="theme-color" content="#0B0A08" />
 <meta name="color-scheme" content="dark" />
 <meta name="description" content="Mr. Cash — a paper-trading desk that explains every decision. Live market data, simulated execution, no real money." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -735,33 +735,33 @@ function shareCard() {
   const a = data.analysis, s = data.state, b = data.brief, W = 1080, H = 1350
   const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d')
   const F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif'
-  const T = (t, x, y, size, color='#EEF1FB', weight='600') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; ctx.fillText(t, x, y) }
-  const wrap = (t, x, y, size, maxW, lh, color='#c9d1d9', weight='500') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; let line = '', yy = y; for (const w of String(t).split(' ')) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, yy); line = w; yy += lh } else line = test } if (line) ctx.fillText(line, x, yy); return yy + lh }
-  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H)
-  ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, 150)
-  T('MR. CASH', 60, 78, 44, '#4ADE9A', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#9AA3C2', '600')
-  T(`${a.weekday} ${a.etClock} ET`, W - 60 - ctx.measureText(`${a.weekday} ${a.etClock} ET`).width * 0.9, 78, 24, '#9AA3C2')
+  const T = (t, x, y, size, color='#F4EEE3', weight='600') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; ctx.fillText(t, x, y) }
+  const wrap = (t, x, y, size, maxW, lh, color='#D8D0C2', weight='500') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; let line = '', yy = y; for (const w of String(t).split(' ')) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, yy); line = w; yy += lh } else line = test } if (line) ctx.fillText(line, x, yy); return yy + lh }
+  ctx.fillStyle = '#0B0A08'; ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = '#16130F'; ctx.fillRect(0, 0, W, 150)
+  T('MR. CASH', 60, 78, 44, '#DEBE7C', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#AAA091', '600')
+  T(`${a.weekday} ${a.etClock} ET`, W - 60 - ctx.measureText(`${a.weekday} ${a.etClock} ET`).width * 0.9, 78, 24, '#AAA091')
   let y = 215
-  T(cfg.symbol, 60, y, 48, '#EEF1FB', '800'); T(px(a.price), 60 + ctx.measureText(cfg.symbol).width * 1.15 + 20, y, 48, '#EEF1FB', '500')
+  T(cfg.symbol, 60, y, 48, '#F4EEE3', '800'); T(px(a.price), 60 + ctx.measureText(cfg.symbol).width * 1.15 + 20, y, 48, '#F4EEE3', '500')
   y += 70
-  if (s) { const col = s.trend === 'uptrend' ? '#4ADE9A' : s.trend === 'downtrend' ? '#FF6B7A' : '#FFC061'; T(s.trend.toUpperCase(), 60, y, 40, col, '800'); T(`strength ${s.strength}/100 · ${s.continuation.label}`, 60 + ctx.measureText(s.trend.toUpperCase()).width * 1.15 + 24, y, 26, '#9AA3C2'); y += 44; y = wrap(s.evidence[0] || '', 60, y, 24, W - 120, 32) }
-  y += 10; T('BIAS', 60, y, 20, '#9AA3C2', '700'); y += 34
-  T(a.bias.direction.toUpperCase(), 60, y, 34, a.bias.direction === 'bullish' ? '#4ADE9A' : a.bias.direction === 'bearish' ? '#FF6B7A' : '#9AA3C2', '800'); y += 40
+  if (s) { const col = s.trend === 'uptrend' ? '#60C892' : s.trend === 'downtrend' ? '#E6747C' : '#E8A15A'; T(s.trend.toUpperCase(), 60, y, 40, col, '800'); T(`strength ${s.strength}/100 · ${s.continuation.label}`, 60 + ctx.measureText(s.trend.toUpperCase()).width * 1.15 + 24, y, 26, '#AAA091'); y += 44; y = wrap(s.evidence[0] || '', 60, y, 24, W - 120, 32) }
+  y += 10; T('BIAS', 60, y, 20, '#AAA091', '700'); y += 34
+  T(a.bias.direction.toUpperCase(), 60, y, 34, a.bias.direction === 'bullish' ? '#60C892' : a.bias.direction === 'bearish' ? '#E6747C' : '#AAA091', '800'); y += 40
   y = wrap(a.bias.reason, 60, y, 24, W - 120, 32); y += 10
-  T('THE RANGES', 60, y, 20, '#9AA3C2', '700'); y += 36
+  T('THE RANGES', 60, y, 20, '#AAA091', '700'); y += 36
   const S = data.analysis && data.sessions ? null : null; void S
   const ranges = [['Asia', b.lines.find(l => l.trim().startsWith('Asia'))], ['London', b.lines.find(l => l.trim().startsWith('London'))], ['New York', b.lines.find(l => l.trim().startsWith('New York'))], ['Yesterday', b.lines.find(l => l.trim().startsWith('Yesterday'))]]
-  for (const [, line] of ranges) if (line) { T(line.trim().replace(/\s+/g, ' '), 60, y, 24, '#c9d1d9', '500'); y += 34 }
-  y += 10; T('LEVELS', 60, y, 20, '#9AA3C2', '700'); y += 36
-  for (const l of b.levels.slice(0, 7)) { T(`${l.label}`, 60, y, 24, '#EEF1FB', '600'); T(px(l.price), 420, y, 24, '#EEF1FB', '500'); T(l.status, 600, y, 22, /SWEPT|broken/.test(l.status) ? '#FFC061' : '#9AA3C2', '500'); y += 34 }
-  y += 10; T("TODAY'S PLAN", 60, y, 20, '#9AA3C2', '700'); y += 36
+  for (const [, line] of ranges) if (line) { T(line.trim().replace(/\s+/g, ' '), 60, y, 24, '#D8D0C2', '500'); y += 34 }
+  y += 10; T('LEVELS', 60, y, 20, '#AAA091', '700'); y += 36
+  for (const l of b.levels.slice(0, 7)) { T(`${l.label}`, 60, y, 24, '#F4EEE3', '600'); T(px(l.price), 420, y, 24, '#F4EEE3', '500'); T(l.status, 600, y, 22, /SWEPT|broken/.test(l.status) ? '#E8A15A' : '#AAA091', '500'); y += 34 }
+  y += 10; T("TODAY'S PLAN", 60, y, 20, '#AAA091', '700'); y += 36
   y = wrap(data.plan ? `${data.plan.allow.toUpperCase()} · ${data.plan.riskPerTradePercent}% risk · max ${data.plan.maxTrades} trades${data.plan.notes ? ' · ' + data.plan.notes : ''}` : b.proposal.proposal, 60, y, 24, W - 120, 32)
-  ctx.fillStyle = '#161b22'; ctx.fillRect(0, H - 90, W, 90)
-  T('Paper trading · educational · not financial advice · the bot shows its losses too', 60, H - 38, 20, '#9AA3C2', '500')
+  ctx.fillStyle = '#16130F'; ctx.fillRect(0, H - 90, W, 90)
+  T('Paper trading · educational · not financial advice · the bot shows its losses too', 60, H - 38, 20, '#AAA091', '500')
   const url = c.toDataURL('image/png')
   const w = window.open('', '_blank')
   if (!w) { alert('Pop-up blocked — allow pop-ups for Mr. Cash to see the card.'); return }
-  w.document.write(`<title>Mr. Cash card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#4ADE9A;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
+  w.document.write(`<title>Mr. Cash card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#60C892;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
 }
 $('btn-card').onclick = shareCard
 
@@ -810,11 +810,11 @@ function drawChart() {
   // Grid first, on round numbers.
   const step = niceStep(hi - lo, 6)
   ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
-  for (let p = Math.ceil(lo / step) * step; p <= hi; p += step) { const yy = y(p); if (yy < padT || yy > padT + priceH) continue; ctx.strokeStyle = 'rgba(255,255,255,0.045)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(W-padR, yy); ctx.stroke(); ctx.fillStyle = '#7C85A6'; ctx.fillText(px(p), W-padR+8, yy+4) }
+  for (let p = Math.ceil(lo / step) * step; p <= hi; p += step) { const yy = y(p); if (yy < padT || yy > padT + priceH) continue; ctx.strokeStyle = 'rgba(255,255,255,0.045)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(W-padR, yy); ctx.stroke(); ctx.fillStyle = '#8C8374'; ctx.fillText(px(p), W-padR+8, yy+4) }
   ctx.save(); ctx.beginPath(); ctx.rect(padL, padT, plotW, plotH); ctx.clip()
   // Volume along the bottom, quiet, so price stays the subject.
   const vmax = Math.max(...cs.map((c) => c.volume || 0), 1e-9)
-  for (let i = 0; i < n; i++) { const c = cs[i], vh = (c.volume || 0) / vmax * volH; ctx.fillStyle = c.close >= c.open ? 'rgba(74,222,154,0.2)' : 'rgba(255,107,122,0.2)'; ctx.fillRect(x(i)-cw/2, padT + plotH - vh, cw, vh) }
+  for (let i = 0; i < n; i++) { const c = cs[i], vh = (c.volume || 0) / vmax * volH; ctx.fillStyle = c.close >= c.open ? 'rgba(96,200,146,0.2)' : 'rgba(230,116,124,0.2)'; ctx.fillRect(x(i)-cw/2, padT + plotH - vh, cw, vh) }
   if (showS) for (const s of data.sessions) {
     if (s.endTime < t0 || s.startTime > tN) continue
     const i0 = idxAt(s.startTime), i1 = Math.min(n-1, idxAt(s.endTime))
@@ -843,11 +843,11 @@ function drawChart() {
   if (showR && data.dealingRange) {
     const d = data.dealingRange, x0 = x(Math.max(0, n - Math.round(n * 0.3)))
     const top = Math.min(hi, d.high), bot = Math.max(lo, d.low)
-    ctx.fillStyle = 'rgba(255,107,122,0.06)'; ctx.fillRect(x0, y(top), W-padR-x0, y(d.equilibrium)-y(top))
-    ctx.fillStyle = 'rgba(74,222,154,0.06)'; ctx.fillRect(x0, y(d.equilibrium), W-padR-x0, y(bot)-y(d.equilibrium))
-    ctx.strokeStyle = 'rgba(230,237,243,0.5)'; ctx.setLineDash([6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y(d.equilibrium)); ctx.lineTo(W-padR, y(d.equilibrium)); ctx.stroke(); ctx.setLineDash([])
-    ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(255,107,122,0.9)'; ctx.fillText('premium', x0 + 3, y(top) + 11); ctx.fillStyle = 'rgba(74,222,154,0.9)'; ctx.fillText('discount', x0 + 3, y(bot) - 4)
-    ctx.fillStyle = 'rgba(230,237,243,0.8)'; ctx.fillText(`EQ · price at ${Math.round(d.position)}% (${d.zone})`, x0 + 3, y(d.equilibrium) - 3)
+    ctx.fillStyle = 'rgba(230,116,124,0.06)'; ctx.fillRect(x0, y(top), W-padR-x0, y(d.equilibrium)-y(top))
+    ctx.fillStyle = 'rgba(96,200,146,0.06)'; ctx.fillRect(x0, y(d.equilibrium), W-padR-x0, y(bot)-y(d.equilibrium))
+    ctx.strokeStyle = 'rgba(244,238,227,0.5)'; ctx.setLineDash([6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y(d.equilibrium)); ctx.lineTo(W-padR, y(d.equilibrium)); ctx.stroke(); ctx.setLineDash([])
+    ctx.font = '10px sans-serif'; ctx.fillStyle = 'rgba(230,116,124,0.9)'; ctx.fillText('premium', x0 + 3, y(top) + 11); ctx.fillStyle = 'rgba(96,200,146,0.9)'; ctx.fillText('discount', x0 + 3, y(bot) - 4)
+    ctx.fillStyle = 'rgba(244,238,227,0.8)'; ctx.fillText(`EQ · price at ${Math.round(d.position)}% (${d.zone})`, x0 + 3, y(d.equilibrium) - 3)
   }
   // Key levels: a line across, the name on the right beside the price axis.
   const tags = []
@@ -855,16 +855,16 @@ function drawChart() {
     const swept = l.sweptAt || l.brokenAt, key = l.kind==='pdh'||l.kind==='pdl'
     if (l.price < lo || l.price > hi) {
       // Off the chart: say where it is, at the edge it would be beyond.
-      if (!swept) tags.push({ y: l.price > hi ? padT + 8 : padT + priceH - 8, text: `${l.price > hi ? '↑' : '↓'} ${l.label} ${px(l.price)}`, col: key ? '#C9B4FF' : 'rgba(238,241,251,0.75)', pri: key ? 1 : 3 })
+      if (!swept) tags.push({ y: l.price > hi ? padT + 8 : padT + priceH - 8, text: `${l.price > hi ? '↑' : '↓'} ${l.label} ${px(l.price)}`, col: key ? '#D9C08A' : 'rgba(244,238,227,0.75)', pri: key ? 1 : 3 })
       continue
     }
-    ctx.strokeStyle = swept ? 'rgba(139,152,165,0.35)' : key ? 'rgba(188,140,255,0.75)' : 'rgba(230,237,243,0.4)'
+    ctx.strokeStyle = swept ? 'rgba(170,160,145,0.35)' : key ? 'rgba(217,192,138,0.8)' : 'rgba(244,238,227,0.4)'
     ctx.setLineDash(swept ? [2,4] : [6,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, y(l.price)); ctx.lineTo(W-padR, y(l.price)); ctx.stroke(); ctx.setLineDash([])
-    tags.push({ y: y(l.price), text: `${l.label}${l.sweptAt ? ' · swept' : l.brokenAt ? ' · broken' : ''}`, col: swept ? 'rgba(154,163,194,0.85)' : key ? '#C9B4FF' : '#EEF1FB', pri: key ? 0 : swept ? 2 : 1 })
+    tags.push({ y: y(l.price), text: `${l.label}${l.sweptAt ? ' · swept' : l.brokenAt ? ' · broken' : ''}`, col: swept ? 'rgba(170,160,145,0.85)' : key ? '#D9C08A' : '#F4EEE3', pri: key ? 0 : swept ? 2 : 1 })
   }
   for (let i = 0; i < n; i++) {
     const c = cs[i], up = c.close >= c.open
-    ctx.strokeStyle = ctx.fillStyle = up ? '#4ADE9A' : '#FF6B7A'; ctx.lineWidth = Math.max(1, Math.min(1.5, cw / 6))
+    ctx.strokeStyle = ctx.fillStyle = up ? '#60C892' : '#E6747C'; ctx.lineWidth = Math.max(1, Math.min(1.5, cw / 6))
     ctx.beginPath(); ctx.moveTo(x(i), y(c.high)); ctx.lineTo(x(i), y(c.low)); ctx.stroke()
     ctx.fillRect(x(i)-cw/2, y(Math.max(c.open,c.close)), cw, Math.max(1, Math.abs(y(c.open)-y(c.close))))
   }
@@ -881,7 +881,7 @@ function drawChart() {
       }
       ctx.stroke(); ctx.setLineDash([])
     }
-    line('vwapDay', 'dayAnchor', '#FFC061', [], 1.6)
+    line('vwapDay', 'dayAnchor', '#E8A15A', [], 1.6)
     if (!$('show-structure').checked) { /* the clean view keeps one VWAP; the full view adds the session line and bands */ } else {
       line('vwapDayUpper', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1); line('vwapDayLower', 'dayAnchor', 'rgba(210,153,34,0.35)', [2,3], 1)
       line('vwapSession', 'sessionAnchor', 'rgba(88,166,255,0.9)', [5,3], 1.2)
@@ -890,14 +890,14 @@ function drawChart() {
     if (prof && chWin.end === 0) for (const [p, label] of [[prof.vah, 'VAH'], [prof.poc, 'POC'], [prof.val, 'VAL']]) {
       if (p < lo || p > hi) continue
       const x0 = x(Math.max(0, n - Math.round(n * 0.18)))
-      ctx.strokeStyle = label === 'POC' ? 'rgba(188,140,255,0.95)' : 'rgba(188,140,255,0.6)'; ctx.lineWidth = label === 'POC' ? 1.5 : 1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x0, y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.setLineDash([])
-      tags.push({ y: y(p), text: label + (data.features.latest.profileDay.approximate ? ' ~' : ''), col: '#C9B4FF', pri: 1 })
+      ctx.strokeStyle = label === 'POC' ? 'rgba(217,192,138,0.95)' : 'rgba(217,192,138,0.6)'; ctx.lineWidth = label === 'POC' ? 1.5 : 1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x0, y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); ctx.setLineDash([])
+      tags.push({ y: y(p), text: label + (data.features.latest.profileDay.approximate ? ' ~' : ''), col: '#D9C08A', pri: 1 })
     }
   }
   // Sweeps of session levels (filled) and swing sweeps (hollow, full view only).
   const tri = (i, wick, side, fill) => { ctx.beginPath(); if (side === 'below') { ctx.moveTo(x(i), y(wick)+4); ctx.lineTo(x(i)-5, y(wick)+12); ctx.lineTo(x(i)+5, y(wick)+12) } else { ctx.moveTo(x(i), y(wick)-4); ctx.lineTo(x(i)-5, y(wick)-12); ctx.lineTo(x(i)+5, y(wick)-12) } ctx.closePath(); fill ? ctx.fill() : ctx.stroke() }
-  ctx.fillStyle = '#FFC061'; for (const s of data.sweeps) if (inWin(s.time)) tri(idxAt(s.time), s.wick, s.side, true)
-  if (showSt && data.swingSweeps) { ctx.strokeStyle = '#FFC061'; ctx.lineWidth = 1.2; for (const s of data.swingSweeps) if (inWin(s.time)) tri(idxAt(s.time), s.wick, s.side, false) }
+  ctx.fillStyle = '#E8A15A'; for (const s of data.sweeps) if (inWin(s.time)) tri(idxAt(s.time), s.wick, s.side, true)
+  if (showSt && data.swingSweeps) { ctx.strokeStyle = '#E8A15A'; ctx.lineWidth = 1.2; for (const s of data.swingSweeps) if (inWin(s.time)) tri(idxAt(s.time), s.wick, s.side, false) }
   // Structure: breaks always, swing names only when zoomed in enough to read them; nothing printed on top of anything else.
   if (showSt) {
     const placed = []
@@ -908,17 +908,17 @@ function drawChart() {
       const i = idxAt(s.time), lbl = s.kind || 'MSS', tw = ctx.measureText(lbl).width
       const bx = x(i) - tw/2, by = s.direction === 'bullish' ? y(cs[i].low)+22 : y(cs[i].high)-14
       if (!free(bx, by, tw)) continue
-      placed.push({ x: bx, y: by, w: tw }); ctx.fillStyle = s.direction === 'bullish' ? 'rgba(74,222,154,0.95)' : 'rgba(255,107,122,0.95)'; ctx.fillText(lbl, bx, by)
+      placed.push({ x: bx, y: by, w: tw }); ctx.fillStyle = s.direction === 'bullish' ? 'rgba(96,200,146,0.95)' : 'rgba(230,116,124,0.95)'; ctx.fillText(lbl, bx, by)
     }
-    if (data.swings && plotW / n >= 7) { ctx.font = '9.5px sans-serif'; ctx.fillStyle = 'rgba(154,163,194,0.9)'
+    if (data.swings && plotW / n >= 7) { ctx.font = '9.5px sans-serif'; ctx.fillStyle = 'rgba(170,160,145,0.9)'
       for (const s of data.swings) { if (!inWin(s.time)) continue; const i = idxAt(s.time); if (cs[i].openTime !== s.time) continue; const tw = ctx.measureText(s.label).width, bx = x(i)-tw/2, by = s.kind === 'high' ? y(s.price)-5 : y(s.price)+12; if (!free(bx, by, tw)) continue; placed.push({ x: bx, y: by, w: tw }); ctx.fillText(s.label, bx, by) } }
   }
   // Live-only marks (the current plan and the last price) belong to the latest candles, not to a look back.
   const live = chWin.end === 0
   const sig = data.signal
-  if (live && sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#8B93FF','entry'],[sig.plan.stop,'#FF6B7A','stop'],[sig.plan.takeProfit,'#4ADE9A','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); tags.push({ y: y(p), text: label, col, pri: 0 }) }
+  if (live && sig && sig.plan) for (const [p, col, label] of [[sig.plan.entry,'#DEBE7C','entry'],[sig.plan.stop,'#E6747C','stop'],[sig.plan.takeProfit,'#60C892','target']]) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(Math.max(0,n-41)), y(p)); ctx.lineTo(W-padR, y(p)); ctx.stroke(); tags.push({ y: y(p), text: label, col, pri: 0 }) }
   // Panned back, the tag shows the last candle on screen, in grey, so it is never mistaken for the live price.
-  const last = live ? all[N-1] : cs[n-1], lastUp = last.close >= last.open, tagCol = live ? (lastUp ? '#4ADE9A' : '#FF6B7A') : '#9AA3C2', ly = y(last.close)
+  const last = live ? all[N-1] : cs[n-1], lastUp = last.close >= last.open, tagCol = live ? (lastUp ? '#60C892' : '#E6747C') : '#AAA091', ly = y(last.close)
   if (live) { ctx.save(); ctx.setLineDash([2, 3]); ctx.strokeStyle = tagCol; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(W-padR, ly); ctx.stroke(); ctx.restore() }
   ctx.restore() // end of the plot clip
   // Level names, right-aligned by the axis; the most important wins a tight spot, the rest step aside.
@@ -930,12 +930,12 @@ function drawChart() {
     if (taken.some((r) => Math.abs(r.y - yy) < 14) || yy < padT + 6 || yy > padT + priceH + 4) continue
     taken.push({ y: yy, h: 14 })
     const tw = ctx.measureText(t.text).width, bx = W - padR - tw - 12
-    ctx.fillStyle = 'rgba(7,10,16,0.88)'; ctx.fillRect(bx - 4, yy - 8, tw + 8, 16)
+    ctx.fillStyle = 'rgba(13,11,9,0.88)'; ctx.fillRect(bx - 4, yy - 8, tw + 8, 16)
     ctx.fillStyle = t.col; ctx.fillText(t.text, bx, yy + 4)
   }
   ctx.fillStyle = tagCol; ctx.fillRect(W-padR+1, ly-9, padR-2, 18)
-  ctx.fillStyle = '#05070b'; ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; ctx.fillText(px(last.close), W-padR+6, ly+4)
-  ctx.fillStyle = '#7C85A6'; ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
+  ctx.fillStyle = '#0B0906'; ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; ctx.fillText(px(last.close), W-padR+6, ly+4)
+  ctx.fillStyle = '#8C8374'; ctx.font = '10.5px "Geist Mono", ui-monospace, monospace'
   const slots = Math.max(3, Math.floor(plotW / 96)) // one time label per ~96px so they never overlap on a phone
   const every = Math.max(1, Math.round(n / slots)); for (let i = Math.floor(every / 2); i < n; i += every) ctx.fillText(cs[i].et + ' ET', Math.min(W - padR - 50, Math.max(padL, x(i)-20)), H-8)
   chartHead(cs)
@@ -961,12 +961,12 @@ function drawCross(pt) {
   const c = xcv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H)
   if (!pt) return
   const { i, p } = pt, xx = view.x(i), yy = view.y(p)
-  c.strokeStyle = 'rgba(238,241,251,0.35)'; c.lineWidth = 1; c.setLineDash([4, 4])
+  c.strokeStyle = 'rgba(244,238,227,0.35)'; c.lineWidth = 1; c.setLineDash([4, 4])
   c.beginPath(); c.moveTo(xx, view.padT); c.lineTo(xx, view.padT + view.plotH); if (yy <= view.padT + view.priceH) { c.moveTo(view.padL, yy); c.lineTo(W - view.padR, yy) } c.stroke(); c.setLineDash([])
   c.fillStyle = '#2A3150'; c.fillRect(W - view.padR + 1, yy - 9, view.padR - 2, 18)
-  c.fillStyle = '#EEF1FB'; c.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; c.fillText(px(p), W - view.padR + 6, yy + 4)
+  c.fillStyle = '#F4EEE3'; c.font = '600 10.5px "Geist Mono", ui-monospace, monospace'; c.fillText(px(p), W - view.padR + 6, yy + 4)
   const t = `${view.cs[i].et} ET`, tw = c.measureText(t).width + 12, bx = Math.max(view.padL, Math.min(W - view.padR - tw, xx - tw / 2))
-  c.fillStyle = '#2A3150'; c.fillRect(bx, H - 22, tw, 18); c.fillStyle = '#EEF1FB'; c.fillText(t, bx + 6, H - 9)
+  c.fillStyle = '#2A3150'; c.fillRect(bx, H - 22, tw, 18); c.fillStyle = '#F4EEE3'; c.fillText(t, bx + 6, H - 9)
 }
 function chartHover(clientX, clientY) {
   if (!view || !data) return
@@ -1077,8 +1077,8 @@ async function loadFlow(fresh) {
     const ctx = hc.getContext('2d'), dpr = window.devicePixelRatio||1, W = hc.clientWidth, H = hc.clientHeight
     hc.width = W*dpr; hc.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0)
     const h = f.history, n = h.length, maxD = Math.max(1, ...h.map(r=>Math.abs(r.deltaUsd)))
-    for (let i = 0; i < n; i++) { const r = h[i], xx = i/n*W, bw = Math.max(1, W/n-1); ctx.fillStyle = r.deltaUsd>=0 ? 'rgba(74,222,154,.5)' : 'rgba(255,107,122,.5)'; const bh = Math.abs(r.deltaUsd)/maxD*(H/2-4); ctx.fillRect(xx, r.deltaUsd>=0 ? H/2-bh : H/2, bw, bh) }
-    ctx.strokeStyle = '#4ADE9A'; ctx.lineWidth = 1.5; ctx.beginPath()
+    for (let i = 0; i < n; i++) { const r = h[i], xx = i/n*W, bw = Math.max(1, W/n-1); ctx.fillStyle = r.deltaUsd>=0 ? 'rgba(96,200,146,.5)' : 'rgba(230,116,124,.5)'; const bh = Math.abs(r.deltaUsd)/maxD*(H/2-4); ctx.fillRect(xx, r.deltaUsd>=0 ? H/2-bh : H/2, bw, bh) }
+    ctx.strokeStyle = '#60C892'; ctx.lineWidth = 1.5; ctx.beginPath()
     h.forEach((r, i) => { const xx = (i+0.5)/n*W, yy = H - r.imbalance*H; i ? ctx.lineTo(xx,yy) : ctx.moveTo(xx,yy) }); ctx.stroke()
     ctx.strokeStyle = 'rgba(139,152,165,.4)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke()
   }
@@ -1415,7 +1415,7 @@ async function loadMemory() {
     const pts = [{equity:p.startUsd}, ...p.curve], lo = Math.min(...pts.map(q=>q.equity)), hi = Math.max(...pts.map(q=>q.equity)), span = (hi-lo)||1
     const Y = (v) => H - ((v-lo)/span)*(H-10) - 5
     ctx.strokeStyle = 'rgba(139,152,165,.4)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(0,Y(p.startUsd)); ctx.lineTo(W,Y(p.startUsd)); ctx.stroke(); ctx.setLineDash([])
-    ctx.strokeStyle = p.equityUsd >= p.startUsd ? '#4ADE9A' : '#FF6B7A'; ctx.lineWidth = 2; ctx.beginPath()
+    ctx.strokeStyle = p.equityUsd >= p.startUsd ? '#60C892' : '#E6747C'; ctx.lineWidth = 2; ctx.beginPath()
     pts.forEach((q,i) => { const x = i/(pts.length-1)*W; i ? ctx.lineTo(x,Y(q.equity)) : ctx.moveTo(x,Y(q.equity)) }); ctx.stroke()
   }
 }

@@ -35,7 +35,7 @@
  * same core.
  */
 (() => {
-  const C = { iris: '139,147,255', aqua: '92,225,230', mint: '74,222,154', coral: '255,107,122', amber: '255,192,97', grey: '112,121,156', text: '238,241,251', dim: '154,163,194', white: '255,255,255', violet: '176,140,255' }
+  const C = { iris: '222,190,124', aqua: '124,200,196', mint: '96,200,146', coral: '230,116,124', amber: '236,146,82', grey: '128,120,108', text: '244,238,227', dim: '170,160,145', white: '255,250,240', violet: '200,168,224' }
   const FONT = "'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
   const MONO = "'Geist Mono', ui-monospace, monospace"
   const AGENT_STATE = {
@@ -325,7 +325,7 @@
     ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(O.x, O.y, EYE * 2.4, 0, TAU); ctx.fill()
     ctx.globalCompositeOperation = 'source-over'
     const lens = ctx.createRadialGradient(O.x - EYE * 0.3, O.y - EYE * 0.35, 2, O.x, O.y, EYE)
-    lens.addColorStop(0, 'rgba(30,36,64,0.97)'); lens.addColorStop(1, 'rgba(6,8,18,0.97)')
+    lens.addColorStop(0, 'rgba(34,29,21,0.97)'); lens.addColorStop(1, 'rgba(8,7,5,0.97)')
     ctx.fillStyle = lens; ctx.beginPath(); ctx.arc(O.x, O.y, EYE, 0, TAU); ctx.fill()
     ctx.strokeStyle = `rgba(${dirCol},0.55)`; ctx.lineWidth = 1; ctx.stroke()
     ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(O.x, O.y, EYE - 4, 0, TAU); ctx.stroke()
@@ -350,7 +350,7 @@
       // A port is a small hexagon.
       ctx.beginPath()
       for (let k = 0; k < 6; k++) { const a = (k / 6) * TAU + Math.PI / 6; k ? ctx.lineTo(n.x + Math.cos(a) * r, n.y + Math.sin(a) * r) : ctx.moveTo(n.x + Math.cos(a) * r, n.y + Math.sin(a) * r) }
-      ctx.closePath(); ctx.fillStyle = 'rgba(12,16,32,0.95)'; ctx.fill()
+      ctx.closePath(); ctx.fillStyle = 'rgba(16,14,11,0.95)'; ctx.fill()
       ctx.save(); if (n.a.status === 'BLIND') ctx.setLineDash([2.5, 3])
       ctx.strokeStyle = `rgba(${S2.col},${S2.alpha})`; ctx.lineWidth = 1.6; ctx.stroke(); ctx.restore()
       if (n.a.status !== 'BLIND') { ctx.beginPath(); ctx.arc(n.x, n.y, 3.2, 0, TAU); ctx.fillStyle = `rgb(${S2.col})`; ctx.fill() }
@@ -441,7 +441,7 @@
     x = clamp(x, 6, w - width - 6); y = clamp(y, 6, h - height - 6)
     ctx.beginPath()
     if (ctx.roundRect) ctx.roundRect(x, y, width, height, 9); else ctx.rect(x, y, width, height)
-    ctx.fillStyle = 'rgba(15,20,38,0.96)'; ctx.fill()
+    ctx.fillStyle = 'rgba(19,16,12,0.96)'; ctx.fill()
     ctx.strokeStyle = `rgba(${hv.col},0.55)`; ctx.lineWidth = 1; ctx.stroke()
     hv.lines.forEach((l, i) => {
       ctx.font = `${i ? 500 : 600} ${i ? 11.5 : 12.5}px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
@@ -454,7 +454,7 @@
     const prev = ctx.globalCompositeOperation
     ctx.globalCompositeOperation = 'source-over'
     ctx.font = font; ctx.textAlign = align; ctx.textBaseline = 'middle'
-    ctx.fillStyle = 'rgba(8,11,22,0.8)'; ctx.fillText(s, x + 0.5, y + 1)
+    ctx.fillStyle = 'rgba(11,10,8,0.8)'; ctx.fillText(s, x + 0.5, y + 1)
     ctx.fillStyle = fill; ctx.fillText(s, x, y)
     ctx.globalCompositeOperation = prev
   }

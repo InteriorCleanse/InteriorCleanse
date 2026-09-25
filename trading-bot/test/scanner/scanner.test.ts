@@ -158,7 +158,7 @@ test('walled off: engine never imports the scanner; the page GETs its own routes
   }
   const page = readFileSync(join(ROOT, 'web', 'js', 'scanner.js'), 'utf8')
   const urls = [...page.matchAll(/(?:fetch|getJson)\(\s*'([^']*)'/g)].map((m) => m[1])
-  assert.deepEqual([...new Set(urls)].sort(), ['/api/config', '/api/scanner', '/api/scanner/market?key=', '/api/scanner/picture'])
+  assert.deepEqual([...new Set(urls)].sort(), ['/api/config', '/api/scanner', '/api/scanner/evidence?key=', '/api/scanner/market?key=', '/api/scanner/picture'])
   assert.match(page, /'x-mrcash-csrf': cfg\.csrf/)
   const server = readFileSync(join(ROOT, 'src', 'server.ts'), 'utf8')
   assert.match(server, /path === '\/api\/scanner\/picture' && req\.method === 'POST'/)
