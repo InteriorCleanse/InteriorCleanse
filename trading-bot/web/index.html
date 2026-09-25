@@ -155,6 +155,15 @@
       <p class="plain" style="margin-top:0">Work out your stop, size and targets <b>before</b> you place a trade in TradingView or your broker's app — and compare the option strikes you are looking at. This page only does the maths. It sends nothing and places nothing.</p>
     </div>
     <div id="planner-out"></div>
+    <p class="muted pl-foot">Planning a spread with two to four legs? That has its own tab: <button class="chip" data-tab="spreads">Spreads</button></p>
+  </section>
+
+  <section id="tab-spreads" class="hidden">
+    <div class="card">
+      <h2>Option spreads</h2>
+      <p class="plain" style="margin-top:0">Debit spreads, credit spreads, butterflies and iron condors. Each one pairs every option you sell with one you buy, so <b>the most you can lose is fixed before you enter</b>. Plan it here, then place it yourself as one order in your broker's app. This page only does the maths. It sends nothing and places nothing.</p>
+    </div>
+    <div id="spreads-out"></div>
   </section>
 
   <section id="tab-test" class="hidden">
@@ -317,10 +326,10 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
+const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','planner','flow','news','intel','tv']],
+  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','planner','spreads','flow','news','intel','tv']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
   ['You and learning', 'your vault, your journal, the school, the lab, and what it remembers', ['portfolio','journal','school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
@@ -348,6 +357,7 @@ const TICON_PATHS = {
   intel:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
   tv:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M10.5 8l4 2-4 2z"/>',
   planner:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  spreads:'<path d="M3 16h4l5-9 5 9h4"/><path d="M3 20h18" opacity=".5"/>',
   test:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/>',
   replay:'<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
   playbook:'<path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>',
@@ -1586,6 +1596,7 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/markets.js"></script>
 <script type="module" src="/js/vault.js"></script>
 <script type="module" src="/js/planner.js"></script>
+<script type="module" src="/js/spreads.js"></script>
 <script type="module" src="/js/evidence.js"></script>
 <script type="module" src="/js/school.js"></script>
 <script type="module" src="/js/research.js"></script>
