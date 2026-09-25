@@ -93,3 +93,10 @@ test('audit: a safe setup has no failures; each dangerous setting is called out'
   assert.ok(lv({ liveTradingEnabled: true }).some((t) => /LIVE_TRADING_ENABLED/.test(t)))
   assert.ok(lv({ vaultConfigured: false, brokerKeys: ['Alpaca'] }).some((t) => /without the vault/.test(t)))
 })
+
+test('a PIN set in .env is honoured: .env is loaded before the PIN is read', () => {
+  const server = readFileSync(join(ROOT, 'src', 'server.ts'), 'utf8')
+  const load = server.indexOf("process.loadEnvFile(join(HERE, '..', '.env'))")
+  const pin = server.indexOf('const PIN = process.env.MRCASH_PIN')
+  assert.ok(load > 0 && pin > 0 && load < pin, '.env must be loaded before MRCASH_PIN is read')
+})
