@@ -18,10 +18,9 @@
  * mirrored to data/positions.json and data/equity.csv for reading.
  */
 
-import { existsSync, writeFileSync, appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from '../config.ts'
-import { DATA_DIR, ensureDataDir, appendLedgerRow, readLedger, addLesson } from './memory.ts'
+import { DATA_DIR, appendLedgerRow, readLedger, addLesson } from './memory.ts'
 import { store } from './store.ts'
 import { tradingDayKey } from './sessions.ts'
 import { describeKey } from './adaptiveFilter.ts'
@@ -33,6 +32,7 @@ import type { ExecutionAssumptions, EntryFill } from './sim/fills.ts'
 import { tradeMetrics, classifyOutcome } from './sim/trades.ts'
 import type { TradeOutcome } from './sim/trades.ts'
 import { recordPaperResult } from './vault/store.ts'
+import { mirrorAppend, mirrorWrite } from './ops/mirror.ts'
 import type { Candle, RiskDecision, Signal, TradePlan } from './types.ts'
 
 export const POSITIONS_PATH = join(DATA_DIR, 'positions.json')
@@ -117,8 +117,7 @@ export function readPositions(): Store {
 function savePosition(pos: PaperPosition): void {
   store().savePosition(pos)
   const s = readPositions()
-  ensureDataDir()
-  writeFileSync(POSITIONS_PATH, JSON.stringify({ open: s.open, closed: s.closed.slice(-500) }, null, 2) + '\n')
+  mirrorWrite(POSITIONS_PATH, JSON.stringify({ open: s.open, closed: s.closed.slice(-500) }, null, 2) + '\n')
 }
 
 // ---------------------------------------------------------------
@@ -370,9 +369,7 @@ function finalize(pos: PaperPosition, exit: number, reason: Exclude<PaperPositio
   })
   const eq = equity()
   store().appendEquity({ timestamp: new Date(time).toISOString(), equity: Number(eq.toFixed(4)), r: Number(m.rMultiple.toFixed(3)), setupKey: pos.setupKey })
-  ensureDataDir()
-  if (!existsSync(EQUITY_PATH)) writeFileSync(EQUITY_PATH, 'timestamp,equity,rMultiple,setupKey\n')
-  appendFileSync(EQUITY_PATH, `${new Date(time).toISOString()},${eq.toFixed(4)},${m.rMultiple.toFixed(3)},${pos.setupKey}\n`)
+  mirrorAppend(EQUITY_PATH, `${new Date(time).toISOString()},${eq.toFixed(4)},${m.rMultiple.toFixed(3)},${pos.setupKey}\n`, { header: 'timestamp,equity,rMultiple,setupKey\n' })
   learnFromLedger(pos.setupKey)
   // Feed the vault: a real paper result flows to the passport of this strategy
   // (a no-op for the frozen session model, which has no passport). This is how

@@ -7,7 +7,7 @@
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
-<meta name="theme-color" content="#0B0A08" />
+<meta name="theme-color" content="#0B1220" />
 <meta name="color-scheme" content="dark" />
 <meta name="description" content="Mr. Cash — a paper-trading desk that explains every decision. Live market data, simulated execution, no real money." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Mr. Cash" />
 <link rel="preload" href="/fonts/instrument-sans-400.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="/css/app.css" />
+<script src="/js/theme.js"></script>
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -442,12 +443,16 @@ const navBtn = (id, i) => `<button data-tab="${id}">${TAB[id].label}${i < 9 ? `<
 $('tabs').innerHTML = PRIMARY.map(navBtn).join('') + `<button id="btn-more" class="more">More<kbd>M</kbd></button>`
 $('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')
   + `<button id="btn-more-b" class="more"><span><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></span>More</button>`
-$('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search" placeholder="Find a page…" aria-label="Find a page" autocomplete="off"><div class="mp-recent" id="mp-recent"></div></div>`
+const THEME_NAMES = { midnight: 'Midnight', plum: 'Plum', slate: 'Slate', onyx: 'Onyx' }
+$('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search" placeholder="Find a page…" aria-label="Find a page" autocomplete="off"><div class="mp-recent" id="mp-recent"></div><div class="mp-theme" role="radiogroup" aria-label="Background colour"><span>Colour</span>${Object.entries(THEME_NAMES).map(([id, name]) => `<button class="th-sw th-${id}" data-theme-pick="${id}" role="radio" aria-label="${name}" title="${name}"></button>`).join('')}</div></div>`
   + GROUPS.map(([title, blurb, ids]) => `
   <div class="mp-group" data-hue="${AREA_HUE[title]}" data-title="${title.toLowerCase()}">
     <h4><i class="mp-dot"></i>${title}<span>${blurb}</span></h4>
     <div class="mp-items">${ids.map(id => `<button data-tab="${id}" data-hue="${AREA_HUE[title]}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')}</div>
   </div>`).join('')
+function markTheme() { const t = document.documentElement.dataset.theme; document.querySelectorAll('[data-theme-pick]').forEach(b => { b.setAttribute('aria-checked', String(b.dataset.themePick === t)); b.classList.toggle('on', b.dataset.themePick === t) }) }
+document.querySelectorAll('[data-theme-pick]').forEach(b => b.onclick = (e) => { e.stopPropagation(); if (window.setTheme) window.setTheme(b.dataset.themePick); markTheme() })
+markTheme()
 // Type to narrow the panel; Enter opens the first match.
 $('mp-find').addEventListener('input', () => {
   const q = $('mp-find').value.trim().toLowerCase()
@@ -1660,6 +1665,7 @@ const ACTIONS = () => [
   { label: voiceOn ? 'Turn voice off' : 'Turn voice on', icon:'🗣', group:'Settings', run:()=>$('btn-voice').click() },
   { label:'Enable notifications', icon:'🔔', group:'Settings', run:()=>$('btn-notify').click() },
   { label:'Install as an app', icon:'⬇️', group:'Settings', run:()=>$('btn-install').click() },
+  ...Object.entries(THEME_NAMES).map(([id, name]) => ({ label:`Background colour: ${name}`, icon:'🎨', group:'Settings', run:()=>{ if (window.setTheme) window.setTheme(id); markTheme() } })),
   { label:'Show the welcome tour', icon:'👋', group:'Help', key:'?', run:()=>openTour() },
   ...(cfg ? cfg.skills.map(s => ({ label:`Ask as ${s.name} — ${s.tagline}`, icon:s.icon, group:'Skills', run:()=>{ skill = s.id; try { localStorage.setItem('mrcash-skill', skill) } catch {}; renderSkills(); showTab('ask'); $('q').focus() } })) : []),
 ]

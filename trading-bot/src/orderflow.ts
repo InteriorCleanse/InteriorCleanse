@@ -14,11 +14,11 @@
  * book and the tape changed through the day.
  */
 
-import { appendFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config, flowSources } from '../config.ts'
 import { fetchMarketJson } from './market.ts'
-import { DATA_DIR, ensureDataDir } from './memory.ts'
+import { DATA_DIR } from './memory.ts'
+import { mirrorAppend } from './ops/mirror.ts'
 import { store } from './store.ts'
 import type { BigTrade, BookSnapshot, FlowReport, TapeSnapshot, Wall } from './types.ts'
 
@@ -126,6 +126,10 @@ export function describeFlow(book: BookSnapshot | null, tape: TapeSnapshot | nul
   return L
 }
 
+/** Order-flow history kept in the store. Readers take the last 288 rows (about a day); 90 days is kept for looking back. */
+export const FLOW_KEEP_DAYS = 90
+let lastFlowPrune = 0
+
 export function logFlow(book: BookSnapshot | null, tape: TapeSnapshot | null): void {
   if (!book && !tape) return
   const now = Date.now()
@@ -134,15 +138,17 @@ export function logFlow(book: BookSnapshot | null, tape: TapeSnapshot | null): v
     walls: book ? book.walls.map((w) => `${w.side[0]}${w.price.toFixed(0)}:${w.usd.toFixed(0)}`).join('|') : '',
     trades: tape?.trades ?? null, tpm: tape?.tradesPerMinute ?? null, buyShare: tape?.buyShare ?? null, deltaUsd: tape?.deltaUsd ?? null, bigBuys: tape?.bigBuys ?? null, bigSells: tape?.bigSells ?? null,
   })
-  ensureDataDir()
-  if (!existsSync(FLOW_LOG)) writeFileSync(FLOW_LOG, FLOW_HEADER + '\n')
   const row = [
     new Date(now).toISOString(),
     book?.price.toFixed(2) ?? '', book?.bidUsd1pct.toFixed(0) ?? '', book?.askUsd1pct.toFixed(0) ?? '', book?.imbalance.toFixed(3) ?? '',
     book ? book.walls.map((w) => `${w.side[0]}${w.price.toFixed(0)}:${w.usd.toFixed(0)}`).join('|') : '',
     tape?.trades ?? '', tape?.tradesPerMinute.toFixed(1) ?? '', tape?.buyShare.toFixed(3) ?? '', tape?.deltaUsd.toFixed(0) ?? '', tape?.bigBuys ?? '', tape?.bigSells ?? '',
   ].join(',')
-  appendFileSync(FLOW_LOG, row + '\n')
+  mirrorAppend(FLOW_LOG, row + '\n', { header: FLOW_HEADER + '\n', maxBytes: 20_000_000 })
+  if (now - lastFlowPrune >= 86_400_000) {
+    lastFlowPrune = now
+    try { store().pruneFlow(now - FLOW_KEEP_DAYS * 86_400_000) } catch { /* pruning is housekeeping; it retries tomorrow */ }
+  }
 }
 
 export type FlowLogRow = { time: number; price: number; imbalance: number; deltaUsd: number; tradesPerMinute: number; bigBuys: number; bigSells: number }
