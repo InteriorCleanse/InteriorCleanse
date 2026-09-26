@@ -98,6 +98,7 @@ import { checkStateChange } from './guard.ts'
 import { LoginGate } from './security/login.ts'
 import { describeMode, runtimeMode, shadowEnabled } from './mode.ts'
 import { stopState, stop as engageStop, resume as releaseStop } from './killswitch.ts'
+import { assessConditions, type MarketInput, type ConditionsReport } from './conditions/model.ts'
 import { systemState } from './systemState.ts'
 import { getSettings, setSetting, resetSetting } from './settings.ts'
 import type { Settings } from './settings.ts'
@@ -573,6 +574,12 @@ const server = createServer(async (req, res) => {
         const data = twoVenueCheck({ venue: 'Polymarket', yesAsk: cents('pmYes'), noAsk: cents('pmNo'), fee: Number.isFinite(n('pmFee')) ? n('pmFee') / 100 : 0 }, { venue: 'Kalshi', yesAsk: cents('kYes'), noAsk: cents('kNo'), fee: 'kalshi' }, { p, contracts: Number.isFinite(n('contracts')) && n('contracts') > 0 ? Math.min(100_000, n('contracts')) : 100 })
         json(res, 200, { ok: true, data })
       } catch (e) { json(res, 200, { ok: false, error: (e as Error).message }) }
+      return
+    }
+    // Market conditions across every watched market, READ-ONLY: a reading of whether conditions are fit to trade, never an order.
+    if (path === '/api/conditions') {
+      const data = await conditionsReport()
+      json(res, 200, { ok: true, data: { ...data, stop: stopState(), watchAsOf: marketWatch.snapshot().asOf } })
       return
     }
     // The scalp desk: the conditions a scalper looks for right now, and the break-even arithmetic. A reading, not a signal.
@@ -1667,6 +1674,38 @@ const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('i
 const evidenceCache = new Map<string, { at: number; data: unknown }>()
 const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
 // The call desk: an up-or-down forecast every 15 minutes on the bot's own symbol, scored on paper. MRCASH_CALLS=0 turns it off.
+/**
+ * MARKET CONDITIONS — every watched market graded against its own history, its
+ * trading hours and the calendar, plus the engine's own 5-minute market. It
+ * reads and reports; it does not stop or start anything by itself. When the
+ * verdict turns POOR the bell says so and the Conditions page offers the
+ * existing kill switch, which stays your decision.
+ */
+async function conditionsReport(): Promise<ConditionsReport> {
+  const snap = await safely(() => snapshot())
+  const s = snap.ok ? snap.data : null
+  const w = marketWatch.snapshot()
+  const markets: MarketInput[] = w.rows.map((r) => ({
+    key: `${r.kind}:${r.symbol}`, label: r.label, kind: r.kind, symbol: r.symbol,
+    candles: marketWatch.candles(`${r.kind}:${r.symbol}`),
+    feed: r.scan.status, provenance: r.provenance, changePct24h: r.scan.changePct24h,
+  }))
+  const iv = INTERVAL_MS[config.interval] ?? 300_000
+  const ec = s?.candles ?? []
+  const fresh = ec.length > 0 && Date.now() - ec[ec.length - 1].closeTime < 3 * iv
+  const engine: MarketInput | null = s ? { key: `engine:${config.symbol}`, label: `${config.symbol} (engine, ${config.interval})`, kind: 'crypto', symbol: config.symbol, candles: ec, feed: fresh ? 'live' : 'stale', provenance: 'LIVE DATA', changePct24h: null } : null
+  return assessConditions({ markets, calendar: s?.news?.calendar ?? [], now: Date.now(), engineKey: `crypto:${config.symbol}`, engine })
+}
+let lastConditionsVerdict: ConditionsReport['verdict'] | null = null
+async function checkConditions(): Promise<void> {
+  const r = await conditionsReport().catch(() => null)
+  if (!r || r.verdict === lastConditionsVerdict) return
+  const was = lastConditionsVerdict
+  lastConditionsVerdict = r.verdict
+  if (r.verdict === 'POOR') eventLog.push('info', 'Market conditions: POOR', `${r.reasons.join(' ')} Mr. Cash has not stopped anything; the kill switch is on the Conditions page if you want no new entries.`, 'warn')
+  else if (was === 'POOR' && r.verdict !== 'NOT ENOUGH DATA') eventLog.push('info', `Market conditions back to ${r.verdict}`, r.reasons.join(' '), 'info')
+}
+
 /** The scalp desk's reading of a snapshot: candles, book, tape, session and calendar. */
 function scalpReading(s: Snapshot | null) {
   const now = Date.now()
@@ -1683,6 +1722,7 @@ const callDesk = new CallDesk({ symbol: config.symbol, windowMinutes: Number(pro
 server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
   if (process.env.MRCASH_CALLS !== '0') { callDesk.start(); callDesk5.start() }
+  if (process.env.MRCASH_MARKETS !== '0') { const t = setInterval(() => { void checkConditions() }, 5 * 60_000); t.unref?.(); setTimeout(() => { void checkConditions() }, 90_000).unref?.() }
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good(`  ● ${describeMode()}`))
