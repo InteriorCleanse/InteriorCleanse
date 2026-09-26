@@ -544,7 +544,7 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=600&q=90",
+      "hero": "/images/products/room-reset-checklist.jpg",
       "transparent": null,
       "gallery": []
     },
@@ -588,7 +588,7 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=600&q=90",
+      "hero": "/images/products/the-considered-pantry.jpg",
       "transparent": null,
       "gallery": []
     },
@@ -627,12 +627,12 @@
     "name": "The Calm Room Workbook",
     "category": "digital",
     "environment": "gallery",
-    "description": "Every prompt from The Calm Room Method, laid out with room to answer. Work one room at a time: photograph it, mark what stays, plan what moves. Designed to be written in, not preserved — the messy copy is the useful one. One worked example, then blank spreads for each room. Palette and material planning pages. A maintenance rhythm you set once and revisit quarterly.",
+    "description": "The approach behind The Calm Room Method, laid out with room to answer. Work one room at a time: photograph it, mark what stays, plan what moves. Designed to be written in, not preserved — the messy copy is the useful one. One worked example, then blank spreads for each room. Palette and material planning pages. A maintenance rhythm you set once and revisit quarterly.",
     "price": 18,
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=90",
+      "hero": "/images/products/the-calm-room-workbook.jpg",
       "transparent": null,
       "gallery": []
     },
@@ -654,7 +654,7 @@
       "pdf"
     ],
     "seoTitle": "The Calm Room Workbook — The companion exercises to the book",
-    "seoDescription": "Every prompt from The Calm Room Method, laid out with room to answer. Work one room at a time: photograph it, mark what stays, plan what moves. Designed to be written in, not preserved — the messy copy is the useful one.",
+    "seoDescription": "The approach behind The Calm Room Method, laid out with room to answer. Work one room at a time: photograph it, mark what stays, plan what moves. Designed to be written in, not preserved — the messy copy is the useful one.",
     "lastVerified": null,
     "objectType": "print",
     "tagline": "The companion exercises to the book",

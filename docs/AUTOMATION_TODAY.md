@@ -40,13 +40,26 @@ depends on traffic, and traffic is Step 5.
   the candle** until you have a fulfiller. It can't be hands-off today.
 - **Art print:** its design is still a proposal. Approve it or unpublish it.
 
-### 3. Sell the downloads you already own — 30 min, you
-The downloads (`room-reset-checklist`, `the-considered-pantry`,
-`the-calm-room-workbook`) and the five books cost nothing per sale and deliver
-instantly, so they are the fastest way to be fully automated. For each one
-that has a **real finished file**: attach the file or Gumroad link, set the
-price, click **Create Stripe Price**, then Publish. Skip any that aren't
-written yet. Don't publish an empty product.
+### 3. Put the three downloads on Gumroad — 15 min, you
+The three download files are finished. They were sent to you in the Claude
+session, not committed, because this repository is public and a paid PDF
+committed here could be downloaded for free:
+
+| File | Pages | Price | Notes |
+| --- | --- | --- | --- |
+| `room-reset-checklist.pdf` | 9 | free | Six rooms, 15-minute and full versions |
+| `the-considered-pantry.pdf` | 12 | $12 | Three zone maps, 48 jar + 10 zone labels, fillable blank labels and restock sheet |
+| `the-calm-room-workbook.pdf` | 21 | $18 | Worked example, six room spreads, palette, storage, quarterly rhythm |
+
+For each: Gumroad → New product → Digital product → upload the PDF → price
+(the free one as "$0+") → cover image = `public/images/products/<slug>.jpg`
+→ paste the listing text from `docs/launch-kit/product-copy.md` → Publish.
+Then `/admin/products` → the record → paste the Gumroad URL → **Check** →
+**Publish**. The hero images are already set to real renders of each file.
+Gumroad takes the payment and emails the file itself, so these need nothing
+from Stripe or from you after that.
+
+The books are not in this plan. They are the founder's to write.
 
 ### 4. Go live with money — 30 min, you
 FINISH_PLAN Step 6, exactly:
