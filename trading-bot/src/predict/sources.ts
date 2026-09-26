@@ -71,7 +71,8 @@ export function parsePolymarket(body: unknown): PmMarket[] {
     const events = asList(r.events) as Array<Record<string, unknown>>
     const eventId = clean(r.eventId ?? (events[0] && events[0].id) ?? '', 80) || null
     const slug = clean(r.slug, 160)
-    const endsAt = r.endDate ? Date.parse(String(r.endDate)) : NaN
+    const endRaw = r.endDate ?? r.endDateIso ?? r.end_date_iso
+    const endsAt = endRaw ? Date.parse(String(endRaw)) : NaN
     out.push({
       key: `polymarket:${id}`, venue: 'polymarket', id, question, url: slug ? `https://polymarket.com/market/${slug}` : 'https://polymarket.com',
       eventId, category: clean(r.category ?? (events[0] && events[0].category) ?? 'other', 40) || 'other',
@@ -99,7 +100,8 @@ export function parseKalshi(body: unknown): PmMarket[] {
     const status = clean(r.status, 20).toLowerCase()
     const result = clean(r.result, 10).toLowerCase()
     const closed = status === 'closed' || status === 'settled' || status === 'finalized'
-    const endsAt = r.close_time ? Date.parse(String(r.close_time)) : NaN
+    const closeRaw = r.close_time ?? r.expected_expiration_time ?? r.expiration_time
+    const endsAt = closeRaw ? Date.parse(String(closeRaw)) : NaN
     const prev = c('previous_price')
     out.push({
       key: `kalshi:${id}`, venue: 'kalshi', id, question, url: `https://kalshi.com/markets/${encodeURIComponent(id.split('-')[0].toLowerCase())}`,
