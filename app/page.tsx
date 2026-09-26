@@ -12,6 +12,7 @@ import { LineIcon, type IconName } from '@/components/icons/LineIcon'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
+import { LOGO_URL } from '@/lib/brand-assets'
 
 // `trailingSlash: true` means the canonical form of every URL carries one.
 // Each page declares its own; a site-wide canonical of '/' told search engines
@@ -249,34 +250,10 @@ export default function Home() {
               <ArrowOrb />
             </Link>
           </div>
-          {/* The seal, in the spirit's colour, breathing slowly over the chapel. */}
+          {/* The emblem, large, breathing slowly over the chapel. */}
           <div className="spirit-threshold-wrap" data-reveal>
-            <svg className="spirit-threshold" viewBox="0 0 48 48" aria-hidden="true">
-              <defs>
-                <radialGradient id="spirit-glow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#E6CB96" stopOpacity="0.5" />
-                  <stop offset="100%" stopColor="#E6CB96" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-              <circle className="spirit-glow" cx="24" cy="24" r="23" fill="url(#spirit-glow)" />
-              <circle className="spirit-ring" cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="0.7" />
-              <circle className="spirit-ring spirit-ring--inner" cx="24" cy="24" r="18.6" fill="none" stroke="currentColor" strokeWidth="0.35" opacity="0.7" />
-              <text
-                x="24"
-                y="31.6"
-                textAnchor="middle"
-                fill="currentColor"
-                fontSize="21"
-                fontWeight={500}
-                style={{
-                  fontFamily: 'var(--font-display, Fraunces, Georgia, serif)',
-                  fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144",
-                  letterSpacing: '-1px',
-                }}
-              >
-                IC
-              </text>
-            </svg>
+            <span className="spirit-emblem-glow" aria-hidden="true" />
+            <img src={LOGO_URL} alt="" className="spirit-emblem" decoding="async" loading="lazy" />
           </div>
         </div>
       </section>

@@ -145,3 +145,53 @@ presets.
 CloudFront `.mp4`, `posterImage` to the still's `_min.webp`, and leave
 `mobileVideo` null (phones get the poster). The CDN is allowed in the CSP
 `img-src` and `media-src`.
+
+## The emblem — master prompt
+
+The house mark is painted, not drawn: `gpt_image_2_5`, 1:1, `remove_bg: true`.
+Four candidates live in `lib/brand-assets.ts`; the one in use is
+`LOGO_URL`. To try another direction, change one line.
+
+**Master prompt**
+
+> Luxury brand emblem for a considered-home house that makes hand-poured
+> candles, books and ceramics. One exquisite mark: an intertwined I and C
+> monogram drawn as a single continuous engraved line, the C blooming into a
+> slender olive branch with three leaves, the I rising into a soft candle
+> flame, set within a thin, perfectly circular double ring. Rendered as
+> polished antique brass with a subtle brushed-metal gradient and gentle
+> bevel, museum-grade engraving detail, symmetrical, balanced negative space,
+> crisp vector-like edges, centered, isolated on a transparent background.
+> No text, no other letters, no background scene, no cast shadow outside the
+> mark.
+
+**Variations that were rendered alongside it.** Swap the material line:
+"a circular seal in deep emerald enamel with a fine gold rim … a hairline
+inner ring of gold dots" (emerald enamel); "an elegant monoline mark in
+brushed gold … one flowing calligraphic stroke … no enclosing ring" (gold
+monoline); "a finely engraved botanical wreath of olive and eucalyptus in
+antique brass encircling an intertwined I and C monogram in a high-contrast
+serif, a single candle flame at the top where the branches meet" (wreath).
+
+**Rules.** Always `remove_bg: true`. Always "no text" — the wordmark is set
+live in Fraunces beside the mark, never baked into the image. Keep the
+subject list (candles, books, ceramics) so the motif stays tied to what is
+sold. One mark per image; the model composes better when it is not asked
+for a sheet.
+
+## Packshots — the catalogue standard
+
+Every product tile uses one shot from one setup so the grid reads as a
+collection: `gpt_image_2_5`, 3:4, "Premium e-commerce packshot of
+[product], centered, three-quarter view, on a seamless warm cream studio
+backdrop the colour of unbleached linen, soft diffused key light from the
+upper left, a gentle contact shadow beneath, no props, no text, no logos,
+photorealistic, catalogue-consistent framing with the object filling two
+thirds of the frame." The cream matches the tile background (`#F2ECE0`),
+so the object appears to sit on the card rather than in a photo.
+
+## 3D models
+
+`image_to_3d` with `should_texture: true` turns a packshot into a textured
+GLB (30 credits). Set the result's URL as the record's `modelUrl`; the
+product page's stage loads it, frames it, and lets it turn. Grids never do.

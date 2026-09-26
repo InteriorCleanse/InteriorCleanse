@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { EARTH_TEXTURE_URL } from '@/lib/brand-assets'
 
 /**
- * The wireframe globe that follows the pointer across the whole site.
+ * The Earth that follows the pointer across the whole site: a satellite
+ * texture scrolling inside a shaded sphere, so it reads as a real turning
+ * planet in blue and green rather than a diagram.
  *
  * This is the site-wide sibling of GlobeCursor (which only ran over the hero).
  * It listens on the document, replaces the native pointer over open space, and
@@ -122,20 +125,10 @@ export function GlobeCursorGlobal() {
       data-label={label ? 'true' : undefined}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 64 64" width="52" height="52">
-        <g fill="none" stroke="currentColor" strokeWidth="0.8" opacity="0.9">
-          <circle cx="32" cy="32" r="23" />
-          {/* Latitudes are fixed; only the meridians rotate, which is what
-              reads as a sphere turning rather than a disc spinning. */}
-          <ellipse cx="32" cy="32" rx="23" ry="7.5" />
-          <ellipse cx="32" cy="32" rx="23" ry="15" />
-          <g className="globe-meridians">
-            <ellipse cx="32" cy="32" rx="7.5" ry="23" />
-            <ellipse cx="32" cy="32" rx="15.5" ry="23" />
-            <line x1="32" y1="9" x2="32" y2="55" />
-          </g>
-        </g>
-      </svg>
+      <span className="globe-earth">
+        <span className="globe-earth-map" style={{ backgroundImage: `url(${EARTH_TEXTURE_URL})` }} />
+        <span className="globe-earth-shade" />
+      </span>
       <span className="globe-cursor-hint" data-shown={hint || label ? 'true' : undefined}>
         {label ?? 'Drag to explore'}
       </span>
