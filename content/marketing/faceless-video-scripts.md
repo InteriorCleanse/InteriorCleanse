@@ -748,10 +748,10 @@ The Room Reset Checklist is free and will be a Gumroad download. Until it is upl
 
 - **Series:** Room Reset
 - **Drives:** Email guest book signup at the homepage. Checklist mention is HOLD-UNTIL-LIVE; the signup itself is live today.
-- **Hook:** We do not send much. That is the point.
+- **Hook:** We do not send much. On purpose.
 - **Voiceover:** There is a guest book on the homepage. You leave an email, and we write when there is something worth saying: a new room page for the checklist, a book going live, a candle batch poured. Not a daily newsletter, not a sale every week. It is the quiet version of a mailing list, for people who want a calmer home and fewer messages about it. Sign it at interiorcleanse.com.
 - **On-screen text beats:**
-  - 0:00 We do not send much. That is the point.
+  - 0:00 We do not send much. On purpose.
   - 0:07 A guest book, not a newsletter.
   - 0:16 A new page. A book going live. A candle batch.
   - 0:26 Fewer messages, calmer home.
