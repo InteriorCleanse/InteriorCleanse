@@ -56,12 +56,20 @@ request, wait for the `build` check, merge, then restart the branch from
 
 ## Agent capabilities
 
-`.claude/` carries 97 vendored skills, 36 agents, and 15 commands. Their
+`.claude/` carries 101 vendored skills, 40 agents, and 16 commands. Their
 provenance and licences are in `.claude/README.md`; what was deliberately not
 installed, and why, is in `docs/AGENT_CAPABILITIES.md`.
 
 Skill descriptions load into every session, so adding a large pack has a
 standing context cost. Measure before adding one.
+
+## Building a business from a brief
+
+`docs/BUSINESS_BUILD_PLAN.md` maps every installed skill and agent to the
+phases that take an idea to a logo, a website, and a first-dollar launch.
+Fill `docs/BUSINESS_BRIEF_TEMPLATE.md`, then run `/business-build`. A new
+business gets its own repository and Vercel project; this storefront is not
+the host for a second brand.
 
 ## graphify
 

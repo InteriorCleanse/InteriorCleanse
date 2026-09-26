@@ -58,6 +58,12 @@ by its setup wizard, which writes to `~/.config/last30days/`, never to this
 repository. The upstream `assets/` folder (14 MB of demo media) and its
 SessionStart hook were left out.
 
+Four more roster personas were promoted to project agents on 2026-09-26 for
+the business-build plan (`docs/BUSINESS_BUILD_PLAN.md`, `/business-build`):
+`business-strategist`, `sales-offer-lead-gen-strategist`,
+`finance-financial-analyst`, `engineering-frontend-developer`. Same source and
+licence as the rest of the roster.
+
 Agency Agents: the whole roster (300+ persona files) lives under
 `.claude/skills/agency-agents/roster/`, with a small SKILL.md explaining how to
 use or promote one. Thirty-two personas relevant to this storefront (all of
