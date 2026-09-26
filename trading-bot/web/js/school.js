@@ -7,6 +7,7 @@
  * file adds no thresholds and no verdicts of its own.
  */
 import { getJson, esc } from './api.js'
+import { holoGraph, mountHolo } from './viz.js'
 
 const VIEWS = [['concepts', 'Concepts'], ['lesson', 'Lesson'], ['cases', 'Case studies'], ['replay', 'Replay School'], ['debate', 'Debate'], ['teacher', 'Teacher'], ['learning', 'My Learning'], ['markets', 'Other markets']]
 let view = 'concepts'
@@ -30,11 +31,22 @@ const notEnough = (what) => `<div class="ev-empty"><div class="ev-empty-big">NOT
 
 const TRACK_LABEL = { basics: 'Start here: the basics, in order', priceaction: 'Price action: candles in context' }
 
+
+/** The concept graph as 3D data: concepts grouped by track, plus the strategies and case kinds they link to. */
+function graphData(g) {
+  const nodes = g.nodes.map((n) => ({ id: n.id, label: n.title, group: n.track }))
+  const seen = new Set(nodes.map((n) => n.id))
+  for (const e of g.edges) if (!seen.has(e.to)) { seen.add(e.to); nodes.push({ id: e.to, label: e.to.replace(/^(strategy|case):/, '').replace(/-/g, ' '), group: e.to.startsWith('strategy:') ? 'strategy' : 'case study' }) }
+  return { nodes, edges: g.edges.map((e) => ({ from: e.from, to: e.to })) }
+}
+
 async function renderConcepts() {
   const { data } = await getJson('/api/school')
   const byTrack = {}
   for (const c of data.concepts) (byTrack[c.track] = byTrack[c.track] || []).push(c)
-  return `<div class="ev-note">${esc(data.note)}</div>${growthBar(data.dataGrowth)}
+  let graph = ''
+  try { const { data: g } = await getJson('/api/knowledge/graph'); graph = holoGraph(graphData(g), { height: 380, caption: `${g.nodes.length} concepts, linked to the strategies that use them` }) } catch { /* the list below still teaches */ }
+  return `<div class="ev-note">${esc(data.note)}</div>${growthBar(data.dataGrowth)}${graph}
     ${Object.entries(byTrack).map(([track, cs]) => `<div class="card"><h2>${esc(TRACK_LABEL[track] || track)}</h2><div class="sc-grid">${cs.map((c) => `<button class="sc-concept" data-concept="${esc(c.id)}"><b>${esc(c.title)}</b><span class="muted">${esc(c.level)} · ${esc(c.mastery.level)}</span></button>`).join('')}</div></div>`).join('')}`
 }
 
@@ -135,6 +147,7 @@ async function renderView() {
       case 'markets': html = await renderMarkets(); break
     }
     out.innerHTML = html
+    mountHolo(out)
     if (status) status.textContent = `updated ${new Date().toLocaleTimeString()}`
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't load the school: ${esc(e.message)}. Showing nothing rather than making something up.</div>`

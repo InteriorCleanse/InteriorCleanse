@@ -53,10 +53,12 @@ it places nothing.
 - **Untested model.** The weights are set by hand and openly. The first
   backtest on sample data scored slightly *worse* than a coin flip; that is
   what the desk exists to show. Nobody should read a call as advice.
-- **No market price.** JEV's terminal also shows the market's price (Up 99¢,
-  Down 2¢). A call is only worth money when its probability beats that price
-  after fees. The desk does not fetch Polymarket prices. The School's
-  prediction-market lesson covers edge and Kelly sizing.
+- **No market price feed.** JEV's terminal also shows the market's price (Up
+  99¢, Down 2¢). A call is only worth money when its probability beats that
+  price after fees. The desk does not fetch Polymarket prices. Type the
+  prices into the **Edge check** card on The call tab: it compares your
+  probability, or the desk's, with both venues after fees, and gives a capped
+  ¼-Kelly stake.
 - **No trading.** It places no orders, holds no Polymarket or Kalshi keys and
   has no execution path. Trading those markets from this bot would be live
   trading through a second path, which this repository forbids.

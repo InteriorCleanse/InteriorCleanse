@@ -4,6 +4,7 @@
  * proposals that wait for a human. Draws /api/research/* and nothing else.
  */
 import { getJson, esc } from './api.js'
+import { histogram, lineChart, heatmap, holoBars, mountHolo, PALETTE } from './viz.js'
 
 const VIEWS = [['overview', 'Overview'], ['questions', 'Questions'], ['hypotheses', 'Hypotheses'], ['overfitting', 'Overfitting'], ['atlas', 'Regime atlas'], ['diffusion', 'News diffusion'], ['proposals', 'Proposals'], ['sandbox', 'Sandbox'], ['experiments', 'Experiments']]
 let view = 'overview'
@@ -73,9 +74,20 @@ function draftForm() {
 async function renderOverfitting() {
   const { data } = await getJson('/api/research/overfitting')
   const d = data.deflated
-  const curve = `<table><tr><th class="num">trials</th><th class="num">chance benchmark (per-trade Sharpe)</th></tr>${data.curve.map((c) => `<tr><td class="num">${c.trials}</td><td class="num">${c.benchmarkSharpe.toFixed(3)}</td></tr>`).join('')}</table>`
+  const curve = lineChart({ categories: data.curve.map((c) => String(c.trials)), series: [{ name: 'Chance benchmark', color: '#E8A15A', points: data.curve.map((c, i) => [i, c.benchmarkSharpe]) }], refs: d && d.observed !== null ? [{ y: d.observed, label: `observed ${d.observed.toFixed(3)}`, color: '#60C892' }] : [], xLabel: 'Strategies tried', yLabel: 'Best Sharpe by luck', title: 'The luck bar rises with every variant tried' }) + `<details class="vz-raw"><summary>Numbers</summary><table><tr><th class="num">trials</th><th class="num">chance benchmark (per-trade Sharpe)</th></tr>${data.curve.map((c) => `<tr><td class="num">${c.trials}</td><td class="num">${c.benchmarkSharpe.toFixed(3)}</td></tr>`).join('')}</table></details>`
+  // Same scale as the server's benchmark: per-trade Sharpe with se = 1/√(T−1) when a backtest exists, otherwise standard errors (z).
+  const T = d && d.trackLength > 2 ? d.trackLength : null, se = T ? 1 / Math.sqrt(T - 1) : 1, k = 41, lo = -4 * se, w = (8 * se) / k
+  const pdf = (x) => Math.exp(-(x * x) / (2 * se * se)) / (se * Math.sqrt(2 * Math.PI))
+  const bins = Array.from({ length: k }, (_, i) => ({ x0: lo + i * w, x1: lo + (i + 1) * w, n: Math.round(1000 * pdf(lo + (i + 0.5) * w) * w) }))
+  const ref = data.curve.find((c) => c.trials === 1000) || data.curve[data.curve.length - 1]
+  const bench = d && d.benchmark !== null ? d.benchmark : (T ? null : ref?.benchmarkSharpe)
+  const marks = [{ x: 0, label: 'mean 0 (no edge)', color: 'rgba(244,238,227,.6)' }]
+  if (bench != null) marks.push({ x: bench, label: `best of ${d ? d.trials : ref.trials} by luck ${bench.toFixed(2)}`, color: '#E8A15A' })
+  if (d && d.observed !== null) marks.push({ x: d.observed, label: `this strategy ${d.observed.toFixed(3)}`, color: d.benchmark !== null && d.observed > d.benchmark ? '#60C892' : '#E6747C', dash: 'none' })
+  const hist = histogram({ bins, marks, xLabel: T ? 'Per-trade Sharpe ratio' : 'Sharpe ratio in standard errors (z)', yLabel: 'Strategies', title: T ? `SIMULATED · 1,000 strategies with no edge over ${T} trades` : 'SIMULATED · 1,000 strategies with no edge (no backtest yet, so drawn in standard errors)' })
   return `<div class="ev-note">${esc(data.note)}</div>
     <div class="card"><h2>Deflated Sharpe — ${esc(data.strategyId)} <span class="ev-src sim">BACKTEST · SIMULATED</span></h2>${d ? `<div class="ev-hero-big">${pill(d.verdict)}</div><div class="plain">${esc(d.note)}</div><table><tr><td>observed per-trade Sharpe</td><td class="num">${d.observed === null ? '—' : d.observed.toFixed(3)}</td></tr><tr><td>trials</td><td class="num">${d.trials}</td></tr><tr><td>track length</td><td class="num">${d.trackLength}</td></tr><tr><td>skew / kurtosis</td><td class="num">${d.skew === null ? '—' : d.skew.toFixed(2)} / ${d.kurtosis === null ? '—' : d.kurtosis.toFixed(2)}</td></tr><tr><td>benchmark</td><td class="num">${d.benchmark === null ? '—' : d.benchmark.toFixed(3)}</td></tr><tr><td>P(edge beats luck)</td><td class="num">${d.probability === null ? '—' : `${(d.probability * 100).toFixed(1)}%`}</td></tr></table>` : notEnough('No cached backtest for this strategy. Run the backtest from the Evidence tab; it will count as a trial.')}</div>
+    <div class="card"><h2>Distribution of Sharpe ratios from strategies with no edge <span class="ev-src sim">SIMULATED</span></h2><div class="muted">Search long enough and the best result measures how many things you tried. The amber line is where pure luck tops out for that many tries; a strategy has to clear it.</div>${hist}</div>
     <div class="card"><h2>How the bar moves with trials</h2><div class="muted">Try enough variants and the best one looks brilliant by luck; the bar rises with the count.</div>${curve}</div>
     <div class="card"><h2>Trial registry</h2><div class="plain">${esc(data.registry.note)}</div><form id="rs-trial"><input name="count" value="1" size="4"> <input name="note" placeholder="what was tried" size="40"> <button class="btn ghost" type="submit">Record trial(s) by hand</button></form></div>`
 }
@@ -83,16 +95,22 @@ async function renderOverfitting() {
 async function renderAtlas() {
   const { data: a } = await getJson(`/api/research/atlas?dim=${atlasDim}&source=${atlasSource}`)
   const toggles = `<div class="ev-toggle"><button data-atlas-src="paper" class="${atlasSource === 'paper' ? 'on' : ''}">PAPER</button><button data-atlas-src="backtest" class="${atlasSource === 'backtest' ? 'on' : ''}">BACKTEST <small>simulated</small></button></div> <div class="ev-toggle"><button data-atlas-dim="volatility" class="${atlasDim === 'volatility' ? 'on' : ''}">volatility</button><button data-atlas-dim="regime" class="${atlasDim === 'regime' ? 'on' : ''}">regime</button></div>`
-  if (!a.rows.length) return toggles + notEnough(a.notes[a.notes.length - 1])
+  if (!a.rows.length || !a.conditions.length) return toggles + notEnough(a.notes[a.notes.length - 1])
   const table = `<table><tr><th>family</th>${a.conditions.map((c) => `<th class="num">${esc(c)}</th>`).join('')}</tr>${a.rows.map((r) => `<tr><td><b>${esc(r.family)}</b></td>${r.cells.map((c) => `<td class="num ${c.meanR === null ? 'ev-under' : ''}">${c.meanR === null ? `<span class="muted">n=${c.n}</span>` : `<span class="${c.meanR >= 0 ? 'win' : 'loss'}">${fx(c.meanR)}R</span> <small class="muted">n=${c.n}${c.established ? ' ★' : ''}</small>`}</td>`).join('')}</tr>`).join('')}</table>`
-  return `${toggles}${a.notes.map((n) => `<div class="ev-note">${esc(n)}</div>`).join('')}<div class="card"><h2>Strategy family × ${esc(a.dimension)} <span class="ev-src ${a.source === 'PAPER' ? 'paper' : 'sim'}">${esc(a.source)}</span></h2>${table}<div class="muted">★ established: 50+ trades and a 95% interval clear of zero. A "repeat" is the same sign in adjacent established cells.</div></div>${a.rows.map((r) => `<div class="card"><h2>${esc(r.family)}</h2><div class="plain">${esc(r.note)}</div>${r.struggles.length ? `<div><b>Struggles in:</b> ${r.struggles.map(esc).join(', ')}</div>` : ''}</div>`).join('')}`
+  const vals = a.rows.map((r) => r.cells.map((c) => c.meanR))
+  const viz = `${lineChart({ categories: a.conditions, series: a.rows.map((r, i) => ({ name: r.family, color: PALETTE[i % PALETTE.length], points: r.cells.map((c, j) => [j, c.meanR]) })), xLabel: a.dimension, yLabel: 'Mean R per trade', zeroLine: true, area: false, title: `Strategy performance by ${a.dimension}` })}
+    <div class="vz-pair">${heatmap({ rows: a.rows.map((r) => r.family), cols: a.conditions, values: vals, fmt: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}R`, notes: a.rows.map((r) => r.cells.map((c) => `n=${c.n}${c.established ? ' ★' : ''}`)), title: 'Family × condition' })}
+    ${holoBars({ rows: a.rows.map((r) => r.family), cols: a.conditions, values: vals }, { caption: '3D field: height is mean R, green above zero, garnet below' })}</div>`
+  return `${toggles}${a.notes.map((n) => `<div class="ev-note">${esc(n)}</div>`).join('')}<div class="card"><h2>Strategy family × ${esc(a.dimension)} <span class="ev-src ${a.source === 'PAPER' ? 'paper' : 'sim'}">${esc(a.source)}</span></h2>${viz}<details class="vz-raw"><summary>Numbers</summary>${table}</details><div class="muted">★ established: 50+ trades and a 95% interval clear of zero. A "repeat" is the same sign in adjacent established cells.</div></div>${a.rows.map((r) => `<div class="card"><h2>${esc(r.family)}</h2><div class="plain">${esc(r.note)}</div>${r.struggles.length ? `<div><b>Struggles in:</b> ${r.struggles.map(esc).join(', ')}</div>` : ''}</div>`).join('')}`
 }
 
 async function renderDiffusion() {
   const { data } = await getJson('/api/research/diffusion')
   const f = data.fit
+  const kernel = f.status === 'ESTIMATED' ? `<div class="vz-pair">${heatmap({ rows: ['→ News', '→ Price'], cols: ['from News', 'from Price'], values: [[null, null], [f.alphaNP, f.alphaPP]], sequential: true, fmt: (v) => v.toFixed(3), notes: [['not modelled', 'not modelled'], ['exogenous', 'endogenous']], title: 'Fitted kernel matrix (event excitation)' })}
+    ${lineChart({ series: [{ name: 'news → price', color: '#E6747C', points: Array.from({ length: 41 }, (_, i) => { const t = (i / 40) * 4 * f.halfLifeMin; return [t, f.alphaNP * Math.exp(-f.beta * t)] }) }, { name: 'price → price', color: '#D8B56E', points: Array.from({ length: 41 }, (_, i) => { const t = (i / 40) * 4 * f.halfLifeMin; return [t, f.alphaPP * Math.exp(-f.beta * t)] }) }], refs: [{ y: f.alphaNP / 2, label: `half-life ${f.halfLifeMin.toFixed(0)} min`, color: 'rgba(244,238,227,.6)' }], xLabel: 'Minutes after the event', yLabel: 'Excitation', title: 'How a hit fades: φ(t) = α·e^(−βt)' })}</div>` : ''
   const body = f.status === 'ESTIMATED'
-    ? `<div class="ev-hero-big">half-life ${f.halfLifeMin < 60 ? `${f.halfLifeMin.toFixed(0)} min` : `${(f.halfLifeMin / 60).toFixed(1)} h`}</div><table><tr><td>news → price (α_NP)</td><td class="num">${f.alphaNP.toFixed(4)}</td></tr><tr><td>price → price (α_PP)</td><td class="num">${f.alphaPP.toFixed(4)}</td></tr><tr><td>decay β (per minute)</td><td class="num">${f.beta.toFixed(4)}</td></tr><tr><td>events per release</td><td class="num">${f.eventsPerRelease.toFixed(2)}</td></tr><tr><td>branching ratio (echo share)</td><td class="num">${(f.branchingRatio * 100).toFixed(0)}%</td></tr><tr><td>intensity shares</td><td class="num">baseline ${(f.shares.baseline * 100).toFixed(0)}% · news ${(f.shares.news * 100).toFixed(0)}% · self ${(f.shares.self * 100).toFixed(0)}%</td></tr></table>`
+    ? `${kernel}<div class="ev-hero-big">half-life ${f.halfLifeMin < 60 ? `${f.halfLifeMin.toFixed(0)} min` : `${(f.halfLifeMin / 60).toFixed(1)} h`}</div><table><tr><td>news → price (α_NP)</td><td class="num">${f.alphaNP.toFixed(4)}</td></tr><tr><td>price → price (α_PP)</td><td class="num">${f.alphaPP.toFixed(4)}</td></tr><tr><td>decay β (per minute)</td><td class="num">${f.beta.toFixed(4)}</td></tr><tr><td>events per release</td><td class="num">${f.eventsPerRelease.toFixed(2)}</td></tr><tr><td>branching ratio (echo share)</td><td class="num">${(f.branchingRatio * 100).toFixed(0)}%</td></tr><tr><td>intensity shares</td><td class="num">baseline ${(f.shares.baseline * 100).toFixed(0)}% · news ${(f.shares.news * 100).toFixed(0)}% · self ${(f.shares.self * 100).toFixed(0)}%</td></tr></table>`
     : notEnough(f.note)
   return `<div class="ev-note">Markets react to information, then to themselves. This fits a self-exciting model of price events on the stored release history: how hard a headline hits, how much the market feeds on its own reaction, and how fast it fades. ESTIMATED, activity only — never direction.</div>
     <div class="card"><h2>News-to-price diffusion <span class="ev-src sim">HISTORICAL · ${esc(f.status)}</span></h2>${body}<div class="muted">sample: ${f.sample.newsEvents} releases, ${f.sample.priceEvents} price events (${esc(f.threshold)}) over ${data.window.days} days · calendar memory ${data.history.instances} instance(s)</div><div class="plain">${esc(data.note)}</div></div>`
@@ -140,6 +158,7 @@ async function renderView() {
       case 'experiments': html = await renderExperiments(); break
     }
     out.innerHTML = html
+    mountHolo(out)
     if (status) status.textContent = `updated ${new Date().toLocaleTimeString()}`
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't load the lab: ${esc(e.message)}. Showing nothing rather than making something up.</div>`

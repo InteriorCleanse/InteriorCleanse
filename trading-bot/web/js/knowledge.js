@@ -4,6 +4,7 @@
  * the concept graph. Draws /api/knowledge/* and nothing else.
  */
 import { getJson, esc } from './api.js'
+import { holoGraph, mountHolo } from './viz.js'
 
 const VIEWS = [['vault', 'Vault'], ['passport', 'Passport'], ['brief', 'Daily brief'], ['eod', 'End of day'], ['weekly', 'Weekly review'], ['graph', 'Knowledge graph'], ['memory', 'Memory'], ['digests', 'Digests & audits']]
 let view = 'vault'
@@ -114,13 +115,23 @@ async function renderWeekly() {
     ${labelled('Learning', w.learning, `<div>familiar ${w.learning.familiar} · practising ${w.learning.practising} · introduced ${w.learning.introduced} · unseen ${w.learning.unseen} · ${w.learning.engagements} engagement(s)</div>`)}`
 }
 
+
+/** The concept graph as 3D data: concepts grouped by track, plus the strategies and case kinds they link to. */
+function graphData(g) {
+  const nodes = g.nodes.map((n) => ({ id: n.id, label: n.title, group: n.track }))
+  const seen = new Set(nodes.map((n) => n.id))
+  for (const e of g.edges) if (!seen.has(e.to)) { seen.add(e.to); nodes.push({ id: e.to, label: e.to.replace(/^(strategy|case):/, '').replace(/-/g, ' '), group: e.to.startsWith('strategy:') ? 'strategy' : 'case study' }) }
+  return { nodes, edges: g.edges.map((e) => ({ from: e.from, to: e.to })) }
+}
+
 async function renderGraph() {
   const { data: g } = await getJson('/api/knowledge/graph')
   const byTrack = {}
   for (const n of g.nodes) (byTrack[n.track] = byTrack[n.track] || []).push(n)
   const edgesOf = (id) => g.edges.filter((e) => e.from === id)
   return `<div class="ev-note">${g.nodes.length} concepts, ${g.edges.length} edges: related concepts, the strategies that use them, and the case-study kinds that illustrate them.${g.dangling.length ? ` Dangling: ${esc(g.dangling.join(', '))}` : ''}</div>
-    ${Object.entries(byTrack).map(([t, ns]) => `<div class="card"><h2>${esc(t)}</h2>${ns.map((n) => `<div class="kn-node"><b>${esc(n.title)}</b> <span class="muted">${esc(n.level)}</span><div class="muted">${edgesOf(n.id).map((e) => `<span class="badge">${esc(e.kind)}: ${esc(e.to)}</span>`).join(' ')}</div></div>`).join('')}</div>`).join('')}`
+    ${holoGraph(graphData(g), { height: 520, caption: 'Everything Mr. Cash knows, and how it connects' })}
+    <details class="vz-raw"><summary>Every concept, as a list</summary>${Object.entries(byTrack).map(([t, ns]) => `<div class="card"><h2>${esc(t)}</h2>${ns.map((n) => `<div class="kn-node"><b>${esc(n.title)}</b> <span class="muted">${esc(n.level)}</span><div class="muted">${edgesOf(n.id).map((e) => `<span class="badge">${esc(e.kind)}: ${esc(e.to)}</span>`).join(' ')}</div></div>`).join('')}</div>`).join('')}</details>`
 }
 
 async function renderMemory() {
@@ -161,6 +172,7 @@ async function renderView() {
       case 'digests': html = await renderDigests(); break
     }
     out.innerHTML = html
+    mountHolo(out)
     if (status) status.textContent = `updated ${new Date().toLocaleTimeString()}`
   } catch (e) {
     out.innerHTML = `<div class="plain">Couldn't load the vault: ${esc(e.message)}. Showing nothing rather than making something up.</div>`

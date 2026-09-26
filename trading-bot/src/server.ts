@@ -69,6 +69,7 @@ import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
 import { lastStoredCandle, getCandles as storedCandles } from './data/candleStore.ts'
 import { CallDesk } from './forecast/service.ts'
+import { twoVenueCheck } from './school/predictionMarket.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
 import { overview as evidenceOverview, dimensionView, crossView, cohortView, tradesView, tradeDetail, cachedBacktest, refreshBacktestCache, tradingStrategyId } from './analyst/evidence.ts'
 import type { EvidenceInputs } from './analyst/evidence.ts'
@@ -553,6 +554,17 @@ const server = createServer(async (req, res) => {
     if (path === '/api/forecast') {
       const fresh = url.searchParams.get('refresh') === '1'
       json(res, 200, { ok: true, data: fresh || callDesk.snapshot().status === 'STARTING' ? await callDesk.tick() : callDesk.snapshot() })
+      return
+    }
+    // The two-venue edge check: typed-in Polymarket and Kalshi quotes, fees, and a capped Kelly stake. Arithmetic only, SIMULATED.
+    if (path === '/api/forecast/edge') {
+      const n = (k: string) => { const v = Number(url.searchParams.get(k)); return Number.isFinite(v) ? v : NaN }
+      const cents = (k: string) => n(k) / 100
+      try {
+        const p = url.searchParams.get('p') ? n('p') : null
+        const data = twoVenueCheck({ venue: 'Polymarket', yesAsk: cents('pmYes'), noAsk: cents('pmNo'), fee: Number.isFinite(n('pmFee')) ? n('pmFee') / 100 : 0 }, { venue: 'Kalshi', yesAsk: cents('kYes'), noAsk: cents('kNo'), fee: 'kalshi' }, { p, contracts: Number.isFinite(n('contracts')) && n('contracts') > 0 ? Math.min(100_000, n('contracts')) : 100 })
+        json(res, 200, { ok: true, data })
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message }) }
       return
     }
     // Disclosed filings and volume leaders, READ-ONLY. Refresh on request at most every 10 minutes.
