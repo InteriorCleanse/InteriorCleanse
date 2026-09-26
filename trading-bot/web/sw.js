@@ -2,7 +2,7 @@
 // open even when the server is briefly unreachable. Market data is NEVER
 // cached — every /api call goes to the network, so nothing stale is ever
 // shown as fresh.
-const CACHE = 'mr-cash-shell-v26'
+const CACHE = 'mr-cash-shell-v27'
 const SHELL = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-180.png', '/icon.svg', '/css/app.css', '/js/api.js', '/js/state.js', '/js/replay.js', '/fonts/instrument-sans-400.woff2', '/fonts/instrument-sans-700.woff2', '/fonts/geist-mono-400.woff2', '/fonts/geist-mono-700.woff2', '/fonts/instrument-serif-400.woff2', '/fonts/instrument-serif-400-italic.woff2']
 
 self.addEventListener('install', (event) => {

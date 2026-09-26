@@ -62,7 +62,7 @@ export class CallDesk {
   private readonly opts: Opts
   constructor(opts: Opts) {
     this.opts = opts
-    this.file = join(opts.dir ?? DATA_DIR, 'forecasts.json')
+    this.file = join(opts.dir ?? DATA_DIR, (opts.windowMinutes ?? 15) === 15 ? 'forecasts.json' : `forecasts-${opts.windowMinutes}m.json`)
     this.saved = this.load()
     this.last = this.build(null, 'STARTING')
   }

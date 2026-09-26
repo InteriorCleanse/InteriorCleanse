@@ -20,7 +20,7 @@ import type { AnnotationType } from '../intel/types.ts'
 import type { CaseKind } from './caseStudies.ts'
 
 export type ConceptLevel = 'foundation' | 'intermediate' | 'advanced'
-export type ConceptTrack = 'basics' | 'priceaction' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
+export type ConceptTrack = 'basics' | 'priceaction' | 'scalping' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
 
 export type QuizQuestion = {
   id: string
@@ -208,6 +208,65 @@ export const CONCEPTS: Concept[] = [
     misreads: ['A high hit rate on 12 cases is a story, not evidence.', 'Beating a coin flip is not enough: the pattern has to beat what every candle did anyway (the drift), and then cover fees and slippage.'],
     related: ['pa-trend-level-signal', 'sample-size'],
     quiz: [q('pa-ev-1', 'A pattern "went its way" 60% of the time, but every candle went up 58% of the time over the same horizon. What have you learned?', ['The pattern is reliable', 'Very little: it barely beats the baseline', 'It never works', 'Trade it with more size'], 1, 'The comparison with the baseline is the whole point.')],
+  },
+  // ---------------------------------------------------------------- scalping (technical and fundamental)
+  // The Scalp desk (src/scalp/model.ts) turns these into a live reading and a break-even calculator.
+  {
+    id: 'scalp-costs', title: 'Scalping is a costs game first', level: 'foundation', track: 'scalping',
+    summary: 'A scalp aims for a small move, so the fixed costs of every trade (half the spread in and out, the fee on both sides, slippage) are a large share of the target. After costs a win nets less and a loss costs more, so the win rate needed to break even rises above the textbook stop ÷ (target + stop). With a 10 bps fee per side, a 20 bps target is a cost trap: the round trip alone is over 20 bps. Cut costs first (maker orders, a cheaper fee tier, the tightest markets), then look for an edge.',
+    engineChecks: ['The Scalp desk computes the round trip from the paper engine\'s own assumptions (config.execution: spread, taker fee both sides, slippage) and the break-even win rate for any target and stop (src/scalp/model.ts, breakEven).'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['"I win 60% of my scalps" means nothing without the costs: at the wrong shape 60% still loses money.', 'Fees quoted per side are paid twice per trade.'],
+    related: ['scalp-execution', 'scalp-liquidity', 'bid-ask'],
+    quiz: [
+      q('sc-c-1', 'Target 20 bps, stop 20 bps, round-trip costs 10 bps. What win rate breaks even?', ['50%', '60%', '75%', '40%'], 2, 'A win nets 10, a loss costs 30: 30 ÷ (10 + 30) = 75%.'),
+      q('sc-c-2', 'Which change helps a scalper most at a 0.1% taker fee?', ['Smaller targets', 'More trades', 'Maker (limit) orders and a cheaper fee tier', 'A tighter stop'], 2, 'Costs are the biggest lever; smaller targets make the share of costs worse.'),
+    ],
+  },
+  {
+    id: 'scalp-liquidity', title: 'When to scalp: liquidity windows', level: 'foundation', track: 'scalping',
+    summary: 'Scalping needs many participants: tight spreads, deep books, and moves that carry. Those come at session opens and overlaps (London open, the New York open, the London and New York overlap) and around the stock-market open for equities and index futures. The quiet hours, weekends and holidays give wider spreads and random chop. Crypto trades all day, but its liquidity still follows the traditional sessions.',
+    engineChecks: ['The Scalp desk reads the session and killzone from src/sessions.ts and marks the liquidity window good, thin or quiet, with minutes to the next killzone.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A 24/7 market is not equally liquid 24/7.', 'The first seconds after an open can be the widest spreads of the day: wait for the book to fill.'],
+    related: ['scalp-costs', 'scalp-news', 'sessions-killzones'],
+    quiz: [q('sc-l-1', 'Which time usually suits a scalper best?', ['Sunday night', 'The London and New York overlap', 'Lunchtime in New York', 'Just before a holiday close'], 1, 'The overlap has the most participants and the tightest books.')],
+  },
+  {
+    id: 'scalp-news', title: 'The fundamental side of scalping: the news clock', level: 'foundation', track: 'scalping',
+    summary: 'Scalpers do not trade the meaning of the news; they trade around its timing. High-impact releases (US jobs, CPI, the Fed decision and press conference, central-bank rate decisions) widen spreads, empty the book and gap price through stops. The rule: be flat before a high-impact release and wait until the spread and the tape settle. Also know the market\'s own clock: crypto funding times, futures rollovers, the equity open and close auctions, earnings for single stocks, and weekend gaps.',
+    engineChecks: ['The Scalp desk reads the economic calendar and news blackouts (src/news.ts) and says stand aside within 15 minutes of a high-impact release.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['"I will just use a tight stop" fails in news: stops fill at the next available price, which can be far away.', 'A low-impact release can still move a thin market.'],
+    related: ['scalp-liquidity', 'scalp-execution'],
+    quiz: [q('sc-n-1', 'US CPI is out in 8 minutes. What does the scalping rule say?', ['Buy now before it moves', 'Be flat and wait until the spread settles after the release', 'Double the size', 'Tighten the stop'], 1, 'Spreads widen and price gaps; being flat is the plan.')],
+  },
+  {
+    id: 'scalp-toolkit', title: 'The technical toolkit: VWAP, fast averages, levels, tape', level: 'intermediate', track: 'scalping',
+    summary: 'Classic scalping tools on the 1- to 5-minute chart:\n- VWAP: the day\'s volume-weighted average price, where many large orders are benchmarked.\n- The 9 and 20 EMAs: for pullbacks in a trend.\n- The opening range: the high and low of the first minutes.\n- Yesterday\'s high and low, and the session ranges.\n- The tape and the book: aggressive buying or selling (delta), how imbalanced the book is, and absorption, meaning big resting orders soaking up the pushes.\nTrend tape: buy pullbacks to VWAP or the EMAs in the trend direction. Chop: fade only the range edges, or wait.',
+    engineChecks: ['The engine already computes VWAP and volume profile (src/features/), the session ranges, and the order book and tape (src/orderflow.ts). The Scalp desk reads trend versus chop with an efficiency ratio and shows the live spread, book balance and tape speed.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['VWAP is a reference, not a wall: in a strong trend price can stay on one side all day.', 'Order-book walls can be pulled in a second; watch what trades, not only what rests.'],
+    related: ['scalp-execution', 'scalp-costs', 'pa-trend-level-signal'],
+    quiz: [q('sc-t-1', 'The tape is trending up cleanly. Where is the textbook scalp?', ['Short the high', 'A pullback to VWAP or the 9/20 EMA, long, stop beyond the pullback low', 'Anywhere in the middle of the range', 'Buy the top of a spike'], 1, 'With the trend, from a reference, with a defined stop.')],
+  },
+  {
+    id: 'scalp-execution', title: 'Execution: limit vs market, stops, slippage', level: 'intermediate', track: 'scalping',
+    summary: 'At a scalper\'s size and speed, how you get in and out is part of the edge. A market order pays the spread and the taker fee, and slips in a thin book. A limit order rests, pays the (lower) maker fee and no spread, but may not fill, and the fills you do get are more often the ones that go against you. Stops go beyond the noise (at least one typical candle), not inside it. A target has to be traded through, not just touched, to count.',
+    engineChecks: ['The paper engine\'s fill model charges spread, slippage and fees, enters at the next candle\'s open and counts a target only when traded through (config.execution; src/paper/). The Scalp desk suggests a starting stop of one typical candle and a target that keeps costs under a third.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A backtest that fills every limit at the touch overstates a scalper\'s results badly.', 'Moving a stop "just a bit" in a scalp turns a small loss into a large one.'],
+    related: ['scalp-costs', 'order-types', 'scalp-discipline'],
+    quiz: [q('sc-e-1', 'Why can limit orders flatter a scalping backtest?', ['They are always cheaper', 'Real limits fill less often, and more often when price is about to go against you', 'They never fill', 'They avoid fees entirely'], 1, 'Adverse selection: the easy fills are the ones you did not want.')],
+  },
+  {
+    id: 'scalp-discipline', title: 'Scalping discipline: count, cap, stop', level: 'foundation', track: 'scalping',
+    summary: 'Scalping produces many decisions a day, so small leaks compound: overtrading when bored, revenge trades after a loss, and size creeping up. Professionals cap the number of trades and the daily loss, stop after a set number of losses in a row, and journal every trade with its reason and costs. Fatigue is real: performance usually drops late in a long session.',
+    engineChecks: ['The risk engine enforces a daily trade cap and a daily loss limit, and the Stop button is a kill switch (src/risk/). The Journal records each trade with its costs.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Many small wins can hide one large loss that erases them; judge by net R, not by win count.', 'More screen time is not more edge.'],
+    related: ['psychology', 'trading-plan', 'scalp-costs'],
+    quiz: [q('sc-d-1', 'You have lost three scalps in a row, as your rule allows. What now?', ['Double size to win it back', 'Stop for the session and review the journal', 'Switch to a faster chart', 'Remove the stop'], 1, 'The rule exists for exactly this moment.')],
   },
   // ---------------------------------------------------------------- liquidity
   {

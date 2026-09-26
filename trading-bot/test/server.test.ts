@@ -269,3 +269,18 @@ test('scanner evidence: BACKTEST label, a baseline, and 404 for a market that is
   assert.ok(list.ok)
   for (const m of list.data.markets) assert.ok(m.bias.score >= -6 && m.bias.score <= 6)
 })
+
+test('scalp desk: a labelled reading with the engine\'s own costs, and break-even arithmetic that rejects nonsense', async () => {
+  const r = await getJson<{ ok: boolean; data: { label: string; verdict: string; costs: { feeBpsPerSide: number }; curve: unknown[]; note: string } }>('/api/scalp')
+  assert.ok(r.ok)
+  assert.equal(r.data.label, 'READING')
+  assert.ok(['good', 'thin', 'stand aside', 'NOT ENOUGH DATA'].includes(r.data.verdict))
+  assert.match(r.data.note, /not a signal/)
+  assert.ok(r.data.curve.length > 0)
+  const b = await getJson<{ ok: boolean; data: { breakEven: number | null } }>('/api/scalp/breakeven?target=20&stop=20&spread=10&fee=0&slip=0')
+  assert.equal(b.data.breakEven, 0.75)
+  const bad = await getJson<{ ok: boolean; error: string }>('/api/scalp/breakeven?target=0&stop=10')
+  assert.equal(bad.ok, false)
+  const five = await getJson<{ ok: boolean; data: { windowMinutes: number } }>('/api/forecast?window=5')
+  assert.equal(five.data.windowMinutes, 5)
+})

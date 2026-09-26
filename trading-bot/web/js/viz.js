@@ -18,7 +18,7 @@ export const PALETTE = ['#D8B56E', '#7CC8C4', '#60C892', '#E8A15A', '#C8A8E0', '
 
 function defs(id, colors = []) {
   return `<defs>
-    <filter id="${id}-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="${id}-glow" filterUnits="userSpaceOnUse" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <linearGradient id="${id}-grid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(216,181,110,.10)"/><stop offset="1" stop-color="rgba(216,181,110,0)"/></linearGradient>
     ${colors.map((c, i) => `<linearGradient id="${id}-a${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".32"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient>`).join('')}
   </defs>`

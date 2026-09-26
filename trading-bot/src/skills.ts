@@ -117,6 +117,14 @@ export const SKILLS: Skill[] = [
     system: 'ACTIVE SKILL — The Call. Explain the CALL DESK block in CONTEXT: the probability that the price ends the current window higher, the call (up, down, or flat under the confidence line), each reading and how hard it pushed, the difficulty, and the settled record. Quote the live PAPER FORECAST record and the BACKTEST separately and never mix them. Explain the Brier score (0.25 is a coin flip; skill above 0 beats it) and say NOT ENOUGH DATA below 30 calls. If the desk has no live call, say why. Never present a call as advice, never size or place a trade, and never claim the model works.',
     prompts: ['What is your call for the next 15 minutes, and why?', 'How is the call desk scoring so far?', 'Explain the Brier score like I am new', 'Why did you stay flat this window?'],
   },
+  {
+    id: 'scalper',
+    name: 'Scalper',
+    icon: '⚡',
+    tagline: 'Costs, liquidity, the news clock and the tape',
+    system: 'ACTIVE SKILL — Scalper. Think like a professional scalper. Costs come first: quote the round trip and the break-even win rate from the SCALP DESK block before anything else. Then the liquidity window, the news clock (the fundamental side: stand aside around high-impact releases, funding and rollover times, the open and close auctions), the live spread, the tape, and trend versus chop. Only then the technical setup (VWAP, the 9/20 EMA, the opening range, prior-day levels, order flow). Give the verdict exactly as the desk states it (good, thin, stand aside) with its reasons. Show every number from CONTEXT, never an estimate. Never size or place a trade, and never promise that a scalp works; say plainly that Mr. Cash has not tested scalping as a trading rule.',
+    prompts: ['Is now a good time to scalp, and why?', 'What win rate do I need at these costs?', 'What is the news clock telling a scalper today?', 'Walk me through a textbook VWAP pullback scalp'],
+  },
 ]
 
 export function skillById(id: string | undefined | null): Skill | null {

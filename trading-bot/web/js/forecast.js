@@ -16,14 +16,14 @@ const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${M
 const ARROW = { up: '▲', down: '▼', flat: '·', unchanged: '=' }
 const RESULT = { right: 'RIGHT', wrong: 'WRONG', passed: 'PASSED', void: 'VOID' }
 
-let desk = null, err = null, loading = false, fetchedAt = 0, ticker = null
+let desk = null, err = null, loading = false, fetchedAt = 0, ticker = null, win = 15
 let edge = { form: { pmYes: 55, pmNo: 43, pmFee: 0, kYes: 62, kNo: 40, p: '', contracts: 100 }, result: null, error: null, busy: false }
 
 async function load(force = false) {
   if (loading) return
   loading = true
   try {
-    const r = await fetch('/api/forecast' + (force ? '?refresh=1' : ''), { credentials: 'same-origin' })
+    const r = await fetch(`/api/forecast?window=${win}` + (force ? '&refresh=1' : ''), { credentials: 'same-origin' })
     const j = await r.json()
     if (!j.ok) throw new Error(j.error || 'The desk did not answer.')
     desk = j.data; err = null; fetchedAt = Date.now()
@@ -131,7 +131,7 @@ function tabView() {
   const d = desk, c = d.current
   root.innerHTML = `
   <div class="fc-term">
-    <div class="fc-bar-top"><i></i><i></i><i></i><span>mr-cash · the-call · ${esc(d.symbol)} · ${d.windowMinutes}m</span><span class="badge sc-prov">PAPER FORECAST</span></div>
+    <div class="fc-bar-top"><i></i><i></i><i></i><span>mr-cash · the-call · ${esc(d.symbol)} · ${d.windowMinutes}m</span><span class="fc-win" role="group" aria-label="Window length"><button class="${win === 15 ? 'on' : ''}" data-win="15">15m</button><button class="${win === 5 ? 'on' : ''}" data-win="5">5m scalp</button></span><span class="badge sc-prov">PAPER FORECAST</span></div>
     <div class="fc-body">
       <div class="fc-now">
         <div class="fc-q">Will ${esc(d.symbol)} end this ${d.windowMinutes}-minute window higher?</div>
@@ -188,6 +188,7 @@ function init() {
   const root = $('forecast-out')
   root?.addEventListener('click', (e) => {
     if (e.target.closest('#fc-refresh')) load(true)
+    const w = e.target.closest('[data-win]'); if (w) { win = Number(w.dataset.win); desk = null; load(true) }
     if (e.target.closest('#fc-use-desk')) { const p = desk?.current?.pUp ?? desk?.lastRead?.pUp; if (p) { edge.form.p = Math.round(p * 1000) / 10; const i = document.querySelector('#fc-edge-form [name=p]'); if (i) i.value = edge.form.p } }
   })
   root?.addEventListener('submit', (e) => { if (e.target.id === 'fc-edge-form') { e.preventDefault(); runEdge() } })

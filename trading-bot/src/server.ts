@@ -45,7 +45,9 @@ import { scanPatterns, UNTESTED } from './scanner/patterns.ts'
 import { biasScore, confluence, patternEvidence } from './scanner/priceAction.ts'
 import { PICTURE_INSTRUCTIONS, PICTURE_SCHEMA, cleanPictureRead } from './scanner/picture.ts'
 import type { AiImage } from './ai.ts'
-import { toET, tradingDayKey } from './sessions.ts'
+import { toET, tradingDayKey, sessionAt, isKillzone, isWeekend, nextKillzone, sessionLabel } from './sessions.ts'
+import { breakEven, breakEvenCurve, scalpConditions } from './scalp/model.ts'
+import type { Costs } from './scalp/model.ts'
 import { ifvgRole } from './fvg.ts'
 import { describeShift, describeSwing } from './structure.ts'
 import { breakerRole, describeOrderBlock } from './orderblocks.ts'
@@ -277,7 +279,7 @@ function contextFor(snap: Snapshot, withJournal = false): string {
 }
 
 /** Extra read-only context for the hats that need it: the Scanner's price-action read, or the Big money board. */
-function skillContext(skillId?: string): string {
+async function skillContext(skillId?: string): Promise<string> {
   try {
     if (skillId === 'priceaction') {
       const rows = marketWatch.snapshot().rows.map((r) => {
@@ -286,6 +288,11 @@ function skillContext(skillId?: string): string {
         return `  ${r.label} [${r.provenance}] bias ${b.parts.length ? (b.score > 0 ? '+' : '') + b.score + ' (' + b.lean + ')' : 'NOT ENOUGH DATA'}; setup grade ${g.grade}: ${g.text}`
       })
       return '\n\nPRICE ACTION (Scanner, hourly candles, rule-based, untested as a trading rule):\n' + (rows.length ? rows.join('\n') : '  NOT ENOUGH DATA: the market watch has no rows yet.')
+    }
+    if (skillId === 'scalper') {
+      const snap = await safely(() => snapshot())
+      const r = scalpReading(snap.ok ? snap.data : null)
+      return `\n\nSCALP DESK (a reading of conditions, not a signal; costs are the paper engine's own): verdict ${r.verdict}, score ${r.score}/100, round trip ${r.roundTripBps} bps, typical move ${r.typicalMoveBps ?? '—'} bps, cost ratio ${r.costRatio ?? '—'}.\n${r.readings.map((x) => `  ${x.label} [${x.status}] ${x.value}: ${x.text}`).join('\n')}\n  Playbook: ${r.playbook.join(' ')}${r.shape ? `\n  Starting shape: stop ${r.shape.stopBps} bps, target ${r.shape.targetBps} bps, break-even win rate ${r.shape.breakEven.breakEven ?? 'impossible'}.` : ''}`
     }
     if (skillId === 'caller') {
       const d = callDesk.snapshot()
@@ -309,7 +316,7 @@ async function streamAnswer(res: ServerResponse, question: string, context: stri
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context + skillContext(skillId), history, (t) => res.write(t), image, skillById(skillId))
+    const answer = await askAI(question, context + (await skillContext(skillId)), history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -553,7 +560,8 @@ const server = createServer(async (req, res) => {
     // The call desk: up or down over the next window, with the working, scored against the real close. PAPER FORECAST, no orders.
     if (path === '/api/forecast') {
       const fresh = url.searchParams.get('refresh') === '1'
-      json(res, 200, { ok: true, data: fresh || callDesk.snapshot().status === 'STARTING' ? await callDesk.tick() : callDesk.snapshot() })
+      const desk = url.searchParams.get('window') === '5' ? callDesk5 : callDesk
+      json(res, 200, { ok: true, data: fresh || desk.snapshot().status === 'STARTING' ? await desk.tick() : desk.snapshot() })
       return
     }
     // The two-venue edge check: typed-in Polymarket and Kalshi quotes, fees, and a capped Kelly stake. Arithmetic only, SIMULATED.
@@ -564,6 +572,23 @@ const server = createServer(async (req, res) => {
         const p = url.searchParams.get('p') ? n('p') : null
         const data = twoVenueCheck({ venue: 'Polymarket', yesAsk: cents('pmYes'), noAsk: cents('pmNo'), fee: Number.isFinite(n('pmFee')) ? n('pmFee') / 100 : 0 }, { venue: 'Kalshi', yesAsk: cents('kYes'), noAsk: cents('kNo'), fee: 'kalshi' }, { p, contracts: Number.isFinite(n('contracts')) && n('contracts') > 0 ? Math.min(100_000, n('contracts')) : 100 })
         json(res, 200, { ok: true, data })
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message }) }
+      return
+    }
+    // The scalp desk: the conditions a scalper looks for right now, and the break-even arithmetic. A reading, not a signal.
+    if (path === '/api/scalp') {
+      const snap = await safely(() => snapshot())
+      const data = { ...scalpReading(snap.ok ? snap.data : null), symbol: config.symbol, costs: scalpCosts(), curve: breakEvenCurve(1, scalpCosts(), [10, 15, 20, 30, 40, 60, 80, 100, 150, 200]), source: snap.ok ? 'live candles and book' : 'NOT CONNECTED', label: 'READING' }
+      json(res, 200, { ok: true, data })
+      return
+    }
+    if (path === '/api/scalp/breakeven') {
+      const n = (k: string, d: number) => { const v = Number(url.searchParams.get(k)); return Number.isFinite(v) && url.searchParams.get(k) !== null && url.searchParams.get(k) !== '' ? v : d }
+      const base = scalpCosts()
+      const costs: Costs = { spreadBps: Math.max(0, n('spread', base.spreadBps)), feeBpsPerSide: Math.max(0, n('fee', base.feeBpsPerSide)), slippageBpsPerSide: Math.max(0, n('slip', base.slippageBpsPerSide)) }
+      try {
+        const target = n('target', 40), stop = n('stop', 30)
+        json(res, 200, { ok: true, data: { ...breakEven(target, stop, costs), costs, curve: breakEvenCurve(stop / target, costs, [10, 15, 20, 30, 40, 60, 80, 100, 150, 200]) } })
       } catch (e) { json(res, 200, { ok: false, error: (e as Error).message }) }
       return
     }
@@ -1642,11 +1667,22 @@ const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('i
 const evidenceCache = new Map<string, { at: number; data: unknown }>()
 const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
 // The call desk: an up-or-down forecast every 15 minutes on the bot's own symbol, scored on paper. MRCASH_CALLS=0 turns it off.
+/** The scalp desk's reading of a snapshot: candles, book, tape, session and calendar. */
+function scalpReading(s: Snapshot | null) {
+  const now = Date.now()
+  const nk = nextKillzone(now)
+  const sess = sessionAt(now)
+  return scalpConditions({ candles: s?.candles ?? [], book: s?.flow?.book ?? null, tape: s?.flow?.tape ?? null, calendar: s?.news?.calendar ?? [], blackoutNow: (s?.news?.blackouts ?? []).some((b) => now >= b.start && now <= b.end), now, costs: scalpCosts(), intervalMinutes: Math.round((INTERVAL_MS[config.interval] ?? 300_000) / 60_000),
+    session: { name: sess ? sessionLabel(sess) : null, killzone: isKillzone(now), weekend: isWeekend(now), nextKillzoneMin: nk ? Math.round(nk.startsIn / 60_000) : null, nextKillzoneLabel: nk ? nk.label : null } })
+}
+/** The paper engine's own cost assumptions (config.execution), in basis points: taker fee both sides, as a scalper hitting the market pays. */
+function scalpCosts(): Costs { return { spreadBps: config.execution.spreadBps, feeBpsPerSide: config.execution.takerFeePercent * 100, slippageBpsPerSide: config.execution.slippageBps } }
+const callDesk5 = new CallDesk({ symbol: config.symbol, windowMinutes: 5, candles: (limit) => storedCandles(config.symbol, '5m', limit) })
 const callDesk = new CallDesk({ symbol: config.symbol, windowMinutes: Number(process.env.MRCASH_CALL_MINUTES) || 15, candles: (limit) => storedCandles(config.symbol, '5m', limit) })
 
 server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
-  if (process.env.MRCASH_CALLS !== '0') callDesk.start()
+  if (process.env.MRCASH_CALLS !== '0') { callDesk.start(); callDesk5.start() }
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good(`  ● ${describeMode()}`))
