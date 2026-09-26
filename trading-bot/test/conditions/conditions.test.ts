@@ -138,3 +138,11 @@ test('market-wide stress needs more than one kind of market: three coins alone n
   assert.equal(r.stress.level, 'NOT ENOUGH DATA')
   assert.notEqual(r.verdict, 'POOR')
 })
+
+test('opening countdowns land on the exact minute (the half-hour scan misses no boundary)', () => {
+  const sat = at('2026-09-26T16:07:00Z') // Saturday 12:07 ET
+  assert.equal(marketHours('stock', sat).opensInMin, (at('2026-09-28T13:30:00Z') - sat) / 60_000, 'Monday 09:30 ET')
+  assert.equal(marketHours('forex', sat).opensInMin, (at('2026-09-27T21:00:00Z') - sat) / 60_000, 'Sunday 17:00 ET')
+  assert.equal(marketHours('future', sat).opensInMin, (at('2026-09-27T22:00:00Z') - sat) / 60_000, 'Sunday 18:00 ET')
+  assert.deepEqual(marketHours('stock', sat), marketHours('stock', sat + 20_000), 'same minute, same answer')
+})
