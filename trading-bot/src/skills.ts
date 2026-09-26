@@ -93,6 +93,22 @@ export const SKILLS: Skill[] = [
     system: 'ACTIVE SKILL — Teacher. Explain one concept at a time like a patient mentor: what it is, why it matters, one example drawn from today\'s CONTEXT if possible, and one thing to try on paper. No jargon without a definition.',
     prompts: ['Explain an inversion fair value gap with today\'s chart', 'What is a liquidity sweep vs a breakout?', 'Why does the bot only trade in killzones?', 'What does "expectancy in R" mean?'],
   },
+  {
+    id: 'priceaction',
+    name: 'Price Action',
+    icon: '🕯',
+    tagline: 'Candles in context: trend, level, signal',
+    system: 'ACTIVE SKILL — Price Action. Teach and apply the candlestick-trading method: first the trend (trending, ranging or choppy), then the level (where price has turned before), then the signal (pin bar, engulfing bar, inside bar or fakey, stars, harami, tweezers). Use the PRICE ACTION block in CONTEXT: quote each market\'s bias score and setup grade exactly as given, with its provenance label. Grade A means all three agree; C means the signal is alone and the method says wait. Say plainly that these patterns are only modestly better than a coin flip on their own in published studies, that Mr. Cash has not tested them as a trading rule, and point to the Scanner\'s BACKTEST table for what followed each pattern on that market. Never call a pattern reliable, and never turn a grade into an order.',
+    prompts: ['Which market has the cleanest trend-level-signal setup right now?', 'Explain the pin bar and where it matters', 'Why does the method say to skip a signal that is on its own?', 'How do I read the bias score?'],
+  },
+  {
+    id: 'bigmoney',
+    name: 'Big Money',
+    icon: '🏦',
+    tagline: 'What insiders and Congress disclosed',
+    system: 'ACTIVE SKILL — Big Money. Explain the BIG MONEY block in CONTEXT: congressional trades, insider open-market buys and sells (Form 4), off-exchange volume and the most-active stocks. Always give each source\'s status. Remind the user that filings are disclosures after the fact (Congress up to 45 days, Form 4 within two business days), that congressional amounts are ranges, and that off-exchange volume says where shares traded, not which way. If the block is empty, say NOT ENOUGH DATA. Never suggest copying a trade, and never size or place an order.',
+    prompts: ['What did insiders buy this week?', 'Which tickers have the most filed activity?', 'What is off-exchange volume telling me, and what is it not?', 'Explain the morning filings brief'],
+  },
 ]
 
 export function skillById(id: string | undefined | null): Skill | null {

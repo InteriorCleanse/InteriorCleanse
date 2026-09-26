@@ -245,7 +245,7 @@ function fitCanvas(cv) {
   return { ctx, w, h }
 }
 
-const MINT = '74,222,154', GREY = '154,163,194', IRIS = '139,147,255'
+const MINT = '96,200,146', GREY = '170,160,145', IRIS = '222,190,124'
 
 function drawVolume(cv, v) {
   const f = fitCanvas(cv); if (!f) return
@@ -308,7 +308,7 @@ function drawPulse(cv, pulse, t) {
   const cx = 26, cy = h / 2
   ctx.beginPath(); ctx.arc(cx, cy, 9 + glow * 7, 0, Math.PI * 2); ctx.fillStyle = `rgba(${IRIS},${(0.10 + glow * 0.25).toFixed(3)})`; ctx.fill()
   ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = `rgba(${IRIS},${(0.55 + glow * 0.45).toFixed(3)})`; ctx.fill()
-  ctx.fillStyle = 'rgba(238,241,251,.94)'; ctx.font = "700 22px 'Geist Mono',ui-monospace,monospace"; ctx.textBaseline = 'middle'
+  ctx.fillStyle = 'rgba(244,238,227,.94)'; ctx.font = "700 22px 'Geist Mono',ui-monospace,monospace"; ctx.textBaseline = 'middle'
   ctx.fillText(`${Math.round(pulse.perMin)}`, 48, cy - 1)
   ctx.fillStyle = `rgba(${GREY},.9)`; ctx.font = "10px 'Geist Mono',ui-monospace,monospace"
   ctx.fillText(`trades / min · ${pulse.label || ''}`, 48, cy + 17)

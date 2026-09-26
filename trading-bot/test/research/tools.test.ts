@@ -67,8 +67,8 @@ test('the bot never imports the research bench', () => {
 })
 
 test('research scripts label their output and keep SYNTHETIC data to the selftests', () => {
-  const vbt = read('research', 'vbt_sweep.py'), hbt = read('research', 'hbt_mm.py')
-  for (const s of [vbt, hbt]) { assert.match(s, /BACKTEST/); assert.match(s, /SYNTHETIC/) }
+  const vbt = read('research', 'vbt_sweep.py'), hbt = read('research', 'hbt_mm.py'), bots = read('research', 'bot_styles.py')
+  for (const s of [vbt, hbt, bots]) { assert.match(s, /BACKTEST/); assert.match(s, /SYNTHETIC/) }
   assert.match(vbt, /NOT ENOUGH DATA/)
   assert.match(vbt, /out_of_sample/)
   assert.match(vbt, /combinations_tried/)
@@ -78,8 +78,8 @@ test('research scripts label their output and keep SYNTHETIC data to the selftes
   assert.match(read('research', 'requirements-hftbacktest.txt'), /hftbacktest==/)
 })
 
-test('the four skills exist, stay within the rules, and use no profitability language', () => {
-  const skills = ['vectorbt-research', 'hftbacktest-research', 'market-making-study', 'mr-cash-morning-filings']
+test('the research and design skills exist, stay within the rules, and use no profitability language', () => {
+  const skills = ['vectorbt-research', 'hftbacktest-research', 'market-making-study', 'mr-cash-morning-filings', 'design']
   for (const s of skills) {
     const p = join(ROOT, '.claude', 'skills', s, 'SKILL.md')
     assert.ok(existsSync(p), `${s} installed`)

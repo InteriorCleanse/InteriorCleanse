@@ -78,7 +78,27 @@ function renderStrip(d) {
   box.innerHTML = `
     <div class="mk-strip-hd"><b>Markets he's watching</b><span>${d.rows.length} markets, rescanned every ${d.everyMinutes} minutes · read-only</span></div>
     <div class="mk-strip">${kinds.map((k) => stripCard(k, d.rows.filter((r) => r.kind === k))).join('')}</div>
-    ${notes.length ? `<p class="mk-latest"><i></i><b>${esc(notes[0].label)}</b> ${esc(notes[0].text)}</p>` : ''}`
+    ${notes.length ? `<p class="mk-latest"><i></i><b>${esc(notes[0].label)}</b> ${esc(notes[0].text)}</p>` : ''}
+    <div id="dk-pa" class="pa-home"></div>`
+  fillGlance()
+}
+
+/* One glance, one number per market: the bias score from the Scanner (six readings, −6 to +6). */
+let glanceAt = 0, glanceData = null
+async function fillGlance() {
+  const box = document.getElementById('dk-pa')
+  if (!box) return
+  const paint = (d) => {
+    const ready = (d?.markets || []).filter((m) => m.bias?.ready)
+    if (!ready.length) { box.innerHTML = ''; return }
+    const top = [...ready].sort((a, b) => Math.abs(b.bias.score) - Math.abs(a.bias.score)).slice(0, 5)
+    const word = { long: 'leaning long', short: 'leaning short', 'sit out': 'sit out' }
+    box.innerHTML = `<div class="pa-glance"><span class="pa-glance-k">Price action at a glance</span>${top.map((m) => `<button class="pa-chip ${m.bias.lean.replace(' ', '')}" data-tab="scanner" title="${esc(m.label)}: ${word[m.bias.lean]}${m.grade && m.grade !== '—' ? ', setup grade ' + m.grade : ''}"><b>${esc(m.label)}</b><span>${m.bias.score > 0 ? '+' : ''}${m.bias.score}</span></button>`).join('')}<span class="pa-glance-k">bias score, −6 to +6 · a summary, not a signal</span></div>`
+  }
+  if (glanceData) paint(glanceData)
+  if (Date.now() - glanceAt < 120_000) return
+  glanceAt = Date.now()
+  try { const r = await fetch('/api/scanner', { credentials: 'same-origin' }); const j = await r.json(); if (j.ok) { glanceData = j.data; paint(glanceData) } } catch { /* the strip above still shows */ }
 }
 
 async function fillStrip() {

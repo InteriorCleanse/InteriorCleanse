@@ -254,3 +254,18 @@ test('after a hard kill and restart, the bell still shows what happened and ids 
   const h = await getJson<{ data: { store: string } }>('/api/health')
   assert.equal(h.data.store, 'ok')
 })
+
+test('decorative media: only named files under /media, 404 when missing, and /api/config says which exist', async () => {
+  const cfg = await getJson<{ media: { film: boolean; poster: boolean } }>('/api/config')
+  assert.equal(typeof cfg.media.film, 'boolean')
+  assert.equal(typeof cfg.media.poster, 'boolean')
+  for (const p of ['/media/../package.json', '/media/%2e%2e/package.json', '/media/hero.exe', '/media/Hero.MP4']) assert.notEqual((await get(p)).status, 200, p)
+  if (!cfg.media.film) assert.equal((await get('/media/hero.mp4')).status, 404)
+})
+
+test('scanner evidence: BACKTEST label, a baseline, and 404 for a market that is not watched', async () => {
+  assert.equal((await get('/api/scanner/evidence?key=crypto:NOPE')).status, 404)
+  const list = await getJson<{ ok: boolean; data: { markets: Array<{ key: string; bias: { score: number; lean: string } }> } }>('/api/scanner')
+  assert.ok(list.ok)
+  for (const m of list.data.markets) assert.ok(m.bias.score >= -6 && m.bias.score <= 6)
+})

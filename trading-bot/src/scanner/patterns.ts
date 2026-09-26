@@ -9,6 +9,7 @@
  * nothing here reaches the engine.
  */
 import type { Candle } from '../types.ts'
+import { candleSignalsAt } from './priceAction.ts'
 
 export type Bias = 'bull' | 'bear' | 'neutral'
 export type Status = 'forming' | 'confirmed' | 'failed' | 'breakout' | 'breakdown' | 'active'
@@ -240,26 +241,10 @@ function zones(c: Candle[], piv: Pivot[], a: number): Pattern[] {
     })
 }
 
-/** Candlestick patterns on the last closed candle (and the two before it). */
+/** Candlestick patterns on the last closed candle (and the two before it). The rules live in priceAction.ts. */
 function candles(c: Candle[], a: number): Pattern[] {
   const n = c.length - 1
-  if (n < 5) return []
-  const x = c[n], p = c[n - 1], q = c[n - 2]
-  const body = (k: Candle) => Math.abs(k.close - k.open), range = (k: Candle) => k.high - k.low
-  const up = (k: Candle) => k.close > k.open, down = (k: Candle) => k.close < k.open
-  const upper = x.high - Math.max(x.open, x.close), lower = Math.min(x.open, x.close) - x.low
-  const fell = x.close < c[n - 5].close, rose = x.close > c[n - 5].close
-  const out: Pattern[] = []
-  const add = (id: string, name: string, bias: Bias, meaning: string, confirm: string, invalidate: string, from = n) => out.push(mk({ id: `${id}-${n}`, name, kind: 'candle', bias, status: 'active', from, to: n, points: [{ i: n, p: bias === 'bear' ? x.high : x.low, label: name }], meaning, confirm, invalidate }))
-  if (down(p) && up(x) && x.open <= p.close && x.close >= p.open && body(x) > body(p)) add('bull-engulf', 'Bullish engulfing', 'bull', 'A green candle whose body swallows the previous red one.', `The next candle holding above ${fmt(x.low)}.`, `A close below ${fmt(x.low)}.`, n - 1)
-  if (up(p) && down(x) && x.open >= p.close && x.close <= p.open && body(x) > body(p)) add('bear-engulf', 'Bearish engulfing', 'bear', 'A red candle whose body swallows the previous green one.', `The next candle staying below ${fmt(x.high)}.`, `A close above ${fmt(x.high)}.`, n - 1)
-  if (range(x) > 0 && lower >= 2 * body(x) && upper <= Math.max(body(x) * 0.5, range(x) * 0.1) && fell) add('hammer', 'Hammer', 'bull', 'After a drop, sellers pushed price down and buyers pulled it back up, leaving a long lower wick.', `A close above ${fmt(x.high)}.`, `A close below ${fmt(x.low)}.`)
-  if (range(x) > 0 && upper >= 2 * body(x) && lower <= Math.max(body(x) * 0.5, range(x) * 0.1) && rose) add('shooting-star', 'Shooting star', 'bear', 'After a rise, buyers pushed price up and sellers knocked it back, leaving a long upper wick.', `A close below ${fmt(x.low)}.`, `A close above ${fmt(x.high)}.`)
-  if (range(x) > 0 && body(x) <= range(x) * 0.1 && out.length === 0) add('doji', 'Doji', 'neutral', 'Open and close almost equal: neither side won the candle.', 'The next candle choosing a direction.', 'Not applicable: a doji only marks indecision.')
-  if (down(q) && body(q) > a * 0.6 && body(p) < body(q) * 0.35 && up(x) && x.close > (q.open + q.close) / 2) add('morning-star', 'Morning star', 'bull', 'A strong red candle, a small pause, then a green candle closing well into the red one.', `Holding above ${fmt(Math.min(p.low, x.low))}.`, `A close below ${fmt(Math.min(p.low, x.low))}.`, n - 2)
-  if (up(q) && body(q) > a * 0.6 && body(p) < body(q) * 0.35 && down(x) && x.close < (q.open + q.close) / 2) add('evening-star', 'Evening star', 'bear', 'A strong green candle, a small pause, then a red candle closing well into the green one.', `Staying below ${fmt(Math.max(p.high, x.high))}.`, `A close above ${fmt(Math.max(p.high, x.high))}.`, n - 2)
-  if (x.high < p.high && x.low > p.low) add('inside-bar', 'Inside bar', 'neutral', 'This candle sits entirely inside the previous one: the market paused.', `A break above ${fmt(p.high)} or below ${fmt(p.low)}.`, 'The break that fails and closes back inside.', n - 1)
-  return out
+  return candleSignalsAt(c, n, a).map((s) => mk({ id: `${s.id}-${n}`, name: s.name, kind: 'candle', bias: s.bias, status: 'active', from: s.from, to: n, points: [{ i: n, p: s.bias === 'bear' ? c[n].high : c[n].low, label: s.name }], meaning: s.meaning, confirm: s.confirm, invalidate: s.invalidate }))
 }
 
 /** RSI divergence between the last two swing highs (or lows). */

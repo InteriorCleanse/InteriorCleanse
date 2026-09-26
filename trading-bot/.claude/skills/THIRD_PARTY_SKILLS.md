@@ -96,8 +96,12 @@ imports them. See `docs/RESEARCH_TOOLS.md`.
 | `market-making-study` | hftbacktest | MIT | Explains market making and prediction-market books. A study only: no live market maker and no Kalshi keys. |
 | `mr-cash-morning-filings` | none (the bot's own `/api/bigmoney`) | — | Reads the 6:00 New York filings brief. Read-only, and it places nothing. |
 
-The Higgsfield / Seedance website prompt from the same list is a media tool,
-not a trading skill, so it was not added here.
+The Higgsfield / Seedance website prompt from the same list became the
+`design` skill (added 2026-09-25, written here): the "cinematic luxury site
+made with Higgsfield media" method, applied to the app instead of a separate
+site. It generates Seedance 2.0 video and GPT Image stills through the
+Higgsfield MCP and installs them in `web/media/`. It uses no third-party
+files.
 
 **Considered and not vendored:**
 

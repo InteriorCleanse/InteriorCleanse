@@ -60,7 +60,7 @@ says NOT ENOUGH DATA rather than estimating when the record is thin.
 | Group | Tabs | What they are for |
 |---|---|---|
 | The desk | **Home**, **Today**, **Chart**, **Ask**, and **Journal** under More | The brain (every model he runs, live), the daily brief and decision, the annotated chart, a conversation with the bot in any of its hats, and your journal. |
-| Markets | Markets, Scanner, Big money, Tickers, Planner, Spreads, Flow, News, Intel, TradingView | Every market he watches around the clock — crypto, stocks, forex and indexes, read-only (docs/MULTI_MARKET.md) — the order book and tape, the calendar and headlines, the engine's own chart markup with provenance, and the Pine export. Planner sizes your own share and single-option trades; Spreads plans defined-risk option spreads (debit, credit, butterflies, iron condor) for you to place yourself (docs/OPTION_SPREADS.md). Tickers holds reference knowledge for SPY, NVDA, TSLA, AAPL, the ES and NQ index futures, oil and gas (CL, NG), gold and silver (GC, SI) and 10-year Treasuries (ZN), with the watch's read-only prices and labelled fund stand-ins for the futures (docs/TICKERS.md). Scanner finds textbook chart and candle patterns in every watched market by fixed rules and marks up any chart screenshot with AI (docs/CHART_SCANNER.md). Big money shows disclosed congress and insider trades, off-exchange volume and the most-traded stocks (docs/BIG_MONEY.md). |
+| Markets | Markets, Scanner, Big money, Tickers, Planner, Spreads, Flow, News, Intel, TradingView | Every market he watches around the clock — crypto, stocks, forex and indexes, read-only (docs/MULTI_MARKET.md) — the order book and tape, the calendar and headlines, the engine's own chart markup with provenance, and the Pine export. Planner sizes your own share and single-option trades; Spreads plans defined-risk option spreads (debit, credit, butterflies, iron condor) for you to place yourself (docs/OPTION_SPREADS.md). Tickers holds reference knowledge for SPY, NVDA, TSLA, AAPL, the ES and NQ index futures, oil and gas (CL, NG), gold and silver (GC, SI) and 10-year Treasuries (ZN), with the watch's read-only prices and labelled fund stand-ins for the futures (docs/TICKERS.md). Scanner finds textbook chart and candle patterns in every watched market by fixed rules and marks up any chart screenshot with AI (docs/CHART_SCANNER.md). For each market it also gives a bias score from −6 to +6 and a trend · level · signal grade, the Candlestick Trading Bible method, and measures what followed each candle pattern on that market's own history, labelled BACKTEST (docs/PRICE_ACTION.md). Big money shows disclosed congress and insider trades, off-exchange volume and the most-traded stocks (docs/BIG_MONEY.md). |
 | Is it working? | Evidence, Validation, Operations, Test, Replay | Attribution by session, regime and strategy; the frozen validation gates; heartbeat, feed, integrity, reconciliation, soak and the first-fill acceptance chain; look-back tests; the replay player. |
 | Learn | School, Research, Knowledge, Observer | Lessons from its own case studies; the quant lab (overfitting detector, regime atlas, news diffusion, sandbox); the versioned vault and daily digests; what it is observing right now. |
 | Under the hood | Playbook, Factory, Vault, Memory | Every strategy's vote; the breeding and out-of-sample survivor tests; passports and decay; the raw ledger, lessons and doctor. |
@@ -438,19 +438,21 @@ In the Ask tab (or `skill risk` in `npm run talk`), pick a hat:
 | 📰 **News Desk** | Ranks the calendar and headlines; says when he'll stand aside |
 | 🎯 **Execution** | Turns a setup into a numbered plan: enter, abort, manage, journal |
 | 🎓 **Teacher** | One concept at a time, with an example from today |
+| 🕯 **Price Action** | Trend, level, signal: the candlestick method, with each market's bias score and setup grade |
+| 🏦 **Big Money** | What insiders and Congress disclosed, with every source's status |
 
 Same brain, same rules, same context; each skill just changes what he pays
 attention to. None can place an order.
 
 The repo also ships **Claude Code skills** in `trading-bot/.claude/skills/`
 — `/mr-cash-brief`, `/mr-cash-trade-review`, `/mr-cash-journal-coach`,
-`/mr-cash-tune`, `/mr-cash-chart-read`, `/mr-cash-morning-filings` — so
+`/mr-cash-tune`, `/mr-cash-chart-read`, `/mr-cash-morning-filings`, `/design` — so
 when you open this folder in Claude Code, Claude already knows how to run and
 reason about Mr. Cash. Three research skills sit beside them:
 `/vectorbt-research` and `/hftbacktest-research` drive the Python research
 bench in `research/` (BACKTEST only, never imported by the bot), and
 `/market-making-study` explains market making with a runnable study instead of
-a live bot (docs/RESEARCH_TOOLS.md).
+a live bot (docs/RESEARCH_TOOLS.md). `/design` holds the app's luxury look: champagne gold on onyx, serif headlines, and ambient Seedance 2.0 video from `web/media/`. What Mr. Cash took from other trading bots, and what it deliberately left out, is in docs/BOT_LANDSCAPE.md.
 
 ### Navigation — ⌘K
 

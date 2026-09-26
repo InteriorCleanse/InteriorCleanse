@@ -25,13 +25,13 @@ try {
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
     // The fields: fraction-of-viewport home, colour, radius scale, and a slow
-    // orbit. Colours stay in the Night Lab family: the iris accent, a little
-    // aqua and two deep blues — no hue that could be read as up or down.
+    // orbit. Colours stay in the Maison family: champagne gold, warm bronze and
+    // a trace of deep emerald — no hue that could be read as up or down.
     const ORBS = [
-      { x: 0.16, y: 0.08, c: '139,147,255', r: 0.70, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.10 },
-      { x: 0.88, y: 0.14, c: '92,225,230',  r: 0.56, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.06 },
-      { x: 0.78, y: 0.86, c: '96,108,255',  r: 0.64, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.07 },
-      { x: 0.20, y: 0.90, c: '70,86,190',   r: 0.54, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.06 },
+      { x: 0.14, y: 0.06, c: '214,180,106', r: 0.70, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.085 },
+      { x: 0.90, y: 0.12, c: '176,122,70',  r: 0.56, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.05 },
+      { x: 0.80, y: 0.88, c: '46,110,88',   r: 0.64, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.05 },
+      { x: 0.18, y: 0.92, c: '120,86,48',   r: 0.54, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.05 },
     ]
 
     let w = 0, h = 0, dpr = 1, min = 0, raf = null
@@ -76,3 +76,32 @@ try {
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !reduce) start(); else stop() })
   }
 } catch { /* no ambient backdrop; the CSS base gradient stands in */ }
+
+/*
+ * AMBIENT FILM — an optional looping video behind everything (web/media/hero.mp4,
+ * made with Seedance 2.0). If the file is missing the element removes itself
+ * and the drawn light above stands in. Muted, looped, dimmed by CSS; paused
+ * when the tab is hidden; never played for reduced motion (the poster shows).
+ */
+try {
+  const off = (() => { try { return localStorage.getItem('mrcash-ambient') === '0' } catch { return false } })()
+  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (!off && document.body) {
+    // Ask the server which files exist first, so a missing file is not a console error.
+    fetch('/api/config', { credentials: 'same-origin' }).then((r) => r.json()).then((cfg) => {
+      const m = cfg && cfg.media
+      if (!m || (!m.film && !m.poster) || (reduce && !m.poster)) return
+      const v = document.createElement('video')
+      v.id = 'bg-film'; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'
+      v.setAttribute('aria-hidden', 'true'); v.setAttribute('muted', ''); v.setAttribute('playsinline', '')
+      if (m.poster) v.poster = '/media/hero.jpg'
+      document.body.prepend(v)
+      requestAnimationFrame(() => document.documentElement.classList.add('has-film'))
+      if (m.film && !reduce) {
+        v.src = '/media/hero.mp4'
+        v.addEventListener('canplay', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}) }, { once: true })
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}); else v.pause() })
+      }
+    }).catch(() => {})
+  }
+} catch { /* no film; the drawn backdrop stands in */ }

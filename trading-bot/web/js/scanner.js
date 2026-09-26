@@ -19,6 +19,7 @@ const BIAS = { bull: 'Bullish', bear: 'Bearish', neutral: 'Neutral' }
 const STATUS = { forming: 'Forming', confirmed: 'Confirmed', failed: 'Failed', breakout: 'Broke out', breakdown: 'Broke down', active: 'On the chart' }
 
 let list = null, listErr = null, market = null, marketErr = null, focus = null, loadingList = false
+let evidence = null, evidenceErr = null, evidenceBusy = false
 let pic = { img: null, note: '', busy: false, result: null, error: null, focus: null }
 
 async function getJson(path) { const r = await fetch(path, { credentials: 'same-origin' }); const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`); return j.data }
@@ -30,7 +31,7 @@ async function loadList() {
 }
 
 async function openMarket(key) {
-  focus = null; market = { key, loading: true }; render()
+  focus = null; evidence = null; evidenceErr = null; market = { key, loading: true }; render()
   try { market = await getJson('/api/scanner/market?key=' + encodeURIComponent(key)); marketErr = null } catch (e) { market = null; marketErr = e.message }
   render()
   $('sc-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -95,6 +96,58 @@ function patternCard(p) {
   </button>`
 }
 
+
+async function loadEvidence() {
+  if (!market?.key || evidenceBusy) return
+  evidenceBusy = true; evidenceErr = null; render()
+  try { evidence = await getJson('/api/scanner/evidence?key=' + encodeURIComponent(market.key)) } catch (e) { evidenceErr = e.message } finally { evidenceBusy = false; render() }
+}
+
+const LEAN = { long: 'Leaning long', short: 'Leaning short', 'sit out': 'Sit out' }
+const signed = (n) => (n > 0 ? '+' + n : String(n))
+const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%')
+const atrTxt = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(2))
+
+function gauge(score) {
+  const at = ((score + 6) / 12) * 100
+  return `<div class="pa-gauge" role="img" aria-label="Bias score ${signed(score)} on a scale from minus 6 to plus 6"><div class="pa-track"><span class="pa-zone short"></span><span class="pa-zone sit"></span><span class="pa-zone long"></span></div><i class="pa-mark" style="left:${at.toFixed(1)}%"></i><div class="pa-scale"><span>−6 short</span><span>sit out</span><span>long +6</span></div></div>`
+}
+
+function priceAction(pa) {
+  if (!pa) return ''
+  const b = pa.bias, g = pa.confluence
+  const check = (c) => `<li class="pa-check ${c.ok ? 'ok' : 'no'}"><i aria-hidden="true">${c.ok ? '✓' : '·'}</i><b>${esc(c.label)}</b><span>${esc(c.detail)}</span></li>`
+  return `<div class="pa-wrap">
+    <div class="pa-col">
+      <h4 class="sc-h4">Bias score <span class="badge sc-tag">6 readings</span></h4>
+      ${b.parts.length ? `<div class="pa-score"><b class="pa-num ${b.lean.replace(' ', '')}">${signed(b.score)}</b><span class="pa-lean ${b.lean.replace(' ', '')}">${LEAN[b.lean]}</span></div>${gauge(b.score)}
+      <ul class="pa-parts">${b.parts.map((p) => `<li><span class="pa-v v${p.value}">${p.value > 0 ? '+1' : p.value < 0 ? '−1' : '0'}</span><b>${esc(p.label)}</b><span class="muted">${esc(p.detail)}</span></li>`).join('')}</ul>` : `<p class="muted">${esc(b.text)}</p>`}
+      <p class="muted pl-note">${esc(b.note)}</p>
+    </div>
+    <div class="pa-col">
+      <h4 class="sc-h4">Trend · level · signal <span class="badge pa-grade g${g.grade === '—' ? 'x' : g.grade}">${g.grade === '—' ? 'no setup' : 'grade ' + g.grade}</span></h4>
+      <p class="pa-text">${esc(g.text)}</p>
+      <ul class="pa-checks">${check(g.checks.trend)}${check(g.checks.level)}${check(g.checks.signal)}</ul>
+      <p class="muted pl-note">The candlestick-trading method in three questions: is the market trending, is price at a level it has turned at before, and is there a clean candle signal pointing the same way? A: all three. B: two. C: the signal alone, which the method says to pass on.</p>
+    </div>
+  </div>
+  <div class="pa-ev">
+    <div class="sc-dhead"><h4 class="sc-h4">What followed these patterns here <span class="badge sc-prov">BACKTEST</span></h4><button class="chip" id="pa-measure" ${evidenceBusy ? 'disabled' : ''}>${evidenceBusy ? 'Measuring…' : evidence ? 'Measure again' : 'Measure on this market'}</button></div>
+    ${evidenceErr ? `<p class="pl-err">${esc(evidenceErr)}</p>` : ''}
+    ${evidence ? evidenceTable(evidence) : '<p class="muted">Walks this market\'s own history candle by candle and records what price did after every candle pattern, without using any later candle to find it. Compared with every candle, so you can see whether a pattern did anything at all.</p>'}
+  </div>`
+}
+
+function evidenceTable(e) {
+  if (!e.rows.length) return `<p class="muted">${esc(e.note)}</p>`
+  const b = e.baseline
+  return `<p class="muted">${e.bars} candles from ${esc(e.source)} · move measured ${e.horizon} candles later, in average true ranges · every candle went up ${pct(b.upRate)} of the time (${atrTxt(b.avgMoveAtr)} ATR on average): the bar a pattern has to clear.</p>
+    <div class="scroll"><table class="pa-table"><thead><tr><th>Pattern</th><th class="num">Cases</th><th class="num">Went its way</th><th class="num">Avg move</th><th class="num">A/B grade only</th><th>Sample</th></tr></thead><tbody>
+    ${e.rows.map((r) => `<tr><td><span class="sc-k ${r.bias}"></span>${esc(r.name)}</td><td class="num">${r.count}</td><td class="num">${pct(r.hitRate)}</td><td class="num">${atrTxt(r.avgMoveAtr)}</td><td class="num">${r.inContext.count ? `${pct(r.inContext.hitRate)} · ${atrTxt(r.inContext.avgMoveAtr)} <span class="muted">(${r.inContext.count})</span>` : '—'}</td><td>${r.status === 'OK' ? '<span class="badge good">enough</span>' : '<span class="badge medium">INSUFFICIENT SAMPLE</span>'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="muted pl-note">${esc(e.note)} Data: ${esc(e.provenance)}.</p>`
+}
+
 function detail() {
   if (marketErr) return `<div class="card" id="sc-detail"><p class="pl-err">${esc(marketErr)}</p></div>`
   if (!market) return ''
@@ -106,10 +159,21 @@ function detail() {
     <p class="sc-sum">${esc(s.summary.text)}</p>
     <div class="sc-chartwrap" id="sc-chartwrap">${chart(market, $('scanner-out')?.clientWidth - 40)}</div>
     <div class="sc-legend"><span><i class="sc-k bull"></i>bullish</span><span><i class="sc-k bear"></i>bearish</span><span><i class="sc-k neutral"></i>neutral</span><span><i class="sc-k zone"></i>support / resistance zone</span><span class="muted">Tap a pattern to single it out.</span></div>
+    ${priceAction(market.priceAction)}
+    <h4 class="sc-h4">Shapes on the chart</h4>
     <div class="sc-pats">${shapes.length ? shapes.map(patternCard).join('') : '<p class="muted">No textbook pattern stands out on this market right now. That is a normal answer.</p>'}</div>
     ${zs.length ? `<h4 class="sc-h4">Zones where price keeps turning</h4><div class="sc-pats">${zs.map(patternCard).join('')}</div>` : ''}
     <p class="muted pl-note">${esc(market.note)} Data: ${esc(market.feed)}.</p>
   </div>`
+}
+
+
+function glance() {
+  if (!list?.markets?.length) return ''
+  const ready = list.markets.filter((m) => m.bias?.ready)
+  if (!ready.length) return ''
+  const top = [...ready].sort((a, b) => Math.abs(b.bias.score) - Math.abs(a.bias.score)).slice(0, 6)
+  return `<div class="pa-glance" aria-label="Markets by bias score"><span class="pa-glance-k">At a glance</span>${top.map((m) => `<button class="pa-chip ${m.bias.lean.replace(' ', '')}" data-key="${esc(m.key)}"><b>${esc(m.label)}</b><span>${signed(m.bias.score)}</span></button>`).join('')}</div>`
 }
 
 function marketsGrid() {
@@ -119,6 +183,7 @@ function marketsGrid() {
   return `<div class="sc-grid">${list.markets.map((m) => `<button class="sc-mkt${market?.key === m.key ? ' on' : ''}" data-key="${esc(m.key)}">
       <span class="sc-mkt-top"><b>${esc(m.label)}</b><span class="muted">${px(m.price)}</span></span>
       <span class="sc-mkt-mid"><span class="sc-trend ${m.trend}">${esc(m.trend)}</span>${m.summary.bull ? `<span class="badge sc-b bull">${m.summary.bull} bull</span>` : ''}${m.summary.bear ? `<span class="badge sc-b bear">${m.summary.bear} bear</span>` : ''}${m.summary.neutral ? `<span class="badge sc-b neutral">${m.summary.neutral} neutral</span>` : ''}</span>
+      ${m.bias?.ready ? `<span class="sc-mkt-lean"><span class="pa-lean ${m.bias.lean.replace(' ', '')}">${LEAN[m.bias.lean]} ${signed(m.bias.score)}</span>${m.grade && m.grade !== '—' ? `<span class="badge pa-grade g${m.grade}">setup ${m.grade}</span>` : ''}</span>` : ''}
       <span class="sc-mkt-names">${m.names.slice(0, 2).map((x) => esc(x.name)).join(' · ') || '<span class="muted">nothing stands out</span>'}</span>
       <span class="sc-mkt-prov">${esc(m.provenance)}</span>
     </button>`).join('')}</div>`
@@ -210,7 +275,8 @@ function render() {
   if (note !== undefined) pic.note = note
   root.innerHTML = `
     <div class="card"><div class="sc-dhead"><h2>Live pattern finder <span class="badge sc-tag">RULES · NO AI</span></h2><button class="chip" id="sc-refresh">${loadingList ? 'Scanning…' : 'Rescan'}</button></div>
-      <p class="muted" style="margin-top:0">Every watched market's hourly candles, checked for double tops and bottoms, head and shoulders, triangles, channels, support and resistance, candlestick patterns, RSI divergence and volume spikes. Tap a market to see them drawn.</p>
+      <p class="muted" style="margin-top:0">Every watched market's hourly candles, checked for double tops and bottoms, head and shoulders, triangles, channels, support and resistance, RSI divergence, volume spikes and the candlestick-trading signals: pin bars, engulfing bars, inside bars and fakeys, stars, harami, tweezers, soldiers and crows. Each market gets a bias score and a trend · level · signal grade. Tap one to see it drawn.</p>
+      ${glance()}
       ${marketsGrid()}
       ${list ? `<p class="muted pl-note">${esc(list.note)}</p>` : ''}
     </div>
@@ -228,6 +294,7 @@ function init() {
     if (f) { const id = f.dataset.focus || f.dataset.pat; focus = focus === id ? null : id; render(); return }
     const pf = e.target.closest('[data-pfocus]'); if (pf) { pic.focus = pic.focus === pf.dataset.pfocus ? null : pf.dataset.pfocus; render(); return }
     if (e.target.closest('#sc-refresh')) { loadList(); return }
+    if (e.target.closest('#pa-measure')) { loadEvidence(); return }
     if (e.target.closest('#sp-go')) { scanPicture(); return }
     if (e.target.closest('#sp-clear')) { pic = { img: null, note: '', busy: false, result: null, error: null, focus: null }; render() }
   })

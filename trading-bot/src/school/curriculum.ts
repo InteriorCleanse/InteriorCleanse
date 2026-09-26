@@ -20,7 +20,7 @@ import type { AnnotationType } from '../intel/types.ts'
 import type { CaseKind } from './caseStudies.ts'
 
 export type ConceptLevel = 'foundation' | 'intermediate' | 'advanced'
-export type ConceptTrack = 'basics' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
+export type ConceptTrack = 'basics' | 'priceaction' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
 
 export type QuizQuestion = {
   id: string
@@ -157,6 +157,57 @@ export const CONCEPTS: Concept[] = [
     misreads: ['Doubling size after a loss to "get it back" is how a normal losing day becomes an account-ending one.', 'Not trading is a position too: a day with no setup is not a wasted day.'],
     related: ['trading-plan', 'position-sizing', 'drawdown'],
     quiz: [q('psy-1', 'You hit your daily loss limit at 10:15. What does the rule say?', ['One more trade to win it back', 'Stop for the day', 'Double the size', 'Switch to options'], 1, 'The limit exists for exactly this moment.')],
+  },
+  // ---------------------------------------------------------------- price action (the candlestick-trading method)
+  // Trend, level, signal: the method popularised by the "Candlestick Trading Bible". The Scanner finds each
+  // shape by fixed rules (src/scanner/priceAction.ts) and measures what followed it on the market's own history.
+  {
+    id: 'pa-trend-level-signal', title: 'Trend, level, signal: reading candles in context', level: 'foundation', track: 'priceaction',
+    summary: 'A candle pattern means little on its own. The method asks three questions in order. Is the market trending, ranging or choppy? Is price at a level it has turned at before (support, resistance, supply or demand)? Is there a clean candle signal there, pointing the same way as the trend or away from the range edge? When all three line up the setup is worth a look; when only the candle is there, the method says wait.',
+    engineChecks: ['The Scanner grades the last candle of every watched market A (all three), B (two) or C (the signal alone), with the reason for each check (src/scanner/priceAction.ts, confluence).', 'Levels are clusters of swing points confirmed by the time of the candle, within half an average true range of each other.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A grade A setup is a reason to look closer, not a trade: the grade has not been tested as a trading rule here.', 'A range is not a trend. In a range the method only takes signals at the edges, never in the middle.'],
+    related: ['pa-pin-bar', 'pa-engulfing', 'pa-inside-fakey', 'pa-evidence', 'candles-timeframes'],
+    quiz: [
+      q('pa-tls-1', 'A bullish pin bar forms in the middle of a downtrend, nowhere near a level. What does the method say?', ['Buy it: pin bars reverse trends', 'Pass: the signal is alone, with the trend against it and no level behind it', 'Sell it', 'Double the size'], 1, 'Signal alone is grade C. The method waits for trend and level to agree.'),
+      q('pa-tls-2', 'Which of these is a "level" in this method?', ['Any round number', 'A price where the market has turned more than once', 'Yesterday\'s close', 'The moving average'], 1, 'A level earns its place by price having reacted there before.'),
+    ],
+  },
+  {
+    id: 'pa-pin-bar', title: 'The pin bar: rejection in one candle', level: 'foundation', track: 'priceaction',
+    summary: 'A pin bar has a long tail, at least two thirds of the whole candle, with the body and the short end in the other third. The tail shows price was pushed one way and rejected inside the same candle. A bullish pin has the tail below; a bearish pin has it above. A hammer is a bullish pin after a drop, and a shooting star is a bearish pin after a rise.',
+    engineChecks: ['Detected on every watched market by fixed rules: tail ≥ ⅔ of the range, body in the far third, and a candle at least 0.6 ATR tall so slivers do not count (src/scanner/priceAction.ts).'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['The tail is where price was rejected, not where it is going: a bullish pin at a resistance level is still under resistance.', 'On a 1-minute chart a pin bar can be a single large order; the method prefers higher timeframes.'],
+    related: ['pa-trend-level-signal', 'pa-engulfing'],
+    quiz: [q('pa-pin-1', 'Where is the long tail on a bullish pin bar?', ['Above the body', 'Below the body', 'There is no tail', 'On both sides equally'], 1, 'The long lower tail is the rejected push down.')],
+  },
+  {
+    id: 'pa-engulfing', title: 'Engulfing bars, stars and tweezers', level: 'foundation', track: 'priceaction',
+    summary: 'An engulfing bar is a candle whose body swallows the previous body in the opposite colour: control changed hands within two candles. A morning or evening star spreads the same change over three candles: a strong candle, a small pause, a strong reply. Tweezers are two candles stopping at the same high or low. Harami, piercing line and dark cloud cover are milder versions of the same story.',
+    engineChecks: ['All of these are found on the last closed candle of each watched market (src/scanner/priceAction.ts), each with what would confirm it and what would cancel it.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A big engulfing candle after a long move can be the last push, not the turn.', 'Stars and tweezers need the move before them: in a flat market they are just noise.'],
+    related: ['pa-trend-level-signal', 'pa-pin-bar'],
+    quiz: [q('pa-eng-1', 'What makes a bullish engulfing bar?', ['Any green candle', 'A green body that swallows the previous red body', 'Two green candles in a row', 'A long upper wick'], 1, 'The second body must cover the first, in the opposite colour.')],
+  },
+  {
+    id: 'pa-inside-fakey', title: 'Inside bars and the fakey', level: 'intermediate', track: 'priceaction',
+    summary: 'An inside bar sits entirely within the previous candle (the mother bar): the market paused. On its own it has no direction; traders watch which side breaks. A fakey is what happens when that break fails: price pokes out of the mother bar and closes back inside it. The trapped breakout traders then have to get out, which can push price the other way.',
+    engineChecks: ['Inside bars and bullish and bearish fakeys are detected by fixed rules on each watched market (src/scanner/priceAction.ts).'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['An inside bar in a choppy market is the normal state of things, not a setup.', 'A fakey needs the close back inside; a wick outside that is still open is not one yet.'],
+    related: ['pa-trend-level-signal', 'liquidity-sweep'],
+    quiz: [q('pa-fk-1', 'An inside bar breaks higher, then the same candle closes back inside the mother bar. What is that?', ['A breakout', 'A bearish fakey', 'A doji', 'A bullish engulfing'], 1, 'The failed break higher traps buyers: a bearish fakey.')],
+  },
+  {
+    id: 'pa-evidence', title: 'Do candle patterns work? Measure, do not believe', level: 'intermediate', track: 'priceaction',
+    summary: 'Books and videos describe candle patterns with confidence, but published counts (for example Thomas Bulkowski\'s study of more than a hundred candle types) find most of them call direction only modestly better than a coin flip, and the moves after them are often small. Context helps, costs hurt, and small samples mislead. The honest move is to measure a pattern on the market you trade, against the baseline of every candle, before trusting it.',
+    engineChecks: ['The Scanner\'s "What followed these patterns here" table walks each market\'s history candle by candle, finds every pattern as it would have looked at the time, and compares the move after it with every candle\'s move. Labelled BACKTEST, with INSUFFICIENT SAMPLE below 30 cases (src/scanner/priceAction.ts, patternEvidence).'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A high hit rate on 12 cases is a story, not evidence.', 'Beating a coin flip is not enough: the pattern has to beat what every candle did anyway (the drift), and then cover fees and slippage.'],
+    related: ['pa-trend-level-signal', 'sample-size'],
+    quiz: [q('pa-ev-1', 'A pattern "went its way" 60% of the time, but every candle went up 58% of the time over the same horizon. What have you learned?', ['The pattern is reliable', 'Very little: it barely beats the baseline', 'It never works', 'Trade it with more size'], 1, 'The comparison with the baseline is the whole point.')],
   },
   // ---------------------------------------------------------------- liquidity
   {

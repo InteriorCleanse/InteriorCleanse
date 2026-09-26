@@ -15,7 +15,7 @@
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readFileSync, existsSync, appendFileSync, writeFileSync, accessSync, constants } from 'node:fs'
+import { readFileSync, existsSync, appendFileSync, writeFileSync, accessSync, constants, statSync, createReadStream } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -42,6 +42,7 @@ import { readPlan, writePlan, clearPlan } from './plan.ts'
 import type { DayPlan } from './plan.ts'
 import { aiStatus, askAI, askAIJson, explainAiError, PICTURE_QUESTION } from './ai.ts'
 import { scanPatterns, UNTESTED } from './scanner/patterns.ts'
+import { biasScore, confluence, patternEvidence } from './scanner/priceAction.ts'
 import { PICTURE_INSTRUCTIONS, PICTURE_SCHEMA, cleanPictureRead } from './scanner/picture.ts'
 import type { AiImage } from './ai.ts'
 import { toET, tradingDayKey } from './sessions.ts'
@@ -273,11 +274,31 @@ function contextFor(snap: Snapshot, withJournal = false): string {
   return parts.join('\n').slice(0, 16_000)
 }
 
+/** Extra read-only context for the hats that need it: the Scanner's price-action read, or the Big money board. */
+function skillContext(skillId?: string): string {
+  try {
+    if (skillId === 'priceaction') {
+      const rows = marketWatch.snapshot().rows.map((r) => {
+        const c = marketWatch.candles(`${r.kind}:${r.symbol}`)
+        const b = biasScore(c), g = confluence(c)
+        return `  ${r.label} [${r.provenance}] bias ${b.parts.length ? (b.score > 0 ? '+' : '') + b.score + ' (' + b.lean + ')' : 'NOT ENOUGH DATA'}; setup grade ${g.grade}: ${g.text}`
+      })
+      return '\n\nPRICE ACTION (Scanner, hourly candles, rule-based, untested as a trading rule):\n' + (rows.length ? rows.join('\n') : '  NOT ENOUGH DATA: the market watch has no rows yet.')
+    }
+    if (skillId === 'bigmoney') {
+      const bm = bigMoney.snapshot()
+      const board = bm.board.slice(0, 8).map((t) => `  ${JSON.stringify(t)}`).join('\n')
+      return `\n\nBIG MONEY (disclosed filings, READ-ONLY, as of ${bm.asOf ? new Date(bm.asOf).toISOString() : 'never'}; sources: ${Object.entries(bm.sources).map(([k, v]) => `${k} ${v.status}`).join(', ')}):\n  ${bm.digest.join(' ')}\n${board || '  NOT ENOUGH DATA: no filings on the board.'}`
+    }
+  } catch { /* the hat still answers from the main context */ }
+  return ''
+}
+
 async function streamAnswer(res: ServerResponse, question: string, context: string, history: Anthropic.MessageParam[], image?: AiImage, skillId?: string): Promise<void> {
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context, history, (t) => res.write(t), image, skillById(skillId))
+    const answer = await askAI(question, context + skillContext(skillId), history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -324,6 +345,29 @@ const server = createServer(async (req, res) => {
       if (!existsSync(full)) { res.writeHead(404); res.end(); return }
       res.writeHead(200, { 'content-type': 'font/woff2', 'cache-control': 'public, max-age=86400' })
       res.end(readFileSync(full))
+      return
+    }
+
+    // Decorative media (the ambient video and its poster): /media/*.{mp4,webm,jpg,png,webp} from web/media.
+    // Same constraint as the fonts, plus byte ranges, which Safari needs to play a video.
+    if (path.startsWith('/media/') && /^\/media\/[a-z0-9-]+\.(mp4|webm|jpg|png|webp)$/.test(path) && (req.method === 'GET' || req.method === 'HEAD')) {
+      const full = join(WEB_DIR, path.slice(1))
+      if (!existsSync(full)) { res.writeHead(404); res.end(); return }
+      const size = statSync(full).size
+      const type = ({ mp4: 'video/mp4', webm: 'video/webm', jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' } as Record<string, string>)[path.split('.').pop() as string]
+      const m = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ''))
+      if (m && (m[1] || m[2])) {
+        const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]))
+        const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1
+        if (!(start <= end && end < size)) { res.writeHead(416, { 'content-range': `bytes */${size}` }); res.end(); return }
+        res.writeHead(206, { 'content-type': type, 'content-length': end - start + 1, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes', 'cache-control': 'public, max-age=86400' })
+        if (req.method === 'HEAD') { res.end(); return }
+        createReadStream(full, { start, end }).pipe(res)
+        return
+      }
+      res.writeHead(200, { 'content-type': type, 'content-length': size, 'accept-ranges': 'bytes', 'cache-control': 'public, max-age=86400' })
+      if (req.method === 'HEAD') { res.end(); return }
+      createReadStream(full).pipe(res)
       return
     }
 
@@ -464,7 +508,9 @@ const server = createServer(async (req, res) => {
       const markets = snap.rows.map((r) => {
         const key = `${r.kind}:${r.symbol}`
         const scan = scanPatterns(marketWatch.candles(key))
-        return { key, label: r.label, kind: r.kind, symbol: r.symbol, provenance: r.provenance, price: r.scan.price, trend: scan.trend, summary: scan.summary, names: scan.patterns.filter((p) => p.kind !== 'zone').map((p) => ({ name: p.name, bias: p.bias, status: p.status })) }
+        const candles = marketWatch.candles(key)
+        const bias = biasScore(candles), grade = confluence(candles)
+        return { key, label: r.label, kind: r.kind, symbol: r.symbol, provenance: r.provenance, price: r.scan.price, trend: scan.trend, summary: scan.summary, names: scan.patterns.filter((p) => p.kind !== 'zone').map((p) => ({ name: p.name, bias: p.bias, status: p.status })), bias: { score: bias.score, lean: bias.lean, ready: bias.parts.length > 0 }, grade: grade.grade }
       })
       json(res, 200, { ok: true, data: { kind: 'PATTERN SCAN', execution: 'READ-ONLY', asOf: snap.asOf, markets, note: UNTESTED } })
       return
@@ -474,7 +520,23 @@ const server = createServer(async (req, res) => {
       const row = marketWatch.snapshot().rows.find((r) => `${r.kind}:${r.symbol}` === key)
       if (!row) { json(res, 404, { ok: false, error: 'Not a watched market.' }); return }
       const candles = marketWatch.candles(key).slice(-150)
-      json(res, 200, { ok: true, data: { key, label: row.label, provenance: row.provenance, feed: row.feed, interval: '1h', candles: candles.map((c) => ({ t: c.openTime, o: c.open, h: c.high, l: c.low, c: c.close, v: c.volume })), scan: scanPatterns(candles), note: UNTESTED } })
+      json(res, 200, { ok: true, data: { key, label: row.label, provenance: row.provenance, feed: row.feed, interval: '1h', candles: candles.map((c) => ({ t: c.openTime, o: c.open, h: c.high, l: c.low, c: c.close, v: c.volume })), scan: scanPatterns(candles), priceAction: { confluence: confluence(candles), bias: biasScore(marketWatch.candles(key)) }, note: UNTESTED } })
+      return
+    }
+    // What followed each candle pattern on this market's own history. BACKTEST, measured candle by candle with no look-ahead.
+    if (path === '/api/scanner/evidence') {
+      const key = String(url.searchParams.get('key') ?? '')
+      const row = marketWatch.snapshot().rows.find((r) => `${r.kind}:${r.symbol}` === key)
+      if (!row) { json(res, 404, { ok: false, error: 'Not a watched market.' }); return }
+      const hit = evidenceCache.get(key)
+      if (hit && Date.now() - hit.at < 600_000) { json(res, 200, { ok: true, data: hit.data }); return }
+      let candles = marketWatch.candles(key), source = 'the watch\'s cached hourly candles'
+      if (row.kind === 'crypto') {
+        try { const deep = await getCandles(row.symbol, '1h', 1000); if (deep.length > candles.length) { candles = deep; source = 'stored hourly candles (up to 1,000)' } } catch { /* the cached candles will do */ }
+      }
+      const data = { ...patternEvidence(candles), key, market: row.label, provenance: row.provenance, source }
+      evidenceCache.set(key, { at: Date.now(), data })
+      json(res, 200, { ok: true, data })
       return
     }
     // Disclosed filings and volume leaders, READ-ONLY. Refresh on request at most every 10 minutes.
@@ -741,6 +803,7 @@ const server = createServer(async (req, res) => {
         },
         journal: { emotions: EMOTIONS, tags: TAGS },
         skills: SKILLS.map(({ id, name, icon, tagline, prompts }) => ({ id, name, icon, tagline, prompts })),
+        media: { film: existsSync(join(WEB_DIR, 'media', 'hero.mp4')), poster: existsSync(join(WEB_DIR, 'media', 'hero.jpg')) },
       })
       return
     }
@@ -1548,6 +1611,7 @@ startOpsMonitor({
 const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
 // Big money: disclosed congress and insider trades, off-exchange volume, most-traded stocks.
 // Read-only, a few times a day, and never seen by the engine. Follows the same switch.
+const evidenceCache = new Map<string, { at: number; data: unknown }>()
 const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
 
 server.listen(PORT, host, () => {

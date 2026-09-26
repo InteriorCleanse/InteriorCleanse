@@ -28,7 +28,7 @@ async function postJson(path, body) {
 const growthBar = (g) => `<div class="sc-growth"><div class="sc-growth-bar"><div style="width:${g.pct}%"></div></div><span class="muted">${g.n} trades · ${esc(g.band)} · ${esc(g.status)}${g.toNext ? ` · ${g.toNext} to next band` : ''}</span></div>`
 const notEnough = (what) => `<div class="ev-empty"><div class="ev-empty-big">NOT ENOUGH DATA</div><div class="muted">${esc(what)}</div></div>`
 
-const TRACK_LABEL = { basics: 'Start here: the basics, in order' }
+const TRACK_LABEL = { basics: 'Start here: the basics, in order', priceaction: 'Price action: candles in context' }
 
 async function renderConcepts() {
   const { data } = await getJson('/api/school')
