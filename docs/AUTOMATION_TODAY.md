@@ -13,7 +13,6 @@ It isn't switched on yet. Four facts in the repo explain why:
 | The 5 published products use Stripe **test-mode** Price IDs | No real money can move |
 | All 5 have `fulfillment: manual` and `printfulVariantId: null` | A paid order stops at Stripe and nobody is notified to make or ship it |
 | Every affiliate link is `PENDING_APPROVAL` | `/partners` earns nothing |
-| The books and downloads have no Price ID (`needs-assets`) | These have the best margins, and none of them can be bought |
 
 The webhook (`app/api/webhook/route.ts`) already sends orders to Printful and
 Brevo once the keys and variant IDs exist. So nearly every step below is
@@ -21,7 +20,7 @@ account setup that only the owner can do. There's very little code to write.
 
 **Profit today is possible but not guaranteed.** Once these steps are done, any
 visitor can buy and the order fulfils itself. Whether someone does buy today
-depends on traffic, and traffic is Step 5.
+depends on traffic, and traffic is Step 4.
 
 ## Today, in order (about 3–4 hours, mostly you)
 
@@ -40,28 +39,7 @@ depends on traffic, and traffic is Step 5.
   the candle** until you have a fulfiller. It can't be hands-off today.
 - **Art print:** its design is still a proposal. Approve it or unpublish it.
 
-### 3. Put the three downloads on Gumroad — 15 min, you
-The three download files are finished. They were sent to you in the Claude
-session, not committed, because this repository is public and a paid PDF
-committed here could be downloaded for free:
-
-| File | Pages | Price | Notes |
-| --- | --- | --- | --- |
-| `room-reset-checklist.pdf` | 9 | free | Six rooms, 15-minute and full versions |
-| `the-considered-pantry.pdf` | 12 | $12 | Three zone maps, 48 jar + 10 zone labels, fillable blank labels and restock sheet |
-| `the-calm-room-workbook.pdf` | 21 | $18 | Worked example, six room spreads, palette, storage, quarterly rhythm |
-
-For each: Gumroad → New product → Digital product → upload the PDF → price
-(the free one as "$0+") → cover image = `public/images/products/<slug>.jpg`
-→ paste the listing text from `docs/launch-kit/product-copy.md` → Publish.
-Then `/admin/products` → the record → paste the Gumroad URL → **Check** →
-**Publish**. The hero images are already set to real renders of each file.
-Gumroad takes the payment and emails the file itself, so these need nothing
-from Stripe or from you after that.
-
-The books are not in this plan. They are the founder's to write.
-
-### 4. Go live with money — 30 min, you
+### 3. Go live with money — 30 min, you
 FINISH_PLAN Step 6, exactly:
 1. Paste the live `sk_live_…` / `pk_live_…` into **Vercel only**, never into this repo.
 2. Create live Price IDs (admin **Create Stripe Price** on each product).
@@ -74,7 +52,7 @@ FINISH_PLAN Step 6, exactly:
 
 The first real sale can only happen after this step.
 
-### 5. Traffic — the rest of the day, you + me
+### 4. Traffic — the rest of the day, you + me
 A live store with no visitors earns nothing. Ranked by what's likely to pay
 back today:
 1. **Your own list and network.** One launch email through Brevo and a
@@ -91,7 +69,6 @@ back today:
 | Event | Handled by | You do |
 | --- | --- | --- |
 | Merch order | Stripe → webhook → Printful prints and ships | Nothing |
-| Download or book order | Stripe → delivery link | Nothing |
 | New buyer or subscriber | Brevo contact and email (if `BREVO_API_KEY` set) | Nothing |
 | Candle order | Stripe + admin Orders tab | Pack and post |
 | Refunds and disputes | Stripe | Answer them. No store can fully automate this |

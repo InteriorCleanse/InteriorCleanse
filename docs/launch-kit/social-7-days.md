@@ -9,33 +9,32 @@ never say the product is in the shot. If you have a real photograph of the
 product, use it as the Pinterest image or the last frame.
 
 Before each post, check that its product is `published`. Every URL below is
-dead until it is. The downloads (days 3 and 6) are `needs-assets` today, and
-the art print (day 5) is waiting on your design approval.
+dead until it is. The art print (day 5) is waiting on your design approval.
 
 | Day | Film | Product | Destination |
 | --- | --- | --- | --- |
 | 1 | hero | The shop | `/shop/` |
 | 2 | atelier | Tote Bag | `/shop/ic-linen-tote/` |
-| 3 | cleaning | Room Reset Checklist (free) | `/shop/room-reset-checklist/` |
+| 3 | chapel | Premium Hoodie | `/shop/ic-premium-hoodie/` |
 | 4 | showroom | Signature Candle | `/shop/ic-signature-candle/` |
 | 5 | gallery | Considered Home Print | `/shop/considered-home-art-print/` |
-| 6 | library | Calm Room Workbook | `/shop/the-calm-room-workbook/` |
+| 6 | cleaning | The shop, again | `/shop/` |
 | 7 | conservatory | Ceramic Mug | `/shop/ic-ceramic-mug/` |
 
-Spare films: `chapel` and `guestbook`. They are paired with the hoodie and
-the pantry download at the end of this file, for swaps or a second week.
+Spare films: `guestbook`, `library`, and a second cut of any day, for swaps
+or a second week.
 
 ---
 
 ## Day 1: hero
 
-**Caption:** We are open. A small shop for a considered home: a candle, a few objects, three downloads. #interiorcleanse #consideredhome #calmhome
+**Caption:** We are open. A small shop for a considered home: a candle and a few objects. #interiorcleanse #consideredhome #calmhome
 
 **On-screen text:** We are open.
 
 **Pin title:** InteriorCleanse: a small shop for a considered home
 
-**Pin description:** A hand-poured candle, a stoneware mug, a canvas tote, a charcoal hoodie, a giclée print, and three downloads for calmer rooms, one of them free.
+**Pin description:** A hand-poured candle, a stoneware mug, a canvas tote, a charcoal hoodie, and a giclée print.
 
 **Destination:** https://interiorcleanse.com/shop/
 
@@ -55,17 +54,17 @@ the pantry download at the end of this file, for swaps or a second week.
 
 ---
 
-## Day 3: cleaning
+## Day 3: chapel
 
-**Caption:** The room reset we actually use. One page per room, a 15-minute version for tired nights. Free. Link in bio. #cleaningroutine #roomreset #cleantok
+**Caption:** For slow mornings and long resets. Midweight brushed fleece in deep charcoal, tonal mark at the chest. #hoodie #slowliving #interiorcleanse
 
-**On-screen text:** Surfaces before floors.
+**On-screen text:** For slow mornings.
 
-**Pin title:** The Room Reset Checklist: a free, printable room-by-room reset
+**Pin title:** InteriorCleanse Premium Hoodie in charcoal brushed fleece
 
-**Pin description:** One page per room, ordered so the work compounds: surfaces before floors, baskets before bins. A full-reset version and a 15-minute version for the nights you have nothing left. Free 9-page PDF.
+**Pin description:** A midweight brushed-fleece hoodie in deep charcoal, with a subtle tonal mark at the chest. Cut slightly relaxed through the body, ribbed at the cuff and hem. $58.
 
-**Destination:** https://interiorcleanse.com/shop/room-reset-checklist/
+**Destination:** https://interiorcleanse.com/shop/ic-premium-hoodie/
 
 ---
 
@@ -97,17 +96,17 @@ the pantry download at the end of this file, for swaps or a second week.
 
 ---
 
-## Day 6: library
+## Day 6: cleaning
 
-**Caption:** One room at a time: photograph it, mark what stays, plan what moves. The Calm Room Workbook, $18. #homeorganization #declutter #calmhome
+**Caption:** Five objects, chosen slowly. A candle, a mug, a tote, a hoodie, a print. The prices are the prices. #consideredhome #calmhome #interiorcleanse
 
-**On-screen text:** Mark what stays.
+**On-screen text:** Chosen slowly.
 
-**Pin title:** The Calm Room Workbook: edit your home one room at a time
+**Pin title:** InteriorCleanse: five objects for a considered home
 
-**Pin description:** The approach behind The Calm Room Method, laid out with room to answer. A worked example, blank spreads for each room, palette and material pages, and a maintenance rhythm you revisit quarterly. 21-page PDF, $18.
+**Pin description:** A hand-poured candle, a glazed mug, a canvas tote, a charcoal hoodie and a giclée print. A short list, on purpose.
 
-**Destination:** https://interiorcleanse.com/shop/the-calm-room-workbook/
+**Destination:** https://interiorcleanse.com/shop/
 
 ---
 
@@ -122,31 +121,3 @@ the pantry download at the end of this file, for swaps or a second week.
 **Pin description:** A glazed stoneware mug with a full, comfortable handle and a weighted base. Holds eleven ounces. Dishwasher and microwave safe. $26.
 
 **Destination:** https://interiorcleanse.com/shop/ic-ceramic-mug/
-
----
-
-## Spares
-
-### chapel: Premium Hoodie
-
-**Caption:** For slow mornings and long resets. Midweight brushed fleece in deep charcoal, tonal mark at the chest. #hoodie #slowliving #interiorcleanse
-
-**On-screen text:** For slow mornings.
-
-**Pin title:** InteriorCleanse Premium Hoodie in charcoal brushed fleece
-
-**Pin description:** A midweight brushed-fleece hoodie in deep charcoal, with a subtle tonal mark at the chest. Cut slightly relaxed through the body, ribbed at the cuff and hem. $58.
-
-**Destination:** https://interiorcleanse.com/shop/ic-premium-hoodie/
-
-### guestbook: The Considered Pantry
-
-**Caption:** A pantry built around how you cook. Labels, three zone maps, one restock sheet. The Considered Pantry, $12. #pantryorganization #kitchen #calmhome
-
-**On-screen text:** Stop buying it twice.
-
-**Pin title:** The Considered Pantry: labels, zone maps, and a restock sheet
-
-**Pin description:** A pantry system built around how you actually cook. An editable label set sized for standard jars and bins, three zone maps (galley, L-shaped, single-wall), and a one-page restock sheet you refill instead of rewriting. $12.
-
-**Destination:** https://interiorcleanse.com/shop/the-considered-pantry/
