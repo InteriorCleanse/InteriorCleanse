@@ -38,6 +38,7 @@
 <div class="bottomnav" id="bottomnav"></div>
 <div class="events hidden" id="events"></div>
 <main>
+  <div id="crumb" class="crumb" aria-label="Where you are"></div>
   <section id="tab-today">
     <div class="row td-bar">
       <button class="btn" id="btn-scan">Check the market now</button>
@@ -359,12 +360,19 @@ const $ = (id) => document.getElementById(id)
 const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'every market he watches, what price is doing, and planning your own trades', ['markets','forecast','scalp','scanner','bigmoney','tickers','planner','spreads','flow','news','intel','tv']],
+  ['Markets', 'every market he watches and what price is doing', ['markets','scanner','bigmoney','tickers','flow','news','intel','tv']],
+  ['Calls and plans', 'the up-or-down call, the scalp desk, and planning your own trades', ['forecast','scalp','planner','spreads']],
   ['Is it working?', 'the honest scoreboard', ['evidence','validation','ops','test','replay']],
   ['You and learning', 'your vault, your journal, the school, the lab, and what it remembers', ['portfolio','journal','school','research','knowledge','observer']],
   ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
 ]
 const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
+// Each area of the app has its own colour, so you always know where you are:
+// the accent on the page, the breadcrumb, the active tab and the More panel all
+// carry it. None of them is emerald or rose — those two mean up and down only.
+const HOME_AREA = ['Home', 'the desk, today, the chart and Mr. Cash himself', PRIMARY]
+const AREA_HUE = { 'Home':'gold', 'Markets':'cyan', 'Calls and plans':'violet', 'Is it working?':'sky', 'You and learning':'coral', 'Under the hood':'lilac' }
+const AREA_OF = Object.fromEntries([HOME_AREA, ...GROUPS].flatMap(([title, blurb, ids]) => ids.map(id => [id, { title, blurb, ids, hue: AREA_HUE[title] }])))
 
 // Line icons for the tabs: one 24-px grid, one stroke weight, drawn in the text colour.
 const TICON_PATHS = {
@@ -423,18 +431,57 @@ const navBtn = (id, i) => `<button data-tab="${id}">${TAB[id].label}${i < 9 ? `<
 $('tabs').innerHTML = PRIMARY.map(navBtn).join('') + `<button id="btn-more" class="more">More<kbd>M</kbd></button>`
 $('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')
   + `<button id="btn-more-b" class="more"><span><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></span>More</button>`
-$('morepanel').innerHTML = GROUPS.map(([title, blurb, ids]) => `
-  <div class="mp-group">
-    <h4>${title}<span>${blurb}</span></h4>
-    <div class="mp-items">${ids.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')}</div>
+$('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search" placeholder="Find a page…" aria-label="Find a page" autocomplete="off"><div class="mp-recent" id="mp-recent"></div></div>`
+  + GROUPS.map(([title, blurb, ids]) => `
+  <div class="mp-group" data-hue="${AREA_HUE[title]}" data-title="${title.toLowerCase()}">
+    <h4><i class="mp-dot"></i>${title}<span>${blurb}</span></h4>
+    <div class="mp-items">${ids.map(id => `<button data-tab="${id}" data-hue="${AREA_HUE[title]}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')}</div>
   </div>`).join('')
+// Type to narrow the panel; Enter opens the first match.
+$('mp-find').addEventListener('input', () => {
+  const q = $('mp-find').value.trim().toLowerCase()
+  document.querySelectorAll('#morepanel .mp-group').forEach(g => {
+    let any = false
+    g.querySelectorAll('.mp-items button').forEach(b => { const hit = !q || b.textContent.toLowerCase().includes(q) || g.dataset.title.includes(q); b.classList.toggle('hidden', !hit); any ||= hit })
+    g.classList.toggle('hidden', !any)
+  })
+})
+$('mp-find').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { const b = document.querySelector('#morepanel .mp-items button:not(.hidden)'); if (b) showTab(b.dataset.tab) }
+  if (e.key === 'Escape') toggleMore(false)
+})
+// The last few pages you opened, so the ones you actually use are one click away.
+let recent = (() => { try { return JSON.parse(localStorage.getItem('mrcash-recent') || '[]').filter(id => TAB[id]) } catch { return [] } })()
+function renderRecent() {
+  const ids = recent.filter(id => !PRIMARY.includes(id)).slice(0, 5)
+  $('mp-recent').innerHTML = ids.length ? `<span>Recent</span>` + ids.map(id => `<button data-tab="${id}" data-hue="${AREA_OF[id].hue}">${TAB[id].label}</button>`).join('') : ''
+  $('mp-recent').querySelectorAll('button[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab))
+}
+renderRecent()
 
 const IN_MORE = new Set(GROUPS.flatMap(([, , ids]) => ids))
 function toggleMore(open) {
   const p = $('morepanel')
   const next = open === undefined ? p.classList.contains('hidden') : open
+  const was = !p.classList.contains('hidden')
   p.classList.toggle('hidden', !next)
   document.querySelectorAll('.more').forEach(b => b.classList.toggle('open', next))
+  if (next && !was) { $('mp-find').value = ''; $('mp-find').dispatchEvent(new Event('input')); if (matchMedia('(pointer:fine)').matches) $('mp-find').focus({ preventScroll: true }) }
+}
+
+// The breadcrumb over every page: which area you are in, in its colour, and the
+// other pages in that area one click away — so the app reads as a few rooms,
+// not thirty loose tabs.
+function renderCrumb(id) {
+  const a = AREA_OF[id]; if (!a) return
+  document.documentElement.dataset.hue = a.hue
+  $('crumb').innerHTML = `<div class="cr-path"><span class="cr-area">${a.title}</span><span class="cr-sep" aria-hidden="true">›</span><span class="cr-here">${ticon(id)}${TAB[id].label}</span><span class="cr-blurb">${a.blurb}</span></div>`
+    // Home's pages are already the main tabs, so repeating them as pills would only add noise.
+    + (a.ids.length > 1 && a.ids !== PRIMARY ? `<div class="cr-sibs" role="tablist" aria-label="${a.title}">${a.ids.map(s => `<button data-tab="${s}" role="tab" aria-selected="${s === id}" class="${s === id ? 'on' : ''}">${TAB[s].label}</button>`).join('')}</div>` : '')
+  $('crumb').querySelectorAll('button[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab))
+  // On a phone the pills scroll sideways; keep the current page in view without moving the page itself.
+  const sibs = $('crumb').querySelector('.cr-sibs'), on = sibs && sibs.querySelector('.on')
+  if (on && sibs.scrollWidth > sibs.clientWidth) sibs.scrollLeft = Math.max(0, on.offsetLeft - sibs.clientWidth / 2 + on.offsetWidth / 2)
 }
 $('btn-more').onclick = (e) => { e.stopPropagation(); toggleMore() }
 $('btn-more-b').onclick = (e) => { e.stopPropagation(); toggleMore() }
@@ -445,9 +492,17 @@ function showTab(id, push=true) {
   // top level never looks like nothing is selected.
   document.querySelectorAll('.more').forEach(b => b.classList.toggle('active', IN_MORE.has(id)))
   toggleMore(false)
-  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hidden', s.id !== 'tab-' + id))
+  document.querySelectorAll('main > section').forEach(s => {
+    const on = s.id === 'tab-' + id
+    // Replay the entrance only when the page actually changes, so re-renders do not flicker.
+    if (on && s.classList.contains('hidden')) { s.classList.remove('enter'); void s.offsetWidth; s.classList.add('enter') }
+    s.classList.toggle('hidden', !on)
+  })
+  renderCrumb(id)
   if (push) history.replaceState(null, '', '#' + id)
-  try { localStorage.setItem('mrcash-tab', id) } catch {}
+  recent = [id, ...recent.filter(x => x !== id)].slice(0, 8)
+  try { localStorage.setItem('mrcash-tab', id); localStorage.setItem('mrcash-recent', JSON.stringify(recent)) } catch {}
+  renderRecent()
   if (id === 'chart') drawChart()
   if (id === 'flow' && !$('flow-out').innerHTML) loadFlow(false)
   if (id === 'news' && !$('news-out').innerHTML) loadNews()
@@ -483,7 +538,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'r') loadToday(true)
   if (e.key === '?') openTour()
 })
-setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false}) + ' NY' }, 1000)
+let clockText = ''
+function tickClock() { if (document.visibilityState !== 'visible') return; const t = new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false}) + ' NY'; if (t !== clockText) { clockText = t; $('clock').textContent = t } }
+tickClock(); setInterval(tickClock, 5000)
 
 // ---------- PWA: install, notifications, service worker ----------
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
@@ -528,7 +585,8 @@ $('btn-vault').onclick = () => showTab('portfolio')
 $('btn-accounts').onclick = () => showTab('portfolio')
 $('btn-bell').onclick = () => { $('events').classList.toggle('hidden'); $('bell-n').textContent = '0'; $('bell-n').classList.add('hidden') }
 document.addEventListener('click', (e) => { if (!$('events').contains(e.target) && e.target !== $('btn-bell')) $('events').classList.add('hidden') })
-setInterval(pollEvents, 30000)
+setInterval(() => { if (document.visibilityState === 'visible') pollEvents() }, 30000)
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pollEvents(); tickClock() } })
 
 // ---------- live updates: the server pushes, the page listens ----------
 // Price ticks, candle closes and bell events arrive over Server-Sent Events.
@@ -1575,7 +1633,7 @@ $('btn-mic').onclick = () => {
 
 // ---------- command palette ----------
 const ACTIONS = () => [
-  ...TABS.map(([id,label,icon],i) => ({ label:`Go to ${label}`, icon, group:'Navigate', key:String(i+1), run:()=>showTab(id) })),
+  ...TABS.map(([id,label,icon],i) => ({ label:`Go to ${label}`, icon, group:AREA_OF[id]?.title || 'Navigate', key:i < 9 ? String(i+1) : '', run:()=>showTab(id) })),
   { label:'Refresh the market', icon:'🔄', group:'Do', key:'r', run:()=>{ showTab('today'); loadToday(true) } },
   { label:'Check the market now (scan and log)', icon:'🧭', group:'Do', run:()=>{ showTab('today'); $('btn-scan').click() } },
   { label:'Read the brief to me', icon:'🔊', group:'Do', run:()=>{ showTab('today'); $('btn-read').click() } },
