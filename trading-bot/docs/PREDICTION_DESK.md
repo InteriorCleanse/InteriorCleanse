@@ -82,6 +82,8 @@ out-of-sample test and human review first.
 - `MRCASH_POLYMARKET_URL` and `MRCASH_KALSHI_URL` point the sources at a mock
   for testing.
 - The record is `predictions.json` in the data directory.
+- `npm run doctor` fetches and parses three real markets from each venue, so
+  a changed API shows up there, not as a blank tab.
 
 ## What will not happen
 

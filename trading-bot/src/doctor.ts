@@ -14,6 +14,7 @@ import { config, newsSources } from '../config.ts'
 import { getCandles } from './market.ts'
 import { getFlow } from './orderflow.ts'
 import { probeNews } from './news.ts'
+import { fetchKalshi, fetchPolymarket } from './predict/sources.ts'
 import { aiStatus, pingAI } from './ai.ts'
 import { DATA_DIR, ensureDataDir, readLedger, lessonLines } from './memory.ts'
 import { readPlan } from './plan.ts'
@@ -74,6 +75,16 @@ export async function runDoctor(): Promise<Check[]> {
   checks.push({ name: 'Trade tape', ok: !!flow.tape, detail: flow.tape ? `${flow.tape.trades} recent trades, ${Math.round(flow.tape.buyShare * 100)}% buys` : flow.errors.find((e) => e.startsWith('Recent')) ?? 'off', fix: 'Same fix as prices.' })
 
   for (const p of await probeNews()) checks.push({ name: `News: ${p.name}`, ok: p.ok, detail: p.detail, fix: 'The bot carries on without it. If all feeds fail, check your connection.' })
+
+  // The prediction desk reads two public venues. Each check parses three real markets, so a changed API shows up here, not in a blank tab.
+  if (process.env.MRCASH_PREDICT === '0') checks.push({ name: 'Prediction markets', ok: null, detail: 'off (MRCASH_PREDICT=0)', fix: 'Optional. Unset MRCASH_PREDICT to run the paper prediction desk.' })
+  else {
+    for (const [name, fetcher] of [['Polymarket', fetchPolymarket], ['Kalshi', fetchKalshi]] as const) {
+      const r = await fetcher(3)
+      const first = r.ok ? r.markets[0] : null
+      checks.push({ name: `Prediction markets: ${name}`, ok: r.ok ? (r.markets.length > 0 ? true : false) : null, detail: r.ok ? (first ? `${r.markets.length} parsed — "${first.question.slice(0, 60)}" YES ${Math.round(first.yes * 100)}¢${first.endsAt ? `, closes ${new Date(first.endsAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })} ET` : ''}` : 'reached, but no market parsed: the API shape may have changed') : r.reason, fix: r.ok && !r.markets.length ? 'The venue answered but nothing parsed. Report it; the desk reads NOT CONNECTED until the parser is updated.' : 'Optional. The paper prediction desk carries on without this venue and says NOT CONNECTED.' })
+    }
+  }
 
   const ai = await aiStatus()
   if (!ai.available) {
