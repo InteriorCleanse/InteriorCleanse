@@ -527,9 +527,11 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_2412e4e6-ea2a-4434-a9be-b99244ebc626.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_64e42cd3-5190-42e4-b899-da0850e621b4.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_2412e4e6-ea2a-4434-a9be-b99244ebc626.png"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -792,12 +794,14 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_05b76312-6383-442e-87e6-d4c1c6aced16.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_73091a2b-ffae-4e31-b817-f6d2116ac397.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_05b76312-6383-442e-87e6-d4c1c6aced16.png"
+      ]
     },
     "rotationSequence": null,
-    "modelUrl": null,
+    "modelUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225512_4ba0a70a-0216-4028-b762-e53eb345aa53.glb",
     "sizeClass": "small",
     "purchaseType": "stripe",
     "stripePriceId": "price_1U48lBIZBcRGxLXMaLDPzu8r",
@@ -839,12 +843,14 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_e10d5541-52ee-4f7d-a7b1-abc599052c12.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225155_18f3803c-f0ee-44e2-8bdf-f5bf6cf30643.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_e10d5541-52ee-4f7d-a7b1-abc599052c12.png"
+      ]
     },
     "rotationSequence": null,
-    "modelUrl": null,
+    "modelUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225513_0ca08120-2017-43e3-922a-620e46926c83.glb",
     "sizeClass": "medium",
     "purchaseType": "stripe",
     "stripePriceId": "price_1U48lAIZBcRGxLXMjqQFYtCd",
@@ -886,9 +892,11 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_eb0c1f56-e739-438a-8828-f8d7ae410f8d.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_0734d626-d6eb-4628-a9a4-a6dc0ba7e9d4.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_eb0c1f56-e739-438a-8828-f8d7ae410f8d.png"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -933,12 +941,14 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001039_4a00a541-0aef-416c-b4aa-651bd6de354a.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_a8cabec4-bbc5-4a77-93a9-170a2e9cdb37.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001039_4a00a541-0aef-416c-b4aa-651bd6de354a.png"
+      ]
     },
     "rotationSequence": null,
-    "modelUrl": null,
+    "modelUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225511_4a579141-50fa-46c4-b7cd-02eb49f6f136.glb",
     "sizeClass": "small",
     "purchaseType": "stripe",
     "stripePriceId": "price_1U48l9IZBcRGxLXMebmVRgHi",

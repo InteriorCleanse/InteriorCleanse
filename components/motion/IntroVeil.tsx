@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LOGO_URL } from '@/lib/brand-assets'
 
 /**
  * The first-visit curtain: the seal draws its rings, the ligature
@@ -48,26 +49,7 @@ export function IntroVeil() {
 
   return (
     <div className="intro-veil" aria-hidden="true">
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <circle className="veil-ring" cx="24" cy="24" r="22" stroke="currentColor" strokeWidth={1.2} />
-        <circle className="veil-ring veil-ring--inner" cx="24" cy="24" r="18.6" stroke="currentColor" strokeWidth={0.6} opacity={0.7} />
-        <text
-          className="veil-ic"
-          x="24"
-          y="31.6"
-          textAnchor="middle"
-          fill="currentColor"
-          fontSize="21"
-          fontWeight={500}
-          style={{
-            fontFamily: 'var(--font-display, Fraunces, Georgia, serif)',
-            fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144",
-            letterSpacing: '-1px',
-          }}
-        >
-          IC
-        </text>
-      </svg>
+      <img src={LOGO_URL} width={132} height={132} alt="" className="veil-logo" decoding="async" />
       <span className="veil-word">Interior Cleanse</span>
     </div>
   )

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { BRAND_NAME } from '@/lib/site-config'
+import { LOGO_MIN_URL } from '@/lib/brand-assets'
 
 /** Maximum tilt in degrees, resting and hovered. */
 const TILT = 8
@@ -11,7 +12,7 @@ const TILT_HOVER = 12
 const EASE = 0.08
 
 /**
- * The seal in the header.
+ * The emblem in the header.
  *
  * Inline SVG with a specular highlight sweeping across it, a slow float, and a
  * tilt that eases toward the cursor. No WebGL and no Three.js: this is a 40px
@@ -112,50 +113,7 @@ export function FloatingMark() {
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
-        <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
-          <defs>
-            {/* The specular sweep. Animating the stop offsets rather than
-                transforming the whole gradient keeps it on one paint. */}
-            <linearGradient id="ic-sheen" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--bone)" stopOpacity="0.85" />
-              <stop offset="18%" stopColor="var(--sheen-hi)" stopOpacity="1">
-                <animate
-                  attributeName="offset"
-                  values="-0.35;1.35;1.35"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="36%" stopColor="var(--bone)" stopOpacity="0.85">
-                <animate
-                  attributeName="offset"
-                  values="-0.2;1.5;1.5"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-            </linearGradient>
-          </defs>
-          {/* The seal: the IC ligature in a double ring, swept by the specular
-              highlight. Same geometry as brand/Monogram. */}
-          <circle cx="24" cy="24" r="22" fill="none" stroke="url(#ic-sheen)" strokeWidth="1.3" />
-          <circle cx="24" cy="24" r="18.6" fill="none" stroke="url(#ic-sheen)" strokeWidth="0.6" opacity="0.7" />
-          <text
-            x="24"
-            y="31.6"
-            textAnchor="middle"
-            fill="url(#ic-sheen)"
-            fontSize="21"
-            fontWeight={500}
-            style={{
-              fontFamily: 'var(--font-display, Fraunces, Georgia, serif)',
-              fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144",
-              letterSpacing: '-1px',
-            }}
-          >
-            IC
-          </text>
-        </svg>
+        <img src={LOGO_MIN_URL} width={44} height={44} alt="" aria-hidden="true" decoding="async" className="brand-emblem floating-mark-img" />
       </span>
     </Link>
   )
