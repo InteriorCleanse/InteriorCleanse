@@ -15,7 +15,7 @@
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readFileSync, existsSync, appendFileSync, writeFileSync, accessSync, constants, statSync, createReadStream } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync, accessSync, constants, statSync, createReadStream } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -53,6 +53,7 @@ import { describeShift, describeSwing } from './structure.ts'
 import { breakerRole, describeOrderBlock } from './orderblocks.ts'
 import { describeDealingRange } from './features/dealingRange.ts'
 import { getFlow, readFlowLog } from './orderflow.ts'
+import { mirrorAppend, mirrorHealth, mirrorCheck, diskCheck } from './ops/mirror.ts'
 import { tradeTape } from './features/trades.ts'
 import { tapeSpeed } from './features/tape.ts'
 import { largeTrades } from './features/largeTrades.ts'
@@ -410,9 +411,7 @@ const server = createServer(async (req, res) => {
       const event = String(body.event ?? body.message ?? 'alert').slice(0, 120)
       const symbol = String(body.symbol ?? '').slice(0, 30)
       const price = Number(body.price)
-      ensureDataDir()
-      if (!existsSync(TV_LOG)) writeFileSync(TV_LOG, 'timestamp,event,symbol,price\n')
-      appendFileSync(TV_LOG, `${new Date().toISOString()},${JSON.stringify(event)},${symbol},${Number.isFinite(price) ? price : ''}\n`)
+      mirrorAppend(TV_LOG, `${new Date().toISOString()},${JSON.stringify(event)},${symbol},${Number.isFinite(price) ? price : ''}\n`, { header: 'timestamp,event,symbol,price\n', maxBytes: 5_000_000 })
       eventLog.push('tradingview', `TradingView: ${event}${symbol ? ` on ${symbol}` : ''}`, Number.isFinite(price) ? `Price $${price.toFixed(2)}. Check the chart tab — Mr. Cash will confirm or disagree on the next candle.` : 'Check the chart tab.', 'warn')
       json(res, 200, { ok: true })
       return
@@ -470,6 +469,8 @@ const server = createServer(async (req, res) => {
         { name: 'dataDir', ok: dataDirWritable, detail: dataDirWritable ? 'writable' : 'not writable' },
         { name: 'feed', ok: !!feed, detail: marketFeed.describe() },
         { name: 'killSwitch', ok: !stopState().stopped, detail: stopState().stopped ? 'engaged' : 'clear' },
+        diskCheck(DATA_DIR),
+        mirrorCheck(mirrorHealth()),
       ]
       const healthy = checks.filter((c) => c.name === 'store' || c.name === 'dataDir').every((c) => c.ok)
       // Phase 25: the ops monitor's last verdict rides along (the full document is /api/ops/health).

@@ -2466,3 +2466,78 @@ body::after { mix-blend-mode:normal; opacity:.022; }
 .rd-det { list-style:none; margin:8px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:4px 16px; }
 .rd-det li { display:flex; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--dim); padding:3px 0; border-bottom:1px dashed rgba(255,255,255,.05); }
 .rd-det li.met { color:var(--green); } .rd-det em { font-style:normal; font-variant-numeric:tabular-nums; text-align:right; }
+
+/* ============================================================
+   THEMES — the room's base colour (html[data-theme], set in <head> by
+   js/theme.js). Midnight navy is the default; Plum, Slate and the
+   original Onyx are one tap away in the More panel. Only the surfaces
+   change: the accents, and emerald/rose for up/down, stay the same in
+   every theme.
+   ============================================================ */
+:root, html[data-theme="midnight"] {
+  --bg:#0B1220; --page-top:#0F1830; --page-bot:#080D18;
+  --surf-hi:30,42,68; --surf-lo:14,21,37;
+  --panel:#111B2E; --panel2:#16223A; --line:#23324F; --edge:rgba(170,195,255,.11); --glass:rgba(12,19,34,.8);
+  --dim:#A9B3C6; --faint:#6C778C;
+}
+html[data-theme="plum"] {
+  --bg:#150D1D; --page-top:#1D1228; --page-bot:#0E0814;
+  --surf-hi:48,31,62; --surf-lo:24,15,33;
+  --panel:#1B1126; --panel2:#221630; --line:#3A2850; --edge:rgba(225,190,255,.11); --glass:rgba(22,13,31,.82);
+  --dim:#B8A9C6; --faint:#7A6B88;
+}
+html[data-theme="slate"] {
+  --bg:#12171E; --page-top:#171E27; --page-bot:#0D1116;
+  --surf-hi:36,43,54; --surf-lo:20,25,32;
+  --panel:#181E27; --panel2:#1E2530; --line:#2E3746; --edge:rgba(200,215,235,.10); --glass:rgba(18,23,30,.82);
+  --dim:#AAB2BE; --faint:#6D7580;
+}
+html[data-theme="onyx"] {
+  --bg:#0B0A08; --page-top:#0F0D0A; --page-bot:#090806;
+  --surf-hi:36,31,24; --surf-lo:19,16,12;
+  --panel:#15120E; --panel2:#1C1813; --line:#2C261E; --edge:rgba(232,203,150,.10); --glass:rgba(16,13,10,.74);
+  --dim:#B3AA9C; --faint:#6F675B;
+}
+html { background:var(--bg); }
+body::before {
+  background:
+    radial-gradient(70% 50% at 8% -8%, rgba(242,198,109,.14), transparent 60%),
+    radial-gradient(55% 45% at 100% 0%, rgba(56,217,232,.10), transparent 60%),
+    radial-gradient(65% 55% at 90% 105%, rgba(179,140,255,.11), transparent 60%),
+    radial-gradient(55% 45% at 0% 100%, rgba(255,138,101,.06), transparent 60%),
+    linear-gradient(180deg, var(--page-top) 0%, var(--bg) 55%, var(--page-bot) 100%);
+}
+.card, .dk-evidence, .ev-hero, .rs-lab-item, .dk-stat, .dk-mini, .dk-core-scope, .cd-asset, .rd-step, .sd-read {
+  background:linear-gradient(180deg, rgba(var(--surf-hi),.9), rgba(var(--surf-lo),.94));
+}
+.hm-hero, html.has-film .hm-hero { background:radial-gradient(70% 90% at 30% 50%, rgba(var(--brand-rgb),.10), transparent 70%), linear-gradient(160deg, rgba(var(--surf-hi),.86), rgba(var(--surf-lo),.94)); }
+header { background:rgba(var(--surf-lo),.8); }
+nav { background:rgba(var(--surf-lo),.6); }
+.bottomnav { background:rgba(var(--surf-lo),.92); }
+.palette, #morepanel { background:var(--glass); }
+.crumb { background:linear-gradient(100deg, rgba(var(--accent-rgb),.13), rgba(var(--accent-rgb),.03) 45%, rgba(var(--surf-lo),.6)); }
+select, input, textarea { background:rgba(var(--surf-lo),.75); border-color:var(--line); }
+canvas.chart { background:var(--bg); }
+.msg.you { background:rgba(var(--surf-hi),1); }
+@media (prefers-reduced-transparency: reduce) { header, nav, .bottomnav, .palette, #morepanel { background:var(--panel); } }
+
+/* The colour picker in the More panel. */
+.mp-theme { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.mp-theme > span { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-right:2px; }
+.th-sw { width:22px; height:22px; border-radius:50%; cursor:pointer; border:2px solid rgba(255,255,255,.14); padding:0; transition:transform var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out); }
+.th-sw:hover { transform:scale(1.08); }
+.th-sw.on { border-color:var(--accent); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.25); }
+.th-midnight { background:linear-gradient(135deg, #1E2A44, #0B1220); } .th-plum { background:linear-gradient(135deg, #30203E, #150D1D); }
+.th-slate { background:linear-gradient(135deg, #2A323E, #12171E); } .th-onyx { background:linear-gradient(135deg, #2A241C, #0B0A08); }
+/* Every remaining panel that carried the old warm-black surface follows the theme. */
+.td-hero, .dk-core-hero, .mk-hero, .hm-col, .ask-main, .ch-frame, .sc-frame {
+  background:radial-gradient(70% 120% at 0% 0%, rgba(var(--brand-rgb),.07), transparent 60%), linear-gradient(180deg, rgba(var(--surf-hi),.88), rgba(var(--surf-lo),.94));
+}
+.dk-learn-card, .sc-concept, .dk-acct, .dk-step button, .mk-card, .mk-group, .mk-ov, .mk-setup {
+  background:linear-gradient(180deg, rgba(var(--surf-hi),.8), rgba(var(--surf-lo),.9));
+}
+.vz { background:radial-gradient(120% 90% at 50% -10%, rgba(var(--brand-rgb),.08), transparent 60%), linear-gradient(180deg, rgba(var(--surf-lo),.96), rgba(var(--surf-lo),.99)); }
+.fc-term { background:linear-gradient(180deg, rgba(var(--surf-lo),.97), rgba(var(--surf-lo),.99)); }
+.fc-bar-top { background:linear-gradient(180deg, rgba(var(--surf-hi),.7), rgba(var(--surf-lo),.7)); }
+.mk-over, .hm-side { background:linear-gradient(180deg, rgba(var(--surf-hi),.82), rgba(var(--surf-lo),.94)); }
+.ch-frame canvas.chart { background:var(--bg); }

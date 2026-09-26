@@ -10,7 +10,6 @@
  * It never acts. It prompts. You decide.
  */
 
-import { appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { config } from '../config.ts'
@@ -28,6 +27,7 @@ import { appendLedgerRow, memoryIsEmpty } from './memory.ts'
 import { managePositions, openPosition, recordMissedSignal, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats, newsProximity } from './paperTrader.ts'
 import type { DecisionSnapshot } from './paperTrader.ts'
 import { VERSION } from './version.ts'
+import { mirrorAppend } from './ops/mirror.ts'
 import { FEATURE_VERSION } from './features/types.ts'
 import { entriesAllowed } from './killswitch.ts'
 import { assess, toRiskDecision } from './riskEngine.ts'
@@ -58,12 +58,8 @@ export class EventLog {
     const e: AppEvent = { id: store().appendEvent(base), ...base }
     this.events.push(e)
     if (this.events.length > 300) this.events.shift()
-    try {
-      ensureDataDir()
-      appendFileSync(EVENTS_PATH, JSON.stringify(e) + '\n')
-    } catch {
-      // Not being able to mirror an alert is not worth crashing over.
-    }
+    // Not being able to mirror an alert is not worth crashing over.
+    mirrorAppend(EVENTS_PATH, JSON.stringify(e) + '\n', { maxBytes: 20_000_000 })
     for (const l of this.listeners) l(e)
     return e
   }

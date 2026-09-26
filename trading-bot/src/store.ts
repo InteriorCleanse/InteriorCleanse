@@ -257,6 +257,10 @@ export class Store {
     this.db.prepare('INSERT INTO flow_log(time, price, bid_usd, ask_usd, imbalance, walls, trades, tpm, buy_share, delta_usd, big_buys, big_sells) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
       .run(row.time, row.price, row.bidUsd, row.askUsd, row.imbalance, row.walls, row.trades, row.tpm, row.buyShare, row.deltaUsd, row.bigBuys, row.bigSells)
   }
+  /** Order-flow rows older than `olderThan` (ms). Only the latest day is ever read; the rest is history a 24/7 process must not grow forever. */
+  pruneFlow(olderThan: number): number {
+    return Number(this.db.prepare('DELETE FROM flow_log WHERE time < ?').run(olderThan).changes)
+  }
   flowLog(limit: number): Array<{ time: number; price: number; imbalance: number; deltaUsd: number; tradesPerMinute: number; bigBuys: number; bigSells: number }> {
     const rows = this.db.prepare('SELECT time, price, imbalance, delta_usd AS deltaUsd, tpm AS tradesPerMinute, big_buys AS bigBuys, big_sells AS bigSells FROM flow_log ORDER BY id DESC LIMIT ?').all(limit) as unknown as Array<{ time: number; price: number; imbalance: number; deltaUsd: number; tradesPerMinute: number; bigBuys: number; bigSells: number }>
     return rows.reverse().map((r) => ({ ...r, price: Number(r.price ?? 0), imbalance: Number(r.imbalance ?? 0), deltaUsd: Number(r.deltaUsd ?? 0), tradesPerMinute: Number(r.tradesPerMinute ?? 0), bigBuys: Number(r.bigBuys ?? 0), bigSells: Number(r.bigSells ?? 0) }))

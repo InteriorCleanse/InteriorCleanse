@@ -158,6 +158,18 @@ record (`/api/ops/integrity?run=1` → paper.duplicateSignals 0),
 4. Reconciliation: mismatched must be 0; INCOMPLETE is reported, not faulted.
 5. Soak: uptime vs wall clock, restarts.
 6. Observer / Knowledge tabs: the daily digest for the day that ended.
+7. `/api/health`: `disk` warns under 1 GB free; `mirrors` warns when a CSV copy could not be written in the last hour.
+
+### The CSV files are copies
+
+`ledger.csv`, `equity.csv`, `learnings.md` and `positions.json` are copies of
+the SQLite store, kept so you can open them. Opening one in Excel locks it on
+Windows. That no longer interrupts anything. The store still records the
+trade, the copy misses the row, and the ops log and `/api/health` say which
+file failed. Close the file, or copy it elsewhere before you open it.
+`events.jsonl`, `orderflow.csv` and `tv-alerts.csv` roll to `<file>.1` at
+20 MB (tv-alerts at 5 MB). Order-flow rows in the store are kept for 90 days.
+None of this touches the paper record's trades, positions or ledger.
 
 ## 10. The fifteen acceptance checks (run on a machine with network access)
 

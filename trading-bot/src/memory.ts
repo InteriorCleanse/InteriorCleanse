@@ -11,10 +11,11 @@
  * outcomes measured on REAL price history. Nothing is pre-seeded.
  */
 
-import { existsSync, writeFileSync, appendFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DATA_DIR, ensureDataDir, store } from './store.ts'
 import { LEDGER_HEADER, ledgerRowToCsv } from './csv.ts'
+import { mirrorAppend } from './ops/mirror.ts'
 import type { LedgerRow } from './types.ts'
 
 export { DATA_DIR, ensureDataDir }
@@ -36,15 +37,17 @@ const LEARNINGS_INTRO = [
 
 /** Makes sure the export files exist, so a curious owner always finds them. */
 function ensureFiles(): void {
-  ensureDataDir()
-  if (!existsSync(LEDGER_PATH)) writeFileSync(LEDGER_PATH, LEDGER_HEADER + '\n')
-  if (!existsSync(LEARNINGS_PATH)) writeFileSync(LEARNINGS_PATH, LEARNINGS_INTRO)
+  try {
+    ensureDataDir()
+    if (!existsSync(LEDGER_PATH)) writeFileSync(LEDGER_PATH, LEDGER_HEADER + '\n')
+    if (!existsSync(LEARNINGS_PATH)) writeFileSync(LEARNINGS_PATH, LEARNINGS_INTRO)
+  } catch { /* the exports are copies; the store has the record */ }
 }
 
 export function appendLedgerRow(row: LedgerRow): void {
   store().appendLedger(row)
-  ensureFiles()
-  appendFileSync(LEDGER_PATH, ledgerRowToCsv(row) + '\n')
+  // The CSV is a copy for the owner's spreadsheet: a locked or full file must not interrupt the record.
+  mirrorAppend(LEDGER_PATH, ledgerRowToCsv(row) + '\n', { header: LEDGER_HEADER + '\n' })
 }
 
 export function readLedger(): LedgerRow[] {
@@ -61,8 +64,7 @@ export function readLearnings(): string {
 export function addLesson(key: string, lesson: string): boolean {
   const added = store().addLesson(key, lesson)
   if (added) {
-    ensureFiles()
-    appendFileSync(LEARNINGS_PATH, ['', `- ${lesson} <!-- key:${key} -->`, ''].join('\n'))
+    mirrorAppend(LEARNINGS_PATH, ['', `- ${lesson} <!-- key:${key} -->`, ''].join('\n'), { header: LEARNINGS_INTRO })
   }
   return added
 }
