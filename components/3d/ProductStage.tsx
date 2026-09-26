@@ -119,7 +119,7 @@ export function ProductStage({
       </Canvas>
 
       <div className="stage-hint">
-        {interacted ? '360° · DRAG TO ROTATE · SCROLL TO ZOOM' : '◇ DRAG TO EXPLORE'}
+        {interacted ? '360° · DRAG TO ROTATE · SCROLL TO ZOOM' : 'DRAG TO EXPLORE'}
       </div>
 
       <div className="stage-controls">

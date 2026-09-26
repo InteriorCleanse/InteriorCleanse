@@ -103,13 +103,12 @@ export function EmailPopup() {
           onClick={submit}
           disabled={busy || success}
         >
-          {success ? 'WELCOME TO THE EDIT ✦' : busy ? 'SENDING…' : 'JOIN THE EDIT →'}
+          {success ? 'WELCOME TO THE EDIT' : busy ? 'SENDING…' : 'JOIN THE EDIT →'}
         </button>
         {error ? <p className="admin-error" style={{ marginTop: '0.8rem' }}>{error}</p> : null}
         <p className="popup-privacy">
           No spam. Unsubscribe anytime. Your details stay private.
         </p>
-        <span className="popup-diamond">◇</span>
       </div>
     </div>
   )

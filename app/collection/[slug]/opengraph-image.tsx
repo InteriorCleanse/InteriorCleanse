@@ -74,9 +74,7 @@ export default async function OpenGraphImage({ params }: { params: { slug: strin
         />
         <div style={{ position: 'absolute', left: 72, top: 64, display: 'flex', alignItems: 'center', gap: 14, fontSize: 22, letterSpacing: 6 }}>
           <span>INTERIOR</span>
-          {/* A drawn diamond: the ◇ glyph has no font in the OG renderer. */}
-          <div style={{ width: 10, height: 10, background: '#A9895A', transform: 'rotate(45deg)' }} />
-          <span>CLEANSE</span>
+          <span style={{ color: '#A9895A' }}>CLEANSE</span>
         </div>
         <div style={{ position: 'absolute', left: 72, bottom: 84, display: 'flex', flexDirection: 'column', maxWidth: 620 }}>
           <div style={{ fontSize: 18, letterSpacing: 5, color: '#A9895A', textTransform: 'uppercase', marginBottom: 18 }}>

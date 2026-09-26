@@ -1,6 +1,6 @@
 import { LineIcon } from './icons/LineIcon'
 
-export type TrackIconName = 'book' | 'sparkle' | 'flame' | 'star' | 'diamond'
+export type TrackIconName = 'book' | 'sparkle' | 'flame' | 'star'
 
 /**
  * The small mark that heads each brand track: a line glyph seated in a thin

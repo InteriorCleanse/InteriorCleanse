@@ -249,37 +249,33 @@ export default function Home() {
               <ArrowOrb />
             </Link>
           </div>
-          {/* The threshold, in the spirit's colour: the same doorway-and-sun as
-              the mark, breathing slowly. The room's chapel footage plays behind. */}
+          {/* The seal, in the spirit's colour, breathing slowly over the chapel. */}
           <div className="spirit-threshold-wrap" data-reveal>
             <svg className="spirit-threshold" viewBox="0 0 48 48" aria-hidden="true">
               <defs>
-                <linearGradient id="spirit-sun" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E6CB96" />
-                  <stop offset="100%" stopColor="#8E6FB0" />
-                </linearGradient>
-                <radialGradient id="spirit-glow" cx="50%" cy="68%" r="55%">
-                  <stop offset="0%" stopColor="#E6CB96" stopOpacity="0.55" />
+                <radialGradient id="spirit-glow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#E6CB96" stopOpacity="0.5" />
                   <stop offset="100%" stopColor="#E6CB96" stopOpacity="0" />
                 </radialGradient>
-                <clipPath id="spirit-clip">
-                  <rect x="12" y="18" width="24" height="14" />
-                </clipPath>
               </defs>
-              <circle className="spirit-glow" cx="24" cy="32" r="18" fill="url(#spirit-glow)" />
-              <g fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round">
-                <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
-                <path d="M8.5 42 H39.5" opacity="0.5" />
-                <path d="M17.5 32 H30.5" />
-              </g>
-              <g clipPath="url(#spirit-clip)">
-                <circle className="spirit-sun" cx="24" cy="32" r="5" fill="url(#spirit-sun)" />
-              </g>
-              <g stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" opacity="0.7">
-                <path d="M24 19.5 V22.5" />
-                <path d="M17.6 22.4 L19.8 24.6" />
-                <path d="M30.4 22.4 L28.2 24.6" />
-              </g>
+              <circle className="spirit-glow" cx="24" cy="24" r="23" fill="url(#spirit-glow)" />
+              <circle className="spirit-ring" cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="0.7" />
+              <circle className="spirit-ring spirit-ring--inner" cx="24" cy="24" r="18.6" fill="none" stroke="currentColor" strokeWidth="0.35" opacity="0.7" />
+              <text
+                x="24"
+                y="31.6"
+                textAnchor="middle"
+                fill="currentColor"
+                fontSize="21"
+                fontWeight={500}
+                style={{
+                  fontFamily: 'var(--font-display, Fraunces, Georgia, serif)',
+                  fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144",
+                  letterSpacing: '-1px',
+                }}
+              >
+                IC
+              </text>
             </svg>
           </div>
         </div>

@@ -39,7 +39,7 @@ export function PurchaseAction({ product }: { product: Product }) {
     if (!href || href === 'TODO') {
       return (
         <button className="add-to-cart-btn" disabled>
-          LINK COMING SOON <span>◇</span>
+          LINK COMING SOON
         </button>
       )
     }

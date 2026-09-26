@@ -19,12 +19,12 @@ export const C = {
   sage: '#3F6A4C', lapis: '#2B4C7E', clay: '#A4593A', aubergine: '#5A3F72', verdigris: '#2E5E58',
 }
 
-/** The threshold mark. `color` for strokes, `sun` for the disc. */
-export const mark = (size, color = 'currentColor', sun = color) => `
-<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <path d="M11 42 V23 A13 13 0 0 1 37 23 V42"/><path d="M8.5 42 H39.5" opacity=".55"/><path d="M17.5 32 H30.5"/>
-  <path d="M19 32 A5 5 0 0 1 29 32 Z" fill="${sun}" stroke="none" opacity=".95"/>
-  <g opacity=".75" stroke-width="1.7"><path d="M24 19.5 V22.5"/><path d="M17.6 22.4 L19.8 24.6"/><path d="M30.4 22.4 L28.2 24.6"/></g>
+/** The seal. `color` for rings and letters. */
+export const mark = (size, color = 'currentColor') => `
+<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none" aria-hidden="true">
+  <circle cx="24" cy="24" r="22" stroke="${color}" stroke-width="1.3"/>
+  <circle cx="24" cy="24" r="18.6" stroke="${color}" stroke-width=".6" opacity=".7"/>
+  <text x="24" y="31.6" text-anchor="middle" fill="${color}" font-size="21" font-weight="500" style="font-family:'Fraunces',Georgia,serif;font-variation-settings:'SOFT' 100,'WONK' 1,'opsz' 144;letter-spacing:-1px">IC</text>
 </svg>`
 
 export const BASE_CSS = `

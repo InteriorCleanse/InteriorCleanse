@@ -11,7 +11,7 @@ export default function NotFound() {
       }}
     >
       <div className="section-inner">
-        <TrackIcon name="diamond" size={72} />
+        <TrackIcon name="sparkle" size={28} />
         <p className="eyebrow" style={{ marginTop: '2rem' }}>
           404
         </p>
