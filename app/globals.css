@@ -1539,10 +1539,12 @@ textarea {
 }
 
 .care-craft li::before {
-  content: '◇';
-  color: var(--brass);
-  font-size: 10px;
-  margin-top: 3px;
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brass);
+  margin-top: 9px;
   flex-shrink: 0;
 }
 
@@ -2665,10 +2667,12 @@ textarea {
 }
 
 .download-bullets li::before {
-  content: '◇';
-  color: var(--brass);
-  font-size: 10px;
-  margin-top: 4px;
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brass);
+  margin-top: 8px;
   flex-shrink: 0;
 }
 
@@ -5511,7 +5515,7 @@ button:hover > .btn-orb svg { transform: translate(1px, -1px); }
   pointer-events: none;
   animation: veil-out 0.85s var(--ease-lux) 1.5s both;
 }
-.intro-veil svg { width: 76px; height: 76px; }
+.intro-veil svg { width: 112px; height: 112px; }
 .intro-veil .veil-draw {
   stroke-dasharray: 130;
   stroke-dashoffset: 130;
@@ -5529,7 +5533,7 @@ button:hover > .btn-orb svg { transform: translate(1px, -1px); }
 }
 .intro-veil .veil-word {
   position: absolute;
-  margin-top: 138px;
+  margin-top: 176px;
   font-family: var(--font-display);
   font-size: 12px;
   letter-spacing: 0.44em;
@@ -5644,3 +5648,28 @@ html[data-intro='skip'] .intro-veil { display: none; }
 .browser-details { border-radius: 999px; }
 .nav-cta { border-radius: 999px; }
 .browser-controls button { border-radius: 50%; }
+
+/* Covers: a light sweep crosses the jacket on hover, on top of the tilt. */
+.book-card-image { position: relative; }
+.book-card-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  transform: translateX(-140%);
+  transition: transform 0.9s var(--ease-lux);
+}
+.book-card:hover .book-card-image::before { transform: translateX(140%); }
+.book-card:hover .book-card-image { transform: rotateX(4deg) rotateY(-6deg) translateY(-6px); }
+
+/* The seal in the spirit track and the intro. */
+.spirit-ring { transform-origin: 24px 24px; animation: seal-turn 40s linear infinite; }
+.spirit-ring--inner { animation-direction: reverse; animation-duration: 28s; stroke-dasharray: 2 3; }
+@keyframes seal-turn { to { transform: rotate(360deg); } }
+.intro-veil .veil-ring { stroke-dasharray: 140; stroke-dashoffset: 140; animation: veil-draw 1.1s var(--ease-out) 0.1s forwards; transform-origin: 24px 24px; transform: rotate(-90deg); }
+.intro-veil .veil-ring--inner { stroke-dasharray: 118; stroke-dashoffset: 118; animation-delay: 0.35s; }
+.intro-veil .veil-ic { opacity: 0; animation: veil-fade-in 0.7s var(--ease-out) 0.85s forwards; }
+@keyframes veil-fade-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .spirit-ring { animation: none; } }

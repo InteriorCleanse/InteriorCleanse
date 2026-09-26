@@ -150,7 +150,7 @@ export function ProductsManager() {
     <div className="admin-shell">
       <header className="admin-header">
         <span className="wordmark">
-          INTERIOR<em>◇</em>CLEANSE
+          INTERIOR <em>CLEANSE</em>
         </span>
         <nav className="admin-tabs">
           <Link className="admin-tab" href="/admin/">

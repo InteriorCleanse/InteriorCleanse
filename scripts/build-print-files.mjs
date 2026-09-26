@@ -5,7 +5,7 @@
  * self-hosted faces.
  *
  * Output (print-files/):
- *   mark-ink-3000.png                 threshold mark in ink on transparent, 3000 px square
+ *   mark-ink-3000.png                 seal in ink on transparent, 3000 px square
  *   mark-bone-3000.png                the same in bone, for dark garments
  *   wordmark-ink-4500.png             INTERIOR CLEANSE in Fraunces, ink, 4500 px wide
  *   tote-front-3600x4200.png          12×14 in at 300 dpi, mark over wordmark, ink
@@ -49,24 +49,19 @@ await out('mug-wrap-2700x1050.png', 2700, 1050, `
   <div style="position:absolute;left:0;top:0;width:1350px;height:1050px;display:grid;place-items:center">${wordmark(INK, 96)}</div>
   <div style="position:absolute;right:0;top:0;width:1350px;height:1050px;display:grid;place-items:center">${mark(560, INK)}</div>`)
 // The Considered Home Print, 18×24 in at 300 dpi: a study in warm neutrals.
-// Three thresholds receding, one horizon, one sun; nothing else in the room.
+// Rooms within rooms: five rings, stone to ink, and one gold disc off centre,
+// the light in the room.
 const art = `
 <div style="position:absolute;inset:0;background:${C.cream}"></div>
 <div style="position:absolute;inset:90px;border:1px solid rgba(27,24,21,.12)"></div>
-<svg viewBox="0 0 1800 2400" width="1800" height="2400" style="position:absolute;inset:0" fill="none" stroke-linecap="round">
-  <defs><linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.goldHi}"/><stop offset="1" stop-color="${C.gold}"/></linearGradient></defs>
-  <!-- far threshold, stone -->
-  <path d="M330 1560 V860 A570 570 0 0 1 1470 860 V1560" stroke="#CFC5B5" stroke-width="22"/>
-  <!-- middle threshold, oatmeal -->
-  <path d="M470 1560 V960 A430 430 0 0 1 1330 960 V1560" stroke="#B8A68C" stroke-width="22"/>
-  <!-- near threshold, ink -->
-  <path d="M610 1560 V1060 A290 290 0 0 1 1190 1060 V1560" stroke="${C.ink}" stroke-width="22"/>
-  <!-- the floor -->
-  <path d="M250 1560 H1550" stroke="${C.ink}" stroke-width="10" opacity=".5"/>
-  <!-- horizon and sun, seen through the near door -->
-  <path d="M720 1330 H1080" stroke="${C.ink}" stroke-width="14"/>
-  <path d="M800 1330 A100 100 0 0 1 1000 1330 Z" fill="url(#sun)"/>
-  <g stroke="${C.ink}" stroke-width="10" opacity=".7"><path d="M900 1120 V1170"/><path d="M780 1160 L815 1195"/><path d="M1020 1160 L985 1195"/></g>
+<svg viewBox="0 0 1800 2400" width="1800" height="2400" style="position:absolute;inset:0" fill="none">
+  <defs><linearGradient id="sun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.goldHi}"/><stop offset="1" stop-color="${C.gold}"/></linearGradient></defs>
+  <circle cx="900" cy="1130" r="640" stroke="#D9D0C1" stroke-width="18"/>
+  <circle cx="900" cy="1130" r="520" stroke="#CFC5B5" stroke-width="18"/>
+  <circle cx="900" cy="1130" r="400" stroke="#B8A68C" stroke-width="18"/>
+  <circle cx="900" cy="1130" r="280" stroke="#8C7B66" stroke-width="18"/>
+  <circle cx="900" cy="1130" r="160" stroke="${C.ink}" stroke-width="18"/>
+  <circle cx="1010" cy="1020" r="62" fill="url(#sun)"/>
 </svg>
 <div style="position:absolute;left:0;right:0;bottom:150px;text-align:center;font-family:'Jakarta';font-size:16px;letter-spacing:.42em;text-transform:uppercase;color:rgba(27,24,21,.55);font-weight:600">The Considered Home · InteriorCleanse</div>`
 await out('considered-home-print-18x24.png', 1800, 2400, art, { scale: 3, opaque: true })

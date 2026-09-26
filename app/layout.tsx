@@ -57,12 +57,12 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: ['/images/og-image.png'],
   },
-  // The .ico carries 16/32/48 of the threshold mark, rendered from the same
-  // geometry as the inline SVG so the tab icon and the header agree.
+  // The .ico carries 16/32/48 of the seal, rendered by scripts/press/favicons
+  // with the real display face so the tab icon and the header agree.
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
-      { url: '/brand/monogram.svg', type: 'image/svg+xml' },
+      { url: '/images/icon-192.png', type: 'image/png', sizes: '192x192' },
     ],
     apple: [{ url: '/images/apple-touch-icon.png', sizes: '180x180' }],
   },

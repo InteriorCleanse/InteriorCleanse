@@ -10,9 +10,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "/products/covers/the-calm-room-method.jpg",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_c8e614a2-6eb0-4837-abdd-fb65dc9c8d0f.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_fa3e968f-cc67-48a0-8732-1ed8322d7282.png",
+        "/products/covers/the-calm-room-method.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -57,9 +60,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "/products/covers/small-home-reset.jpg",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_42d0ab73-d9a0-45ac-90ac-adbf26c400a9.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_af327c92-782b-42ff-bbc0-30a8e2cac3a5.png",
+        "/products/covers/small-home-reset.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -104,9 +110,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "/products/covers/edited-kitchen.jpg",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_eb809317-8cbd-4fa6-be99-a698f0ac2909.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_565cd520-7dec-4920-a725-1e10176f5bb5.png",
+        "/products/covers/edited-kitchen.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -151,9 +160,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "/products/covers/the-rested-body.jpg",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_07cfd994-ee04-4e8f-a21e-0f7a8dfe1b76.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_4c2e03d8-46f4-43d4-869e-b187ee1fb4c6.png",
+        "/products/covers/the-rested-body.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -198,9 +210,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "/products/covers/clean-air-clean-home.jpg",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_af91161b-d55f-4242-9199-11acaffd4617.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_afd7ff23-c101-4f37-a5a4-39f0c482d3ea.png",
+        "/products/covers/clean-air-clean-home.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
