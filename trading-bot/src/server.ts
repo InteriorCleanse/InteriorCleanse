@@ -280,6 +280,16 @@ function contextFor(snap: Snapshot, withJournal = false): string {
 }
 
 /** Extra read-only context for the hats that need it: the Scanner's price-action read, or the Big money board. */
+/** Every hat hears the conditions reading, so an answer never ignores a closed market or a shock candle. */
+async function conditionsContext(): Promise<string> {
+  try {
+    const r = await conditionsReport()
+    const open = r.assets.map((a) => `${a.label} ${a.hours.open ? 'open' : 'closed'}`).join(', ')
+    const poor = r.markets.filter((m) => m.grade === 'poor').map((m) => m.headline)
+    return `\n\nMARKET CONDITIONS (READING, not a signal; the kill switch is the owner's decision): verdict ${r.verdict}. ${r.reasons.join(' ')}\n  Hours: ${open}.\n  Stress ${r.stress.level}; risk tone ${r.tone.tone}${r.strength ? `; strongest ${r.strength[0].ccy}, weakest ${r.strength[r.strength.length - 1].ccy}${r.fxOpen ? '' : ' (last FX session)'}` : ''}.${poor.length ? `\n  Poor right now: ${poor.join(' ')}` : ''}${r.correlations?.links.length ? `\n  Moving together this week: ${r.correlations.links.join(' ')}` : ''}`
+  } catch { return '' }
+}
+
 async function skillContext(skillId?: string): Promise<string> {
   try {
     if (skillId === 'priceaction') {
@@ -317,7 +327,7 @@ async function streamAnswer(res: ServerResponse, question: string, context: stri
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context + (await skillContext(skillId)), history, (t) => res.write(t), image, skillById(skillId))
+    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()), history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -579,7 +589,7 @@ const server = createServer(async (req, res) => {
     // Market conditions across every watched market, READ-ONLY: a reading of whether conditions are fit to trade, never an order.
     if (path === '/api/conditions') {
       const data = await conditionsReport()
-      json(res, 200, { ok: true, data: { ...data, stop: stopState(), watchAsOf: marketWatch.snapshot().asOf } })
+      json(res, 200, { ok: true, data: { ...data, stop: stopState(), watchAsOf: marketWatch.snapshot().asOf, history: conditionsHistory } })
       return
     }
     // The scalp desk: the conditions a scalper looks for right now, and the break-even arithmetic. A reading, not a signal.
@@ -1697,9 +1707,14 @@ async function conditionsReport(): Promise<ConditionsReport> {
   return assessConditions({ markets, calendar: s?.news?.calendar ?? [], now: Date.now(), engineKey: `crypto:${config.symbol}`, engine })
 }
 let lastConditionsVerdict: ConditionsReport['verdict'] | null = null
+/** The last day of five-minute checks, kept in memory only (it starts empty after a restart, and says so). */
+const conditionsHistory: Array<{ t: number; verdict: ConditionsReport['verdict']; stress: string }> = []
 async function checkConditions(): Promise<void> {
   const r = await conditionsReport().catch(() => null)
-  if (!r || r.verdict === lastConditionsVerdict) return
+  if (!r) return
+  conditionsHistory.push({ t: r.asOf, verdict: r.verdict, stress: r.stress.level })
+  if (conditionsHistory.length > 288) conditionsHistory.shift()
+  if (r.verdict === lastConditionsVerdict) return
   const was = lastConditionsVerdict
   lastConditionsVerdict = r.verdict
   if (r.verdict === 'POOR') eventLog.push('info', 'Market conditions: POOR', `${r.reasons.join(' ')} Mr. Cash has not stopped anything; the kill switch is on the Conditions page if you want no new entries.`, 'warn')

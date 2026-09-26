@@ -89,14 +89,16 @@ export function histogram({ bins, marks = [], xLabel = '', yLabel = '', height =
 }
 
 /** Heatmap. rows/cols labels, values[r][c] (null = not measured), diverging around 0 unless `sequential`. */
-export function heatmap({ rows, cols, values, fmt = fmtN, title = '', sequential = false, notes = null }) {
+export function heatmap({ rows, cols, values, fmt = fmtN, title = '', sequential = false, notes = null, hues = null }) {
   const flat = values.flat().filter((v) => v !== null && Number.isFinite(v))
   const m = Math.max(1e-9, ...flat.map((v) => Math.abs(v)))
   const col = (v) => {
     if (v === null || !Number.isFinite(v)) return 'rgba(255,246,228,.04)'
     const t = Math.min(1, Math.abs(v) / m)
     if (sequential) return `rgba(216,181,110,${(0.12 + 0.75 * t).toFixed(2)})`
-    return v >= 0 ? `rgba(96,200,146,${(0.12 + 0.7 * t).toFixed(2)})` : `rgba(230,116,124,${(0.12 + 0.7 * t).toFixed(2)})`
+    // hues: [positive rgb, negative rgb] for signs that are not up and down (correlation, for one).
+    const [pos, neg] = hues || ['96,200,146', '230,116,124']
+    return v >= 0 ? `rgba(${pos},${(0.12 + 0.7 * t).toFixed(2)})` : `rgba(${neg},${(0.12 + 0.7 * t).toFixed(2)})`
   }
   return `<figure class="vz vz-3d vz-heat">${title ? `<figcaption>${esc(title)}</figcaption>` : ''}<div class="vz-hm" style="grid-template-columns:minmax(90px,auto) repeat(${cols.length}, minmax(64px,1fr))">
     <span></span>${cols.map((c) => `<b class="vz-hc">${esc(c)}</b>`).join('')}

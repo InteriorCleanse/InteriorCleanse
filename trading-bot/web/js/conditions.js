@@ -7,6 +7,7 @@
  * is offered here and pressing it stays your decision.
  */
 import { getJson, esc } from './api.js'
+import { heatmap } from './viz.js'
 
 const $ = (id) => document.getElementById(id)
 const VERDICT = { GOOD: 'Conditions are good', CAUTION: 'Trade with caution', POOR: 'Conditions are poor', 'NOT ENOUGH DATA': 'NOT ENOUGH DATA' }
@@ -20,7 +21,18 @@ let data = null, err = null, loadedAt = 0, busy = false
 async function load() {
   try { const j = await getJson('/api/conditions'); data = j.data; err = null } catch (e) { err = e.message }
   loadedAt = Date.now()
+  chip()
   render()
+}
+
+/** The header chip: the verdict at a glance from every page. */
+const CHIP = { GOOD: 'Good', CAUTION: 'Caution', POOR: 'Poor', 'NOT ENOUGH DATA': 'No read' }
+function chip() {
+  const c = $('cond-chip'); if (!c || !data) return
+  const v = data.verdict
+  c.className = `cd-chip v-${v === 'NOT ENOUGH DATA' ? 'nd' : v.toLowerCase()}`
+  c.querySelector('span').textContent = `Conditions: ${CHIP[v] || v}`
+  c.title = `Market conditions ${v}. ${(data.reasons || []).join(' ')} Open the Conditions page.`
 }
 
 async function stopNow() {
@@ -46,8 +58,19 @@ function hero(d) {
     <h2 class="cd-verdict">${esc(VERDICT[v] || v)}</h2>
     <ul class="cd-reasons">${d.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
     ${e ? `<div class="cd-engine"><span class="cd-g ${e.grade}">${esc(GRADE[e.grade])}</span> The engine's market, <b>${esc(e.label)}</b>${e.score !== null ? ` · score ${e.score}/100` : ''}</div>` : ''}
+    ${timeline(d)}
     ${stopBox}
   </div>`
+}
+
+function timeline(d) {
+  const h = d.history || []
+  if (h.length < 2) return `<div class="cd-tl"><span class="muted">Timeline: builds up one check every five minutes since Mr. Cash started (${h.length} so far, kept in memory only).</span></div>`
+  const from = h[0].t, to = h[h.length - 1].t, span = Math.max(1, to - from)
+  return `<div class="cd-tl"><span class="muted">Last ${Math.max(1, Math.round(span / 3_600_000))}h</span><div class="cd-tl-bar">${h.map((x, i) => {
+    const end = i + 1 < h.length ? h[i + 1].t : to + 300_000
+    return `<i class="v-${x.verdict === 'NOT ENOUGH DATA' ? 'nd' : x.verdict.toLowerCase()}" style="flex:${Math.max(1, end - x.t)}" title="${esc(new Date(x.t).toLocaleTimeString())}: ${esc(x.verdict)} · stress ${esc(x.stress)}"></i>`
+  }).join('')}</div><span class="muted">now</span></div>`
 }
 
 function assets(d) {
@@ -79,7 +102,17 @@ function tone(d) {
   return `<div class="card"><h2>Across markets</h2>
     <div class="cd-tone"><div><span>Risk tone</span><b class="t-${esc(t.tone.replace(/ /g, ''))}">${esc(t.tone)}</b></div><div><span>Stress</span><b class="s-${esc(st.level.replace(/ /g, ''))}">${esc(st.level)}</b></div><div><span>Poor right now</span><b>${pctTxt(st.poorShare)}</b></div><div><span>Volatility elevated</span><b>${pctTxt(st.elevatedShare)}</b></div></div>
     ${t.votes.length ? `<p class="muted cd-foot">${t.votes.map(esc).join(' · ')}</p>` : ''}
-    <p class="muted cd-foot">${st.assessed} open markets assessed. Stress turns "stressed" when ${Math.round(d.thresholds.stressPoorShare * 100)}% of them are poor at once, or ${Math.round(d.thresholds.stressElevatedShare * 100)}% have elevated volatility.</p>
+    <p class="muted cd-foot">${st.assessed} open markets assessed; stress needs at least ${d.thresholds.stressMinMarkets} open markets across two kinds. It turns "stressed" when ${Math.round(d.thresholds.stressPoorShare * 100)}% of them are poor at once, or ${Math.round(d.thresholds.stressElevatedShare * 100)}% have elevated volatility.</p>
+  </div>`
+}
+
+function corr(d) {
+  const c = d.correlations
+  if (!c) return `<div class="card"><h2>What moves together</h2><p class="muted">NOT ENOUGH DATA: fewer than three bellwether markets have candles yet.</p></div>`
+  return `<div class="card"><h2>What moves together <span class="muted">hourly returns, last ${Math.round(c.windowHours / 24)} days</span></h2>
+    <div class="cd-hm">${heatmap({ rows: c.labels, cols: c.labels, values: c.values, fmt: (v) => (v > 0 ? '+' : '') + v.toFixed(2), hues: ['56,217,232', '165,180,252'] })}</div>
+    ${c.links.length ? `<ul class="cd-how">${c.links.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '<p class="muted cd-foot">No strong links this week: no pair above ±0.30.</p>'}
+    <p class="muted cd-foot">Cyan moves together, lilac moves opposite. Measured only on hours both markets traded; a blank cell had fewer than 30 shared hours. Correlations shift: this describes the past week, not the next one.</p>
   </div>`
 }
 
@@ -101,7 +134,7 @@ function render() {
   if (err && !data) { root.innerHTML = `<div class="card"><p class="pl-err">${esc(err)}</p></div>`; return }
   if (!data) { root.innerHTML = '<div class="card"><p class="muted">Reading every market…</p></div>'; return }
   const d = data
-  root.innerHTML = `${hero(d)}${assets(d)}<div class="cd-pair">${strength(d)}${tone(d)}</div>${table(d)}
+  root.innerHTML = `${hero(d)}${assets(d)}<div class="cd-pair">${strength(d)}${tone(d)}</div>${corr(d)}${table(d)}
     <div class="card"><h2>How it reads</h2><p class="muted" style="margin-top:0">${esc(d.note)}</p>
       <ul class="cd-how">
         <li><b>Poor</b>: a shock candle (${d.thresholds.shockX}× its average range), volatility in the top ${Math.round((1 - d.thresholds.disorderlyPct) * 100)}% of its own history, or a high-impact release for its currency from ${d.thresholds.eventBeforeMin} minutes before to ${d.thresholds.eventAfterMin} after.</li>
@@ -116,6 +149,10 @@ function render() {
 
 function init() {
   const section = $('tab-conditions'); if (!section) return
+  $('cond-chip')?.addEventListener('click', () => { if (typeof window.showTab === 'function') window.showTab('conditions') })
+  // The chip stays current from any page: one read shortly after load, then every five minutes while the app is visible.
+  setTimeout(() => { if (Date.now() - loadedAt > 20_000) load() }, 4000)
+  setInterval(() => { if (document.visibilityState === 'visible' && section.classList.contains('hidden')) load() }, 5 * 60_000)
   new MutationObserver(() => { if (!section.classList.contains('hidden') && Date.now() - loadedAt > 20_000) load() }).observe(section, { attributes: true, attributeFilter: ['class'] })
   setInterval(() => { if (document.visibilityState === 'visible' && !section.classList.contains('hidden')) load() }, 60_000)
   if (!section.classList.contains('hidden')) load()
