@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Monogram } from '@/components/brand/Monogram'
 
 /**
@@ -40,6 +40,17 @@ export function ProductImage({
 }) {
   const [failed, setFailed] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+  // A small or cached image can finish loading before React hydrates, and
+  // then its load event has already fired with nobody listening. Read the
+  // element's own state once on mount so a finished image is never left
+  // hidden behind the fallback.
+  useEffect(() => {
+    const el = imgRef.current
+    if (!el || !el.complete) return
+    if (el.naturalWidth > 0) setLoaded(true)
+    else setFailed(true)
+  }, [src])
   // The image only counts as present once it has actually decoded. Until then
   // (and forever, if it fails) the branded tile shows and the <img> is fully
   // transparent, so a broken or slow URL never flashes its alt text.
@@ -57,6 +68,7 @@ export function ProductImage({
       </span>
       {src ? (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           loading={eager ? 'eager' : loading}

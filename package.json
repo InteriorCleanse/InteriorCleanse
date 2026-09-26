@@ -4,7 +4,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:lottie": "node scripts/build-lottie.js",
     "sync": "node scripts/sync-products.js",
     "stripe:setup": "node scripts/stripe-setup.js",
     "check:contrast": "node scripts/check-contrast.mjs",
@@ -14,6 +13,8 @@
     "clips:loop": "node scripts/loop-clips.mjs",
     "build:grain": "node scripts/build-grain.mjs",
     "print:files": "node scripts/build-print-files.mjs",
+    "press:covers": "node scripts/press/covers.mjs",
+    "press:downloads": "node scripts/press/downloads.mjs",
     "catalog:fill": "node scripts/fill-drafts-from-content.mjs",
     "check:seo": "node scripts/check-seo.mjs"
   },
