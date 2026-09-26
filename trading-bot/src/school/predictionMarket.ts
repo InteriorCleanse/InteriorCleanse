@@ -167,3 +167,73 @@ export function workedExample(): { steps: string[]; single: SingleVenueEdge; cro
     single, cross, net, kelly, provenance: 'SIMULATED',
   }
 }
+
+/**
+ * Kalshi's published trading fee for `contracts` contracts at `price` (0–1):
+ * round up to the next cent of 0.07 × C × P × (1 − P). Returned per contract.
+ * Check Kalshi's current fee schedule; some markets use a different rate.
+ */
+export function kalshiFeePerContract(price: number, contracts = 100, rate = 0.07): number {
+  if (!(price > 0 && price < 1) || !(contracts > 0)) return 0
+  return Math.round((Math.ceil(rate * contracts * price * (1 - price) * 100 - 1e-9) / 100 / contracts) * 1e8) / 1e8
+}
+
+export type VenueQuote = { venue: string; yesAsk: number; noAsk: number; fee: 'kalshi' | number }
+
+export type Route = { label: string; cost: number; gross: number; fees: number; net: number; survives: boolean }
+
+export type TwoVenueCheck = {
+  venues: Array<{ venue: string; yesAsk: number; noAsk: number; sum: number; gross: number; fees: number; net: number; survives: boolean }>
+  cross: Route[]
+  divergence: { cents: number; pct: number; cheaper: string }
+  consensus: number
+  best: Route | null
+  bet: null | { side: 'YES' | 'NO'; venue: string; price: number; p: number; edgeAfterFee: number; kelly: KellySize }
+  notes: string[]
+  provenance: 'SIMULATED'
+}
+
+const feeFor = (q: VenueQuote, price: number, contracts: number) => (q.fee === 'kalshi' ? kalshiFeePerContract(price, contracts) : q.fee * price)
+
+/**
+ * The owner's two-venue desk: typed-in quotes for the same event on two
+ * venues. Checks each venue alone (YES + NO under $1), both cross-venue
+ * routes (YES here + NO there), the YES-price divergence, and, given your own
+ * probability `p`, the side worth the most after fees with a capped
+ * fractional Kelly stake. Arithmetic only: no venue is contacted.
+ */
+export function twoVenueCheck(a: VenueQuote, b: VenueQuote, opts: { p?: number | null; contracts?: number; kellyFraction?: number } = {}): TwoVenueCheck {
+  for (const q of [a, b]) for (const v of [q.yesAsk, q.noAsk]) if (!(v > 0 && v < 1)) throw new Error('prices must be strictly between 0 and 1')
+  const C = opts.contracts ?? 100
+  const venues = [a, b].map((q) => {
+    const sum = q.yesAsk + q.noAsk, gross = 1 - sum, fees = feeFor(q, q.yesAsk, C) + feeFor(q, q.noAsk, C), net = gross - fees
+    return { venue: q.venue, yesAsk: q.yesAsk, noAsk: q.noAsk, sum, gross, fees, net, survives: net > 0 }
+  })
+  const route = (y: VenueQuote, n: VenueQuote): Route => {
+    const cost = y.yesAsk + n.noAsk, gross = 1 - cost, fees = feeFor(y, y.yesAsk, C) + feeFor(n, n.noAsk, C), net = gross - fees
+    return { label: `YES on ${y.venue} + NO on ${n.venue}`, cost, gross, fees, net, survives: net > 0 }
+  }
+  const cross = [route(a, b), route(b, a)]
+  const all = [...venues.map((v) => ({ label: `YES + NO on ${v.venue}`, cost: v.sum, gross: v.gross, fees: v.fees, net: v.net, survives: v.survives })), ...cross]
+  const best = all.filter((r) => r.survives).sort((x, y) => y.net - x.net)[0] ?? null
+  const mid = (q: VenueQuote) => (q.yesAsk + (1 - q.noAsk)) / 2
+  const cheaper = a.yesAsk <= b.yesAsk ? a : b
+  const divergence = { cents: Math.abs(a.yesAsk - b.yesAsk), pct: Math.abs(a.yesAsk - b.yesAsk) / Math.min(a.yesAsk, b.yesAsk), cheaper: cheaper.venue }
+  let bet: TwoVenueCheck['bet'] = null
+  const p = opts.p
+  if (p !== undefined && p !== null && p > 0 && p < 1) {
+    const options = [a, b].flatMap((q) => [
+      { side: 'YES' as const, venue: q.venue, price: q.yesAsk, win: p, fee: feeFor(q, q.yesAsk, C) },
+      { side: 'NO' as const, venue: q.venue, price: q.noAsk, win: 1 - p, fee: feeFor(q, q.noAsk, C) },
+    ]).map((o) => ({ ...o, edge: o.win - o.price - o.fee })).sort((x, y) => y.edge - x.edge)
+    const o = options[0]
+    const effPrice = Math.min(0.999, o.price + o.fee)
+    bet = { side: o.side, venue: o.venue, price: o.price, p: o.win, edgeAfterFee: o.edge, kelly: kellyFraction(o.win, netOdds(effPrice), opts.kellyFraction ?? 0.25, 0.1) }
+  }
+  const notes = [
+    best ? `${best.label}: ${(best.net * 100).toFixed(1)}¢ per $1 pair after fees, before slippage and the capital tied up until settlement.` : 'No route survives fees at these quotes. That is the normal answer: the easy gaps close fast.',
+    'Check that both venues settle on exactly the same rules and source. "The same event" worded differently is the most common way an arbitrage turns into two bets.',
+    'Quotes are top of book: walking the book, withdrawal costs and latency eat thin edges. Size with a fraction of Kelly, never full Kelly.',
+  ]
+  return { venues, cross, divergence, consensus: (mid(a) + mid(b)) / 2, best, bet, notes, provenance: 'SIMULATED' }
+}

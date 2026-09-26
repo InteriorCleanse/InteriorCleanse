@@ -112,3 +112,33 @@ test('walled off: the engine never imports the desk, and the desk has no network
   }
   assert.match(readFileSync(join(ROOT, 'src', 'server.ts'), 'utf8'), /path === '\/api\/forecast'/)
 })
+
+// ---- the two-venue edge check (prediction markets) --------------------------------
+import { twoVenueCheck, kalshiFeePerContract } from '../../src/school/predictionMarket.ts'
+
+test('Kalshi fee: 0.07 × C × P × (1 − P), rounded up to the cent, per contract', () => {
+  assert.equal(kalshiFeePerContract(0.5, 100), 0.0175)
+  assert.equal(kalshiFeePerContract(0.5, 1), 0.02, 'one contract rounds 1.75¢ up to 2¢')
+  assert.equal(kalshiFeePerContract(0.99, 100), 0.0007)
+  assert.equal(kalshiFeePerContract(0, 100), 0)
+})
+
+test('two venues: single-venue sums, both cross routes, divergence, and Kelly on your view', () => {
+  // SIMULATED quotes, the reference slide's shape: Polymarket 55/43, Kalshi 62/40.
+  const r = twoVenueCheck({ venue: 'Polymarket', yesAsk: 0.55, noAsk: 0.43, fee: 0 }, { venue: 'Kalshi', yesAsk: 0.62, noAsk: 0.40, fee: 'kalshi' }, { p: 0.6 })
+  assert.equal(r.provenance, 'SIMULATED')
+  assert.ok(Math.abs(r.venues[0].gross - 0.02) < 1e-9 && r.venues[0].survives)
+  assert.ok(!r.venues[1].survives, 'YES + NO over $1 on Kalshi: no edge')
+  const yesPmNoK = r.cross.find((c) => c.label === 'YES on Polymarket + NO on Kalshi')!
+  assert.ok(Math.abs(yesPmNoK.cost - 0.95) < 1e-9 && yesPmNoK.survives)
+  assert.equal(r.best!.label, 'YES on Polymarket + NO on Kalshi', 'the best route is the one with the most left after fees')
+  assert.ok(Math.abs(r.divergence.cents - 0.07) < 1e-9)
+  assert.equal(r.divergence.cheaper, 'Polymarket')
+  assert.equal(r.bet!.side, 'YES'); assert.equal(r.bet!.venue, 'Polymarket')
+  assert.ok(r.bet!.kelly.suggested <= 0.1, 'Kelly is fractional and capped')
+  assert.throws(() => twoVenueCheck({ venue: 'A', yesAsk: 1.2, noAsk: 0.4, fee: 0 }, { venue: 'B', yesAsk: 0.5, noAsk: 0.5, fee: 0 }))
+  // When nothing survives, the best route is null and the note says so.
+  const none = twoVenueCheck({ venue: 'A', yesAsk: 0.52, noAsk: 0.5, fee: 0.02 }, { venue: 'B', yesAsk: 0.53, noAsk: 0.49, fee: 'kalshi' })
+  assert.equal(none.best, null)
+  assert.match(none.notes[0], /No route survives/)
+})

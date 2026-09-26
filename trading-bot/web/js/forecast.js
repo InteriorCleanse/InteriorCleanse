@@ -7,6 +7,7 @@
  *   - a compact terminal on Home, under the markets strip.
  * Nothing here places an order; the desk has no execution path at all.
  */
+import { priceStack, lineChart } from './viz.js'
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 const $ = (id) => document.getElementById(id)
 const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%')
@@ -16,6 +17,7 @@ const ARROW = { up: '▲', down: '▼', flat: '·', unchanged: '=' }
 const RESULT = { right: 'RIGHT', wrong: 'WRONG', passed: 'PASSED', void: 'VOID' }
 
 let desk = null, err = null, loading = false, fetchedAt = 0, ticker = null
+let edge = { form: { pmYes: 55, pmNo: 43, pmFee: 0, kYes: 62, kNo: 40, p: '', contracts: 100 }, result: null, error: null, busy: false }
 
 async function load(force = false) {
   if (loading) return
@@ -79,6 +81,49 @@ function statusText(d) {
   return 'live'
 }
 
+
+const cents = (v) => `${(v * 100).toFixed(1)}¢`
+function edgeCard(d) {
+  const f = edge.form, r = edge.result
+  const pDefault = d?.current?.pUp ?? d?.lastRead?.pUp
+  const inp = (k, label, extra = '') => `<label class="fc-in"><span>${label}</span><input name="${k}" type="number" step="0.1" min="0" max="100" value="${esc(f[k])}" ${extra}></label>`
+  return `<div class="card fc-edge"><h2>Edge check · Polymarket × Kalshi <span class="badge sc-prov">SIMULATED · YOUR QUOTES</span></h2>
+    <p class="muted" style="margin-top:0">Type the asks for the same event on both venues, in cents. The check looks for YES + NO under $1 on one venue, for YES on one venue plus NO on the other under $1, and for how far the two YES prices disagree. It subtracts fees (Kalshi's published formula, and your Polymarket rate) and, if you give a probability, finds the side worth the most and a capped quarter-Kelly stake. Mr. Cash does not connect to either venue and places nothing.</p>
+    <form id="fc-edge-form" class="fc-edge-form">
+      <fieldset><legend>Polymarket</legend>${inp('pmYes', 'YES ask ¢')}${inp('pmNo', 'NO ask ¢')}${inp('pmFee', 'fee %')}</fieldset>
+      <fieldset><legend>Kalshi</legend>${inp('kYes', 'YES ask ¢')}${inp('kNo', 'NO ask ¢')}<label class="fc-in"><span>contracts</span><input name="contracts" type="number" min="1" max="100000" value="${esc(f.contracts)}"></label></fieldset>
+      <fieldset><legend>Your view</legend><label class="fc-in"><span>p(YES) %</span><input name="p" type="number" step="0.1" min="1" max="99" value="${esc(f.p)}" placeholder="${pDefault ? Math.round(pDefault * 100) : ''}"></label>${pDefault ? `<button type="button" class="chip" id="fc-use-desk">Use the desk's ${Math.round(pDefault * 100)}%</button>` : ''}</fieldset>
+      <button class="btn" type="submit" ${edge.busy ? 'disabled' : ''}>${edge.busy ? 'Checking…' : 'Check the edge'}</button>
+    </form>
+    ${edge.error ? `<p class="pl-err">${esc(edge.error)}</p>` : ''}
+    ${r ? `<div class="fc-edge-out">
+      ${priceStack({ venues: r.venues.map((v) => ({ name: v.venue, yes: v.yesAsk, no: v.noAsk })).concat(r.cross.map((c, i) => ({ name: i === 0 ? 'YES PM + NO K' : 'YES K + NO PM', yes: i === 0 ? r.venues[0].yesAsk : r.venues[1].yesAsk, no: i === 0 ? r.venues[1].noAsk : r.venues[0].noAsk }))), title: 'What a $1 payout costs, venue by venue and across venues' })}
+      <table class="fc-routes"><thead><tr><th>Route</th><th class="num">Cost</th><th class="num">Gross</th><th class="num">Fees</th><th class="num">Net per $1</th><th></th></tr></thead><tbody>
+      ${[...r.venues.map((v) => ({ label: `YES + NO on ${v.venue}`, cost: v.sum, gross: v.gross, fees: v.fees, net: v.net, survives: v.survives })), ...r.cross].map((x) => `<tr><td>${esc(x.label)}</td><td class="num">$${x.cost.toFixed(3)}</td><td class="num">${cents(x.gross)}</td><td class="num">${cents(x.fees)}</td><td class="num ${x.survives ? 'fc-up' : 'fc-down'}">${cents(x.net)}</td><td>${x.survives ? '<span class="badge good">survives fees</span>' : '<span class="badge low">no edge</span>'}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="fc-score"><div><span>YES divergence</span><b>${cents(r.divergence.cents)} <small>${Math.round(r.divergence.pct * 100)}%</small></b></div><div><span>Cheaper YES</span><b>${esc(r.divergence.cheaper)}</b></div><div><span>Consensus p(YES)</span><b>${Math.round(r.consensus * 100)}%</b></div>${r.bet ? `<div><span>Best side for your view</span><b>${esc(r.bet.side)} on ${esc(r.bet.venue)}</b></div><div><span>Edge after fee</span><b class="${r.bet.edgeAfterFee > 0 ? 'fc-up' : 'fc-down'}">${cents(r.bet.edgeAfterFee)}</b></div><div><span>¼-Kelly stake</span><b>${(r.bet.kelly.suggested * 100).toFixed(1)}% <small>of bankroll</small></b></div>` : ''}</div>
+      ${r.bet ? `<p class="muted">${esc(r.bet.kelly.note)}</p>` : ''}
+      <ul class="fc-notes">${r.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+    </div>` : ''}
+  </div>`
+}
+
+async function runEdge() {
+  const form = $('fc-edge-form'); if (!form) return
+  const fd = new FormData(form)
+  for (const k of Object.keys(edge.form)) edge.form[k] = fd.get(k) ?? edge.form[k]
+  const q = new URLSearchParams({ pmYes: edge.form.pmYes, pmNo: edge.form.pmNo, pmFee: edge.form.pmFee, kYes: edge.form.kYes, kNo: edge.form.kNo, contracts: edge.form.contracts })
+  if (edge.form.p !== '' && edge.form.p !== null) q.set('p', String(Number(edge.form.p) / 100))
+  edge.busy = true; edge.error = null; tabView()
+  try { const j = await fetch('/api/forecast/edge?' + q, { credentials: 'same-origin' }).then((x) => x.json()); if (!j.ok) { edge.error = j.error; edge.result = null } else edge.result = j.data } catch (e) { edge.error = e.message } finally { edge.busy = false; tabView() }
+}
+
+function calibrationChart(t) {
+  const pts = t.calibration.filter((b) => b.count > 0 && b.saidUp !== null)
+  if (pts.length < 2) return ''
+  return lineChart({ series: [{ name: 'Went up', color: '#60C892', points: pts.map((b) => [b.saidUp, b.wentUp]) }, { name: 'Perfect calibration', color: 'rgba(216,181,110,.7)', points: [[0.2, 0.2], [0.8, 0.8]] }], xLabel: 'Said p(up)', yLabel: 'Went up', area: false, height: 240, title: 'Calibration: points on the gold line mean the percentages can be trusted' })
+}
+
 function tabView() {
   const root = $('forecast-out'); if (!root) return
   if (err && !desk) { root.innerHTML = `<div class="card"><p class="pl-err">${esc(err)}</p></div>`; return }
@@ -102,8 +147,9 @@ function tabView() {
       </div>
     </div>
   </div>
-  <div class="card"><h2>Scoreboard <span class="badge sc-prov">PAPER FORECAST</span></h2>${score(d.tally, 'Live record')}${calibration(d.tally)}</div>
-  ${d.backtest ? `<div class="card"><h2>The same model on past windows <span class="badge sc-prov">BACKTEST</span></h2><p class="muted" style="margin-top:0">${d.backtest.windows} past ${d.windowMinutes}-minute windows from the stored candles, each forecast from candles closed by its start. A backtest, not the live record: it can look better than the future will.</p>${score(d.backtest.tally, 'Backtest')}<ul class="fc-logs">${d.backtest.recent.map(logLine).join('')}</ul></div>` : ''}
+  <div class="card"><h2>Scoreboard <span class="badge sc-prov">PAPER FORECAST</span></h2>${score(d.tally, 'Live record')}${calibrationChart(d.tally)}${calibration(d.tally)}</div>
+  ${d.backtest ? `<div class="card"><h2>The same model on past windows <span class="badge sc-prov">BACKTEST</span></h2><p class="muted" style="margin-top:0">${d.backtest.windows} past ${d.windowMinutes}-minute windows from the stored candles, each forecast from candles closed by its start. A backtest, not the live record: it can look better than the future will.</p>${score(d.backtest.tally, 'Backtest')}${calibrationChart(d.backtest.tally)}<ul class="fc-logs">${d.backtest.recent.map(logLine).join('')}</ul></div>` : ''}
+  ${edgeCard(d)}
   <div class="card"><h2>How the call works</h2><p class="plain">Every ${d.windowMinutes} minutes, when a window opens, Mr. Cash reads the candles closed so far: the hour trend and how straight it was, the last fifteen minutes, how stretched price is from its average, RSI, and the Scanner's bias score. From these he gives a probability that price ends the window higher. At ${Math.round(d.line * 100)}% or more he calls up, at ${Math.round((1 - d.line) * 100)}% or less down, and in between he holds flat. When the window closes, the call is settled against the real close and scored with the Brier score, where 0.25 is a coin flip.</p><p class="muted pl-note">${esc(d.note)}</p><div class="row"><button class="chip" id="fc-refresh">${loading ? 'Reading…' : 'Check now'}</button></div></div>`
 }
 
@@ -122,7 +168,13 @@ function homeView() {
   </button>`
 }
 
-function paint() { tabView(); homeView() }
+function paint() {
+  const form = $('fc-edge-form')
+  if (form) { const fd = new FormData(form); for (const k of Object.keys(edge.form)) if (fd.has(k)) edge.form[k] = fd.get(k) }
+  // Do not redraw the tab under someone who is typing in the edge check.
+  if (!(form && form.contains(document.activeElement))) tabView()
+  homeView()
+}
 
 function tickClock() {
   const l = mmss(left())
@@ -134,7 +186,11 @@ function tickClock() {
 
 function init() {
   const root = $('forecast-out')
-  root?.addEventListener('click', (e) => { if (e.target.closest('#fc-refresh')) load(true) })
+  root?.addEventListener('click', (e) => {
+    if (e.target.closest('#fc-refresh')) load(true)
+    if (e.target.closest('#fc-use-desk')) { const p = desk?.current?.pUp ?? desk?.lastRead?.pUp; if (p) { edge.form.p = Math.round(p * 1000) / 10; const i = document.querySelector('#fc-edge-form [name=p]'); if (i) i.value = edge.form.p } }
+  })
+  root?.addEventListener('submit', (e) => { if (e.target.id === 'fc-edge-form') { e.preventDefault(); runEdge() } })
   // Home: a slot under the markets strip, filled after every desk render.
   document.addEventListener('desk:rendered', () => {
     const markets = $('dk-markets')
