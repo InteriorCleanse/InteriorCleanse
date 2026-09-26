@@ -5,6 +5,8 @@ import { ResidenceHero } from '@/components/hero/ResidenceHero'
 import { ArticleCard, BookCard, ProductCard } from '@/components/cards'
 import { ProductBrowser } from '@/components/browse/ProductBrowser'
 import { Marquee } from '@/components/motion/Marquee'
+import { TrackScene } from '@/components/TrackScene'
+import { ArrowOrb } from '@/components/ui/ArrowOrb'
 import { GuestBook } from '@/components/GuestBook'
 import { LineIcon, type IconName } from '@/components/icons/LineIcon'
 import { TrackIcon } from '@/components/TrackIcon'
@@ -81,19 +83,19 @@ export default function Home() {
       <ScrollGalleryLoader products={featured} />
 
       {/* EDITORIAL TRIPTYCH */}
-      <section className="triptych" aria-label="InteriorCleanse editorial">
+      <section className="triptych" aria-label="InteriorCleanse editorial" data-cursor-label="Editorial">
         {[
           [
-            'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=700&q=90',
-            'Architectural interior with natural light and minimal furniture',
+            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_39dacf9b-ba7d-4cc7-ae1f-a812ae30cc77.png',
+            'A pale oak console with a hand-poured candle and a stack of linen-bound books in morning light',
           ],
           [
-            'https://images.unsplash.com/photo-1567767292278-a4f21aa2d36e?w=700&q=90',
-            'Warm minimal living room with botanical details',
+            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_3ec3cf93-a32b-49c0-aead-249d0bcb268e.png',
+            'A bed dressed in washed oatmeal linen in a calm sunlit bedroom',
           ],
           [
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=700&q=90',
-            'Moody modern bedroom interior',
+            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_a9fbe1d6-8801-4663-8d17-6e026debf376.png',
+            'A limestone kitchen counter with a stoneware mug and folded linen',
           ],
         ].map(([src, alt]) => (
           <div key={alt} className="triptych-col">
@@ -103,7 +105,8 @@ export default function Home() {
       </section>
 
       {/* MIND */}
-      <section className="track-section track-mind">
+      <section className="track-section track-mind" data-cursor-label="The library">
+        <TrackScene scene={getScene('library')} />
         <div className="track-inner">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -125,7 +128,8 @@ export default function Home() {
               real lives.
             </p>
             <Link href="/library/" className="track-cta">
-              Enter the library →
+              Enter the library
+              <ArrowOrb />
             </Link>
           </div>
           <div
@@ -140,7 +144,8 @@ export default function Home() {
       </section>
 
       {/* HOME */}
-      <section className="track-section track-home">
+      <section className="track-section track-home" data-cursor-label="The edit">
+        <TrackScene scene={getScene('atrium')} />
         <div className="track-inner reverse">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -162,7 +167,8 @@ export default function Home() {
               how they actually work.
             </p>
             <Link href="/shop/#home" className="track-cta">
-              Shop the home edit →
+              Shop the home edit
+              <ArrowOrb />
             </Link>
           </div>
           <div
@@ -177,7 +183,8 @@ export default function Home() {
       </section>
 
       {/* BODY */}
-      <section className="track-section track-body">
+      <section className="track-section track-body" data-cursor-label="The ritual">
+        <TrackScene scene={getScene('conservatory')} />
         <div className="track-inner">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -199,7 +206,8 @@ export default function Home() {
               in your home.
             </p>
             <Link href="/shop/#body" className="track-cta">
-              Shop body &amp; ritual →
+              Shop body &amp; ritual
+              <ArrowOrb />
             </Link>
           </div>
           <div
@@ -214,7 +222,8 @@ export default function Home() {
       </section>
 
       {/* SPIRIT */}
-      <section className="track-section track-spirit">
+      <section className="track-section track-spirit" data-cursor-label="The faith library">
+        <TrackScene scene={getScene('chapel')} />
         <div className="track-inner reverse">
           <div className="track-text">
             <div className="track-eyebrow-row">
@@ -236,11 +245,42 @@ export default function Home() {
               member of the family.
             </p>
             <Link href="/spirit/" className="track-cta">
-              Enter the faith library →
+              Enter the faith library
+              <ArrowOrb />
             </Link>
           </div>
-          <div className="spirit-orb-wrap" data-reveal>
-            <div className="spirit-orb" />
+          {/* The threshold, in the spirit's colour: the same doorway-and-sun as
+              the mark, breathing slowly. The room's chapel footage plays behind. */}
+          <div className="spirit-threshold-wrap" data-reveal>
+            <svg className="spirit-threshold" viewBox="0 0 48 48" aria-hidden="true">
+              <defs>
+                <linearGradient id="spirit-sun" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#E6CB96" />
+                  <stop offset="100%" stopColor="#8E6FB0" />
+                </linearGradient>
+                <radialGradient id="spirit-glow" cx="50%" cy="68%" r="55%">
+                  <stop offset="0%" stopColor="#E6CB96" stopOpacity="0.55" />
+                  <stop offset="100%" stopColor="#E6CB96" stopOpacity="0" />
+                </radialGradient>
+                <clipPath id="spirit-clip">
+                  <rect x="12" y="18" width="24" height="14" />
+                </clipPath>
+              </defs>
+              <circle className="spirit-glow" cx="24" cy="32" r="18" fill="url(#spirit-glow)" />
+              <g fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round">
+                <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
+                <path d="M8.5 42 H39.5" opacity="0.5" />
+                <path d="M17.5 32 H30.5" />
+              </g>
+              <g clipPath="url(#spirit-clip)">
+                <circle className="spirit-sun" cx="24" cy="32" r="5" fill="url(#spirit-sun)" />
+              </g>
+              <g stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" opacity="0.7">
+                <path d="M24 19.5 V22.5" />
+                <path d="M17.6 22.4 L19.8 24.6" />
+                <path d="M30.4 22.4 L28.2 24.6" />
+              </g>
+            </svg>
           </div>
         </div>
       </section>

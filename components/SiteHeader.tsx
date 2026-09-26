@@ -61,7 +61,11 @@ export function SiteHeader() {
   const overHero = TRANSPARENT_ROUTES.has(pathname) && !scrolled
 
   return (
-    <header className="site-header" data-transparent={overHero ? 'true' : undefined}>
+    <header
+      className="site-header"
+      data-transparent={overHero ? 'true' : undefined}
+      data-scrolled={scrolled ? 'true' : undefined}
+    >
       <div className="header-lockup">
         <FloatingMark />
         <LogoMark />

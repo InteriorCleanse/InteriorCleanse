@@ -1,8 +1,8 @@
 {
   "atrium": {
-    "desktopVideo": "/video/hero-desktop.mp4",
+    "desktopVideo": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235954_78f761da-939a-43bf-8dc3-c695e3312010.mp4",
     "mobileVideo": null,
-    "posterImage": "/images/hero-poster.jpg",
+    "posterImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235549_54bde717-2554-4d45-ac94-c005c1214fea_min.webp",
     "headline": [
       "LIVE BEAUTIFULLY.",
       "FEEL RESTORED."
@@ -63,11 +63,12 @@
       "slug": "ic-signature-candle",
       "position": "bottom-right"
     },
-    "posterMotion": "push-in"
+    "posterMotion": "push-in",
+    "webmVideo": null
   },
   "library": {
-    "posterImage": "/images/library-poster.jpg",
-    "desktopVideo": "/video/library-desktop.mp4",
+    "posterImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235550_9085d2cf-248c-4132-a2c8-c5d957293355_min.webp",
+    "desktopVideo": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235954_d16ba2f2-8c85-4f23-b835-c1218a8113df.mp4",
     "mobileVideo": null,
     "headline": [
       "EVERY ROOM",
@@ -105,11 +106,12 @@
       }
     ],
     "posterMotion": "drift-right",
-    "ambientSound": "classical"
+    "ambientSound": "classical",
+    "webmVideo": null
   },
   "conservatory": {
-    "posterImage": "/images/conservatory-poster.jpg",
-    "desktopVideo": "/video/conservatory-desktop.mp4",
+    "posterImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235549_a00d3110-e386-41ee-b85e-3488dc5468e4_min.webp",
+    "desktopVideo": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_000442_31d7416f-7103-4adb-a8a6-a2098f33bca1.mp4",
     "mobileVideo": null,
     "headline": [
       "THE BODY",
@@ -147,7 +149,8 @@
       }
     ],
     "posterMotion": "push-in",
-    "ambientSound": "birdsong"
+    "ambientSound": "birdsong",
+    "webmVideo": null
   },
   "cleaning": {
     "posterImage": "/images/cleaning-poster.jpg",
@@ -192,8 +195,8 @@
     "ambientSound": "water"
   },
   "chapel": {
-    "posterImage": "/images/chapel-poster.jpg",
-    "desktopVideo": "/video/chapel-desktop.mp4",
+    "posterImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235549_99bc58bf-db40-4b6e-8f8f-6d8c7a7a4d3c_min.webp",
+    "desktopVideo": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_000442_f79a138d-9e94-4ae7-b010-8cb65d8a30cb.mp4",
     "mobileVideo": null,
     "headline": [
       "QUIET",
@@ -230,7 +233,8 @@
         "href": "/spirit/"
       }
     ],
-    "posterMotion": "drift-up"
+    "posterMotion": "drift-up",
+    "webmVideo": null
   },
   "gallery": {
     "posterImage": "/images/gallery-poster.jpg",
@@ -371,8 +375,8 @@
     "posterMotion": "drift-left"
   },
   "showroom": {
-    "posterImage": "/images/showroom-poster.jpg",
-    "desktopVideo": "/video/showroom-desktop.mp4",
+    "posterImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235549_12ef33e0-45db-469e-ad2a-1bd69ffe6dc6_min.webp",
+    "desktopVideo": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_235954_1cc214c9-4d9c-498f-a35e-374ec666ccef.mp4",
     "mobileVideo": null,
     "headline": [
       "THE",
@@ -383,6 +387,7 @@
       "href": "/collection/"
     },
     "hotspots": [],
-    "posterMotion": "push-in"
+    "posterMotion": "push-in",
+    "webmVideo": null
   }
 }

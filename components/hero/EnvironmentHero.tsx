@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowOrb } from '@/components/ui/ArrowOrb'
 import Link from 'next/link'
 import { useMemo, useRef } from 'react'
 import type { Scene } from '@/lib/scenes'
@@ -97,19 +98,25 @@ export function EnvironmentHero({
         {/* LAYER C */}
         <div className="residence-copy parallax-layer" ref={copyRef}>
           <Heading className="residence-headline">
-            {scene.headline.map((line) => (
-              <span key={line} className="residence-headline-line">
-                {line}
+            {scene.headline.map((line, i) => (
+              <span
+                key={line}
+                className="residence-headline-line"
+                style={{ '--i': i } as React.CSSProperties}
+              >
+                <span className="residence-headline-inner">{line}</span>
               </span>
             ))}
           </Heading>
           <div className="residence-ctas">
             <Link href={scene.primaryCta.href} className="btn-residence-primary">
               {scene.primaryCta.label}
+              <ArrowOrb />
             </Link>
             {scene.secondaryCta ? (
               <Link href={scene.secondaryCta.href} className="btn-residence-ghost">
                 {scene.secondaryCta.label}
+                <ArrowOrb />
               </Link>
             ) : null}
           </div>
