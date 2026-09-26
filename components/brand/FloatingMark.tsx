@@ -11,14 +11,14 @@ const TILT_HOVER = 12
 const EASE = 0.08
 
 /**
- * The flowing-C mark in the header.
+ * The threshold mark in the header.
  *
  * Inline SVG with a specular highlight sweeping across it, a slow float, and a
  * tilt that eases toward the cursor. No WebGL and no Three.js: this is a 40px
  * logo, and a GL context for it would cost more than the entire rest of the
  * header.
  *
- * The paths are inlined rather than loaded from `/brand/flowing-c.svg` so the
+ * The paths are inlined rather than loaded from `/brand/monogram.svg` so the
  * mark is in the server HTML and paints with the first frame — an `<img>` would
  * be a second request in front of the most important thing in the header.
  *
@@ -136,12 +136,19 @@ export function FloatingMark() {
               </stop>
             </linearGradient>
           </defs>
-          {/* The mark: two nested arches — a recessed doorway — swept by the
-              specular highlight. */}
-          <g fill="none" stroke="url(#ic-sheen)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          {/* The mark: a doorway with the sun rising inside it, swept by the
+              specular highlight. Same geometry as brand/Monogram. */}
+          <g fill="none" stroke="url(#ic-sheen)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
             <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
-            <path d="M19.5 42 V29 A4.5 4.5 0 0 1 28.5 29 V42" />
+            <path d="M8.5 42 H39.5" opacity="0.55" />
+            <path d="M17.5 32 H30.5" />
+            <g opacity="0.75" strokeWidth="1.7">
+              <path d="M24 19.5 V22.5" />
+              <path d="M17.6 22.4 L19.8 24.6" />
+              <path d="M30.4 22.4 L28.2 24.6" />
+            </g>
           </g>
+          <path d="M19 32 A5 5 0 0 1 29 32 Z" fill="url(#ic-sheen)" opacity="0.95" />
         </svg>
       </span>
     </Link>

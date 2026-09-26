@@ -14,7 +14,7 @@ export function ProductCard({
   index?: number
 }) {
   return (
-    <article className="product-card">
+    <article className="product-card" data-cursor-label="View">
       <Link href={`/shop/${product.slug}/`} className="product-card-image">
         <ProductExperience product={product} variant="card" eager={index < 3} />
         {product.badge ? <span className="product-card-badge">{product.badge}</span> : null}
@@ -35,7 +35,7 @@ export function ProductCard({
 
 export function BookCard({ book }: { book: Book }) {
   return (
-    <article className="book-card">
+    <article className="book-card" data-cursor-label="Read">
       <Link href={`/library/${book.slug}/`} className="book-card-image">
         <ProductImage src={book.coverImage} alt={book.imageAlt} label={book.title} />
       </Link>

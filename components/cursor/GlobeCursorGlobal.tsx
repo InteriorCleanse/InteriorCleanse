@@ -27,6 +27,9 @@ import { useEffect, useRef, useState } from 'react'
 const INTERACTIVE =
   'a, button, input, select, textarea, label, summary, [role="button"], [role="link"], [contenteditable="true"], [data-native-cursor]'
 
+/** Zones that keep the globe even over their links, and caption it. */
+const LABELLED = '[data-cursor-label]'
+
 /** Draggable "explore" zones that earn the one hint line. */
 const DRAGGABLE = '.residence-hero, .stage-container, .spin-viewport, .browser-stack, .showroom-stage, .pedestal'
 
@@ -35,6 +38,7 @@ export function GlobeCursorGlobal() {
   const frameRef = useRef<number | null>(null)
   const [active, setActive] = useState(false)
   const [hint, setHint] = useState(false)
+  const [label, setLabel] = useState<string | null>(null)
   const [enabled, setEnabled] = useState(false)
 
   useEffect(() => {
@@ -56,15 +60,32 @@ export function GlobeCursorGlobal() {
 
     const move = (e: PointerEvent) => {
       const target = e.target as Element | null
-      // Over a control, hand the pointer back rather than covering it.
-      if (target?.closest?.(INTERACTIVE)) {
+      // Inside a labelled zone (a product card, a room) the globe stays, grows,
+      // and says what a click does — the caption is the affordance. Form
+      // controls still get the real pointer.
+      const zone = target?.closest?.(LABELLED) as HTMLElement | null
+      const control = target?.closest?.('input, select, textarea, [contenteditable="true"]')
+      // A card is one link, so its caption speaks for the whole tile. A room
+      // section is not: a button inside it keeps the real pointer.
+      const overControl = Boolean(target?.closest?.(INTERACTIVE))
+      const zoneIsCard = Boolean(zone?.matches('.product-card, .book-card, .article-card'))
+      if (zone && !control && (!overControl || zoneIsCard)) {
+        root.dataset.cursor = 'globe'
+        setActive(true)
+        setHint(false)
+        setLabel(zone.dataset.cursorLabel || null)
+      } else if (target?.closest?.(INTERACTIVE)) {
+        // Over a control, hand the pointer back rather than covering it.
         root.dataset.cursor = 'native'
         setActive(false)
+        setLabel(null)
         return
+      } else {
+        root.dataset.cursor = 'globe'
+        setActive(true)
+        setLabel(null)
+        setHint(Boolean(target?.closest?.(DRAGGABLE)))
       }
-      root.dataset.cursor = 'globe'
-      setActive(true)
-      setHint(Boolean(target?.closest?.(DRAGGABLE)))
 
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
       frameRef.current = requestAnimationFrame(() => {
@@ -94,7 +115,13 @@ export function GlobeCursorGlobal() {
   if (!enabled) return null
 
   return (
-    <div className="globe-cursor" ref={cursorRef} data-active={active ? 'true' : undefined} aria-hidden="true">
+    <div
+      className="globe-cursor"
+      ref={cursorRef}
+      data-active={active ? 'true' : undefined}
+      data-label={label ? 'true' : undefined}
+      aria-hidden="true"
+    >
       <svg viewBox="0 0 64 64" width="52" height="52">
         <g fill="none" stroke="currentColor" strokeWidth="0.8" opacity="0.9">
           <circle cx="32" cy="32" r="23" />
@@ -109,8 +136,8 @@ export function GlobeCursorGlobal() {
           </g>
         </g>
       </svg>
-      <span className="globe-cursor-hint" data-shown={hint ? 'true' : undefined}>
-        Drag to explore
+      <span className="globe-cursor-hint" data-shown={hint || label ? 'true' : undefined}>
+        {label ?? 'Drag to explore'}
       </span>
     </div>
   )

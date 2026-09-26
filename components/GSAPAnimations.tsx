@@ -91,12 +91,13 @@ export function GSAPAnimations() {
             if (!lines.length) return
             gsap.fromTo(
               lines,
-              { yPercent: 115 },
+              { yPercent: 115, skewY: 6, transformOrigin: 'left top' },
               {
                 yPercent: 0,
-                duration: 1.1,
-                stagger: 0.09,
-                ease: 'power4.out',
+                skewY: 0,
+                duration: 1.35,
+                stagger: 0.1,
+                ease: 'expo.out',
                 immediateRender: false,
                 scrollTrigger: { trigger: el, start: 'top 88%', once: true },
               }
@@ -169,6 +170,27 @@ export function GSAPAnimations() {
                 ease: 'none',
                 immediateRender: false,
                 scrollTrigger: { trigger: '.triptych', start: 'top bottom', end: 'bottom top', scrub: 0.6 },
+              }
+            )
+          })
+
+          // Living rooms behind the tracks drift against the scroll, slower
+          // than the copy in front of them. The scene is oversized by CSS so
+          // the travel never exposes an edge. Transform only, scrubbed.
+          gsap.utils.toArray<HTMLElement>('.track-scene').forEach((scene) => {
+            gsap.fromTo(
+              scene,
+              { yPercent: -6 },
+              {
+                yPercent: 6,
+                ease: 'none',
+                immediateRender: false,
+                scrollTrigger: {
+                  trigger: scene.parentElement,
+                  start: 'top bottom',
+                  end: 'bottom top',
+                  scrub: 0.8,
+                },
               }
             )
           })

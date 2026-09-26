@@ -103,3 +103,45 @@ light." Keep motion under 5% of frame width so the poster and video match.
    `posterImage` / `desktopVideo`. The CDN is already allowed in the CSP.
 3. Keep the branded tile fallback — it is what shows if a URL ever fails.
 4. Never publish a stock photograph; never invent a product to fill a room.
+
+## Room films (Seedance 2.0)
+
+The living rooms behind the hero, the four tracks and the showroom are
+image-to-video: a hyperreal still first, then Seedance animates that exact
+frame, so the poster and the first frame of the film are the same picture and
+the page never jumps when the video takes over.
+
+**Settings that worked**
+
+| Step | Model | Settings | Cost |
+| --- | --- | --- | --- |
+| Still | `gpt_image_2_5` | 16:9, prompt below | ~0.25 cr |
+| Film | `seedance_2_0` | 8 s, 720p, `generate_audio: false`, `start_image` = the still's job id | 36 cr |
+| Hero film | `seedance_2_0` | 8 s, 1080p, otherwise the same | 72 cr |
+
+1080p costs twice 720p per second; behind a scrim, 720p is enough for every
+room but the hero.
+
+**Still prompt shape.** Room, materials, light, one or two objects, then the
+composition note that keeps a third of the frame calm for the headline, then
+the constants: `Photorealistic architectural photography, 35mm, eye level,
+warm neutral palette of bone, oatmeal, travertine and brushed brass,
+hyper-detailed materials, no people, no text, no logos, no watermark.`
+
+**Film prompt shape.** Motion only. One slow camera move (dolly-in, lateral
+dolly, tilt-up, orbital drift), two or three living details (curtains
+breathing, dust motes, a candle flame, dappled light, a ripple), then:
+`Photorealistic, seamless continuous motion, no cuts, no people, no text, no
+logos. Preserve the reference image's composition, materials, palette and
+lighting exactly.`
+
+**Gotcha.** Seedance sometimes answers a prompt with a preset recommendation
+instead of a job (`submission_failed`, "Preset X was recommended"). Resubmit
+the same request with `declined_preset_id` set to that preset's id; adding
+"bright" or "daylight" to the prompt also steers it away from the moody
+presets.
+
+**Wiring.** In `content/scenes.json`, set `desktopVideo` to the film's
+CloudFront `.mp4`, `posterImage` to the still's `_min.webp`, and leave
+`mobileVideo` null (phones get the poster). The CDN is allowed in the CSP
+`img-src` and `media-src`.

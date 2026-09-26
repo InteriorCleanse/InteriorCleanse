@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Fraunces, Inter } from 'next/font/google'
+import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 
 // Self-hosted and preloaded by Next. `display: swap` means text paints in the
@@ -9,14 +9,18 @@ const fraunces = Fraunces({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-fraunces',
-  axes: ['opsz'],
+  // SOFT rounds the serifs and WONK unlocks the swash alternates the italic
+  // emphasis words use; both are what make the display face read as couture
+  // rather than default-serif.
+  axes: ['opsz', 'SOFT', 'WONK'],
 })
 
-const inter = Inter({
+// A humanist grotesk with real optical warmth, in place of the default UI
+// sans every generated site ships with.
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
-  weight: ['300', '400', '500', '600'],
+  variable: '--font-jakarta',
 })
 import { Footer, Header } from '@/components/layout'
 import { Experience } from '@/components/Experience'
@@ -26,6 +30,7 @@ import { PageTransition } from '@/components/PageTransition'
 import { SmoothScroll } from '@/components/SmoothScroll'
 import { GlobeCursorGlobal } from '@/components/cursor/GlobeCursorGlobal'
 import { ScrollProgress } from '@/components/motion/ScrollProgress'
+import { IntroVeil } from '@/components/motion/IntroVeil'
 import { MagneticButtons } from '@/components/motion/MagneticButtons'
 import { CartDrawer, CartProvider } from '@/components/cart'
 import { OrganizationLd, WebSiteLd } from '@/components/StructuredData'
@@ -52,9 +57,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: ['/images/og-image.png'],
   },
-  // The .ico carries 16/32/48 of the flowing-C silhouette only. The rose and
-  // vase from the master are fine graphite work and turn to mud below ~48px,
-  // so small marks come from the hand-drawn vector, never a shrunk raster.
+  // The .ico carries 16/32/48 of the threshold mark, rendered from the same
+  // geometry as the inline SVG so the tab icon and the header agree.
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
@@ -66,11 +70,22 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
+      <head>
+        {/* Runs before first paint: a visitor who has already seen the intro
+            this session gets the page immediately, with no veil flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(sessionStorage.getItem('ic_intro'))document.documentElement.dataset.intro='skip'}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
+        <IntroVeil />
         <OrganizationLd />
         <WebSiteLd />
         <CartProvider>

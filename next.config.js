@@ -30,7 +30,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://images.unsplash.com https://files.cdn.printful.com https://images-api.printify.com https://*.printify.com https://d8j0ntlcm91z4.cloudfront.net",
   "font-src 'self' data:",
-  "media-src 'self'",
+  "media-src 'self' https://d8j0ntlcm91z4.cloudfront.net",
   "connect-src 'self' https://api.stripe.com https://plausible.io",
   "frame-src https://js.stripe.com https://hooks.stripe.com",
   "worker-src 'self' blob:",

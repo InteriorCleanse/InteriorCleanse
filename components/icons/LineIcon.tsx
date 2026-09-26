@@ -3,7 +3,7 @@
  * currentColor so each inherits its context. Used where a distinct, meaningful
  * glyph reads better than repeating the brand mark (the trust strip, features).
  */
-export type IconName = 'shield' | 'flame' | 'book' | 'ship'
+export type IconName = 'shield' | 'flame' | 'book' | 'ship' | 'sparkle' | 'star' | 'diamond'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   shield: (
@@ -29,6 +29,22 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M14 9.5h3.5L21 13v2.5h-7z" />
       <circle cx="7" cy="17.5" r="1.7" />
       <circle cx="17.5" cy="17.5" r="1.7" />
+    </>
+  ),
+  sparkle: (
+    <>
+      <path d="M12 3.5c.6 4.4 3.1 6.9 7.5 7.5-4.4.6-6.9 3.1-7.5 7.5-.6-4.4-3.1-6.9-7.5-7.5 4.4-.6 6.9-3.1 7.5-7.5Z" />
+    </>
+  ),
+  star: (
+    <>
+      <path d="M12 3.8l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6L12 16.4l-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7L12 3.8Z" />
+    </>
+  ),
+  diamond: (
+    <>
+      <path d="M12 3.5 20.5 12 12 20.5 3.5 12 12 3.5Z" />
+      <path d="M12 3.5v17M3.5 12h17" opacity={0.45} />
     </>
   ),
 }
