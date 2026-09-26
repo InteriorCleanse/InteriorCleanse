@@ -25,19 +25,28 @@ try {
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
     // The fields: fraction-of-viewport home, colour, radius scale, and a slow
-    // orbit. Colours stay in the Maison family: champagne gold, warm bronze and
-    // a trace of deep emerald — no hue that could be read as up or down.
+    // orbit. PRISM palette: champagne gold, electric cyan, violet and coral —
+    // vivid, but none of them emerald or rose, so no field can be read as up
+    // or down.
     const ORBS = [
-      { x: 0.14, y: 0.06, c: '214,180,106', r: 0.70, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.085 },
-      { x: 0.90, y: 0.12, c: '176,122,70',  r: 0.56, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.05 },
-      { x: 0.80, y: 0.88, c: '46,110,88',   r: 0.64, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.05 },
-      { x: 0.18, y: 0.92, c: '120,86,48',   r: 0.54, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.05 },
+      { x: 0.14, y: 0.06, c: '242,198,109', r: 0.70, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.10 },
+      { x: 0.90, y: 0.12, c: '56,217,232',  r: 0.58, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.075 },
+      { x: 0.80, y: 0.88, c: '167,139,250', r: 0.64, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.08 },
+      { x: 0.18, y: 0.92, c: '255,138,101', r: 0.54, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.06 },
     ]
+
+    // Smoothness: the fields are soft blurs, so they are drawn at a fraction of
+    // screen resolution and stretched by CSS — a full-viewport redraw at device
+    // pixels was the single heaviest thing on the page. They also drift slowly
+    // enough that ~24 frames a second is indistinguishable from 60.
+    const SCALE = 0.35
+    const FRAME_MS = 1000 / 24
+    let last = -Infinity
 
     let w = 0, h = 0, dpr = 1, min = 0, raf = null
 
     function fit() {
-      dpr = Math.min(2, window.devicePixelRatio || 1)
+      dpr = SCALE
       w = window.innerWidth; h = window.innerHeight; min = Math.max(w, h)
       cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -45,6 +54,8 @@ try {
 
     function frame(t) {
       raf = null
+      if (!reduce && t - last < FRAME_MS) { if (document.visibilityState === 'visible') raf = requestAnimationFrame(frame); return }
+      last = t
       const sec = t / 1000
       ctx.clearRect(0, 0, w, h)
       ctx.globalCompositeOperation = 'lighter'

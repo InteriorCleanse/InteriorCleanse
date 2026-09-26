@@ -73,6 +73,18 @@ test('the More button carries no data-tab, so it opens the panel instead of navi
   assert.equal(/data-tab/.test(more), false, 'the More button must not look like a tab')
 })
 
+test('every area of the More panel has its own colour, and none of them means up or down', () => {
+  const block = html.slice(html.indexOf('const GROUPS = ['), html.indexOf('const TAB = '))
+  const titles = [...block.matchAll(/^\s*\['([^']+)',/gm)].map((m) => m[1])
+  const hueLine = html.match(/^const AREA_HUE = \{(.*)\}$/m)?.[1] ?? ''
+  const hues = Object.fromEntries([...hueLine.matchAll(/'([^']+)':'([a-z]+)'/g)].map((m) => [m[1], m[2]]))
+  assert.ok(titles.length >= 4, `only parsed ${titles.length} groups`)
+  for (const t of ['Home', ...titles]) assert.ok(hues[t], `the "${t}" area has no colour`)
+  for (const h of Object.values(hues)) assert.ok(!/green|emerald|red|rose/.test(h), `"${h}" would read as up or down`)
+  assert.equal(new Set(Object.values(hues)).size, Object.values(hues).length, 'two areas share a colour, so the colour no longer says where you are')
+  for (const h of Object.values(hues)) assert.match(readFileSync(join(ROOT, 'web', 'css', 'app.css'), 'utf8'), new RegExp(`html\\[data-hue="${h}"\\]`), `no accent is defined for "${h}"`)
+})
+
 /**
  * THE TESTS THEMSELVES MUST BE TYPECHECKED.
  *

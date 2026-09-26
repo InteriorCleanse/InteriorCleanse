@@ -2225,3 +2225,144 @@ body { min-height:100dvh; }
 .fc-win { display:inline-flex; gap:2px; margin-right:8px; background:rgba(255,246,228,.04); border:1px solid rgba(var(--brand-rgb),.2); border-radius:999px; padding:2px; }
 .fc-win button { font:600 11px var(--font-sans); color:var(--dim); background:transparent; border:0; border-radius:999px; padding:3px 10px; cursor:pointer; }
 .fc-win button.on { background:var(--gold-grad); color:var(--ink); }
+
+/* ============================================================
+   PRISM — vivid colour, clear rooms, smooth motion.
+   Layered over MAISON: the same warm onyx and champagne gold, lit
+   with brighter jewel tones. Every area of the app has its own hue
+   (html[data-hue], set by the tab switcher), carried by the
+   breadcrumb, the card rule, the active tab and the More panel.
+   Emerald and rose still mean up and down and nothing else; no area
+   hue is either of them.
+   Smoothness: cards no longer blur what is behind them (a blur per
+   card over an animated backdrop was the main source of jank), the
+   backdrop is drawn small and slow (bg.js), and motion uses only
+   transform and opacity.
+   ============================================================ */
+:root {
+  --brand:#F2C66D; --brand-rgb:242,198,109; --brand-hi:#FFDB8F; --brand-lo:#B8893A;
+  --gold-grad:linear-gradient(135deg, #FFE7A8 0%, #F2C66D 40%, #D9973F 100%);
+  --green:#34E39A; --green-rgb:52,227,154; --red:#FF5E7E; --red-rgb:255,94,126; --amber:#FFB547; --amber-rgb:255,181,71;
+  --aqua:#38D9E8; --aqua-rgb:56,217,232; --purple:#B38CFF;
+  --text:#F7F2E8; --dim:#B3AA9C;
+  --accent:#F2C66D; --accent-rgb:242,198,109;
+  --ease-out:cubic-bezier(.2,.7,.2,1); --t-fast:140ms; --t-std:220ms;
+}
+html[data-hue="gold"]   { --accent:#F2C66D; --accent-rgb:242,198,109; }
+html[data-hue="cyan"]   { --accent:#38D9E8; --accent-rgb:56,217,232; }
+html[data-hue="violet"] { --accent:#B38CFF; --accent-rgb:179,140,255; }
+html[data-hue="sky"]    { --accent:#5AB4FF; --accent-rgb:90,180,255; }
+html[data-hue="coral"]  { --accent:#FF8A65; --accent-rgb:255,138,101; }
+html[data-hue="lilac"]  { --accent:#A5B4FC; --accent-rgb:165,180,252; }
+[data-hue="gold"]   { --hue:#F2C66D; } [data-hue="cyan"]  { --hue:#38D9E8; } [data-hue="violet"] { --hue:#B38CFF; }
+[data-hue="sky"]    { --hue:#5AB4FF; } [data-hue="coral"] { --hue:#FF8A65; } [data-hue="lilac"]  { --hue:#A5B4FC; }
+
+/* The room's light lives on one fixed layer behind everything. As a
+   `background-attachment:fixed` stack on <body> it forced a full-screen repaint
+   on every scroll step — measured as the largest single cost while scrolling. */
+html { background:#0B0A08; }
+body, html.has-film body { background:transparent; }
+body::before {
+  display:block; content:''; position:fixed; inset:0; z-index:-2; pointer-events:none; opacity:1; mask-image:none; -webkit-mask-image:none;
+  background:
+    radial-gradient(70% 50% at 8% -8%, rgba(242,198,109,.16), transparent 60%),
+    radial-gradient(55% 45% at 100% 0%, rgba(56,217,232,.10), transparent 60%),
+    radial-gradient(65% 55% at 90% 105%, rgba(179,140,255,.11), transparent 60%),
+    radial-gradient(55% 45% at 0% 100%, rgba(255,138,101,.07), transparent 60%),
+    linear-gradient(180deg, #0F0D0A 0%, #0B0A08 55%, #090806 100%);
+}
+html.has-film body::before { background:linear-gradient(180deg, rgba(11,10,8,.55) 0%, rgba(11,10,8,.78) 45%, rgba(9,8,6,.92) 100%); }
+/* The logo sat in a gently floating loop inside the blurred header, which made
+   the header's blur recompute every frame on every page. It now floats once on hover. */
+.brand-mark { animation:none; transition:transform var(--t-std) var(--ease-out); }
+.brand:hover .brand-mark { transform:translateY(-2px); }
+
+/* Smoothness: glass stays on the fixed chrome only. Cards are solid lacquer. */
+.card, .dk-evidence, .ev-hero, .rs-lab-item, .dk-stat, .dk-mini, .dk-core-scope, .sd-read, .hm-hero, html.has-film .hm-hero {
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+}
+.card, .dk-evidence, .ev-hero, .rs-lab-item, .dk-stat, .dk-mini, .dk-core-scope {
+  background:linear-gradient(180deg, rgba(36,31,24,.9), rgba(19,16,12,.93));
+  transition:border-color var(--t-std) var(--ease-out), box-shadow var(--t-std) var(--ease-out);
+}
+.card::before { background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),.75), rgba(var(--accent-rgb),.2), transparent); opacity:.85; left:0; right:0; }
+.card:hover { border-color:rgba(var(--accent-rgb),.22); }
+.card h2 { color:var(--text); }
+.card > h2::before { content:''; display:inline-block; width:7px; height:7px; border-radius:2px; margin:0 9px 2px 0; vertical-align:middle;
+  background:var(--accent); box-shadow:0 0 10px rgba(var(--accent-rgb),.7); }
+
+/* The breadcrumb: area › page, with the rest of the area as pills. */
+.crumb { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; margin:0 0 16px; padding:12px 16px;
+  border-radius:16px; border:1px solid rgba(var(--accent-rgb),.22);
+  background:linear-gradient(100deg, rgba(var(--accent-rgb),.13), rgba(var(--accent-rgb),.03) 45%, rgba(20,17,13,.6));
+  box-shadow:inset 0 1px 0 rgba(255,245,225,.05); transition:border-color var(--t-std) var(--ease-out), background var(--t-std) var(--ease-out); }
+.crumb:empty { display:none; }
+.cr-path { display:flex; align-items:center; flex-wrap:wrap; gap:4px 9px; min-width:0; }
+.cr-area { font:700 11.5px/1 var(--font-sans, inherit); letter-spacing:.09em; text-transform:uppercase; color:var(--accent); }
+.cr-sep { color:var(--faint); }
+.cr-here { display:inline-flex; align-items:center; gap:7px; font-family:var(--font-display); font-size:22px; line-height:1.1; color:var(--text); }
+.cr-here svg.ti { width:20px; height:20px; color:var(--accent); }
+.cr-blurb { flex-basis:100%; font-size:12.5px; color:var(--dim); }
+.cr-sibs { position:relative; display:flex; gap:4px; padding:3px; border-radius:999px; background:rgba(0,0,0,.28); border:1px solid rgba(255,245,225,.06); overflow-x:auto; scrollbar-width:none; max-width:100%; }
+.cr-sibs::-webkit-scrollbar { display:none; }
+.cr-sibs button { flex:0 0 auto; font:600 12.5px var(--font-sans, inherit); color:var(--dim); background:transparent; border:0; border-radius:999px; padding:6px 12px; cursor:pointer;
+  transition:color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out); }
+.cr-sibs button:hover { color:var(--text); background:rgba(var(--accent-rgb),.10); }
+.cr-sibs button.on { color:#0D0B08; background:var(--accent); box-shadow:0 4px 16px -6px rgba(var(--accent-rgb),.8); }
+@media (max-width:620px) { .crumb { padding:10px 12px; } .cr-here { font-size:19px; } .cr-blurb { display:none; } .cr-sibs { width:100%; } }
+
+/* Tabs and bars pick up the area colour. */
+nav button.active { border-bottom-color:var(--accent); background:linear-gradient(180deg, rgba(var(--accent-rgb),.16), rgba(var(--accent-rgb),.03)); border-color:rgba(var(--accent-rgb),.4); }
+nav button.more.active, nav button.more.open { border-bottom-color:var(--accent); }
+.bottomnav button.active, .bottomnav button.more.open { color:var(--accent); }
+.bottomnav button.active span { text-shadow:0 0 16px rgba(var(--accent-rgb),.8); }
+header { border-image:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),.55), rgba(var(--brand-rgb),.3), transparent) 1; }
+:where(button, a, [tabindex]):focus-visible, :focus-visible { outline-color:var(--accent); }
+select:focus, input:focus, textarea:focus { border-color:rgba(var(--accent-rgb),.75); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.18); }
+
+/* The More panel: a search box, recent pages, and colour-coded rooms. */
+.mp-top { grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+#mp-find { flex:1 1 220px; max-width:360px; padding:9px 14px; border-radius:999px; font-size:14px; }
+.mp-recent { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.mp-recent > span { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-right:2px; }
+.mp-recent button { font:600 12px var(--font-sans, inherit); color:var(--text); padding:5px 11px; border-radius:999px; cursor:pointer;
+  background:color-mix(in srgb, var(--hue) 12%, transparent); border:1px solid color-mix(in srgb, var(--hue) 40%, transparent); }
+.mp-recent button:hover { background:color-mix(in srgb, var(--hue) 22%, transparent); }
+.mp-group h4 { flex-direction:row; flex-wrap:wrap; align-items:baseline; gap:2px 8px; color:var(--hue); letter-spacing:.02em; }
+.mp-group h4 span { flex-basis:100%; }
+.mp-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--hue); box-shadow:0 0 10px var(--hue); align-self:center; }
+.mp-items button { transition:background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out); }
+.mp-items button span { color:var(--hue); }
+.mp-items button:hover { background:color-mix(in srgb, var(--hue) 10%, transparent); border-color:color-mix(in srgb, var(--hue) 30%, transparent); transform:translateX(2px); }
+.mp-items button.active { background:color-mix(in srgb, var(--hue) 16%, transparent); border-color:color-mix(in srgb, var(--hue) 50%, transparent); }
+#morepanel .hidden { display:none !important; }
+#morepanel:not(.hidden) { animation:prism-drop var(--t-std) var(--ease-out); }
+
+/* Buttons: brighter gold for the main action, accent light on hover for the rest. */
+button.btn, a.btn { transition:transform var(--t-fast) var(--ease-out), box-shadow var(--t-std) var(--ease-out), filter var(--t-fast) var(--ease-out); }
+button.btn:hover:not(:disabled), a.btn:hover { transform:translateY(-1px); filter:saturate(1.08); }
+button.btn:active:not(:disabled), a.btn:active { transform:translateY(0) scale(.985); }
+button.btn.ghost:hover:not(:disabled), a.btn.ghost:hover, button.ghost:hover:not(:disabled) { border-color:rgba(var(--accent-rgb),.45); background:rgba(var(--accent-rgb),.08); }
+.hbtn { transition:background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out); }
+.hbtn:hover { border-color:rgba(var(--accent-rgb),.4); }
+.chip.on { background:rgba(var(--accent-rgb),.16); border-color:rgba(var(--accent-rgb),.55); }
+.safe { color:var(--brand-hi); }
+a { color:var(--brand-hi); }
+
+/* Page changes: a short rise-and-fade. Transform and opacity only. */
+main > section.enter { animation:prism-in 280ms var(--ease-out) both; }
+@keyframes prism-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes prism-drop { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce) {
+  main > section.enter, #morepanel:not(.hidden) { animation:none; }
+  button.btn:hover:not(:disabled), a.btn:hover, .mp-items button:hover { transform:none; }
+}
+/* Keep repaints local: a card only repaints itself, and anything that animates
+   every frame (the 3D graphs, the core, the backdrop) gets its own compositor
+   layer so it never invalidates the page around it. */
+.card { contain:paint; }
+canvas.holo, #dk-core-canvas, #bg, .dk-core-scope canvas { will-change:transform; transform:translateZ(0); }
+/* The film grain keeps its texture but blends normally: `mix-blend-mode:overlay`
+   on a full-screen fixed layer made the browser re-blend the whole viewport on
+   every scroll frame (about a third of all frames lost in measurement). */
+body::after { mix-blend-mode:normal; opacity:.022; }
