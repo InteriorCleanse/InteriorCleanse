@@ -199,3 +199,40 @@ from "Coming soon" to a live link on the next deploy.
 - Do not quote a commission rate for Plunge or Castlery until they state one.
 - Do not paste live Stripe keys anywhere but Vercel.
 - Do not fill the draft shells with invented products to make the shop look fuller.
+
+---
+
+## Update — what is now ready in the repository
+
+Everything a product needs that can be made in-house has been made. What
+remains for each is a link, a price or an upload that only the owner can do.
+
+### Founder books (5) — `needs-pricing`
+- **Ready:** front covers in the house system at `public/products/covers/<slug>.jpg`
+  (1600×2400, also suitable as KDP listing art), wired into the catalog and
+  `content/books.json`. No stock photography remains on a founder title.
+- **You:** paste each title's Amazon paperback and Kindle URLs into
+  `content/books.json` and the record's `amazonUrl`, set the `price`, then
+  **Publish** in `/admin/products`. Regenerate covers any time with
+  `npm run press:covers`.
+
+### Digital downloads (3) — `needs-assets` until the Gumroad link exists
+- **Ready, authored and typeset:** `assets/downloads/room-reset-checklist.pdf`
+  (12 pages), `assets/downloads/the-considered-pantry.pdf` (10 pages: zone
+  maps, label sheets, restock sheet), `assets/downloads/the-calm-room-workbook.pdf`
+  (40 pages). Cover images at `public/products/downloads/<slug>.jpg`, wired in.
+- **You:** create each product on Gumroad, upload the PDF, paste the Gumroad
+  URL into the record, **Publish**. The checklist is free by design (price 0
+  passes the gate for a Gumroad download). Re-render with
+  `npm run press:downloads`.
+
+### Printful merch (4) — files regenerated with the threshold mark
+- **Ready:** `print-files/` — tote front, mug wrap, hoodie chest, and the art
+  print artwork itself (`considered-home-print-18x24.png`, a study in warm
+  neutrals: three thresholds, one horizon, one sun). `npm run print:files`.
+- **You:** Step 2 above, unchanged.
+
+### Still blocked on partners
+Cleaning Picks (TikTok Shop links), the five affiliate partners (links and
+written commission terms), and the ten empty draft shells, which stay empty
+until a real product exists behind them.
