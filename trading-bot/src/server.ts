@@ -45,6 +45,7 @@ import { scanPatterns, UNTESTED } from './scanner/patterns.ts'
 import { biasScore, confluence, patternEvidence } from './scanner/priceAction.ts'
 import { PICTURE_INSTRUCTIONS, PICTURE_SCHEMA, cleanPictureRead } from './scanner/picture.ts'
 import type { AiImage } from './ai.ts'
+import type { Headline } from './types.ts'
 import { toET, tradingDayKey, sessionAt, isKillzone, isWeekend, nextKillzone, sessionLabel } from './sessions.ts'
 import { breakEven, breakEvenCurve, scalpConditions } from './scalp/model.ts'
 import type { Costs } from './scalp/model.ts'
@@ -72,6 +73,10 @@ import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
 import { lastStoredCandle, getCandles as storedCandles } from './data/candleStore.ts'
 import { CallDesk } from './forecast/service.ts'
+import { PredictionDesk } from './predict/desk.ts'
+import { keywords as pmKeywords } from './predict/minds.ts'
+import type { Council, OracleRead } from './predict/minds.ts'
+import type { PmMarket } from './predict/sources.ts'
 import { twoVenueCheck } from './school/predictionMarket.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
 import { overview as evidenceOverview, dimensionView, crossView, cohortView, tradesView, tradeDetail, cachedBacktest, refreshBacktestCache, tradingStrategyId } from './analyst/evidence.ts'
@@ -328,7 +333,7 @@ async function streamAnswer(res: ServerResponse, question: string, context: stri
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()), history, (t) => res.write(t), image, skillById(skillId))
+    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()) + predictContext(), history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -574,6 +579,12 @@ const server = createServer(async (req, res) => {
       const fresh = url.searchParams.get('refresh') === '1'
       const desk = url.searchParams.get('window') === '5' ? callDesk5 : callDesk
       json(res, 200, { ok: true, data: fresh || desk.snapshot().status === 'STARTING' ? await desk.tick() : desk.snapshot() })
+      return
+    }
+    // The prediction desk: ten minds over public Polymarket and Kalshi prices, PAPER positions, settled by the venue. No orders.
+    if (path === '/api/predict') {
+      const fresh = url.searchParams.get('refresh') === '1'
+      json(res, 200, { ok: true, data: fresh || predictionDesk.snapshot().status === 'STARTING' ? await predictionDesk.tick() : predictionDesk.snapshot() })
       return
     }
     // The two-venue edge check: typed-in Polymarket and Kalshi quotes, fees, and a capped Kelly stake. Arithmetic only, SIMULATED.
@@ -1684,6 +1695,36 @@ const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('i
 // Read-only, a few times a day, and never seen by the engine. Follows the same switch.
 const evidenceCache = new Map<string, { at: number; data: unknown }>()
 const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
+// The prediction desk: public Polymarket and Kalshi prices read by ten minds, paper positions sized by a capped
+// quarter-Kelly, settled only when the venue resolves. No wallet, no key, no order; the engine never sees it.
+// MRCASH_PREDICT=0 turns it off. MRCASH_PREDICT_AI=1 lets the ORACLE mind ask the model about flagged markets (costs money).
+async function predictOracle(c: Council, m: PmMarket, headlines: Headline[]): Promise<OracleRead | null> {
+  if (!(await aiStatus()).available) return null
+  const kw = pmKeywords(m.question)
+  const related = headlines.filter((h) => kw.filter((k) => h.title.toLowerCase().includes(k)).length >= Math.min(2, kw.length)).slice(0, 6).map((h) => `- ${h.title} (${h.source})`).join('\n')
+  const q = `PREDICTION MARKET, PAPER RESEARCH ONLY. Question: "${m.question}". Venue: ${m.venue}. YES trades at ${Math.round(m.yes * 100)} cents; the market closes ${m.endsAt ? new Date(m.endsAt).toUTCString() : 'at an unknown time'}. The other nine minds read it at ${c.p === null ? 'no number' : Math.round(c.p * 100) + '%'}.\nRelated headlines from the feed:\n${related || '(none)'}\n\nFrom public knowledge up to your training date and only the facts above, estimate the probability that this market resolves YES. Answer with JSON only, no prose: {"p": <0 to 1>, "confidence": <0 to 1>, "for": ["evidence for YES"], "against": ["evidence against YES"]}. Separate facts from assumptions inside the strings. Invent no source, price or result; say when you do not know.`
+  const a = await askAI(q, 'The prediction desk is a PAPER research surface. Nothing is traded, and no venue is contacted with an order.', [], () => {})
+  if (a.refused) return null
+  try {
+    const j = JSON.parse(a.text.match(/\{[\s\S]*\}/)?.[0] ?? '') as { p?: unknown; confidence?: unknown; for?: unknown; against?: unknown }
+    const p = Number(j.p), conf = Number(j.confidence)
+    if (!(p >= 0 && p <= 1)) return null
+    const list = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x).slice(0, 200)).slice(0, 4) : [])
+    return { p, confidence: conf >= 0 && conf <= 1 ? conf : 0.3, for: list(j.for), against: list(j.against), model: config.ai.model, at: Date.now() }
+  } catch { return null }
+}
+const predictionDesk = new PredictionDesk({
+  news: async () => { try { const r = await getNews(); return { headlines: r.headlines, calendar: r.calendar } } catch { return null } },
+  oracle: process.env.MRCASH_PREDICT_AI === '1' ? predictOracle : undefined,
+  log: (title, body) => { eventLog.push('info', title, body, 'info') },
+})
+function predictContext(): string {
+  const s = predictionDesk.snapshot()
+  if (s.status !== 'LIVE') return `\n\nPREDICTION DESK (PAPER, no orders): ${s.status}.`
+  const pc = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`)
+  const top = s.candidates.slice(0, 3).map((c) => `"${c.question.slice(0, 70)}" [${c.venue}] market ${pc(c.market)}, council ${pc(c.p)}, ${c.flagged ? 'FLAGGED' : 'not flagged'}`)
+  return `\n\nPREDICTION DESK (PAPER, no orders; ${s.scanned} markets read from Polymarket and Kalshi): sheet ${s.sheet.status}, ${s.sheet.wins} won, ${s.sheet.losses} lost, ${s.open.length} open, paper balance $${s.sheet.endingBalance.toFixed(2)} from $${s.sheet.startingBalance}. Widest gaps: ${top.join('; ') || 'none'}. Brain: ${s.brain.note}`
+}
 // The call desk: an up-or-down forecast every 15 minutes on the bot's own symbol, scored on paper. MRCASH_CALLS=0 turns it off.
 /**
  * MARKET CONDITIONS — every watched market graded against its own history, its
@@ -1737,6 +1778,7 @@ const callDesk = new CallDesk({ symbol: config.symbol, windowMinutes: Number(pro
 
 server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
+  if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_PREDICT !== '0') predictionDesk.start()
   if (process.env.MRCASH_CALLS !== '0') { callDesk.start(); callDesk5.start() }
   if (process.env.MRCASH_MARKETS !== '0') { const t = setInterval(() => { void checkConditions() }, 5 * 60_000); t.unref?.(); setTimeout(() => { void checkConditions() }, 90_000).unref?.() }
   ui.heading('MR. CASH IS RUNNING')
