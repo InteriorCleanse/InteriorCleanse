@@ -270,6 +270,17 @@ test('scanner evidence: BACKTEST label, a baseline, and 404 for a market that is
   for (const m of list.data.markets) assert.ok(m.bias.score >= -6 && m.bias.score <= 6)
 })
 
+test('market conditions: a labelled reading across every asset class, which stops nothing by itself', async () => {
+  const r = await getJson<{ ok: boolean; data: { label: string; verdict: string; wouldStop: boolean; assets: Array<{ asset: string; hours: { open: boolean } }>; note: string; stop: { stopped: boolean } } }>('/api/conditions')
+  assert.ok(r.ok)
+  assert.equal(r.data.label, 'READING')
+  assert.ok(['GOOD', 'CAUTION', 'POOR', 'NOT ENOUGH DATA'].includes(r.data.verdict))
+  assert.deepEqual(r.data.assets.map((a) => a.asset), ['crypto', 'forex', 'stock', 'option', 'future'])
+  assert.equal(r.data.assets[0].hours.open, true, 'crypto is always open')
+  assert.match(r.data.note, /not a signal/)
+  assert.equal(r.data.stop.stopped, false, 'reading conditions never engages the kill switch')
+})
+
 test('scalp desk: a labelled reading with the engine\'s own costs, and break-even arithmetic that rejects nonsense', async () => {
   const r = await getJson<{ ok: boolean; data: { label: string; verdict: string; costs: { feeBpsPerSide: number }; curve: unknown[]; note: string } }>('/api/scalp')
   assert.ok(r.ok)

@@ -50,7 +50,7 @@ const NAMES: Record<string, string> = {
 }
 const SOURCE_FOR: Record<MarketKind, SourceId> = { crypto: 'binance', forex: 'kraken', stock: 'alpaca', index: 'alpaca' }
 
-export const DEFAULT_WATCHLIST = 'crypto:BTCUSDT,crypto:ETHUSDT,crypto:SOLUSDT,forex:EURUSD,forex:GBPUSD,forex:USDJPY,stock:AAPL,stock:NVDA,stock:TSLA,index:SPY,index:QQQ,index:DIA,index:GLD,index:SLV,index:USO,index:UNG,index:IEF'
+export const DEFAULT_WATCHLIST = 'crypto:BTCUSDT,crypto:ETHUSDT,crypto:SOLUSDT,forex:EURUSD,forex:GBPUSD,forex:USDJPY,forex:AUDUSD,forex:USDCAD,forex:USDCHF,stock:AAPL,stock:NVDA,stock:TSLA,index:SPY,index:QQQ,index:DIA,index:GLD,index:SLV,index:USO,index:UNG,index:IEF'
 
 /**
  * The watchlist, from MRCASH_WATCHLIST ("crypto:BTCUSDT,forex:EURUSD,…") or
