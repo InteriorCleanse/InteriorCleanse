@@ -112,16 +112,15 @@ export function isUsMarketDay(p: NY): boolean {
 
 const hm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
 
-/** Minutes from `now` until the first minute that satisfies `pred`, scanning up to 8 days. */
+/**
+ * Minutes from `now` until the first moment that satisfies `pred`, scanning
+ * up to 8 days. Every session boundary here falls on a New York half-hour, and
+ * New York's offset from UTC is a whole number of hours, so checking UTC
+ * half-hours finds the exact boundary without a minute-by-minute search.
+ */
 function minutesUntil(now: number, pred: (p: NY) => boolean): number | null {
-  const start = Math.ceil(now / 60_000) * 60_000
-  for (let t = start, i = 0; i < 8 * 24 * 4; i++, t += 15 * 60_000) {
-    if (pred(nyParts(t))) {
-      // refine to the minute
-      for (let u = t - 15 * 60_000 + 60_000; u <= t; u += 60_000) if (u >= start && pred(nyParts(u))) return Math.round((u - now) / 60_000)
-      return Math.round((t - now) / 60_000)
-    }
-  }
+  const HALF = 30 * 60_000
+  for (let t = Math.ceil(now / HALF) * HALF, i = 0; i < 8 * 48; i++, t += HALF) if (pred(nyParts(t))) return Math.round((t - now) / 60_000)
   return null
 }
 
@@ -148,8 +147,19 @@ function cmeOpen(p: NY): boolean {
   return !(p.min >= FX && p.min < CME_OPEN)
 }
 
-/** When is this kind of market open, right now? */
+const memo = new Map<string, HoursReading>()
+/** When is this kind of market open, right now? Memoised per asset and minute: the answer cannot change inside a minute. */
 export function marketHours(asset: AssetClass, now: number): HoursReading {
+  const key = `${asset}:${Math.floor(now / 60_000)}`
+  const hit = memo.get(key)
+  if (hit) return hit
+  const r = computeHours(asset, now)
+  if (memo.size > 500) memo.clear()
+  memo.set(key, r)
+  return r
+}
+
+function computeHours(asset: AssetClass, now: number): HoursReading {
   const p = nyParts(now)
   const holiday = isUsMarketDay(p) || p.dow === 0 || p.dow === 6 ? null : 'US market holiday'
   const base = { asset, opensInMin: null as number | null, closesInMin: null as number | null, note: null as string | null }
