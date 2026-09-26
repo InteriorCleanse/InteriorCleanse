@@ -67,7 +67,8 @@ import { refreshOosReference, oosReferenceFor, usableOosAvgR } from './paper/oos
 import { buildValidationReport, soakMetrics, aiEngineConsistency, renderDailyReport, evaluateGates, dataQuality, decayByStrategy } from './paper/validation.ts'
 import { buildDesk, renderDesk } from './desk/agents.ts'
 import { renderSessionScript } from './tv/sessionScript.ts'
-import { lastStoredCandle } from './data/candleStore.ts'
+import { lastStoredCandle, getCandles as storedCandles } from './data/candleStore.ts'
+import { CallDesk } from './forecast/service.ts'
 import { attributionReport, renderAttribution, fromPaper } from './analyst/attribution.ts'
 import { overview as evidenceOverview, dimensionView, crossView, cohortView, tradesView, tradeDetail, cachedBacktest, refreshBacktestCache, tradingStrategyId } from './analyst/evidence.ts'
 import type { EvidenceInputs } from './analyst/evidence.ts'
@@ -284,6 +285,15 @@ function skillContext(skillId?: string): string {
         return `  ${r.label} [${r.provenance}] bias ${b.parts.length ? (b.score > 0 ? '+' : '') + b.score + ' (' + b.lean + ')' : 'NOT ENOUGH DATA'}; setup grade ${g.grade}: ${g.text}`
       })
       return '\n\nPRICE ACTION (Scanner, hourly candles, rule-based, untested as a trading rule):\n' + (rows.length ? rows.join('\n') : '  NOT ENOUGH DATA: the market watch has no rows yet.')
+    }
+    if (skillId === 'caller') {
+      const d = callDesk.snapshot()
+      const c = d.current ?? d.lastRead
+      const line = (r: { windowEnd: number; outcome: string; call: string; result: string; pUp: number }) => `  ${new Date(r.windowEnd).toISOString().slice(11, 16)}Z ${r.outcome} · said ${r.call} · ${r.result} · p(up) ${r.pUp}`
+      return `\n\nCALL DESK (PAPER FORECAST, ${d.symbol} ${d.windowMinutes}-minute windows, status ${d.status}, line ${d.line}):\n` +
+        (c ? `  ${d.current ? 'LIVE CALL' : 'STALE LAST READ (not scored)'}: p(up) ${c.pUp}, call ${c.call}, difficulty ${c.difficulty}/4, tags ${c.tags.join(', ') || 'none'}\n${c.readings.map((r) => `    ${r.label}: ${r.text} (push ${r.push})`).join('\n')}\n` : '  No call this window.\n') +
+        `  LIVE RECORD: ${JSON.stringify(d.tally)}\n${d.log.slice(0, 8).map(line).join('\n')}\n` +
+        (d.backtest ? `  BACKTEST (${d.backtest.windows} past windows, not the live record): ${JSON.stringify(d.backtest.tally)}` : '  BACKTEST: not available.')
     }
     if (skillId === 'bigmoney') {
       const bm = bigMoney.snapshot()
@@ -537,6 +547,12 @@ const server = createServer(async (req, res) => {
       const data = { ...patternEvidence(candles), key, market: row.label, provenance: row.provenance, source }
       evidenceCache.set(key, { at: Date.now(), data })
       json(res, 200, { ok: true, data })
+      return
+    }
+    // The call desk: up or down over the next window, with the working, scored against the real close. PAPER FORECAST, no orders.
+    if (path === '/api/forecast') {
+      const fresh = url.searchParams.get('refresh') === '1'
+      json(res, 200, { ok: true, data: fresh || callDesk.snapshot().status === 'STARTING' ? await callDesk.tick() : callDesk.snapshot() })
       return
     }
     // Disclosed filings and volume leaders, READ-ONLY. Refresh on request at most every 10 minutes.
@@ -1613,9 +1629,12 @@ const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('i
 // Read-only, a few times a day, and never seen by the engine. Follows the same switch.
 const evidenceCache = new Map<string, { at: number; data: unknown }>()
 const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
+// The call desk: an up-or-down forecast every 15 minutes on the bot's own symbol, scored on paper. MRCASH_CALLS=0 turns it off.
+const callDesk = new CallDesk({ symbol: config.symbol, windowMinutes: Number(process.env.MRCASH_CALL_MINUTES) || 15, candles: (limit) => storedCandles(config.symbol, '5m', limit) })
 
 server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
+  if (process.env.MRCASH_CALLS !== '0') callDesk.start()
   ui.heading('MR. CASH IS RUNNING')
   console.log('')
   console.log(ui.good(`  ● ${describeMode()}`))

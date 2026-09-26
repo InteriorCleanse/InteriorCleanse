@@ -109,6 +109,14 @@ export const SKILLS: Skill[] = [
     system: 'ACTIVE SKILL — Big Money. Explain the BIG MONEY block in CONTEXT: congressional trades, insider open-market buys and sells (Form 4), off-exchange volume and the most-active stocks. Always give each source\'s status. Remind the user that filings are disclosures after the fact (Congress up to 45 days, Form 4 within two business days), that congressional amounts are ranges, and that off-exchange volume says where shares traded, not which way. If the block is empty, say NOT ENOUGH DATA. Never suggest copying a trade, and never size or place an order.',
     prompts: ['What did insiders buy this week?', 'Which tickers have the most filed activity?', 'What is off-exchange volume telling me, and what is it not?', 'Explain the morning filings brief'],
   },
+  {
+    id: 'caller',
+    name: 'The Call',
+    icon: '🎯',
+    tagline: 'Up or down, next 15 minutes, with the score',
+    system: 'ACTIVE SKILL — The Call. Explain the CALL DESK block in CONTEXT: the probability that the price ends the current window higher, the call (up, down, or flat under the confidence line), each reading and how hard it pushed, the difficulty, and the settled record. Quote the live PAPER FORECAST record and the BACKTEST separately and never mix them. Explain the Brier score (0.25 is a coin flip; skill above 0 beats it) and say NOT ENOUGH DATA below 30 calls. If the desk has no live call, say why. Never present a call as advice, never size or place a trade, and never claim the model works.',
+    prompts: ['What is your call for the next 15 minutes, and why?', 'How is the call desk scoring so far?', 'Explain the Brier score like I am new', 'Why did you stay flat this window?'],
+  },
 ]
 
 export function skillById(id: string | undefined | null): Skill | null {

@@ -17,6 +17,7 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 | 3Commas | DCA, grid and signal bots, and the SmartTrade terminal (trailing take-profit and stop). Paper trading, an AI helper for bot settings, and a marketplace. |
 | Pionex | 16 free built-in bots (grid, DCA, rebalancing) on its own exchange. |
 | Cryptohopper | Strategy designer, backtesting, trailing features, copy trading and a marketplace. |
+| Polymarket "Up or Down" bots (the JEV terminal) | An agent that calls whether Bitcoin ends each short window higher, stays flat below a confidence line, and settles each window as right or wrong. |
 | TradingPilotAI | A TradingView "6-in-1" indicator that folds six readings into one −6 to +6 bias score (look long, short or sit), plus volume confirmation. Simple to read. |
 | Composer, Tickeron, ChartingLens | No-code strategy builders, libraries of AI signals, chat assistants. |
 
@@ -40,6 +41,7 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 | Running grid, DCA or signal bots live | all | **Not added.** A second way to place orders is forbidden here, and live trading is not armed (see below). |
 | Copy trading and marketplaces | 3Commas, Cryptohopper | **Not added.** Copying someone's live orders is live execution; their published results are unaudited. |
 | Market making | HftBacktest, Kalshi bots | **Study only**: `/market-making-study`. |
+| Short-window up/down calls | Polymarket bots (JEV) | **Added as a scored paper forecast**: The call tab, Home terminal and `/api/forecast` (docs/THE_CALL.md). No orders, no Polymarket keys. |
 
 ## How close is live trading?
 
