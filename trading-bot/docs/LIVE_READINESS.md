@@ -8,6 +8,15 @@ This page is the honest, complete list of what must be true before one real
 dollar, why each item exists, and how to check it. Nothing here enables live
 trading; enabling is deliberately manual and multi-key.
 
+## Where you stand, live
+
+**More → Is it working? → Road to live** shows the eight steps below, read
+from the app's own records: the validation gates (`/api/validation`), the
+first fill (`/api/ops/first-fill`), the checkpoints (`/api/ops/checkpoints`),
+the shadow record, and the live gate chain (`/api/live/status`). It estimates
+nothing. Steps that belong to you (keys, the security review, the four arming
+keys) are never marked done by software. The page cannot arm anything.
+
 ## The gate chain (run it yourself)
 
 ```bash
