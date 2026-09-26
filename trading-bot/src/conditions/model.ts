@@ -62,7 +62,7 @@ export const THRESHOLDS = {
   chopEr: 0.15, thinVol: 0.3,
   eventBeforeMin: 15, eventAfterMin: 30, eventSoonMin: 120,
   gapX: 1.5, minCandles: 60,
-  stressPoorShare: 0.35, stressElevatedShare: 0.5,
+  stressPoorShare: 0.35, stressElevatedShare: 0.5, stressMinMarkets: 5,
 } as const
 
 export const CONDITIONS_NOTE = 'A reading of market conditions, not a signal. The thresholds are written in the open and have not been tested as a trading rule.'
@@ -198,6 +198,57 @@ export function riskTone(markets: MarketInput[], strength: ReturnType<typeof cur
   return { tone: on >= off + 2 ? 'risk-on' : off >= on + 2 ? 'risk-off' : 'mixed', votes }
 }
 
+/**
+ * WHAT MOVES TOGETHER — Pearson correlation of hourly log returns over the
+ * last week, for a fixed set of bellwethers, on the hours both markets traded.
+ * Stocks trade 6.5 hours a day, so their pairs rest on fewer hours; a pair
+ * with fewer than 30 shared hours is left blank rather than guessed.
+ */
+export const CORR_KEYS = ['crypto:BTCUSDT', 'crypto:ETHUSDT', 'forex:EURUSD', 'forex:USDJPY', 'forex:GBPUSD', 'index:SPY', 'index:QQQ', 'index:GLD', 'index:IEF', 'index:USO'] as const
+export const CORR_MIN = 30
+
+export type Correlations = {
+  keys: string[]
+  labels: string[]
+  values: Array<Array<number | null>>
+  counts: number[][]
+  windowHours: number
+  /** The strongest links, in words. */
+  links: string[]
+}
+
+export function correlationMatrix(markets: MarketInput[], now: number, windowHours = 168): Correlations | null {
+  const since = now - windowHours * 3_600_000
+  const picked = CORR_KEYS.map((k) => markets.find((m) => m.key === k)).filter((m): m is MarketInput => !!m && m.candles.length > 2)
+  if (picked.length < 3) return null
+  const rets = picked.map((m) => {
+    const r = new Map<number, number>()
+    const c = m.candles
+    for (let i = 1; i < c.length; i++) if (c[i].openTime >= since && c[i - 1].close > 0 && c[i].close > 0) r.set(c[i].openTime, Math.log(c[i].close / c[i - 1].close))
+    return r
+  })
+  const n = picked.length
+  const values: Array<Array<number | null>> = Array.from({ length: n }, () => Array(n).fill(null))
+  const counts: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+  for (let i = 0; i < n; i++) for (let j = i; j < n; j++) {
+    const xs: number[] = [], ys: number[] = []
+    for (const [t, v] of rets[i]) { const w = rets[j].get(t); if (w !== undefined) { xs.push(v); ys.push(w) } }
+    counts[i][j] = counts[j][i] = xs.length
+    if (i === j) { values[i][j] = xs.length >= CORR_MIN ? 1 : null; continue }
+    if (xs.length < CORR_MIN) continue
+    const mx = mean(xs), my = mean(ys)
+    let sxy = 0, sxx = 0, syy = 0
+    for (let k = 0; k < xs.length; k++) { const a = xs[k] - mx, b = ys[k] - my; sxy += a * b; sxx += a * a; syy += b * b }
+    const r = sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : null
+    values[i][j] = values[j][i] = r === null ? null : round(r, 2)
+  }
+  const pairs: Array<{ a: string; b: string; r: number; n: number }> = []
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const r = values[i][j]; if (r !== null) pairs.push({ a: picked[i].label, b: picked[j].label, r, n: counts[i][j] }) }
+  pairs.sort((x, y) => Math.abs(y.r) - Math.abs(x.r))
+  const links = pairs.slice(0, 4).filter((p) => Math.abs(p.r) >= 0.3).map((p) => `${p.a} and ${p.b} ${p.r > 0 ? 'move together' : 'move opposite'} (${p.r > 0 ? '+' : ''}${p.r.toFixed(2)} over ${p.n} shared hours).`)
+  return { keys: picked.map((m) => m.key), labels: picked.map((m) => m.label.replace(/ \(via [^)]*\)/, '')), values, counts, windowHours, links }
+}
+
 export type AssetPanel = { asset: AssetClass; label: string; hours: HoursReading; markets: number; poor: number; caution: number; good: number; worst: Grade | null; via: string | null }
 
 export type ConditionsReport = {
@@ -210,6 +261,7 @@ export type ConditionsReport = {
   engine: MarketCondition | null
   stress: { level: 'calm' | 'elevated' | 'stressed' | 'NOT ENOUGH DATA'; poorShare: number | null; elevatedShare: number | null; assessed: number }
   strength: ReturnType<typeof currencyStrength>
+  correlations: Correlations | null
   /** False at the weekend: the strength list is then the last session's move, not a live one. */
   fxOpen: boolean
   tone: Tone
@@ -232,7 +284,9 @@ export function assessConditions(inp: { markets: MarketInput[]; calendar: Calend
   const live = rows.filter((r) => r.grade !== 'closed' && r.grade !== 'blind')
   const poorShare = live.length ? live.filter((r) => r.grade === 'poor').length / live.length : null
   const elevatedShare = live.length ? live.filter((r) => r.readings.some((x) => x.key === 'vol' && x.level !== 'ok' && !/Dead/.test(x.text))).length / live.length : null
-  const stressLevel = live.length < 3 ? 'NOT ENOUGH DATA' as const
+  // Market-wide means more than one kind of market: three coins moving together at the weekend are one market, not stress.
+  const kindsOpen = new Set(live.map((r) => r.kind)).size
+  const stressLevel = live.length < THRESHOLDS.stressMinMarkets || kindsOpen < 2 ? 'NOT ENOUGH DATA' as const
     : (poorShare! >= THRESHOLDS.stressPoorShare || elevatedShare! >= THRESHOLDS.stressElevatedShare) ? 'stressed' as const
     : (poorShare! > 0.15 || elevatedShare! > 0.3) ? 'elevated' as const : 'calm' as const
 
@@ -266,6 +320,6 @@ export function assessConditions(inp: { markets: MarketInput[]; calendar: Calend
   return {
     label: 'READING', asOf: now, verdict, wouldStop: verdict === 'POOR', reasons, engine,
     stress: { level: stressLevel, poorShare: poorShare === null ? null : round(poorShare, 3), elevatedShare: elevatedShare === null ? null : round(elevatedShare, 3), assessed: live.length },
-    strength, fxOpen: marketHours('forex', now).open, tone, assets, markets: rows, thresholds: THRESHOLDS, note: CONDITIONS_NOTE,
+    strength, correlations: correlationMatrix(markets, now), fxOpen: marketHours('forex', now).open, tone, assets, markets: rows, thresholds: THRESHOLDS, note: CONDITIONS_NOTE,
   }
 }

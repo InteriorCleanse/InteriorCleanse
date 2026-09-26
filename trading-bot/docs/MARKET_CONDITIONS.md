@@ -50,12 +50,35 @@ of them has been tested as a trading rule.
 ## Across markets
 
 - **Stress breadth**: the share of open markets graded poor, and the share with
-  elevated volatility. It reads **stressed** at 35% poor or 50% elevated.
+  elevated volatility. It reads **stressed** at 35% poor or 50% elevated,
+  and it needs at least five open markets across two kinds before it reads at
+  all: three coins moving together at the weekend are one market, not
+  market-wide stress.
 - **Currency strength**: each major's 24-hour move against the dollar, centred
   on the average, strongest first. At the weekend it is labelled as the last
   session's move.
+- **What moves together**: the correlation of hourly returns over the last
+  week for ten bellwethers: BTC, ETH, EUR/USD, USD/JPY, GBP/USD, and the S&P,
+  Nasdaq, gold, Treasury and crude funds. Each pair is measured only on the
+  hours both markets traded. A pair with fewer than 30 shared hours is left
+  blank. Cyan means moving together and lilac means moving opposite (emerald
+  and rose stay reserved for up and down). The strongest links are written
+  out in words.
 - **Risk tone**: stocks and bitcoin against the havens (gold, Treasuries, the
   yen and the franc). It is a description, never an input.
+
+## Everywhere else
+
+- **Header chip:** "Conditions: Good / Caution / Poor / No read" sits in the
+  header on every page and opens this page. It refreshes every five minutes
+  while the app is visible.
+- **Timeline:** a strip on this page shows the last day of five-minute
+  verdicts. It is kept in memory only, so it starts empty after a restart and
+  says so.
+- **Ask:** every hat in Ask receives the reading: the verdict, which markets
+  are open, stress, risk tone, the strongest and weakest currencies, any poor
+  market and the week's strongest links. An answer never talks past a closed
+  market or a shock candle.
 
 ## The verdict and the kill switch
 

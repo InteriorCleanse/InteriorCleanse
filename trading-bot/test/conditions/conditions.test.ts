@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { marketHours, usMarketHolidays, usEarlyCloses } from '../../src/conditions/hours.ts'
-import { assessOne, assessConditions, currencyStrength, currenciesOf, type MarketInput } from '../../src/conditions/model.ts'
+import { assessOne, assessConditions, currencyStrength, currenciesOf, correlationMatrix, type MarketInput } from '../../src/conditions/model.ts'
 import type { Candle } from '../../src/types.ts'
 
 const at = (iso: string) => Date.parse(iso)
@@ -114,4 +114,27 @@ test('the verdict: POOR when the engine\'s market is poor, NOT ENOUGH DATA when 
   assert.equal(blind.wouldStop, false)
   assert.equal(bad.label, 'READING')
   assert.equal(bad.assets.length, 5, 'crypto, forex, stocks, options, futures')
+})
+
+test('what moves together: mirrored series read +1 and −1, and thin overlap is left blank', () => {
+  const now = at('2026-09-28T16:00:00Z')
+  const a = series(200, now, 100, 0.4)
+  const mirror = a.map((k) => ({ ...k, open: 200 - k.open, close: 200 - k.close, high: 200 - k.low, low: 200 - k.high })) // SYNTHETIC: moves opposite
+  const twin = a.map((k) => ({ ...k, open: k.open * 2, close: k.close * 2, high: k.high * 2, low: k.low * 2 }))  // SYNTHETIC: same returns
+  const m = (key: string, candles: Candle[]) => mk({ key, label: key, candles })
+  const c = correlationMatrix([m('crypto:BTCUSDT', a), m('crypto:ETHUSDT', twin), m('index:GLD', mirror), m('index:SPY', a.slice(-10))], now)!
+  const i = (k: string) => c.keys.indexOf(k)
+  assert.equal(c.values[i('crypto:BTCUSDT')][i('crypto:ETHUSDT')], 1)
+  assert.ok(c.values[i('crypto:BTCUSDT')][i('index:GLD')]! < -0.9)
+  assert.equal(c.values[i('crypto:BTCUSDT')][i('index:SPY')], null, 'fewer than 30 shared hours')
+  assert.ok(c.links.length >= 1)
+  assert.equal(correlationMatrix([m('crypto:BTCUSDT', a)], now), null)
+})
+
+test('market-wide stress needs more than one kind of market: three coins alone never read as stress', () => {
+  const now = at('2026-09-26T16:00:00Z') // Saturday: only crypto is open
+  const coins = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'].map((sym) => mk({ key: `crypto:${sym}`, label: sym, symbol: sym, candles: series(200, now) }))
+  const r = assessConditions({ markets: coins, calendar: [], now, engineKey: 'crypto:BTCUSDT' })
+  assert.equal(r.stress.level, 'NOT ENOUGH DATA')
+  assert.notEqual(r.verdict, 'POOR')
 })
