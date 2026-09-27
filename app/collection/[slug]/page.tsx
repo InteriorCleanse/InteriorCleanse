@@ -194,7 +194,7 @@ function PurchaseCta({ p, external }: { p: CatalogProduct; external?: string }) 
     return (
       <>
         <button className="add-to-cart-btn" disabled>
-          LINK COMING SOON <span>◇</span>
+          LINK COMING SOON
         </button>
         <p className="purchase-note">
           {p.purchaseType === 'affiliate'

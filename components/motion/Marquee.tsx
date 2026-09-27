@@ -18,9 +18,6 @@ export function Marquee({
       {items.map((item, i) => (
         <li key={i} className="marquee-item">
           <span>{item}</span>
-          <span className="marquee-dot" aria-hidden="true">
-            ✦
-          </span>
         </li>
       ))}
     </ul>

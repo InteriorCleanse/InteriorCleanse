@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { BRAND_NAME } from '@/lib/site-config'
+import { LOGO_MIN_URL } from '@/lib/brand-assets'
 
 /** Maximum tilt in degrees, resting and hovered. */
 const TILT = 8
@@ -11,14 +12,14 @@ const TILT_HOVER = 12
 const EASE = 0.08
 
 /**
- * The threshold mark in the header.
+ * The emblem in the header.
  *
  * Inline SVG with a specular highlight sweeping across it, a slow float, and a
  * tilt that eases toward the cursor. No WebGL and no Three.js: this is a 40px
  * logo, and a GL context for it would cost more than the entire rest of the
  * header.
  *
- * The paths are inlined rather than loaded from `/brand/monogram.svg` so the
+ * The seal is inlined rather than loaded as an image so the
  * mark is in the server HTML and paints with the first frame — an `<img>` would
  * be a second request in front of the most important thing in the header.
  *
@@ -112,44 +113,7 @@ export function FloatingMark() {
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
-        <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
-          <defs>
-            {/* The specular sweep. Animating the stop offsets rather than
-                transforming the whole gradient keeps it on one paint. */}
-            <linearGradient id="ic-sheen" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--bone)" stopOpacity="0.85" />
-              <stop offset="18%" stopColor="var(--sheen-hi)" stopOpacity="1">
-                <animate
-                  attributeName="offset"
-                  values="-0.35;1.35;1.35"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="36%" stopColor="var(--bone)" stopOpacity="0.85">
-                <animate
-                  attributeName="offset"
-                  values="-0.2;1.5;1.5"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-            </linearGradient>
-          </defs>
-          {/* The mark: a doorway with the sun rising inside it, swept by the
-              specular highlight. Same geometry as brand/Monogram. */}
-          <g fill="none" stroke="url(#ic-sheen)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
-            <path d="M8.5 42 H39.5" opacity="0.55" />
-            <path d="M17.5 32 H30.5" />
-            <g opacity="0.75" strokeWidth="1.7">
-              <path d="M24 19.5 V22.5" />
-              <path d="M17.6 22.4 L19.8 24.6" />
-              <path d="M30.4 22.4 L28.2 24.6" />
-            </g>
-          </g>
-          <path d="M19 32 A5 5 0 0 1 29 32 Z" fill="url(#ic-sheen)" opacity="0.95" />
-        </svg>
+        <img src={LOGO_MIN_URL} width={44} height={44} alt="" aria-hidden="true" decoding="async" className="brand-emblem floating-mark-img" />
       </span>
     </Link>
   )

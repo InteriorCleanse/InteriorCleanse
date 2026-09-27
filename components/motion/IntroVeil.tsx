@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LOGO_URL } from '@/lib/brand-assets'
 
 /**
- * The first-visit curtain: the threshold mark draws itself, the sun rises
- * inside it, the wordmark settles beneath, and the veil lifts to reveal the
+ * The first-visit curtain: the seal draws its rings, the ligature
+ * appears inside, the wordmark settles beneath, and the veil lifts to reveal the
  * residence. Once per session, never under reduced motion.
  *
  * All the choreography is CSS keyframes, so it starts on the very first paint
@@ -48,17 +49,7 @@ export function IntroVeil() {
 
   return (
     <div className="intro-veil" aria-hidden="true">
-      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-        <path className="veil-draw" d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
-        <path className="veil-draw veil-draw--late" d="M8.5 42 H39.5" opacity={0.55} />
-        <path className="veil-draw veil-draw--late" d="M17.5 32 H30.5" />
-        <path className="veil-sun" d="M19 32 A5 5 0 0 1 29 32 Z" fill="currentColor" stroke="none" />
-        <g className="veil-rays" opacity={0.75} strokeWidth={1.5}>
-          <path d="M24 19.5 V22.5" />
-          <path d="M17.6 22.4 L19.8 24.6" />
-          <path d="M30.4 22.4 L28.2 24.6" />
-        </g>
-      </svg>
+      <img src={LOGO_URL} width={132} height={132} alt="" className="veil-logo" decoding="async" />
       <span className="veil-word">Interior Cleanse</span>
     </div>
   )

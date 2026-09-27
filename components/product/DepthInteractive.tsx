@@ -46,6 +46,16 @@ export function DepthInteractive({
   const [failed, setFailed] = useState<Record<number, boolean>>({})
   const [loaded, setLoaded] = useState<Record<number, boolean>>({})
   const drawable = layers.filter((l) => l.src)
+  const imgRefs = useRef<(HTMLImageElement | null)[]>([])
+  // Images that completed before hydration never fire onLoad for React;
+  // settle their state from the element itself once mounted.
+  useEffect(() => {
+    imgRefs.current.forEach((el, i) => {
+      if (!el || !el.complete) return
+      if (el.naturalWidth > 0) setLoaded((l) => (l[i] ? l : { ...l, [i]: true }))
+      else setFailed((f) => (f[i] ? f : { ...f, [i]: true }))
+    })
+  }, [drawable.length])
 
   const reset = useCallback(() => {
     const el = rootRef.current
@@ -121,6 +131,9 @@ export function DepthInteractive({
         {drawable.map((layer, i) => (
           <img
             key={layer.src + i}
+            ref={(el) => {
+              imgRefs.current[i] = el
+            }}
             src={layer.src}
             // Only the base layer carries the description; the decorative
             // planes above it would otherwise repeat it to a screen reader.

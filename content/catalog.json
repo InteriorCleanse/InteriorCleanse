@@ -10,9 +10,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=90",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_c8e614a2-6eb0-4837-abdd-fb65dc9c8d0f.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_fa3e968f-cc67-48a0-8732-1ed8322d7282.png",
+        "/products/covers/the-calm-room-method.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -25,7 +28,7 @@
     "fulfillment": "manual",
     "printfulVariantId": null,
     "printifyVariantId": null,
-    "status": "needs-assets",
+    "status": "needs-pricing",
     "featured": true,
     "tags": [
       "books",
@@ -37,9 +40,12 @@
     "objectType": "book",
     "tagline": "A field guide to rooms that breathe",
     "badge": null,
-    "careNotes": null,
-    "materialColor": null,
-    "renderMode": null,
+    "careNotes": [
+      "Written and published by the founder",
+      "Paperback and Kindle on Amazon"
+    ],
+    "materialColor": "#3F6A4C",
+    "renderMode": "depth_interactive",
     "createdAt": "2026-09-05T23:29:15.329Z",
     "updatedAt": "2026-09-15T00:14:25.657Z"
   },
@@ -54,9 +60,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=90",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_42d0ab73-d9a0-45ac-90ac-adbf26c400a9.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_af327c92-782b-42ff-bbc0-30a8e2cac3a5.png",
+        "/products/covers/small-home-reset.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -69,7 +78,7 @@
     "fulfillment": "manual",
     "printfulVariantId": null,
     "printifyVariantId": null,
-    "status": "needs-assets",
+    "status": "needs-pricing",
     "featured": true,
     "tags": [
       "books",
@@ -81,9 +90,12 @@
     "objectType": "book",
     "tagline": "Organizing beautifully when every inch counts",
     "badge": null,
-    "careNotes": null,
-    "materialColor": null,
-    "renderMode": null,
+    "careNotes": [
+      "Written and published by the founder",
+      "Paperback and Kindle on Amazon"
+    ],
+    "materialColor": "#2B4C7E",
+    "renderMode": "depth_interactive",
     "createdAt": "2026-09-05T23:29:15.329Z",
     "updatedAt": "2026-09-15T00:14:25.657Z"
   },
@@ -98,9 +110,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=600&q=90",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_eb809317-8cbd-4fa6-be99-a698f0ac2909.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_565cd520-7dec-4920-a725-1e10176f5bb5.png",
+        "/products/covers/edited-kitchen.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -113,7 +128,7 @@
     "fulfillment": "manual",
     "printfulVariantId": null,
     "printifyVariantId": null,
-    "status": "needs-assets",
+    "status": "needs-pricing",
     "featured": true,
     "tags": [
       "books",
@@ -125,9 +140,12 @@
     "objectType": "book",
     "tagline": "A quieter approach to the hardest-working room",
     "badge": null,
-    "careNotes": null,
-    "materialColor": null,
-    "renderMode": null,
+    "careNotes": [
+      "Written and published by the founder",
+      "Paperback and Kindle on Amazon"
+    ],
+    "materialColor": "#A4593A",
+    "renderMode": "depth_interactive",
     "createdAt": "2026-09-05T23:29:15.329Z",
     "updatedAt": "2026-09-15T00:14:25.657Z"
   },
@@ -142,9 +160,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=600&q=90",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_07cfd994-ee04-4e8f-a21e-0f7a8dfe1b76.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_4c2e03d8-46f4-43d4-869e-b187ee1fb4c6.png",
+        "/products/covers/the-rested-body.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -157,7 +178,7 @@
     "fulfillment": "manual",
     "printfulVariantId": null,
     "printifyVariantId": null,
-    "status": "needs-assets",
+    "status": "needs-pricing",
     "featured": false,
     "tags": [
       "books",
@@ -169,9 +190,12 @@
     "objectType": "book",
     "tagline": "Sleep, light, and the rooms that hold them",
     "badge": null,
-    "careNotes": null,
-    "materialColor": null,
-    "renderMode": null,
+    "careNotes": [
+      "Written and published by the founder",
+      "Paperback and Kindle on Amazon"
+    ],
+    "materialColor": "#5A3F72",
+    "renderMode": "depth_interactive",
     "createdAt": "2026-09-05T23:29:15.329Z",
     "updatedAt": "2026-09-15T00:14:25.657Z"
   },
@@ -186,9 +210,12 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=90",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_af91161b-d55f-4242-9199-11acaffd4617.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_afd7ff23-c101-4f37-a5a4-39f0c482d3ea.png",
+        "/products/covers/clean-air-clean-home.jpg"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -201,7 +228,7 @@
     "fulfillment": "manual",
     "printfulVariantId": null,
     "printifyVariantId": null,
-    "status": "needs-assets",
+    "status": "needs-pricing",
     "featured": false,
     "tags": [
       "books",
@@ -213,9 +240,12 @@
     "objectType": "book",
     "tagline": "A practical guide to what you breathe indoors",
     "badge": null,
-    "careNotes": null,
-    "materialColor": null,
-    "renderMode": null,
+    "careNotes": [
+      "Written and published by the founder",
+      "Paperback and Kindle on Amazon"
+    ],
+    "materialColor": "#2E5E58",
+    "renderMode": "depth_interactive",
     "createdAt": "2026-09-05T23:29:15.329Z",
     "updatedAt": "2026-09-15T00:14:25.657Z"
   },
@@ -497,9 +527,11 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_2412e4e6-ea2a-4434-a9be-b99244ebc626.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_64e42cd3-5190-42e4-b899-da0850e621b4.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_2412e4e6-ea2a-4434-a9be-b99244ebc626.png"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -630,12 +662,14 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_05b76312-6383-442e-87e6-d4c1c6aced16.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_73091a2b-ffae-4e31-b817-f6d2116ac397.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_05b76312-6383-442e-87e6-d4c1c6aced16.png"
+      ]
     },
     "rotationSequence": null,
-    "modelUrl": null,
+    "modelUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225512_4ba0a70a-0216-4028-b762-e53eb345aa53.glb",
     "sizeClass": "small",
     "purchaseType": "stripe",
     "stripePriceId": "price_1U48lBIZBcRGxLXMaLDPzu8r",
@@ -677,12 +711,14 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_e10d5541-52ee-4f7d-a7b1-abc599052c12.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225155_18f3803c-f0ee-44e2-8bdf-f5bf6cf30643.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_e10d5541-52ee-4f7d-a7b1-abc599052c12.png"
+      ]
     },
     "rotationSequence": null,
-    "modelUrl": null,
+    "modelUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225513_0ca08120-2017-43e3-922a-620e46926c83.glb",
     "sizeClass": "medium",
     "purchaseType": "stripe",
     "stripePriceId": "price_1U48lAIZBcRGxLXMjqQFYtCd",
@@ -724,9 +760,11 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_eb0c1f56-e739-438a-8828-f8d7ae410f8d.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_0734d626-d6eb-4628-a9a4-a6dc0ba7e9d4.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001203_eb0c1f56-e739-438a-8828-f8d7ae410f8d.png"
+      ]
     },
     "rotationSequence": null,
     "modelUrl": null,
@@ -771,12 +809,14 @@
     "currency": "USD",
     "compareAtPrice": null,
     "images": {
-      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001039_4a00a541-0aef-416c-b4aa-651bd6de354a.png",
+      "hero": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225130_a8cabec4-bbc5-4a77-93a9-170a2e9cdb37.png",
       "transparent": null,
-      "gallery": []
+      "gallery": [
+        "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260924_001039_4a00a541-0aef-416c-b4aa-651bd6de354a.png"
+      ]
     },
     "rotationSequence": null,
-    "modelUrl": null,
+    "modelUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_225511_4a579141-50fa-46c4-b7cd-02eb49f6f136.glb",
     "sizeClass": "small",
     "purchaseType": "stripe",
     "stripePriceId": "price_1U48l9IZBcRGxLXMebmVRgHi",

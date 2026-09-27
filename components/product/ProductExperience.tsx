@@ -8,6 +8,7 @@ import {
 import type { Product } from '@/lib/types'
 import { DepthInteractive } from './DepthInteractive'
 import { Spin360 } from './Spin360'
+import { GlbStageLoader } from '@/components/3d/GlbStageLoader'
 
 interface ProductExperienceProps {
   product: Product
@@ -32,6 +33,12 @@ export function ProductExperience({
 }: ProductExperienceProps) {
   const experience = experienceFor(product.category)
   const mode = variant === 'card' ? 'depth_interactive' : resolveRenderMode(product)
+
+  // A real scanned model outranks every synthetic mode on the stage. Cards
+  // still never open a WebGL context.
+  if (variant === 'stage' && product.modelUrl) {
+    return <GlbStageLoader url={product.modelUrl} name={product.name} poster={product.heroImage} />
+  }
 
   if (mode === 'true_3d') {
     return (

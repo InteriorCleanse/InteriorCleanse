@@ -12,6 +12,7 @@ import { LineIcon, type IconName } from '@/components/icons/LineIcon'
 import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
+import { LOGO_URL } from '@/lib/brand-assets'
 
 // `trailingSlash: true` means the canonical form of every URL carries one.
 // Each page declares its own; a site-wide canonical of '/' told search engines
@@ -249,38 +250,10 @@ export default function Home() {
               <ArrowOrb />
             </Link>
           </div>
-          {/* The threshold, in the spirit's colour: the same doorway-and-sun as
-              the mark, breathing slowly. The room's chapel footage plays behind. */}
+          {/* The emblem, large, breathing slowly over the chapel. */}
           <div className="spirit-threshold-wrap" data-reveal>
-            <svg className="spirit-threshold" viewBox="0 0 48 48" aria-hidden="true">
-              <defs>
-                <linearGradient id="spirit-sun" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E6CB96" />
-                  <stop offset="100%" stopColor="#8E6FB0" />
-                </linearGradient>
-                <radialGradient id="spirit-glow" cx="50%" cy="68%" r="55%">
-                  <stop offset="0%" stopColor="#E6CB96" stopOpacity="0.55" />
-                  <stop offset="100%" stopColor="#E6CB96" stopOpacity="0" />
-                </radialGradient>
-                <clipPath id="spirit-clip">
-                  <rect x="12" y="18" width="24" height="14" />
-                </clipPath>
-              </defs>
-              <circle className="spirit-glow" cx="24" cy="32" r="18" fill="url(#spirit-glow)" />
-              <g fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round">
-                <path d="M11 42 V23 A13 13 0 0 1 37 23 V42" />
-                <path d="M8.5 42 H39.5" opacity="0.5" />
-                <path d="M17.5 32 H30.5" />
-              </g>
-              <g clipPath="url(#spirit-clip)">
-                <circle className="spirit-sun" cx="24" cy="32" r="5" fill="url(#spirit-sun)" />
-              </g>
-              <g stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" opacity="0.7">
-                <path d="M24 19.5 V22.5" />
-                <path d="M17.6 22.4 L19.8 24.6" />
-                <path d="M30.4 22.4 L28.2 24.6" />
-              </g>
-            </svg>
+            <span className="spirit-emblem-glow" aria-hidden="true" />
+            <img src={LOGO_URL} alt="" className="spirit-emblem" decoding="async" loading="lazy" />
           </div>
         </div>
       </section>
