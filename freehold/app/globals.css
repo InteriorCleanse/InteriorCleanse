@@ -179,16 +179,20 @@ h1, h2, h3, .serif {
   font: inherit;
   transition: border-color 300ms cubic-bezier(0.32, 0.72, 0, 1), background-color 300ms;
 }
-.field:focus { outline: none; border-bottom-color: var(--ink); background: var(--paper); }
+.field:focus { outline: none; background: var(--paper); border-bottom-color: var(--ink); box-shadow: 0 1px 0 var(--ink); }
 .field::placeholder { color: var(--stone); opacity: 0.8; }
 
 /* Scroll reveals: fade, rise, unblur. Static under reduced motion. */
-.rv { opacity: 0; transform: translateY(28px); filter: blur(6px); transition: opacity 900ms cubic-bezier(0.32, 0.72, 0, 1), transform 900ms cubic-bezier(0.32, 0.72, 0, 1), filter 900ms cubic-bezier(0.32, 0.72, 0, 1); will-change: transform, opacity; }
-.rv.in { opacity: 1; transform: none; filter: blur(0); }
-.no-js .rv { opacity: 1; transform: none; filter: none; }
+.rv { opacity: 0; transform: translateY(4px); transition: opacity 300ms cubic-bezier(0.32, 0.72, 0, 1), transform 300ms cubic-bezier(0.32, 0.72, 0, 1); }
+.rv.in { opacity: 1; transform: none; }
+.no-js .rv { opacity: 1; transform: none; }
 
-/* Sticky chapters: each panel pins under the last. */
-.chapter { position: sticky; top: 4.5rem; background: var(--paper); border-top: 1px solid var(--hairline); }
+.chapter { border-top: 1px solid var(--hairline); }
+
+.navlink { position: relative; }
+.navlink::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0.35rem; height: 1px; background: var(--ink); transform: scaleX(0); transform-origin: left; transition: transform 400ms cubic-bezier(0.32, 0.72, 0, 1); }
+.navlink:hover::after, .navlink:focus-visible::after { transform: scaleX(1); }
+[id] { scroll-margin-top: 2rem; }
 
 table.doc { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 table.doc th, table.doc td { text-align: left; vertical-align: top; padding: 0.85rem 0; border-top: 1px solid var(--hairline); }
@@ -196,7 +200,6 @@ table.doc th { color: var(--stone); font-weight: 500; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .rv { opacity: 1; transform: none; filter: none; transition: none; }
-  .chapter { position: static; }
+  .rv { opacity: 1; transform: none; transition: none; }
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

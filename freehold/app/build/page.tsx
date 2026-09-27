@@ -39,6 +39,7 @@ export default function BuildPage() {
 
       {/* Three truths as a ruled ledger, not cards. */}
       <section className="page mt-24 sm:mt-32" aria-labelledby="truths">
+        <p className="mono mb-3">01</p>
         <h2 id="truths" className="text-4xl sm:text-5xl max-w-[18ch] rv">True by construction.</h2>
         <dl className="mt-10 grid gap-px bg-hairline sm:grid-cols-3">
           {[
@@ -46,7 +47,7 @@ export default function BuildPage() {
             ['Your bill', 'The model runs on your Anthropic key. You read that bill, not us.'],
             ['Your runtime', 'Nothing runs on our servers, so our bad day is not yours.'],
           ].map(([t, d], i) => (
-            <div key={t} className="bg-paper py-8 sm:pr-8 rv" data-i={i}>
+            <div key={t} className="bg-paper py-8 sm:px-8 sm:first:pl-0 sm:last:pr-0 rv" data-i={i}>
               <dt className="serif text-3xl">{t}</dt>
               <dd className="text-stone mt-3 max-w-[30ch]">{d}</dd>
             </div>
@@ -56,7 +57,8 @@ export default function BuildPage() {
 
       {/* The billing rule, set large. */}
       <section className="page mt-24 sm:mt-32">
-        <div className="bg-plate px-6 py-12 sm:px-14 sm:py-20 rv">
+        <div className="rule pt-10 sm:pt-14 rv">
+          <p className="mono mb-5">02</p>
           <p className="serif text-3xl sm:text-5xl lg:text-6xl max-w-[20ch]">You are never charged for a build the AI could not finish.</p>
           <p className="text-stone mt-8 max-w-[60ch]">
             Hosted builders charge credits while their model fixes its own mistakes. We cannot, because our fee is flat and the model cost is on your key. A build that does not reach a working commit costs you nothing from us. The tokens it used are on your Anthropic bill, which we do not control and do not mark up.
@@ -65,6 +67,7 @@ export default function BuildPage() {
       </section>
 
       <section className="page mt-24 sm:mt-32" aria-labelledby="run">
+        <p className="mono mb-3">03</p>
         <h2 id="run" className="text-4xl sm:text-5xl rv">How a build runs.</h2>
         <ol className="mt-10 max-w-[64ch] list-none">
           {steps.map(([t, d], i) => (
@@ -80,6 +83,7 @@ export default function BuildPage() {
       </section>
 
       <section className="page mt-24 sm:mt-32" aria-labelledby="faq">
+        <p className="mono mb-3">04</p>
         <h2 id="faq" className="text-4xl sm:text-5xl max-w-[18ch] rv">Questions a burned builder asks.</h2>
         <div className="mt-8">
           <Faq items={faq} />
@@ -87,6 +91,7 @@ export default function BuildPage() {
       </section>
 
       <section className="page mt-24 sm:mt-32" id="waitlist" aria-labelledby="wl">
+        <p className="mono mb-3">05</p>
         <h2 id="wl" className="text-4xl sm:text-5xl rv">Join the waitlist.</h2>
         <p className="text-stone mt-6 mb-8 max-w-[60ch] rv" data-i={1}>
           One email when Build opens, one when the price is final. Nothing else. If you tell us what you tried to build and where it stopped, we will reply with what a hosted export usually leaves behind, free.

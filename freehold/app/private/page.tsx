@@ -42,10 +42,11 @@ export default function PrivatePage() {
       <section className="page mt-24 sm:mt-32" aria-labelledby="review">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5 rv">
+            <p className="mono mb-3">01</p>
             <h2 id="review" className="text-4xl sm:text-5xl">Where it starts.</h2>
             <p className="serif text-2xl mt-6">The footprint and email security review.</p>
           </div>
-          <div className="lg:col-span-7 bg-plate px-6 py-8 sm:px-10 sm:py-10 rv" data-i={1}>
+          <div className="lg:col-span-7 rule pt-6 lg:border-t-0 lg:border-l lg:border-hairline lg:pl-10 lg:pt-0 rv" data-i={1}>
             <p className="mono">Two weeks · fixed fee · in writing</p>
             <p className="text-stone mt-5">
               A written report on what of the family and the office is exposed online and by email: domains and their records, mail authentication, stale pages, staff information that should not be public, and the small configuration gaps that most incidents begin with. Each finding comes with the fix, in order, and who should do it.
@@ -59,6 +60,7 @@ export default function PrivatePage() {
 
       {/* What it can become: a ruled list, not a card trio. */}
       <section className="page mt-24 sm:mt-32" aria-labelledby="become">
+        <p className="mono mb-3">02</p>
         <h2 id="become" className="text-4xl sm:text-5xl max-w-[18ch] rv">What it can become.</h2>
         <ul className="mt-10 max-w-[64ch] list-none">
           {[
@@ -76,17 +78,19 @@ export default function PrivatePage() {
       </section>
 
       <section className="page mt-24 sm:mt-32" aria-labelledby="conduct">
-        <div className="bg-plate px-6 py-12 sm:px-14 sm:py-16">
+        <div className="rule pt-10 sm:pt-14">
+          <p className="mono mb-3">03</p>
           <h2 id="conduct" className="text-4xl sm:text-5xl rv">How we conduct ourselves.</h2>
           <ol className="mt-8 grid gap-x-12 gap-y-4 sm:grid-cols-2 max-w-4xl list-none">
             {conduct.map((c, i) => (
-              <li key={c} className="rule pt-4 text-stone rv" data-i={i}>{c}</li>
+              <li key={c} className="rule pt-4 text-stone rv" data-i={i}><span className="mono mr-4">{String(i + 1).padStart(2, '0')}</span>{c}</li>
             ))}
           </ol>
         </div>
       </section>
 
       <section className="page mt-24 sm:mt-32" aria-labelledby="faq">
+        <p className="mono mb-3">04</p>
         <h2 id="faq" className="text-4xl sm:text-5xl rv">Questions we expect.</h2>
         <div className="mt-8">
           <Faq items={faq} />
@@ -94,6 +98,7 @@ export default function PrivatePage() {
       </section>
 
       <section className="page mt-24 sm:mt-32" id="call" aria-labelledby="req">
+        <p className="mono mb-3">05</p>
         <h2 id="req" className="text-4xl sm:text-5xl rv">Request a call.</h2>
         <p className="text-stone mt-6 mb-8 max-w-[60ch] rv" data-i={1}>
           Twenty minutes with the person who does the work. You leave with a written note of what we heard, whether the review fits, and a fixed fee if it does.

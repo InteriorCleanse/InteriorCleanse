@@ -37,6 +37,7 @@ export default function Home() {
 
       {/* Two lines of work: asymmetric pair, different treatments. */}
       <section className="page mt-28 sm:mt-40" aria-labelledby="work">
+        <p className="mono mb-3 rv">01</p>
         <h2 id="work" className="text-4xl sm:text-5xl max-w-[18ch] rv">Two lines of work, one principle.</h2>
         <div className="mt-12 grid gap-px bg-hairline md:grid-cols-[3fr_2fr]">
           <div className="bg-paper py-10 md:pr-12 rv" data-i={1}>
@@ -49,7 +50,7 @@ export default function Home() {
               <QuietCta href="/build/">Join the waitlist</QuietCta>
             </div>
           </div>
-          <div className="bg-plate py-10 md:pl-12 md:pr-4 px-0 rv" data-i={2}>
+          <div className="bg-plate py-10 md:pl-12 md:pr-12 px-0 rv" data-i={2}>
             <div className="px-6 md:px-0">
               <p className="mono">Freehold Private</p>
               <h3 className="text-3xl sm:text-4xl mt-4">Private software, on your own ground.</h3>
@@ -66,10 +67,11 @@ export default function Home() {
 
       {/* What ownership means: sticky chapters that stack as you scroll. */}
       <section className="page mt-28 sm:mt-40" aria-labelledby="own">
+        <p className="mono mb-3 rv">02</p>
         <h2 id="own" className="text-4xl sm:text-5xl max-w-[18ch] rv">What ownership means here.</h2>
         <div className="mt-12">
-          {chapters.map(([t, d], i) => (
-            <article key={t} className="chapter py-10 sm:py-14 grid gap-4 sm:grid-cols-[1fr_2fr]" style={{ zIndex: i + 1 }}>
+          {chapters.map(([t, d]) => (
+            <article key={t} className="chapter py-9 sm:py-12 grid gap-4 sm:grid-cols-[1fr_2fr] rv">
               <h3 className="text-3xl sm:text-4xl">{t}</h3>
               <p className="text-stone text-lg max-w-[48ch] sm:pt-2">{d}</p>
             </article>
@@ -80,6 +82,7 @@ export default function Home() {
       {/* How we work: one measure, manifesto. */}
       <section className="page mt-28 sm:mt-40" aria-labelledby="how">
         <div className="max-w-[66ch]">
+          <p className="mono mb-3 rv">03</p>
           <h2 id="how" className="text-4xl sm:text-5xl rv">How we work.</h2>
           <div className="mt-8 space-y-6 text-lg text-stone rv" data-i={1}>
             <p>Freehold is a one-person firm, and says so on the first call. That is the reason it can be discreet, direct, and unhurried, and the reason it does not take on more than it can do well.</p>

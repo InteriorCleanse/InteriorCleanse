@@ -20,8 +20,6 @@ export function Reveal() {
         for (const e of entries) {
           if (e.isIntersecting) {
             const el = e.target as HTMLElement
-            const i = Number(el.dataset.i || 0)
-            el.style.transitionDelay = `${Math.min(i, 6) * 70}ms`
             el.classList.add('in')
             io.unobserve(el)
           }

@@ -74,7 +74,7 @@ export function InquiryForm({ kind, cta }: { kind: Kind; cta: string }) {
           <span>{state === 'sending' ? 'Sending' : cta}</span>
           <span className="glyph" aria-hidden="true" />
         </button>
-        <span className="text-sm text-stone">Stored in our mailing tool. Never sold, never shared.</span>
+        <span className="text-sm text-stone">Sent to one inbox and stored in Brevo. Never sold, never shared.</span>
       </div>
       {state === 'unconfigured' && (
         <p className="text-sm" role="alert">
