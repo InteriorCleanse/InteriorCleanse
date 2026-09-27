@@ -8,7 +8,7 @@ answer.
 **What the founder has today.** One person. Claude Code with 101 skills and 44
 agents. Next.js and Vercel. One storefront (InteriorCleanse) that has not yet
 taken a live dollar (`docs/REVENUE_TODAY.md`). A planned AI app builder with a
-strategy document and no product (`docs/business/untitled-app-builder/STRATEGY.md`).
+strategy document and no product (`docs/business/freehold/STRATEGY.md`).
 No funding, clients, team, insurance, or references stated.
 
 **How this was researched.** The container's proxy blocks page fetches, so

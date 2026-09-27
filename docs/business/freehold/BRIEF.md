@@ -1,11 +1,11 @@
-# Business brief — untitled AI app builder
+# Business brief — Freehold
 
 Started 2026-09-26 from one line from the owner: "This product needs to be
 better than Base44." Everything below that is not from the owner is marked
-"not stated". Rename this folder once the company name is given.
+"not stated". Folder renamed to freehold on 2026-09-27 when the name was proposed.
 
 ```
-Company name:            not stated
+Company name:            Freehold (proposed, see NAME.md; owner to confirm)
 Domain (own it? y/n):    not stated
 One sentence, what it sells and to whom:
     not stated. Known: an AI app builder positioned against Base44.

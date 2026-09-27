@@ -4,8 +4,8 @@ Written 2026-09-27 for one founder with Claude Code, Next.js, and Vercel. The
 owner asked for automation, a call list, and lead generation aimed at
 multimillionaire and billionaire clients and the professionals who serve them.
 This is not a list. It is the system that produces one from public sources,
-scores it, and works it by hand. No name, number, or email is invented; no
-private data is scraped; no message is sent by software.
+scores it, and works it by hand. Nothing is invented, nothing is scraped, and
+no message is sent by software.
 
 **Research note.** Every price below is a search snippet retrieved 2026-09-27.
 Vendor pages were blocked by this container's proxy, so each price names its
@@ -13,13 +13,13 @@ primary URL and must be re-read before purchase.
 
 **Offer gate.** An account enters a sequence only when the owner can name, in
 one sentence, a product that is `published` in `content/catalog.json` or a
-shipped version of the app builder (`docs/business/untitled-app-builder/`).
+shipped version of the app builder (`docs/business/freehold/`).
 No product, no send. This outranks everything else here.
 
 ## 1. Ideal customer profiles
 
 Tier 1 is a stated need, Tier 2 an organisational change, Tier 3 a public
-appearance. A signal older than 90 days counts as none.
+appearance. Signals older than 90 days count as none.
 
 ### 1a. Family office, single (SFO) and multi (MFO)
 
@@ -50,22 +50,22 @@ appearance. A signal older than 90 days counts as none.
 
 ## 2. Lawful sourcing playbook
 
-No automated scraping of LinkedIn, no purchase of leaked or "enriched" lists,
-no personal mobile numbers, no texts. The owner performs every manual step and
-records the URL that proves each fact.
+No automated scraping of LinkedIn, no leaked or "enriched" lists, no personal
+mobiles, no texts. The owner performs every manual step and records the URL
+that proves each fact.
 
 | Source | Yields | Terms and legal note | Owner's manual step |
 | --- | --- | --- | --- |
-| SEC IAPD and Form ADV data sets (adviserinfo.sec.gov; sec.gov Form ADV data) | Advisers and MFOs: AUM, minimums, offices, key persons | Public record. EDGAR automation needs a declared User-Agent with contact details, under 10 requests a second (sec.gov/os/accessing-edgar-data) | Read Part 2A; copy AUM band, minimum, city, filing date |
+| SEC IAPD and Form ADV data sets (adviserinfo.sec.gov) | Advisers and MFOs: AUM, minimums, offices, key persons | Public record. EDGAR automation needs a declared User-Agent with contact details, under 10 requests a second (sec.gov/os/accessing-edgar-data) | Read Part 2A; copy AUM band, minimum, city, filing date |
 | EDGAR 13F-HR and Form D (Atom feeds and full-text search) | Holders above $100M; private raises with issuer and officers | Public record, same access rules | Confirm the filer is the account; accession URL becomes `source_url` |
-| Company registries: Companies House (UK), US Secretary of State portals, OpenCorporates | Officers, incorporation date, filings | Companies House is open data. OpenCorporates is free for non-commercial use; commercial reuse needs a licence | Verify legal name and officers; never copy a home address |
+| Registries: Companies House (UK), US Secretary of State portals, OpenCorporates | Officers, incorporation date, filings | Companies House is open data. OpenCorporates is free for non-commercial use; commercial reuse needs a licence | Verify legal name and officers; never copy a home address |
 | Crunchbase free account | Funding events, founders, HQ | Free account view-limited (about 11 profiles a month per snippet); Pro $49 a month annual or $99 monthly (support.crunchbase.com, snippet 2026-09-27) | Confirm signals only; no export |
 | PitchBook | Deal and fund data | No free tier; trial by request at pitchbook.com/free-trial; a seat reported at roughly $15,000 to $20,000 a year (vendr.com snippet 2026-09-27, unverified) | Not used yet |
-| Conference speaker lists and podcast show notes | Names, titles, topics, dates (Tier 3) | Public pages; quote only what is on the page | Record event, date, URL; the topic opens the message |
+| Conference speaker lists, podcast show notes | Names, titles, topics, dates (Tier 3) | Public pages; quote only what is on the page | Record event, date, URL; the topic opens the message |
 | LinkedIn Sales Navigator, owner's own seat | Titles, role changes, posts | Core US$119.99 a month or $1,079.88 a year (business.linkedin.com/sell/sales-navigator/compare-plans, snippet 2026-09-27). User Agreement 8.2 forbids software, scripts, or bots that scrape or copy profiles, and automated messaging | Search, read, record name, title, profile URL only |
-| Industry association directories where public (NAPFA Find an Advisor, CFP Board verification) | Advisor name, firm, city, credentials | Public; some terms forbid marketing use, read each first | Verify credentials, do not build a list |
-| Press and Google Alerts RSS, PR Newswire and Business Wire feeds | Tier 2 signals with dates | Public; cite the article | Paste headline, date, URL |
-| Greenhouse and Lever public job-board endpoints, company careers pages | Tier 1 job-post signals | Public, documented endpoints; respect robots.txt and rate limits | Confirm the post is live on the company's page |
+| Public association directories (NAPFA Find an Advisor, CFP Board verification) | Advisor name, firm, city, credentials | Public; some terms forbid marketing use, read each first | Verify credentials, do not build a list |
+| Press: Google Alerts RSS, PR Newswire, Business Wire feeds | Tier 2 signals with dates | Public; cite the article | Paste headline, date, URL |
+| Greenhouse and Lever public job boards, careers pages | Tier 1 job-post signals | Public, documented endpoints; respect robots.txt and rate limits | Confirm the post is live on the company's page |
 
 **Contact rules by law.** CAN-SPAM: truthful headers, a postal address in
 every email, opt-out honoured within 10 business days by law and one day here
@@ -118,7 +118,7 @@ The arithmetic goes in `owner_notes` so it can be audited.
 ## 4. Automation
 
 **Built now: nothing.** This document and the empty CSV are the only
-artefacts. Everything below is specification.
+artefacts. Everything below is a spec.
 
 ```
  PUBLIC FEEDS                WEEKLY SCAN (spec)         HUMAN REVIEW
@@ -165,7 +165,7 @@ artefacts. Everything below is specification.
 
 **Human-in-the-loop rule.** No message leaves without the owner reading the
 final text, its row, and the signal URL. Software drafts, reminds, and
-records. It does not send.
+records. It never sends.
 
 ## 5. The 21-day gatekeeper sequence
 
@@ -182,12 +182,12 @@ persons. Brackets are filled from the row; an unfilled bracket is not sent.
 | 2 | LinkedIn | Connection request with note, no pitch |
 | 4 | Phone | Office line; voicemail if unanswered |
 | 6 | Email 2 | Useful public fact tied to the signal, no ask |
-| 9 | LinkedIn | Message if connected; otherwise one considered comment on a public post |
+| 9 | LinkedIn | Message if connected; otherwise one comment on a public post |
 | 11 | Letter | One page, hand-signed, to the office; arrives about day 14 |
-| 14 | Phone | Second and final call |
+| 14 | Phone | Final call |
 | 16 | Email 3 | Concrete update, two direct questions |
-| 19 | LinkedIn | Final message, closes the loop |
-| 21 | Email 4 | Closing note; thread stays open for them |
+| 19 | LinkedIn | Final message |
+| 21 | Email 4 | Closing note; thread stays open |
 
 **Email 1, day 1. Subject: re: [signal in three words]**
 
@@ -224,10 +224,10 @@ Thank you for connecting. Since [signal], is [specific use] something your
 office is handling this quarter? If it sits on someone else's desk, a name is
 enough; I will write to them once and copy you.
 
-**Letter, day 11.** One page. First paragraph names the signal and date;
-second is the offer sentence with one photograph of a published item; third
-gives the thread's subject line so the reply can be by email. Hand-signed.
-Nothing of value enclosed unless the gift policy was read.
+**Letter, day 11.** One page, hand-signed. Paragraphs: the signal and date;
+the offer sentence with one photograph of a published item; the thread's
+subject line so the reply can be by email. Nothing of value enclosed unless
+the gift policy was read.
 
 **Email 3, day 16, same thread**
 
@@ -252,7 +252,7 @@ your time.
 ## 6. Weekly operating rhythm
 
 - Monday, 90 minutes: read the signal inbox, keep or delete each candidate,
-  score kept rows, set `next_action_date` for anything at 18 or above.
+  score kept rows, set `next_action_date` for scores of 18 or above.
 - Tuesday to Thursday, one 60-minute block each morning: work the day's steps
   in row order, type every message, log each touch and outcome the same hour.
   Calls only in this block.
@@ -260,7 +260,7 @@ your time.
   no, honour any pending opt-out, write the five numbers into
   `docs/sales/METRICS.md` (create on first use).
 
-The five numbers, recorded every Friday:
+The five Friday numbers:
 
 1. Qualified accounts added (`candidate` to `qualified`).
 2. First touches sent (Email 1 count).
@@ -269,14 +269,14 @@ The five numbers, recorded every Friday:
 4. Meetings booked.
 5. Opt-outs received and the longest time to honour one, in hours.
 
-Targets are set after four weeks of real numbers, not before. Generic reply
-rate benchmarks are not repeated here; they are unsourced for this segment.
+Targets are set after four weeks of real numbers. Generic reply-rate
+benchmarks are omitted; they are unsourced for this segment.
 
 ## 7. Sources
 
 All retrieved 2026-09-27. Vendor pricing pages, linkedin.com, and ftc.gov were
-blocked by the container proxy; figures come from search snippets citing the
-primary page named. Re-read each before acting.
+proxy-blocked; figures are search snippets citing the primary page named.
+Re-read each before acting.
 
 - https://business.linkedin.com/sell/sales-navigator/compare-plans (via findymail.com, smartreach.io)
 - https://www.linkedin.com/legal/user-agreement (8.2; via linkedin.com/help/linkedin/answer/a1341387)
