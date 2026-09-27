@@ -89,3 +89,11 @@ Read, Glob, Bash, and Grep call to nudge toward the graph. They are **not**
 installed here: they make every file read in every session depend on a Python
 package being present, which would break CI and any machine without it. Run
 `graphify install --project` yourself if you want them.
+
+## Separate products in this repository
+
+`auction-scanner/` is **Gavel**, an AI car-auction scanner. It is a
+stand-alone product with its own brief, rules, design and memory: read
+`auction-scanner/CLAUDE.md` and `auction-scanner/BRIEF.md` before touching it.
+It shares no code, design or voice with the storefront or with anything else
+here, and nothing in it should be borrowed from another folder.

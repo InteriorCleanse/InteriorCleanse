@@ -1,0 +1,27 @@
+{
+  "name": "gavel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gavel — an AI car-auction scanner that finds clean, lightly-used cars priced well under their comparables, explains every score in plain English, and walks a beginner through buying, flipping and renting them. Paper bidding by default.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "app": "node src/server.ts",
+    "scan": "node src/scan.ts",
+    "doctor": "node src/doctor.ts",
+    "selftest": "node src/selftest.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --import ./test/setup.ts test/*.test.ts",
+    "check": "tsc --noEmit -p . && node src/selftest.ts && node --test --import ./test/setup.ts test/*.test.ts"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/sdk": "^0.115.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.7",
+    "typescript": "5.9.3"
+  }
+}
