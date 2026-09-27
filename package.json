@@ -16,7 +16,9 @@
     "press:covers": "node scripts/press/covers.mjs",
     "press:downloads": "node scripts/press/downloads.mjs",
     "catalog:fill": "node scripts/fill-drafts-from-content.mjs",
-    "check:seo": "node scripts/check-seo.mjs"
+    "check:seo": "node scripts/check-seo.mjs",
+    "drive:seed": "node scripts/drive/seed-fleet.mjs",
+    "test:drive": "node --experimental-strip-types --test \"lib/drive/__tests__/*.test.ts\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

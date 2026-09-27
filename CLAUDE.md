@@ -37,6 +37,12 @@ These come from the owner and hold regardless of what a vendored skill says.
 - `middleware.ts` gates `/admin` and `/api/admin` on a signed session cookie.
   Every admin route re-checks independently; the middleware is not the only
   guard.
+- `/drive/` is a separate application (a peer-to-peer car sharing
+  marketplace on a sample fleet) that lives inside the site. Its domain
+  logic is in `lib/drive/`, its screens in `components/drive/` and
+  `app/drive/`, and `components/SiteChrome.tsx` withholds the storefront
+  chrome under that path. It is `noindex` and charges nothing. See
+  `docs/DRIVE.md`; `npm run test:drive` covers its pure modules.
 
 ## Checks
 
@@ -46,6 +52,7 @@ npm run lint
 npx tsc --noEmit
 npm run check:seo      # needs the site running on :3000
 npm run check:contrast
+npm run test:drive     # the /drive/ pricing, date and search logic
 ```
 
 ## Working agreement

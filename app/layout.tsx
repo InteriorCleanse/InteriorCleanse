@@ -22,17 +22,8 @@ const jakarta = Plus_Jakarta_Sans({
   display: 'swap',
   variable: '--font-jakarta',
 })
-import { Footer, Header } from '@/components/layout'
-import { Experience } from '@/components/Experience'
-import { GuestBookModal } from '@/components/GuestBookModal'
-import { GSAPAnimations } from '@/components/GSAPAnimations'
-import { PageTransition } from '@/components/PageTransition'
-import { SmoothScroll } from '@/components/SmoothScroll'
-import { GlobeCursorGlobal } from '@/components/cursor/GlobeCursorGlobal'
-import { ScrollProgress } from '@/components/motion/ScrollProgress'
-import { IntroVeil } from '@/components/motion/IntroVeil'
-import { MagneticButtons } from '@/components/motion/MagneticButtons'
-import { CartDrawer, CartProvider } from '@/components/cart'
+import { SiteChrome } from '@/components/SiteChrome'
+import { CartProvider } from '@/components/cart'
 import { OrganizationLd, WebSiteLd } from '@/components/StructuredData'
 import { BRAND_NAME, PLAUSIBLE_DOMAIN, SITE } from '@/lib/site-config'
 import { LOGO_URL } from '@/lib/brand-assets'
@@ -83,24 +74,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        <IntroVeil />
         <OrganizationLd />
         <WebSiteLd />
         <CartProvider>
-          <Experience />
-          <GSAPAnimations />
-          <GuestBookModal />
-          <Header />
-          <CartDrawer />
-          <ScrollProgress />
-          <GlobeCursorGlobal />
-          <MagneticButtons />
-          <PageTransition>
-            <SmoothScroll>
-              <main id="main">{children}</main>
-            </SmoothScroll>
-          </PageTransition>
-          <Footer />
+          {/* The storefront chrome, or nothing but <main> under /drive/, which
+              carries its own frame. See components/SiteChrome.tsx. */}
+          <SiteChrome>{children}</SiteChrome>
         </CartProvider>
         {PLAUSIBLE_DOMAIN ? (
           <script defer data-domain={PLAUSIBLE_DOMAIN} src="https://plausible.io/js/script.js" />
