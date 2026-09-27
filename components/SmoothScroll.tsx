@@ -24,8 +24,9 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
       if (cancelled) return
 
       lenis = new Lenis({
-        duration: 1.4,
-        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        // Interpolated rather than a fixed 1.4 s glide: the page follows the
+        // wheel closely and settles quickly, so it feels smooth, not floaty.
+        lerp: 0.12,
         orientation: 'vertical',
         smoothWheel: true,
         wheelMultiplier: 1,

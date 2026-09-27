@@ -1,0 +1,12 @@
+# Secret scanning for this public repository. Real keys live only in Vercel.
+# The allowlisted paths hold documentation examples and test fixtures, not keys.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Vendored skill docs and test fixtures with example credentials"
+paths = [
+  '''^\.claude/''',
+  '''^trading-bot/\.claude/''',
+  '''^trading-bot/test/''',
+]

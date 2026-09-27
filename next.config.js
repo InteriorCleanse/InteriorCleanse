@@ -65,6 +65,11 @@ const nextConfig = {
   // catalogue renders plain <img> so the pedestal and reel can share one
   // source), but the allowlist stays accurate for anything that does.
   images: {
+    // Nothing imports next/image, so the optimisation endpoint (/_next/image)
+    // only added attack surface: Next 14 has unpatched advisories in it,
+    // including remote code execution via crafted AVIF files (GHSA-2xp9-vwfh-vxw4,
+    // fixed only in 15.5.24+). Turning it off removes the endpoint's work.
+    unoptimized: true,
     remotePatterns: [{ protocol: 'https', hostname: 'images.unsplash.com' }],
   },
   poweredByHeader: false,
