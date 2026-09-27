@@ -58,6 +58,10 @@ by its setup wizard, which writes to `~/.config/last30days/`, never to this
 repository. The upstream `assets/` folder (14 MB of demo media) and its
 SessionStart hook were left out.
 
+Four sales personas were promoted on 2026-09-27 for the sales system in
+`docs/sales/`: `sales-outbound-strategist`, `sales-discovery-coach`,
+`sales-coach`, `sales-deal-strategist`. Same source and licence as the roster.
+
 Four more roster personas were promoted to project agents on 2026-09-26 for
 the business-build plan (`docs/BUSINESS_BUILD_PLAN.md`, `/business-build`):
 `business-strategist`, `sales-offer-lead-gen-strategist`,
