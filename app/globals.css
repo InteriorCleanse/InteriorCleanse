@@ -129,12 +129,14 @@ body {
   background-attachment: fixed;
 }
 
-/* Grid field, behind everything, slowly drifting one cell for a living feel. */
+/* Grid field, behind everything, slowly drifting one cell for a living feel.
+   Oversized by a cell so the pointer depth below never shows an edge. */
 :root[data-theme='arch'] body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -48px;
   z-index: -2;
+  translate: calc(var(--depth-x, 0) * -10px) calc(var(--depth-y, 0) * -8px);
   pointer-events: none;
   background-image:
     linear-gradient(rgb(var(--signal) / 0.05) 1px, transparent 1px),
@@ -161,11 +163,143 @@ body {
     conic-gradient(from 200deg at 75% 78%, transparent 0deg, rgb(var(--cobalt) / 0.11) 65deg, transparent 150deg);
   filter: blur(46px);
   opacity: 0.65;
+  /* The pointer moves the aurora the other way from the grid: two layers at
+     different depths are what make a flat page read as a room. Set by
+     components/motion/ArchDepth; zero when there is no pointer. */
+  translate: calc(var(--depth-x, 0) * 18px) calc(var(--depth-y, 0) * 14px);
   animation: arch-aurora 48s ease-in-out infinite;
 }
 @keyframes arch-aurora {
   0%, 100% { transform: rotate(0deg) scale(1); }
   50% { transform: rotate(16deg) scale(1.12); }
+}
+
+/* ── Reveal and lift ─────────────────────────────────────────────────────
+   Panels rise into place when a screen loads, staggered so the eye reads
+   them in order, and lift a little under the pointer where they are links.
+   The rise animates `translate` and the lift uses `transform`, so the two
+   never fight; both stop under reduced motion with everything else. */
+@keyframes aurelis-rise {
+  from { opacity: 0; translate: 0 10px; }
+  to { opacity: 1; translate: 0 0; }
+}
+main .shadow-panel {
+  animation: aurelis-rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+main :is(li, div, section):nth-child(2) > .shadow-panel { animation-delay: 0.06s; }
+main :is(li, div, section):nth-child(3) > .shadow-panel { animation-delay: 0.12s; }
+main :is(li, div, section):nth-child(4) > .shadow-panel { animation-delay: 0.18s; }
+main :is(li, div, section):nth-child(5) > .shadow-panel { animation-delay: 0.24s; }
+main :is(li, div, section):nth-child(6) > .shadow-panel { animation-delay: 0.3s; }
+main :is(li, div, section):nth-child(n + 7) > .shadow-panel { animation-delay: 0.36s; }
+
+main :is(a, li) .shadow-panel {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+main :is(a, li) .shadow-panel:hover {
+  transform: translateY(-2px);
+}
+:root[data-theme='arch'] main :is(a, li) .shadow-panel:hover {
+  border-color: rgb(var(--signal) / 0.45);
+  box-shadow:
+    0 0 0 1px rgb(var(--signal) / 0.1),
+    0 22px 44px -26px rgb(0 0 0 / 0.9),
+    0 0 44px -18px rgb(var(--signal) / 0.7);
+}
+
+/* A headline figure resolves out of a blur, like a readout locking on. */
+@keyframes aurelis-lock {
+  from { opacity: 0; filter: blur(6px); }
+  to { opacity: 1; filter: blur(0); }
+}
+.text-metric { animation: aurelis-lock 0.6s ease-out both; }
+
+/* ── Parallax layers (marketing page) ───────────────────────────────────
+   Decoration only: aria-hidden, no pointer events, painted from tokens so it
+   reads in every theme, never carrying text. Positioned by
+   components/motion/ParallaxField, which moves each layer with `translate`. */
+.parallax-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.parallax-layer {
+  --tone: var(--signal);
+  position: absolute;
+  display: block;
+  will-change: translate;
+}
+.tone-signal { --tone: var(--signal); }
+.tone-cobalt { --tone: var(--cobalt); }
+.tone-positive { --tone: var(--positive); }
+.tone-negative { --tone: var(--negative); }
+.tone-amber { --tone: var(--amber); }
+.parallax-orb {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgb(var(--tone) / 0.5), rgb(var(--tone) / 0.08) 58%, transparent 72%);
+  filter: blur(2px);
+}
+.parallax-ring {
+  border-radius: 50%;
+  border: 1px solid rgb(var(--tone) / 0.35);
+  box-shadow:
+    0 0 48px -14px rgb(var(--tone) / 0.55),
+    inset 0 0 36px -16px rgb(var(--tone) / 0.45);
+}
+.parallax-ring::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  border: 1px dashed rgb(var(--tone) / 0.3);
+  animation: aurelis-orb-spin 40s linear infinite;
+}
+.parallax-grid {
+  background-image:
+    linear-gradient(rgb(var(--tone) / 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--tone) / 0.16) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask: radial-gradient(closest-side, #000 30%, transparent 100%);
+  mask: radial-gradient(closest-side, #000 30%, transparent 100%);
+}
+.parallax-shard {
+  background: linear-gradient(100deg, transparent 0%, rgb(var(--tone) / 0.35) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  filter: blur(1px);
+  border-radius: 999px;
+}
+
+/* ── Tilt card ───────────────────────────────────────────────────────────
+   A pane that leans a few degrees toward the pointer, with a glare that
+   follows it. The glare is a translucent white wash over the surface, well
+   under the contrast margin of every text token on it. */
+.tilt-card {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+.tilt-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgb(255 255 255 / 0.1),
+    transparent 46%
+  );
+}
+
+/* A headline that carries the signal in its second half. */
+.text-glow {
+  background: linear-gradient(92deg, rgb(var(--ink)) 0%, rgb(var(--ink)) 45%, rgb(var(--signal)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Every Panel gets a neon edge and a lift. `.shadow-panel` is the panel class. */
