@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { ButtonLink, Eyebrow, Panel } from '@/components/ui'
 import { requireCapability } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
@@ -8,7 +9,9 @@ import { ADAPTERS } from '@/lib/integrations/sync'
 import { SOURCE_ADAPTERS } from '@/lib/knowledge/sync'
 import { can } from '@/lib/authz'
 import { ObsidianPanel } from './obsidian-panel'
-import { CALENDAR_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
+import { CALENDAR_PROVIDERS, OAUTH_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
+import { ConnectForm } from './connect-form'
+import { MailPanel } from './mail-panel'
 import { SyncButton } from './sync-button'
 
 export const metadata = { title: 'Integrations' }
@@ -29,6 +32,20 @@ const TONE_CLASS = {
  * figures is how someone ends up making a decision on numbers that stopped
  * updating on Tuesday.
  */
+/**
+ * The setting inputs a connector needs, read off its own Zod schema so the
+ * form and the validation cannot drift. Labels come from the key; the
+ * schema's message is the help, since it already says what a valid value is.
+ */
+function settingFields(schema: z.ZodTypeAny | undefined): { key: string; label: string; help?: string }[] {
+  if (!schema || !(schema instanceof z.ZodObject)) return []
+  return Object.entries(schema.shape as Record<string, z.ZodTypeAny>).map(([key, field]) => ({
+    key,
+    label: key.replace(/([A-Z])/g, ' $1').replace(/^\w/, (c) => c.toUpperCase()),
+    help: field.description,
+  }))
+}
+
 export default async function IntegrationsPage({
   searchParams,
 }: {
@@ -40,7 +57,7 @@ export default async function IntegrationsPage({
   ])
   const supabase = await supabaseServer()
 
-  const [{ data: rows }, { data: runs }, { data: calendarRows }] = await Promise.all([
+  const [{ data: rows }, { data: runs }, { data: calendarRows }, { data: mailRows }] = await Promise.all([
     supabase
       .from('integration_connections')
       .select('id, provider, display_name, status, status_detail, last_success_at, last_attempt_at')
@@ -60,9 +77,16 @@ export default async function IntegrationsPage({
       .select('provider, account_email, status')
       .eq('organization_id', membership.organizationId)
       .eq('user_id', session.userId),
+    // Likewise the mailbox: only this person's, and only the fact of it.
+    supabase
+      .from('mail_connections')
+      .select('provider, account_email, status, status_detail')
+      .eq('organization_id', membership.organizationId)
+      .eq('user_id', session.userId),
   ])
 
   const calendars = calendarRows ?? []
+  const mailboxes = mailRows ?? []
 
   const connectionIds = new Map((rows ?? []).map((row) => [row.provider, row.id as string]))
   const lastRun = new Map<string, NonNullable<typeof runs>[number]>()
@@ -84,20 +108,30 @@ export default async function IntegrationsPage({
     ]),
   )
 
-  const healths = CONNECTORS.filter((c) => c.status === 'available').map((definition) =>
-    assessConnection(
-      byProvider.get(definition.provider) ?? {
-        provider: definition.provider,
-        displayName: definition.name,
-        status: 'not_connected',
-        statusDetail: null,
-        lastSuccessAt: null,
-        lastAttemptAt: null,
-      },
-    ),
-  )
+  const healths = CONNECTORS.filter((c) => c.status === 'available').map((definition) => {
+    const record = byProvider.get(definition.provider) ?? {
+      provider: definition.provider,
+      displayName: definition.name,
+      status: 'not_connected' as const,
+      statusDetail: null,
+      lastSuccessAt: null,
+      lastAttemptAt: null,
+    }
+    const health = assessConnection(record)
+    // A connector with no sync — one used only when an action needs it, like
+    // a publisher or a webhook — is not "never synced". Connected is healthy.
+    const syncs = Boolean(ADAPTERS[definition.provider] || SOURCE_ADAPTERS[definition.provider])
+    if (!syncs && record.status === 'connected') {
+      return { ...health, tone: 'ok' as const, label: 'Connected', detail: `${definition.name} is connected and used only when an action needs it.`, dataIsCurrent: true }
+    }
+    return health
+  })
 
   const summary = summariseHealth(healths)
+  const canConnect = can(
+    { userId: session.userId, tenantRole: membership.role, platformRole: session.platformRole },
+    'integrations:connect',
+  )
 
   return (
     <div className="space-y-6">
@@ -221,6 +255,23 @@ export default async function IntegrationsPage({
                   after saving, only a masked hint is ever shown.
                 </p>
               ) : null}
+
+              {!planned && definition.credentials.length > 0 && canConnect && isVaultConfigured() ? (
+                <ConnectForm
+                  provider={definition.provider}
+                  name={definition.name}
+                  credentials={definition.credentials.map((c) => ({
+                    key: c.key,
+                    label: c.label,
+                    help: c.help,
+                    optional: c.optional,
+                  }))}
+                  settings={settingFields(definition.settings)}
+                  connected={
+                    (byProvider.get(definition.provider)?.status ?? 'not_connected') !== 'not_connected'
+                  }
+                />
+              ) : null}
             </Panel>
           )
         })}
@@ -261,6 +312,25 @@ export default async function IntegrationsPage({
               </li>
             )
           })}
+        </ul>
+      </Panel>
+
+      <Panel>
+        <Eyebrow>Mail</Eyebrow>
+        <p className="mt-1 text-sm text-muted">
+          Connect your own mailbox and the assistant can tell you what is new and what needs a
+          reply. It reads unread mail <strong className="text-ink">live, and stores none of it</strong>;
+          the connection is read-only, and nothing here can send, reply or delete.
+        </p>
+
+        <ul className="mt-4 space-y-3">
+          <MailPanel
+            providerName={OAUTH_PROVIDERS.gmail.name}
+            configured={isCalendarConfigured('google')}
+            connected={mailboxes
+              .filter((m) => m.provider === 'gmail')
+              .map((m) => ({ accountEmail: m.account_email, status: m.status, detail: m.status_detail }))}
+          />
         </ul>
       </Panel>
     </div>

@@ -116,6 +116,28 @@ them. A person who installs either needs an account on your deployment, and
 their plan and role decide what they can see and do, exactly as in a browser.
 Nothing about billing lives in the clients, and nothing needs to.
 
+## Voice, in the web dock
+
+Three opt-in layers, each a preference of the browser it was set in:
+
+- **Speak.** Replies are read aloud — by Fish Audio's expressive voice when
+  the deployment has `FISH_AUDIO_API_KEY`, through `/api/assistant/speak` so
+  the key never reaches a browser, or by the browser's own synthesiser
+  otherwise. A vendor failure at playback falls back to the browser voice, so
+  an outage costs the nicer voice, not the answer. The expressive engine
+  performs a mood tag such as `(laughing)`; the browser's would read it, so
+  `lib/voice/speech.ts` removes it for that engine.
+- **Hands-free.** The end of a spoken reply opens the microphone for the next
+  question, in single-utterance mode so the pause is the end of the question.
+- **The wake word.** "Hey Arch, what did we sell yesterday?" opens the
+  assistant and asks, with the panel open or closed. Only a leading name
+  wakes it. The toggle says it keeps a microphone open and where the audio
+  goes (the browser's speech service — Google's, in Chrome).
+
+The extension's side panel still uses the browser voice only; giving it the
+cloud voice is a small change to `extension/sidepanel.js` against the same
+route.
+
 ## What is not done
 
 - Auto-update for the desktop app. `electron-updater` against the GitHub

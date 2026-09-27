@@ -192,6 +192,20 @@ described to a customer as finished:
 - Calendar OAuth **has not been through a provider's app review**. The flows
   are implemented and tested; Google restricts `calendar.readonly` and will
   require verification before more than a handful of accounts can connect.
+- **Gmail is a Google *restricted* scope.** `gmail.readonly` needs OAuth
+  verification plus a yearly CASA security assessment by an approved lab
+  ($500–$4,500, roughly six weeks the first time) before anyone but the test
+  users on the consent screen can connect. The flow, the storage and the
+  isolation are built and tested; the review is not started. See
+  `docs/RESEARCH.md`.
+- **The cloud voice has not been heard.** `lib/voice/fish.ts` is tested
+  against the vendor's documented request shape and failure codes, not a
+  live key. The browser voice is the fallback and works today.
+- **No site has been published to a real Vercel account.** The deployment
+  request matches Vercel's documented shape and is tested; the first real
+  publish should be treated as a test, like the first real sync.
+- **The iOS App Store is a separate, native project**, not a packaging step.
+  `docs/RESEARCH.md` sets out what it takes.
 - **Email deliverability.** Transport, rendering and the delivery log are
   built and tested, but nothing has been sent from a verified domain. SPF, DKIM
   and DMARC are not set up, and an alert that lands in spam is not an alert.

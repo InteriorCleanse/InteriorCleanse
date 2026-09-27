@@ -15,6 +15,14 @@ const READ_ARGS: Record<string, unknown> = {
   search_knowledge: { question: 'refund policy' },
 }
 
+/** Valid arguments for each write tool, for the properties every write must hold. */
+const WRITE_ARGS: Record<string, unknown> = {
+  create_goal: { title: 'Reach £50k', metric: 'netRevenue', targetValue: 5_000_000, deadline: '2026-09-30' },
+  create_notification_rule: { name: 'Spend guard', metric: 'adSpend', comparator: 'above', threshold: 100_000 },
+  build_site: { name: 'Sunrise Bakery', brief: 'A one-page site for a bakery with the menu, opening hours and where to find us.' },
+  publish_site: { siteId: '6f1a2b3c-4d5e-4f60-8a9b-0c1d2e3f4a5b', siteName: 'Sunrise Bakery' },
+}
+
 /** What a connected workspace would hand the two injected readers. */
 const KNOWLEDGE_HITS = [
   {
@@ -249,15 +257,8 @@ describe('read tools', () => {
 describe('write tools', () => {
   it('stage a preview and never act on their own', async () => {
     for (const tool of writeTools()) {
-      const args =
-        tool.name === 'create_goal'
-          ? {
-              title: 'Reach £50k',
-              metric: 'netRevenue',
-              targetValue: 5_000_000,
-              deadline: '2026-09-30',
-            }
-          : { name: 'Spend guard', metric: 'adSpend', comparator: 'above', threshold: 100_000 }
+      const args = WRITE_ARGS[tool.name]
+      expect(args, `${tool.name} has no test arguments`).toBeDefined()
 
       const parsed = tool.schema.parse(args)
       const result = await tool.execute(parsed, ctx())
@@ -316,11 +317,7 @@ describe('write tools', () => {
 
   it('never leaves a machine-cased metric key in front of a human', async () => {
     for (const tool of writeTools()) {
-      const args =
-        tool.name === 'create_goal'
-          ? { title: 'X', metric: 'netRevenue', targetValue: 1_000, deadline: '2026-06-30' }
-          : { name: 'X', metric: 'adSpend', comparator: 'above', threshold: 1_000 }
-      const preview = (await tool.execute(tool.schema.parse(args), ctx())).preview!
+      const preview = (await tool.execute(tool.schema.parse(WRITE_ARGS[tool.name]), ctx())).preview!
       const shown = [preview.summary, ...preview.fields.map((f) => f.value)].join(' ')
       expect(shown).not.toMatch(/netRevenue|adSpend|contributionProfit|in_app/)
     }

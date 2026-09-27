@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { branding, isAssistantConfigured } from '@/lib/env'
+import { branding, isAssistantConfigured, isFishAudioConfigured } from '@/lib/env'
 import { can } from '@/lib/authz'
 import { requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
@@ -7,6 +7,7 @@ import { AssistantDock } from '@/components/assistant/AssistantDock'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 import { CommandPalette } from '@/components/CommandPalette'
 import { CommandHint } from '@/components/CommandHint'
+import { ArchDepth } from '@/components/motion/ArchDepth'
 
 // These segments resolve the session from cookies on every request, so there
 // is nothing meaningful to prerender — and prerendering would evaluate the
@@ -22,6 +23,7 @@ const NAV = [
   { href: '/app/products', label: 'Products' },
   { href: '/app/briefings', label: 'Briefings' },
   { href: '/app/knowledge', label: 'Knowledge' },
+  { href: '/app/sites', label: 'Sites' },
   { href: '/app/import', label: 'Import' },
   { href: '/app/integrations', label: 'Integrations' },
   { href: '/app/notifications', label: 'Notifications' },
@@ -38,6 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ArchDepth />
       <header className="border-b border-hairline bg-panel">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-4">
           <Link href="/app/command-center" className="text-sm font-semibold tracking-[0.18em]">
@@ -86,6 +89,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           isDemo={active.isDemo}
           assistantName={branding.assistantName()}
           configured={isAssistantConfigured()}
+          voiceProvider={isFishAudioConfigured() ? 'fish' : 'browser'}
           canApproveActions={can(
             {
               userId: session.userId,

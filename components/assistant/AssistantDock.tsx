@@ -1,8 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { browserSpeechToText, browserTextToSpeech, speakable } from '@/lib/voice/browser'
-import type { SpeechToTextSession } from '@/lib/voice/types'
+import { browserSpeechToText, browserTextToSpeech } from '@/lib/voice/browser'
+import { remoteTextToSpeech } from '@/lib/voice/remote'
+import { prepareForSpeech } from '@/lib/voice/speech'
+import { matchWakeWord } from '@/lib/voice/wake'
+import type { SpeechToTextSession, TextToSpeechProvider } from '@/lib/voice/types'
 import { SUGGESTED_COMMANDS } from '@/lib/assistant/tools'
 import { describeExpiry } from '@/lib/assistant/approval'
 
@@ -21,6 +24,13 @@ import { describeExpiry } from '@/lib/assistant/approval'
  *     card with the exact values, and a second, explicit decision.
  *   - It never hides the tool calls. An analyst you cannot audit is a
  *     confident stranger.
+ *
+ * Voice is three opt-in layers on top, each a preference of this browser:
+ * replies read aloud (the cloud voice when the deployment has one, the
+ * browser's otherwise, with the browser as fallback); hands-free, where the end
+ * of a spoken reply opens the microphone for the next question; and a wake
+ * word, where saying the assistant's name opens it. The wake word keeps a
+ * microphone open, and the toggle says so.
  */
 
 type Approval = {
@@ -57,6 +67,8 @@ type Props = {
   canApproveActions: boolean
   assistantName: string
   configured: boolean
+  /** Which engine reads replies aloud: the cloud voice when the deployment has one, else the browser's. */
+  voiceProvider: 'fish' | 'browser'
 }
 
 const METRIC_LABELS: Record<string, string> = {
@@ -79,6 +91,9 @@ const METRIC_LABELS: Record<string, string> = {
   // connected — the chip still says where the assistant looked.
   knowledge_documents: 'Connected notes',
   crm_deals: 'CRM pipeline',
+  calendar_events: 'Calendar',
+  mail_inbox: 'Inbox',
+  site_builds: 'Sites',
 }
 
 /**
@@ -107,38 +122,124 @@ function safeHref(url: string | null): string | null {
   return /^https?:\/\//i.test(url) ? url : null
 }
 
+/** Per-browser voice preferences. A convenience, never state that must persist. */
+const VOICE_PREFS_KEY = 'aurelis-voice'
+
+type VoicePrefs = { speak: boolean; handsFree: boolean; wake: boolean }
+
+const DEFAULT_PREFS: VoicePrefs = { speak: false, handsFree: false, wake: false }
+
+function readPrefs(): VoicePrefs {
+  try {
+    const raw = window.localStorage.getItem(VOICE_PREFS_KEY)
+    if (!raw) return DEFAULT_PREFS
+    const parsed = JSON.parse(raw) as Partial<VoicePrefs>
+    return {
+      speak: Boolean(parsed.speak),
+      handsFree: Boolean(parsed.handsFree),
+      wake: Boolean(parsed.wake),
+    }
+  } catch {
+    return DEFAULT_PREFS
+  }
+}
+
+function writePrefs(prefs: VoicePrefs): void {
+  try {
+    window.localStorage.setItem(VOICE_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    // Private windows and blocked storage: the preference lasts the session.
+  }
+}
+
+/**
+ * Spellings a recogniser produces for the assistant's name. A short name
+ * arrives several ways, and "Arch" in particular comes back as "art" or "arc"
+ * often enough that ignoring them would make the wake word feel deaf.
+ */
+export function wakeNames(name: string): string[] {
+  const aliases: Record<string, string[]> = {
+    arch: ['art', 'arc'],
+    aurelis: ['aurelius', 'oralis'],
+    jarvis: ['jarves', 'travis'],
+  }
+  return [name, ...(aliases[name.trim().toLowerCase()] ?? [])]
+}
+
 export function AssistantDock(props: Props) {
   const [open, setOpen] = useState(false)
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [listening, setListening] = useState(false)
-  const [speakReplies, setSpeakReplies] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
+  const [prefs, setPrefs] = useState<VoicePrefs>(DEFAULT_PREFS)
   const [notice, setNotice] = useState<string | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
 
   const transcriptRef = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<SpeechToTextSession | null>(null)
+  const wakeSessionRef = useRef<SpeechToTextSession | null>(null)
   const finalSpeechRef = useRef('')
+  /** The turn last read aloud, so a re-render never repeats a reply. */
+  const spokenTurnRef = useRef<string | null>(null)
+  const prefsRef = useRef<VoicePrefs>(DEFAULT_PREFS)
+
+  const tts: TextToSpeechProvider = useMemo(
+    () => (props.voiceProvider === 'fish' ? remoteTextToSpeech() : browserTextToSpeech),
+    [props.voiceProvider],
+  )
 
   const voice = useMemo(
-    () => ({ stt: browserSpeechToText.isAvailable(), tts: browserTextToSpeech.isAvailable() }),
-    [],
+    () => ({
+      stt: browserSpeechToText.isAvailable(),
+      tts: tts.isAvailable(),
+      browserTts: browserTextToSpeech.isAvailable(),
+    }),
+    [tts],
   )
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight })
   }, [turns, open])
 
+  // Preferences are read after mount, not during render: the server has no
+  // localStorage, and the first client paint must match what it sent.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const stored = readPrefs()
+      prefsRef.current = stored
+      setPrefs(stored)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  const updatePrefs = useCallback((patch: Partial<VoicePrefs>) => {
+    const next = { ...prefsRef.current, ...patch }
+    // Turning speech off turns off the two loops that depend on it; turning
+    // either loop on turns speech on. A conversation with no voice back is
+    // dictation, not hands-free.
+    if (patch.speak === false) {
+      next.handsFree = false
+      next.wake = false
+    }
+    if (next.handsFree || next.wake) next.speak = true
+    prefsRef.current = next
+    setPrefs(next)
+    writePrefs(next)
+  }, [])
+
   // Closing tears down voice explicitly rather than in an effect: a synthesiser
   // that keeps talking after the panel is dismissed is alarming, and the
   // teardown belongs on the action that caused it, not on a re-render.
   const close = useCallback(() => {
+    tts.cancelAll()
     browserTextToSpeech.cancelAll()
     sessionRef.current?.abort()
     setListening(false)
+    setSpeaking(false)
     setOpen(false)
-  }, [])
+  }, [tts])
 
   // Escape closes it, because a panel that covers the screen on mobile needs a
   // way out that is not a small button.
@@ -160,7 +261,7 @@ export function AssistantDock(props: Props) {
   }, [])
 
   const ask = useCallback(
-    async (question: string, spoken: boolean) => {
+    async (question: string) => {
       const text = question.trim()
       if (!text || busy) return
 
@@ -182,7 +283,9 @@ export function AssistantDock(props: Props) {
         const response = await fetch('/api/assistant', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ message: text, threadId, voice: spoken && speakReplies }),
+          // Formatted for the ear whenever the reply will be read aloud,
+          // whether the question was spoken or typed.
+          body: JSON.stringify({ message: text, threadId, voice: prefsRef.current.speak }),
         })
 
         if (!response.ok || !response.body) {
@@ -268,47 +371,167 @@ export function AssistantDock(props: Props) {
         setBusy(false)
       }
     },
-    [busy, speakReplies, threadId],
+    [busy, threadId],
+  )
+
+  // The voice loops call back into `ask` and `startListening` from inside
+  // long-lived sessions. Refs keep those sessions pointed at the current
+  // closures without restarting the microphone on every render.
+  const askRef = useRef(ask)
+  useEffect(() => {
+    askRef.current = ask
+  }, [ask])
+
+  const startListeningRef = useRef<(options?: { continuous?: boolean }) => void>(() => {})
+
+  const speak = useCallback(
+    (text: string) => {
+      // The wake listener would otherwise hear the reply and take it as a question.
+      wakeSessionRef.current?.abort()
+
+      const finish = () => {
+        setSpeaking(false)
+        // Hands-free: the end of the answer is the start of the next question.
+        if (prefsRef.current.handsFree) startListeningRef.current({ continuous: false })
+      }
+      const fail = (message: string) => {
+        setNotice(message)
+        setSpeaking(false)
+      }
+
+      setSpeaking(true)
+      tts.speak(prepareForSpeech(text, { expressive: tts.id === 'fish-audio' }), {
+        onEnd: finish,
+        onError: (message) => {
+          // A vendor outage costs the person the nicer voice, not the answer.
+          if (tts !== browserTextToSpeech && voice.browserTts.available) {
+            setNotice(`Using the browser voice — ${message}`)
+            browserTextToSpeech.speak(prepareForSpeech(text, { expressive: false }), {
+              onEnd: finish,
+              onError: fail,
+            })
+            return
+          }
+          fail(message)
+        },
+      })
+    },
+    [tts, voice.browserTts.available],
   )
 
   // Speaking is a separate effect from streaming: reading a half-finished
   // sentence aloud as it arrives is worse than a short pause.
   const lastTurn = turns[turns.length - 1]
-  const lastComplete = !busy && lastTurn?.role === 'assistant' && !lastTurn.failed && lastTurn.text
+  const lastComplete =
+    !busy && lastTurn?.role === 'assistant' && !lastTurn.failed && lastTurn.text ? lastTurn : null
   useEffect(() => {
-    if (!speakReplies || !lastComplete || !voice.tts.available) return
-    browserTextToSpeech.speak(speakable(lastComplete), {
-      onError: (message) => setNotice(message),
-    })
-  }, [lastComplete, speakReplies, voice.tts.available])
+    if (!prefs.speak || !lastComplete || !voice.tts.available) return
+    if (spokenTurnRef.current === lastComplete.id) return
+    spokenTurnRef.current = lastComplete.id
+    speak(lastComplete.text)
+  }, [lastComplete, prefs.speak, voice.tts.available, speak])
 
-  const startListening = () => {
-    if (!voice.stt.available) {
-      setNotice(voice.stt.available ? null : voice.stt.reason)
-      return
-    }
-    finalSpeechRef.current = ''
-    setListening(true)
-    setNotice(null)
+  const startListening = useCallback(
+    (options: { continuous?: boolean } = {}) => {
+      if (!voice.stt.available) {
+        setNotice(voice.stt.reason)
+        return
+      }
+      // One recogniser at a time: the wake listener yields to a real question,
+      // and a reply still playing is interrupted by the person speaking.
+      wakeSessionRef.current?.abort()
+      tts.cancelAll()
+      browserTextToSpeech.cancelAll()
+      setSpeaking(false)
 
-    sessionRef.current = browserSpeechToText.start({
-      onChunk: (chunk) => {
-        if (chunk.isFinal) finalSpeechRef.current += chunk.text
-        // Interim text is shown in the box so the person can see it is hearing
-        // them, but only final text is ever sent.
-        setDraft(`${finalSpeechRef.current}${chunk.isFinal ? '' : chunk.text}`.trimStart())
-      },
-      onError: (message) => setNotice(message),
-      onEnd: () => {
-        setListening(false)
-        const heard = finalSpeechRef.current.trim()
-        finalSpeechRef.current = ''
-        if (heard) void ask(heard, true)
-      },
-    })
-  }
+      finalSpeechRef.current = ''
+      setListening(true)
+      setNotice(null)
+
+      sessionRef.current = browserSpeechToText.start({
+        continuous: options.continuous ?? true,
+        onChunk: (chunk) => {
+          if (chunk.isFinal) finalSpeechRef.current += chunk.text
+          // Interim text is shown in the box so the person can see it is hearing
+          // them, but only final text is ever sent.
+          setDraft(`${finalSpeechRef.current}${chunk.isFinal ? '' : chunk.text}`.trimStart())
+        },
+        onError: (message) => setNotice(message),
+        onEnd: () => {
+          setListening(false)
+          const heard = finalSpeechRef.current.trim()
+          finalSpeechRef.current = ''
+          if (heard) void askRef.current(heard)
+        },
+      })
+    },
+    [tts, voice.stt],
+  )
+  useEffect(() => {
+    startListeningRef.current = startListening
+  }, [startListening])
 
   const stopListening = () => sessionRef.current?.stop()
+
+  // The wake word. Runs whenever nothing else has the microphone or the
+  // speaker, with the panel open or closed: "Hey Arch, what did we sell
+  // yesterday?" both opens it and asks. Browsers end a recognition session
+  // after a stretch of silence, so a session that ends without a match simply
+  // starts another.
+  const wakeActive = prefs.wake && voice.stt.available && !listening && !speaking && !busy
+  useEffect(() => {
+    if (!wakeActive) return
+
+    let stopped = false
+    let heard: string | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const names = wakeNames(props.assistantName)
+
+    const listen = () => {
+      if (stopped) return
+      heard = null
+      const session = browserSpeechToText.start({
+        continuous: true,
+        onChunk: (chunk) => {
+          if (!chunk.isFinal) return
+          const match = matchWakeWord(chunk.text, names)
+          if (!match.heard) return
+          heard = match.command
+          session.stop()
+        },
+        onError: (message) => {
+          // A blocked or missing microphone is reported once, and the loop
+          // ends; anything else is a session ending early, which restarts.
+          if (/blocked|No microphone|not available/i.test(message)) {
+            stopped = true
+            setNotice(message)
+            updatePrefs({ wake: false })
+          }
+        },
+        onEnd: () => {
+          wakeSessionRef.current = null
+          if (stopped) return
+          if (heard !== null) {
+            setOpen(true)
+            if (heard) void askRef.current(heard)
+            else startListeningRef.current({ continuous: false })
+            return
+          }
+          timer = setTimeout(listen, 300)
+        },
+      })
+      wakeSessionRef.current = session
+    }
+
+    listen()
+
+    return () => {
+      stopped = true
+      if (timer) clearTimeout(timer)
+      wakeSessionRef.current?.abort()
+      wakeSessionRef.current = null
+    }
+  }, [wakeActive, props.assistantName, updatePrefs])
 
   const decide = async (turnId: string, approvalId: string, approve: boolean) => {
     const response = await fetch('/api/assistant/approvals', {
@@ -340,22 +563,26 @@ export function AssistantDock(props: Props) {
     )
   }
 
+  const orbState = listening ? 'is-listening' : speaking ? 'is-speaking' : ''
+
   if (!open) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="assistant-orb fixed bottom-6 right-6 z-40 inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-panelRaised px-5 text-sm font-medium text-ink shadow-panel transition hover:border-signal"
+        className={`assistant-orb ${orbState} fixed bottom-6 right-6 z-40 inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-panelRaised px-5 text-sm font-medium text-ink shadow-panel transition hover:border-signal`}
         aria-label={`Ask ${props.assistantName}`}
       >
         <span aria-hidden="true" className="assistant-reactor">
           <span className="assistant-reactor-ring" />
           <span className="assistant-reactor-core" />
         </span>
-        Ask {props.assistantName}
+        {wakeActive ? `Say “${props.assistantName}”` : `Ask ${props.assistantName}`}
       </button>
     )
   }
+
+  const anyVoice = voice.stt.available || voice.tts.available
 
   return (
     <aside
@@ -363,7 +590,10 @@ export function AssistantDock(props: Props) {
       aria-label={`${props.assistantName} assistant`}
     >
       <header className="flex items-center gap-3 border-b border-hairline px-5 py-3">
-        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-signal" />
+        <span aria-hidden="true" className={`assistant-orb ${orbState} assistant-reactor`}>
+          <span className="assistant-reactor-ring" />
+          <span className="assistant-reactor-core" />
+        </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{props.assistantName}</p>
           <p className="truncate text-xs text-muted">
@@ -372,40 +602,77 @@ export function AssistantDock(props: Props) {
           </p>
         </div>
 
-        <div className="ml-auto flex items-center gap-1">
-          {voice.tts.available ? (
-            <button
-              type="button"
-              onClick={() => {
-                browserTextToSpeech.cancelAll()
-                setSpeakReplies((v) => !v)
-              }}
-              aria-pressed={speakReplies}
-              title={speakReplies ? 'Replies are read aloud' : 'Replies are not read aloud'}
-              className={`whitespace-nowrap rounded-lg px-2 py-1 text-xs transition ${
-                speakReplies ? 'text-signal' : 'text-muted hover:text-ink'
-              }`}
-            >
-              {speakReplies ? 'Voice on' : 'Voice off'}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={close}
-            className="whitespace-nowrap rounded-lg px-2 py-1 text-xs text-muted transition hover:text-ink"
-            aria-label="Close assistant"
-          >
-            Close
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={close}
+          className="ml-auto whitespace-nowrap rounded-lg px-2 py-1 text-xs text-muted transition hover:text-ink"
+          aria-label="Close assistant"
+        >
+          Close
+        </button>
       </header>
+
+      {anyVoice ? (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-hairline px-5 py-2">
+          {voice.tts.available ? (
+            <VoiceToggle
+              on={prefs.speak}
+              title={prefs.speak ? 'Replies are read aloud' : 'Read replies aloud'}
+              onClick={() => {
+                tts.cancelAll()
+                browserTextToSpeech.cancelAll()
+                setSpeaking(false)
+                updatePrefs({ speak: !prefs.speak })
+              }}
+            >
+              Speak
+            </VoiceToggle>
+          ) : null}
+          {voice.stt.available && voice.tts.available ? (
+            <VoiceToggle
+              on={prefs.handsFree}
+              title="After each spoken reply, listen for your next question without pressing anything"
+              onClick={() => updatePrefs({ handsFree: !prefs.handsFree })}
+            >
+              Hands-free
+            </VoiceToggle>
+          ) : null}
+          {voice.stt.available ? (
+            <VoiceToggle
+              on={prefs.wake}
+              title={`Keeps the microphone open and opens ${props.assistantName} when you say its name. Audio goes to your browser’s speech service.`}
+              onClick={() => updatePrefs({ wake: !prefs.wake })}
+            >
+              “Hey {props.assistantName}”
+            </VoiceToggle>
+          ) : null}
+
+          <span className="ml-auto flex items-center gap-2 text-[11px] text-muted" role="status">
+            {speaking ? (
+              <>
+                <VoiceWave />
+                Speaking
+              </>
+            ) : listening ? (
+              <>
+                <VoiceWave />
+                Listening
+              </>
+            ) : wakeActive ? (
+              `Listening for “${props.assistantName}”`
+            ) : voice.tts.available && prefs.speak ? (
+              tts.label
+            ) : null}
+          </span>
+        </div>
+      ) : null}
 
       <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {turns.length === 0 ? (
           <AssistantEmptyState
             assistantName={props.assistantName}
             configured={props.configured}
-            onPick={(command) => void ask(command, false)}
+            onPick={(command) => void ask(command)}
           />
         ) : null}
 
@@ -433,7 +700,7 @@ export function AssistantDock(props: Props) {
         className="flex items-end gap-2 border-t border-hairline px-5 py-3"
         onSubmit={(event) => {
           event.preventDefault()
-          void ask(draft, false)
+          void ask(draft)
         }}
       >
         <label className="sr-only" htmlFor="assistant-input">
@@ -448,7 +715,7 @@ export function AssistantDock(props: Props) {
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault()
-              void ask(draft, false)
+              void ask(draft)
             }
           }}
           placeholder={props.configured ? 'Ask about this workspace…' : 'Assistant not configured'}
@@ -458,10 +725,10 @@ export function AssistantDock(props: Props) {
         {voice.stt.available ? (
           <button
             type="button"
-            onMouseDown={startListening}
+            onMouseDown={() => startListening()}
             onMouseUp={stopListening}
             onMouseLeave={() => listening && stopListening()}
-            onTouchStart={startListening}
+            onTouchStart={() => startListening()}
             onTouchEnd={stopListening}
             disabled={busy || !props.configured}
             aria-pressed={listening}
@@ -485,6 +752,43 @@ export function AssistantDock(props: Props) {
         </button>
       </form>
     </aside>
+  )
+}
+
+function VoiceToggle({
+  on,
+  title,
+  onClick,
+  children,
+}: {
+  on: boolean
+  title: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      title={title}
+      className={`whitespace-nowrap rounded-lg border px-2 py-1 text-[11px] transition ${
+        on ? 'border-signal bg-signal/10 text-signal' : 'border-hairline text-muted hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function VoiceWave() {
+  return (
+    <span className="voice-wave" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+      <span />
+    </span>
   )
 }
 
@@ -714,8 +1018,15 @@ const TOOL_LABELS: Record<string, string> = {
   inspect_data_quality: 'Checked data quality',
   get_metric_definition: 'Looked up a definition',
   forecast_revenue: 'Projected revenue',
+  search_knowledge: 'Searched the notes',
+  query_pipeline: 'Read the pipeline',
+  read_inbox: 'Read the inbox',
+  check_calendar: 'Checked the calendar',
+  list_sites: 'Listed the sites',
   create_goal: 'Proposed a goal',
   create_notification_rule: 'Proposed an alert',
+  build_site: 'Proposed building a site',
+  publish_site: 'Proposed publishing a site',
 }
 
 function humanTool(name: string): string {

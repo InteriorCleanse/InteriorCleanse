@@ -54,6 +54,8 @@ export const EXPORTED_TABLES = [
   'integration_sync_runs',
   'calendar_connections',
   'calendar_events',
+  'mail_connections',
+  'site_builds',
   'subscriptions',
   'usage_events',
   'audit_logs',

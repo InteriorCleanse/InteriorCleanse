@@ -26,6 +26,8 @@ export type Membership = {
       a dashboard and an assistant disagreeing about the currency symbol is a
       worse bug than either of them being slow. */
   baseCurrency: string
+  /** IANA zone the workspace reports in; "today" and "tomorrow" are decided here. */
+  timezone: string
   planKey: string
   subscriptionStatus: string
 }
@@ -52,7 +54,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
     supabase
       .from('organization_members')
       .select(
-        'role, organizations!inner(id, name, slug, is_demo, base_currency, plan_key, subscription_status, deleted_at)',
+        'role, organizations!inner(id, name, slug, is_demo, base_currency, timezone, plan_key, subscription_status, deleted_at)',
       )
       .eq('user_id', user.id)
       .eq('status', 'active'),
@@ -66,6 +68,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
       slug: string
       is_demo: boolean
       base_currency: string
+      timezone: string | null
       plan_key: string
       subscription_status: string
       deleted_at: string | null
@@ -82,6 +85,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
       role: row.role as TenantRole,
       isDemo: row.organizations!.is_demo,
       baseCurrency: row.organizations!.base_currency ?? 'USD',
+      timezone: row.organizations!.timezone ?? 'UTC',
       planKey: row.organizations!.plan_key,
       subscriptionStatus: row.organizations!.subscription_status,
     }))

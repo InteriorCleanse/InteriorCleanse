@@ -81,6 +81,9 @@ export type Policy = {
 export const POLICIES = {
   assistant: { capacity: 10, refillPerSecond: 10 / 60 },
   assistantDaily: { capacity: 200, refillPerSecond: 200 / 86_400 },
+  // Spoken replies cost per character at the voice vendor. A hands-free
+  // conversation is a reply every few seconds; a loop is not.
+  speech: { capacity: 30, refillPerSecond: 30 / 60 },
   auth: { capacity: 5, refillPerSecond: 5 / 300 },
   webhook: { capacity: 100, refillPerSecond: 100 / 60 },
   api: { capacity: 60, refillPerSecond: 60 / 60 },

@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { extractHtml, siteSystemPrompt, siteUserPrompt, validateSiteHtml } from '@/lib/sites/generate'
+import { DeployError } from '@/lib/sites/vercel'
 import { TOOLS_BY_NAME } from './tools'
 
 /**
@@ -17,11 +19,23 @@ import { TOOLS_BY_NAME } from './tools'
  *      once trustworthy is how injection gets a second bite.
  *   2. The organization comes from the approval record, never from the caller.
  *      RLS is the backstop; this is the intent.
+ *
+ * Anything that reaches outside the database — the model that writes a page,
+ * the host that publishes one — arrives as an injected service, so this stays
+ * testable without a key and a missing service is a plain answer rather than
+ * an exception.
  */
 
 export type ExecutionResult =
   | { ok: true; summary: string; recordId: string }
   | { ok: false; reason: string }
+
+export type ExecutionServices = {
+  /** Asks the model for a page; absent when no model key is configured. */
+  generateSite?: (system: string, user: string) => Promise<string>
+  /** Publishes a page through the workspace's host; absent when none is connected. */
+  publishSite?: (site: { name: string; html: string }) => Promise<{ url: string; deploymentId: string }>
+}
 
 export async function executeApprovedAction(input: {
   supabase: SupabaseClient
@@ -29,6 +43,7 @@ export async function executeApprovedAction(input: {
   args: unknown
   organizationId: string
   actorUserId: string
+  services?: ExecutionServices
 }): Promise<ExecutionResult> {
   const tool = TOOLS_BY_NAME.get(input.toolName)
   if (!tool || tool.kind !== 'write') {
@@ -43,6 +58,7 @@ export async function executeApprovedAction(input: {
     }
   }
 
+  const services = input.services ?? {}
   const base = {
     organization_id: input.organizationId,
     created_by: input.actorUserId,
@@ -98,6 +114,75 @@ export async function executeApprovedAction(input: {
 
       if (error || !data) return { ok: false, reason: describe(error?.message) }
       return { ok: true, summary: `Alert “${a.name}” created.`, recordId: data.id }
+    }
+
+    case 'build_site': {
+      const a = parsed.data as { name: string; brief: string; style?: string }
+      if (!services.generateSite) {
+        return {
+          ok: false,
+          reason: 'The assistant model is not configured on this deployment, so a page cannot be written.',
+        }
+      }
+
+      let html: string
+      try {
+        html = extractHtml(await services.generateSite(siteSystemPrompt(), siteUserPrompt(a)))
+      } catch {
+        return { ok: false, reason: 'The page could not be generated. Nothing was saved.' }
+      }
+      const check = validateSiteHtml(html)
+      if (!check.ok) return { ok: false, reason: `${check.reason} Nothing was saved.` }
+
+      const { data, error } = await input.supabase
+        .from('site_builds')
+        .insert({ ...base, name: a.name, brief: a.brief, html, status: 'generated' })
+        .select('id')
+        .single()
+
+      if (error || !data) return { ok: false, reason: describe(error?.message) }
+      return {
+        ok: true,
+        summary: `Site “${a.name}” built. Open Sites to preview it; ask to publish it when it is right.`,
+        recordId: data.id,
+      }
+    }
+
+    case 'publish_site': {
+      const a = parsed.data as { siteId: string; siteName: string }
+      // Through the user's client and pinned to the approval's organization:
+      // a site id from another workspace reads as "not here".
+      const { data: site } = await input.supabase
+        .from('site_builds')
+        .select('id, name, html')
+        .eq('id', a.siteId)
+        .eq('organization_id', input.organizationId)
+        .maybeSingle()
+      if (!site) return { ok: false, reason: 'That site is not in this workspace.' }
+
+      if (!services.publishSite) {
+        return {
+          ok: false,
+          reason: 'Vercel is not connected to this workspace, so nothing can be published. Connect it on the integrations page.',
+        }
+      }
+
+      try {
+        const { url, deploymentId } = await services.publishSite({ name: site.name, html: site.html })
+        const { error } = await input.supabase
+          .from('site_builds')
+          .update({ status: 'published', published_url: url, deployment_id: deploymentId, error: null })
+          .eq('id', site.id)
+        if (error) return { ok: false, reason: describe(error.message) }
+        return { ok: true, summary: `Published “${site.name}” at ${url}.`, recordId: site.id }
+      } catch (error) {
+        const reason = error instanceof DeployError ? error.message : 'Publishing failed.'
+        await input.supabase
+          .from('site_builds')
+          .update({ status: 'failed', error: reason })
+          .eq('id', site.id)
+        return { ok: false, reason }
+      }
     }
 
     default:

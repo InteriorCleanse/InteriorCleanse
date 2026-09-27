@@ -228,6 +228,32 @@ export const CONNECTORS: ConnectorDefinition[] = [
     status: 'available',
   },
   {
+    provider: 'vercel',
+    name: 'Vercel',
+    purpose: 'Publishes the one-page sites the assistant builds, so "build me a site" can end with a live address.',
+    provides: [
+      'A public address for each site you approve for publishing',
+      'One deployment per publish, in your own Vercel account, with its id recorded here',
+      'Nothing until you approve a publish — building a site never touches Vercel',
+    ],
+    doesNotProvide: [
+      'Reading or changing anything else in your Vercel account — the token is used only to create deployments',
+      'Custom domains, which you add in Vercel',
+      'Hosting for this product itself',
+    ],
+    credentials: [
+      {
+        key: 'token',
+        label: 'Access token',
+        help: 'vercel.com → Settings → Tokens → Create. A token scoped to one team is enough.',
+        pattern: /^[A-Za-z0-9]{24,}$/,
+        patternHelp: 'Vercel tokens are at least 24 letters and digits.',
+      },
+    ],
+    docsUrl: 'https://vercel.com/account/tokens',
+    status: 'available',
+  },
+  {
     provider: 'salesforce',
     name: 'Salesforce',
     purpose: 'Reads opportunities and accounts into the pipeline view.',

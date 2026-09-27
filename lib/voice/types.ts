@@ -5,7 +5,7 @@
  * built-in engines are free and require no key, but their quality and language
  * coverage vary by platform, and in Chrome the recogniser sends audio to a
  * Google service. A workspace that cannot accept that — or that wants a better
- * voice — must be able to swap in Deepgram, Whisper, or ElevenLabs without any
+ * voice — must be able to swap in Deepgram, Whisper, or Fish Audio without any
  * component changing.
  *
  * So nothing in the UI imports a Web Speech type. It imports these.
@@ -43,6 +43,12 @@ export type SpeechToTextProvider = {
     onError: (message: string) => void
     onEnd: () => void
     language?: string
+    /**
+     * Keep listening through pauses (the default, for a held button) or end
+     * at the first pause (for a hands-free turn, where the end of speech is
+     * the end of the question).
+     */
+    continuous?: boolean
   }) => SpeechToTextSession
 }
 
