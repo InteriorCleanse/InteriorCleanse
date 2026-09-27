@@ -356,6 +356,12 @@ details summary { cursor: pointer; font-weight: 600; }
 .chips.wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips.wrap .chip { min-height: 32px; }
 .tform .chip[aria-pressed="true"] { background: var(--ink); color: var(--tag); }
+@media (max-width: 719px) {
+  .pick .tagbody { grid-template-columns: 1fr; }
+  .pick .stub { border-left: 0; border-top: 2px dashed var(--ink-3); flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 12px 14px; }
+  .pick .stub .n { font-size: 40px; }
+  .pick .stub .ticks { margin: 0; }
+}
 .pick .fire { margin-top: 12px; border: 1px dashed var(--ink-3); padding: 10px 12px; border-radius: 4px; background: rgba(28, 26, 22, .03); }
 .fire-steps { margin: 6px 0 0; padding-left: 18px; font-size: 15px; }
 .fire-steps li { margin-bottom: 4px; }
