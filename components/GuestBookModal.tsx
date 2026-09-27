@@ -60,8 +60,13 @@ export function GuestBookModal() {
       cleanup()
     }
 
+    // Page height is read on resize, not per scroll event: scrollHeight forces layout.
+    let max = document.documentElement.scrollHeight - window.innerHeight
+    const ro = new ResizeObserver(() => {
+      max = document.documentElement.scrollHeight - window.innerHeight
+    })
+    ro.observe(document.body)
     const onScroll = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight
       if (max > 0 && window.scrollY / max >= SCROLL_THRESHOLD) show()
     }
 
@@ -75,6 +80,7 @@ export function GuestBookModal() {
     const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
     function cleanup() {
+      ro.disconnect()
       window.removeEventListener('scroll', onScroll)
       document.removeEventListener('mouseout', onLeave)
     }

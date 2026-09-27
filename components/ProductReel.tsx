@@ -30,15 +30,21 @@ export function ProductReel({ products }: { products: Product[] }) {
   useEffect(() => {
     if (!products.length) return
     let frame: number | null = null
+    // Geometry is read on resize only. Reading it per scroll frame forced a layout
+    // every frame, which was the stutter on the shop page.
+    let top = 0
+    let range = 0
+    const geometry = () => {
+      const el = containerRef.current
+      if (!el) return
+      top = el.getBoundingClientRect().top + window.scrollY
+      range = el.offsetHeight - window.innerHeight
+    }
 
     const measure = () => {
       frame = null
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const range = el.offsetHeight - window.innerHeight
       if (range <= 0) return
-      const scrolled = Math.min(1, Math.max(0, -rect.top / range))
+      const scrolled = Math.min(1, Math.max(0, (window.scrollY - top) / range))
       // 0..1 across the gaps between products, so first and last get a full beat.
       const p = scrolled * (products.length - 1)
       const next = Math.round(p)
@@ -53,12 +59,18 @@ export function ProductReel({ products }: { products: Product[] }) {
       frame = requestAnimationFrame(measure)
     }
 
+    const ro = new ResizeObserver(() => {
+      geometry()
+      onScroll()
+    })
+    if (containerRef.current) ro.observe(containerRef.current)
+    ro.observe(document.body)
+    geometry()
     measure()
     window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
     return () => {
+      ro.disconnect()
       window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
       if (frame !== null) cancelAnimationFrame(frame)
     }
   }, [products.length])

@@ -40,7 +40,7 @@ export function IntroVeil() {
         /* ignore */
       }
       setGone(true)
-    }, 2500)
+    }, 1600)
     return () => window.clearTimeout(t)
   }, [])
 
