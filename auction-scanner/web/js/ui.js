@@ -125,7 +125,7 @@ export function cardHtml(card, opts = {}) {
     ? `<button class="btn outline sm" type="button" disabled title="SAMPLE — there is no real lot to open">Open the lot ↗</button>`
     : safeUrl(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''
   return `<article class="tag settle" data-id="${esc(l.id)}">
-    ${sample ? '<div class="band">Sample — not a real car</div>' : ''}
+    ${sample ? '<div class="band">Sample. Not a real car.</div>' : ''}
     <div class="photo">${photoHtml}${lot}${sample ? stamp('Sample', 'hot') : ''}</div>
     <div class="tagbody">
       <div class="body">

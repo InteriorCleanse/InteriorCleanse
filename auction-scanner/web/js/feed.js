@@ -91,7 +91,9 @@ export function render(el, ctx) {
   if (root === el && el.querySelector('#f-list')) { load(); return } // back from Plan: refresh the cards, keep the filters
   root = el
   Object.assign(state, store('gavel-feed') || {})
-  el.innerHTML = `<div class="head"><div><h1>Feed</h1><p>Clean cars priced under what similar cars list for. The score says how big the gap is; the three lines say why.</p></div></div>${chipsHtml()}<div id="f-list"></div>`
+  const welcome = store('gavel-welcome-seen') ? '' : `<div class="tag welcome" id="f-welcome"><div class="body" style="padding:18px"><div class="mono dim">Start here</div><h2 style="font-size:24px;margin:4px 0 8px">Three things, then you are bidding on paper</h2><ol class="steps compact"><li><p>Read a card. The score is how far the price sits under similar cars; the three lines say why.</p></li><li><p>Press <b>Plan my bid</b>. Never bid above the number it gives you.</p></li><li><p>Place a <b>PAPER</b> bid to practise, then set a <b>Sniper</b> target with your budget and let it watch for you.</p></li></ol><div class="row"><a class="btn sm" href="#playbook/first-car">Read the first guide</a><button class="btn outline sm" type="button" id="f-welcome-close">Got it</button></div></div></div>`
+  el.innerHTML = `<div class="head"><div><h1>Feed</h1><p>Clean cars priced under what similar cars list for. The score says how big the gap is; the three lines say why.</p></div></div>${chipsHtml()}${welcome}<div id="f-list"></div>`
+  const wc = el.querySelector('#f-welcome-close'); if (wc) wc.addEventListener('click', () => { store('gavel-welcome-seen', true); el.querySelector('#f-welcome').remove() })
   const save = () => store('gavel-feed', state)
   const reload = debounce(() => { save(); load() }, 350)
   el.querySelector('#f-starter').addEventListener('change', (e) => { state.starter = e.target.checked; state.showHidden = false; save(); load() })

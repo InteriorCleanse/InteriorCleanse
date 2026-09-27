@@ -45,7 +45,9 @@ directory, SAMPLE, registry) · `src/valuation.ts` `scoring.ts` `filters.ts`
 `fees.ts` `bidplan.ts` `demand.ts` (the engine) · `src/explain.ts` `ai.ts`
 (walkthrough, optional Claude) · `src/paper.ts` `settings.ts` `store.ts`
 (JSON stores in the data dir) · `src/playbook/content.ts` `rental.ts` (the
-teaching) · `src/security/` (CSP nonce, sessions, members, throttle, Stripe
+teaching) · `src/knowledge/` (policies, regulations, glossary, search) ·
+`src/research/` (car intel from public databases; the web desk) ·
+`src/sniper/` (targets, engine, alerts; paper fires only) · `src/security/` (CSP nonce, sessions, members, throttle, Stripe
 signature) · `web/` (vanilla ES modules, no build; `docs/DESIGN.md` is the
 design spec) · `test/` (`node --test`, offline; `test/setup.ts` puts the data
 dir in a temp folder) · `scan.ts` `doctor.ts` `selftest.ts` (CLIs).
@@ -64,7 +66,8 @@ screenshots. Data for a test run goes in a temp `GAVEL_DATA_DIR`, never `data/`.
 
 ## Not built yet (truthfully)
 
-- No live bidding adapter: no auction publishes one to the public.
+- No live bidding adapter: no auction publishes one to the public. The
+  Sniper therefore fires on paper and hands the person the number and the time.
 - Only eBay Motors is read live. Copart, IAA, Manheim, ADESA, ACV, Cars & Bids,
   Bring a Trailer, GovDeals and the collector houses are directory entries.
 - No email sending: the owner sends access codes.

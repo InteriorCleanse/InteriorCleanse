@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body class="on-paper">
+<div class="grain" aria-hidden="true"></div>
 <header class="topbar">
   <a class="brand" href="#feed" aria-label="Gavel, go to the feed"><span class="eyelet" aria-hidden="true"></span><span class="wordmark">Gavel</span></a>
   <span class="spacer"></span>
@@ -25,11 +26,14 @@
 
 <nav class="tabs" aria-label="Screens">
   <a href="#feed" data-tab="feed">Feed</a>
+  <a href="#sniper" data-tab="sniper">Sniper <span class="n" id="sniper-badge" hidden></span></a>
   <a href="#watch" data-tab="watch">Watch</a>
-  <a href="#auctions" data-tab="auctions">Auctions</a>
-  <a href="#playbook" data-tab="playbook">Playbook</a>
-  <a href="#rental" data-tab="rental">Rental</a>
+  <a href="#intel" data-tab="intel">Intel</a>
+  <a href="#auctions" data-tab="auctions" class="desk-only">Auctions</a>
+  <a href="#playbook" data-tab="playbook" class="desk-only">Playbook</a>
+  <a href="#rental" data-tab="rental" class="desk-only">Rental</a>
   <a href="#settings" data-tab="settings" class="desk-only">Settings</a>
+  <button type="button" id="more-btn" data-tab="more" class="phone-only">More</button>
 </nav>
 
 <main id="main">
@@ -41,6 +45,8 @@
   <section class="screen" id="screen-rental" data-screen="rental" hidden></section>
   <section class="screen" id="screen-settings" data-screen="settings" hidden></section>
   <section class="screen" id="screen-admin" data-screen="admin" hidden></section>
+  <section class="screen" id="screen-sniper" data-screen="sniper" hidden></section>
+  <section class="screen" id="screen-intel" data-screen="intel" hidden></section>
 </main>
 
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>

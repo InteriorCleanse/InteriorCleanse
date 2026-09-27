@@ -26,7 +26,7 @@ async function api(path: string, init: RequestInit & { json?: unknown; asMember?
 
 before(async () => {
   process.env.GAVEL_STRIPE_WEBHOOK_SECRET = 'whsec_TESTFIXTURE_secret'
-  const s = await startServer({ host: '127.0.0.1', port: 0, pin: PIN, sessionSecret: Buffer.alloc(32, 9), fetchImpl: NEVER_FETCH, quiet: true })
+  const s = await startServer({ host: '127.0.0.1', port: 0, pin: PIN, sessionSecret: Buffer.alloc(32, 9), fetchImpl: NEVER_FETCH, quiet: true, sniperIntervalMs: 0 })
   url = s.url
   close = s.close
 })
@@ -238,4 +238,57 @@ test('sign out revokes the session', async () => {
   assert.equal(out.status, 200)
   const me = await api('/api/me')
   assert.equal(me.status, 401)
+})
+
+test('knowledge, catalog, intel (offline) and research (no key) routes', async () => {
+  const login = await api('/api/login', { method: 'POST', json: { pin: PIN }, noCsrf: true })
+  cookie = (login.headers.get('set-cookie') ?? '').split(';')[0]
+  csrf = login.body.csrf
+  const k = await api('/api/knowledge')
+  assert.ok(k.body.policies.length >= 10 && k.body.regulations.length >= 10 && k.body.glossary.length >= 40)
+  const s = await api('/api/knowledge/search?q=sniping')
+  assert.ok(s.body.hits.length > 0)
+  const c = await api('/api/catalog')
+  assert.ok(c.body.makes.some((m: any) => m.make === 'Porsche'))
+  const i = await api('/api/intel?year=2019&make=Toyota&model=Camry')
+  assert.equal(i.status, 200)
+  assert.equal(i.body.recalls, null)
+  assert.ok(i.body.notes.length === 4)
+  const bad = await api('/api/intel?year=2019&make=&model=Camry')
+  assert.equal(bad.status, 400)
+  const r = await api('/api/research', { method: 'POST', json: { question: 'Does sniping work on Bring a Trailer?' } })
+  assert.equal(r.status, 200)
+  assert.equal(r.body.source, 'knowledge')
+  assert.ok(r.body.hits.length > 0)
+  assert.match(r.body.note, /ANTHROPIC_API_KEY/)
+})
+
+test('the sniper: create a target, run it on the sample feed, get picks and alerts; armed fires PAPER once', async () => {
+  const empty = await api('/api/sniper')
+  assert.equal(empty.body.paper, true)
+  const made = await api('/api/sniper/targets', { method: 'POST', json: { name: 'Cheap Toyotas', makes: ['Toyota'], maxBudgetUsd: 30_000, minScore: 40, starterOnly: true } })
+  assert.equal(made.status, 200)
+  const run = await api('/api/sniper/run', { method: 'POST', json: {} })
+  assert.equal(run.status, 200)
+  assert.ok(run.body.picks.length > 0, 'the sample feed has cheap Toyotas')
+  assert.ok(run.body.picks.every((p: any) => p.card.listing.make === 'Toyota' && p.fire.maxBidUsd <= 30_000 && p.card.listing.kind === 'SAMPLE'))
+  assert.equal(run.body.fired, 0)
+  const st = await api('/api/sniper')
+  assert.ok(st.body.alerts.some((a: any) => a.kind === 'pick'))
+  const paperBefore = (await api('/api/paper')).body.bids.length
+  const armed = await api('/api/sniper/targets/' + made.body.id, { method: 'POST', json: { armed: true } })
+  assert.equal(armed.body.armed, true)
+  const run2 = await api('/api/sniper/run', { method: 'POST', json: {} })
+  assert.ok(run2.body.fired > 0)
+  const run3 = await api('/api/sniper/run', { method: 'POST', json: {} })
+  assert.equal(run3.body.fired, 0, 'never fires twice on the same car')
+  const paperAfter = (await api('/api/paper')).body.bids
+  assert.equal(paperAfter.length - paperBefore, run2.body.fired)
+  assert.ok(paperAfter.every((b: any) => b.mode === 'PAPER'))
+  const read = await api('/api/sniper/alerts/read', { method: 'POST', json: {} })
+  assert.ok(read.body.read > 0)
+  const bad = await api('/api/sniper/targets', { method: 'POST', json: { maxBudgetUsd: 1 } })
+  assert.equal(bad.status, 400)
+  const rm = await api('/api/sniper/targets/' + made.body.id, { method: 'DELETE' })
+  assert.equal(rm.status, 200)
 })

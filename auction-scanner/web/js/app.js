@@ -1,6 +1,6 @@
 // Boot and routing. One page, screens switched by the URL hash.
 import { getJson, postJson, setCsrf, esc } from './api.js'
-import { toast } from './ui.js'
+import { toast, sheet } from './ui.js'
 import * as feed from './feed.js'
 import * as plan from './plan.js'
 import * as watch from './watch.js'
@@ -9,8 +9,10 @@ import * as playbook from './playbook.js'
 import * as rental from './rental.js'
 import * as settings from './settings.js'
 import * as admin from './admin.js'
+import * as sniper from './sniper.js'
+import * as intel from './intel.js'
 
-const SCREENS = { feed, plan, watch, auctions, playbook, rental, settings, admin }
+const SCREENS = { feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel }
 const ctx = { me: null, feedKind: null }
 
 function route() {
@@ -20,7 +22,8 @@ function route() {
   if (screen === 'admin' && ctx.me && ctx.me.role !== 'owner') { location.hash = '#feed'; return }
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.dataset.screen !== screen })
   document.querySelectorAll('.tabs a').forEach((a) => {
-    const active = a.dataset.tab === screen || (screen === 'plan' && a.dataset.tab === 'feed')
+    const grouped = ['auctions', 'playbook', 'rental', 'settings', 'admin']
+    const active = a.dataset.tab === screen || (screen === 'plan' && a.dataset.tab === 'feed') || (a.dataset.tab === 'more' && grouped.includes(screen))
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current')
   })
   const root = document.getElementById('screen-' + screen)
@@ -36,6 +39,14 @@ export function setMode(kind, detail) {
   chip.textContent = kind === 'LIVE' ? `Live · ${detail || 'source'}` : kind === 'SAMPLE' ? 'Sample data' : 'No source'
   chip.title = kind === 'LIVE' ? 'These are real listings from a connected source.' : kind === 'SAMPLE' ? 'These cars are SAMPLES. They are not real. Connect a source in Settings.' : 'No source is connected. See Settings.'
   ctx.feedKind = kind
+}
+
+function moreSheet() {
+  const owner = ctx.me.role === 'owner'
+  const items = [['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ['#rental', 'Rental', 'Your first rental car, ranked'], ['#settings', 'Settings', 'Starter rules, sources, live-bidding gate']]
+  if (owner) items.push(['#admin', 'Members', 'Access codes and Stripe'])
+  const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
+  document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
 }
 
 function accountMenu() {
@@ -60,6 +71,7 @@ function accountMenu() {
 
 async function boot() {
   document.getElementById('mode-chip').addEventListener('click', () => { location.hash = '#settings' })
+  document.getElementById('more-btn').addEventListener('click', moreSheet)
   try {
     ctx.me = await getJson('/api/me')
   } catch (e) {
@@ -71,6 +83,8 @@ async function boot() {
   const live = (ctx.me.sources || []).filter((s) => s.kind === 'api' && s.connected)
   setMode(live.length ? 'LIVE' : 'EMPTY', live.map((s) => s.name).join(', '))
   accountMenu()
+  const badge = document.getElementById('sniper-badge')
+  if (badge && ctx.me.sniper && ctx.me.sniper.unread) { badge.textContent = String(ctx.me.sniper.unread); badge.hidden = false }
   window.addEventListener('hashchange', route)
   route()
 }

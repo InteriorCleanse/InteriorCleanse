@@ -37,6 +37,16 @@ so, and they exist only so you can see the app before a source is connected.
   cushion − your margin = **Never bid above**. Change any input and the number
   follows. Below it, a seven-step walkthrough for buying *this* car at *this*
   auction, and the **PAPER bid** box.
+- **Sniper.** Saved hunts: pick makes, models and years, set the most you will
+  spend, and it watches the auctions, ranks the picks and writes the fire plan
+  for each (snipe in the last seconds on eBay, proxy early where the clock
+  extends, pre-bid before a live lane). Armed targets fire PAPER bids and
+  alert you. See `docs/SNIPER.md`.
+- **Intel.** Ask the desk anything (it searches the live web with your
+  Anthropic key, or the built-in notes without). Look a car up in the public
+  record (NHTSA recalls, complaints, crash stars; fueleconomy.gov mileage).
+  Read how every house works, the laws that bite, and the glossary. See
+  `docs/KNOWLEDGE.md`.
 - **Watch.** Cars you are watching and the paper bids you have practised with,
   with how each one ended.
 - **Auctions.** Every house worth knowing: who may buy, what registering
@@ -155,6 +165,9 @@ src/bidplan.ts       never-bid-above maths       src/explain.ts   the rules walk
 src/ai.ts            optional Claude explainer   src/demand.ts    the editable demand list
 src/paper.ts         watchlist and paper bids    src/settings.ts  per-install settings
 src/playbook/        the guides                  src/rental.ts    first-car finder
+src/knowledge/       policies, regulations, glossary, search
+src/research/        car intel (NHTSA, fueleconomy.gov); the web desk (Claude + web search)
+src/sniper/          targets, the engine, alerts   src/catalog.ts   makes and models for the pickers
 src/security/        CSP, sessions, members, throttle, Stripe verification
 web/                 the members' app: index.html, login.html, css/, js/
 test/                node --test, offline, temp data directory per run

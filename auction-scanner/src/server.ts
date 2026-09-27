@@ -50,7 +50,15 @@ import { MemberGate, handleStripeEvent, verifyStripeSignature } from './security
 import type { StripeEvent } from './security/members.ts'
 import { Throttle } from './security/throttle.ts'
 import { DATA_DIR, ensureDataDir, readJson, writeJson } from './store.ts'
-import { starterCheck } from './filters.ts'
+import { HOUSE_POLICIES, REGULATIONS, GLOSSARY, searchKnowledge } from './knowledge/index.ts'
+import { carIntel, intelSummary } from './research/intel.ts'
+import { researchAvailable, webResearch } from './research/web.ts'
+import { CATALOG } from './catalog.ts'
+import { listTargets, saveTarget, removeTarget } from './sniper/targets.ts'
+import type { Target } from './sniper/targets.ts'
+import { pickFor } from './sniper/engine.ts'
+import type { Pick } from './sniper/engine.ts'
+import { addAlert, alreadyFired, listAlerts, markAlertsRead } from './sniper/alerts.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = resolve(HERE, '..', 'web')
@@ -70,6 +78,8 @@ export type ServerOptions = {
   fetchImpl?: typeof fetch
   /** Print the start-up banner. Off in tests. */
   quiet?: boolean
+  /** How often the sniper rescans its targets. 0 turns the clock off (tests). */
+  sniperIntervalMs?: number
 }
 
 type Started = { server: Server; url: string; pin: string; close: () => Promise<void> }
@@ -243,6 +253,83 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     return { kind: result.kind, scannedAt, errors: result.errors, hidden, cards }
   }
 
+  /** Scan one query (cached like the feed) and score every car, starter rules not applied. */
+  async function scanCards(text: string | undefined, settings: Settings): Promise<{ cards: Card[]; kind: ScanResult['kind']; errors: string[] }> {
+    const allowSample = settings.allowSample
+    const key = JSON.stringify({ q: text ?? '', make: '', maxPrice: undefined, allowSample })
+    const hit = scanCache.get(key)
+    let result: ScanResult
+    if (hit && now() - hit.at < SCAN_CACHE_MS) result = hit.result
+    else {
+      result = await scanAll({ text, limit: 100 }, { allowSample, fetchImpl })
+      scanCache.set(key, { at: now(), result })
+      remember(result)
+    }
+    return { cards: result.listings.map((l) => cardFor(l, settings)), kind: result.kind, errors: result.errors }
+  }
+
+  let sniperLastRun = 0
+  let sniperPicks: Pick[] = []
+  let sniperRunning: Promise<{ picks: Pick[]; fired: number }> | null = null
+
+  /** Run every active target: scan, match, rank, and (when armed) fire a PAPER bid once per car. */
+  function runSniper(): Promise<{ picks: Pick[]; fired: number }> {
+    if (sniperRunning) return sniperRunning
+    sniperRunning = (async () => {
+      const settings = getSettings()
+      const targets = listTargets().filter((t) => t.active)
+      const picks: Pick[] = []
+      let fired = 0
+      for (const target of targets) {
+        const queries = target.makes.length
+          ? target.makes.flatMap((mk) => (target.models.length ? target.models.map((md) => `${mk} ${md}`) : [mk])).slice(0, 6)
+          : target.models.length ? target.models.slice(0, 6) : [undefined]
+        const seen = new Set<string>()
+        for (const q of queries) {
+          let scanned: { cards: Card[] }
+          try { scanned = await scanCards(q, settings) } catch { continue }
+          for (const card of scanned.cards) {
+            if (seen.has(card.listing.id)) continue
+            seen.add(card.listing.id)
+            const plan = planFor(card.listing, card.estimate, {}, settings)
+            const pick = pickFor(target, card, plan, now())
+            if (!pick) continue
+            picks.push(pick)
+            if (target.armed && !alreadyFired(target.id, card.listing.id)) {
+              const bid = placePaperBid(card.listing, pick.fire.maxBidUsd, `Sniper "${target.name}": ${pick.fire.method}`)
+              addAlert({ kind: 'paper-fired', targetId: target.id, listingId: card.listing.id, title: `PAPER bid fired: ${card.listing.title}`, body: `${target.name} recorded a paper bid of $${bid.maxBidUsd.toLocaleString('en-US')} (${pick.fire.method}). Nothing was sent to the auction. ${pick.fire.why}` }, now())
+              fired++
+              console.log(`[sniper] PAPER fired ${card.listing.id} $${bid.maxBidUsd} for target ${target.id}`)
+            } else if (!listAlerts().some((a) => a.kind === 'pick' && a.targetId === target.id && a.listingId === card.listing.id)) {
+              addAlert({ kind: 'pick', targetId: target.id, listingId: card.listing.id, title: `New pick for ${target.name}: ${card.listing.title}`, body: `Score ${card.score.total} (${card.score.grade}). Never bid above $${pick.fire.maxBidUsd.toLocaleString('en-US')}. ${pick.fire.why}` }, now())
+            }
+          }
+        }
+      }
+      picks.sort((a, b) => b.fit - a.fit)
+      sniperPicks = picks
+      sniperLastRun = now()
+      return { picks, fired }
+    })().finally(() => { sniperRunning = null })
+    return sniperRunning
+  }
+
+  const sniperEvery = opts.sniperIntervalMs ?? 10 * 60_000
+  let sniperTimer: NodeJS.Timeout | null = null
+  if (sniperEvery > 0) {
+    sniperTimer = setInterval(() => {
+      if (listTargets().some((t) => t.active)) runSniper().catch((e) => console.error('[sniper]', e instanceof Error ? e.message : e))
+    }, sniperEvery)
+    sniperTimer.unref()
+    // A fresh process has no picks in memory: hunt once soon after start when there is a target.
+    const kick = setTimeout(() => { if (listTargets().some((t) => t.active)) runSniper().catch((e) => console.error('[sniper]', e instanceof Error ? e.message : e)) }, 3_000)
+    kick.unref()
+  }
+
+  function serialisePick(p: Pick): Record<string, unknown> {
+    return { targetId: p.targetId, targetName: p.targetName, card: p.card, plan: p.plan, fire: p.fire, fit: p.fit, reasons: p.reasons }
+  }
+
   async function ensureKnown(id: string): Promise<Listing> {
     let l = known.get(id)
     if (!l) {
@@ -385,6 +472,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         liveBidding: flag('GAVEL_LIVE_BIDDING'),
         sources: sourceStatuses(),
         ai: { available: ai.available, reason: ai.reason },
+        research: await researchAvailable(),
+        sniper: { unread: listAlerts().filter((a) => !a.read).length, targets: listTargets().filter((t) => t.active).length },
         dataDir: session.role === 'owner' ? DATA_DIR : undefined,
       })
     }
@@ -505,6 +594,67 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       }
     }
 
+    if (path === '/api/knowledge' && method === 'GET') return json(res, 200, { policies: HOUSE_POLICIES, regulations: REGULATIONS, glossary: GLOSSARY })
+    if (path === '/api/knowledge/search' && method === 'GET') return json(res, 200, { hits: searchKnowledge(str(url.searchParams.get('q'), 200)) })
+    if (path === '/api/catalog' && method === 'GET') return json(res, 200, { makes: CATALOG })
+
+    if (path === '/api/intel' && method === 'GET') {
+      const year = num(url.searchParams.get('year'), 'year', { min: 1950, max: 2050 })!
+      const make = str(url.searchParams.get('make'), 40)
+      const model = str(url.searchParams.get('model'), 60)
+      if (!make || !model) throw new HttpError(400, 'Give a make and a model.')
+      const timed: typeof fetch = (input, init) => fetchImpl(input, { ...init, signal: AbortSignal.timeout(8_000) })
+      const intel = await carIntel(year, make, model, timed, now())
+      return json(res, 200, { ...intel, summary: intelSummary(intel), source: 'NHTSA and fueleconomy.gov, public data, no key' })
+    }
+
+    if (path === '/api/research' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const question = str(body.question, 1000)
+      if (!question) throw new HttpError(400, 'Ask a question first.')
+      let context = ''
+      const listingId = str(body.listingId, 200)
+      if (listingId && known.has(listingId)) {
+        const l = known.get(listingId)!
+        context = `Listing: ${l.title}, ${l.year ?? ''} ${l.make ?? ''} ${l.model ?? ''}, ${l.mileage ?? 'unknown'} miles, title ${l.titleStatus}, damage ${l.damage}, source ${l.source}, kind ${l.kind}.`
+      }
+      const hits = searchKnowledge(question, 6)
+      const status = await researchAvailable()
+      if (!status.available) return json(res, 200, { source: 'knowledge', hits, note: status.reason })
+      try {
+        const r = await webResearch(question, context)
+        if (!r) return json(res, 200, { source: 'knowledge', hits, note: 'The web desk did not answer this time. These are the built-in notes.' })
+        return json(res, 200, { source: 'web', ...r, hits, note: 'AI research from live web pages, with the sources it read. Verify a fee or a rule on the official page before you act on it.' })
+      } catch (e) {
+        console.error('[research]', e instanceof Error ? e.message : e)
+        return json(res, 200, { source: 'knowledge', hits, note: 'The web desk hit an error. These are the built-in notes.' })
+      }
+    }
+
+    if (parts[1] === 'sniper') {
+      if (path === '/api/sniper' && method === 'GET') {
+        const alerts = listAlerts()
+        return json(res, 200, { targets: listTargets(), picks: sniperPicks.map(serialisePick), alerts: alerts.slice(0, 50), unread: alerts.filter((a) => !a.read).length, lastRunAt: sniperLastRun || null, everyMs: sniperEvery, paper: true })
+      }
+      if (path === '/api/sniper/targets' && method === 'POST') {
+        const body = await readJsonBody(req)
+        try { return json(res, 200, saveTarget(body)) } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : 'That target was not accepted.') }
+      }
+      if (parts[2] === 'targets' && parts.length === 4 && method === 'POST') {
+        const body = await readJsonBody(req)
+        try { return json(res, 200, saveTarget(body, decodeURIComponent(parts[3]))) } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : 'That target was not accepted.') }
+      }
+      if (parts[2] === 'targets' && parts.length === 4 && method === 'DELETE') {
+        if (!removeTarget(decodeURIComponent(parts[3]))) throw new HttpError(404, 'No target with that id.')
+        return json(res, 200, { ok: true })
+      }
+      if (path === '/api/sniper/run' && method === 'POST') {
+        const r = await runSniper()
+        return json(res, 200, { picks: r.picks.map(serialisePick), fired: r.fired, ranAt: sniperLastRun, paper: true })
+      }
+      if (path === '/api/sniper/alerts/read' && method === 'POST') return json(res, 200, { read: markAlertsRead() })
+    }
+
     if (path === '/api/settings' && method === 'GET') return json(res, 200, getSettings())
     if (path === '/api/settings' && method === 'POST') {
       const body = await readJsonBody(req)
@@ -595,7 +745,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     server,
     url,
     pin,
-    close: () => new Promise<void>((resolvePromise) => server.close(() => resolvePromise())),
+    close: () => new Promise<void>((resolvePromise) => { if (sniperTimer) clearInterval(sniperTimer); server.close(() => resolvePromise()) }),
   }
 }
 
