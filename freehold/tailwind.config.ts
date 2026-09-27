@@ -5,18 +5,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        deed: 'var(--deed)',
-        vault: 'var(--vault)',
-        seal: 'var(--seal)',
+        paper: 'var(--paper)',
+        plate: 'var(--plate)',
+        ink: 'var(--ink)',
+        graphite: 'var(--graphite)',
         stone: 'var(--stone)',
         hairline: 'var(--hairline)',
-        paper: 'var(--paper)',
       },
       fontFamily: {
         serif: ['"Instrument Serif"', 'Georgia', '"Times New Roman"', 'serif'],
         sans: ['"Instrument Sans Variable"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
-      maxWidth: { prose: '38rem', page: '72rem' },
+      transitionTimingFunction: {
+        out: 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
     },
   },
   plugins: [],

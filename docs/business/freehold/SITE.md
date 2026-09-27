@@ -15,9 +15,25 @@ below for why it does not yet.
 | `/about/` | Why it exists, who runs it, stated plainly as one person |
 | `/contact/` | Email and a general form |
 | `/privacy/`, `/terms/` | Drafts, each carrying a line that says they need professional review |
-| `/api/inquiry/` | Form handler: validates, rate-limits per IP, drops honeypot hits, writes to Brevo when `BREVO_API_KEY` is set, returns 503 otherwise so the form tells the visitor to email instead |
+| `/api/inquiry/` | Form handler: requires a JSON same-origin request, validates, rate-limits per IP, drops honeypot hits. With `BREVO_API_KEY` set it emails the message to `INQUIRY_TO` through Brevo's transactional API (so the "one inbox" promise is true) and adds the address to list `BREVO_LIST_ID` without ever overwriting an existing contact. Without the key it returns 503 and the form tells the visitor to email instead |
 | `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/opengraph-image` | Search and AI discovery, and the rendered share image |
 | `public/brand/` | `mark.svg`, `favicon.svg`, `wordmark.svg`, `lockup.svg` |
+
+## Design
+
+Second pass, 2026-09-27, after the owner asked for something avant-garde and
+reputable. Palette moved from cream-and-oxblood (the default reach for
+"luxury", flagged by the installed design skills as an AI tell) to paper,
+graphite, and one accent, signature-ink cobalt. The signature visual is the
+plat: a survey drawing of a plot that server-renders complete, draws itself
+once with GSAP, and tilts toward the pointer. Reveals unblur and rise on
+scroll through IntersectionObserver only. The ownership chapters stack as
+sticky panels. Everything is static under `prefers-reduced-motion` and
+visible without JavaScript. Both reviewers' findings (security: three medium,
+five low; code: five required) are fixed in this commit: Content Security
+Policy and HSTS headers, no contact overwrite, transactional delivery,
+per-page canonical and Open Graph URLs, the OG image on the edge runtime with
+its font traced.
 
 ## Checks passed on this commit
 
@@ -54,8 +70,10 @@ merges.
    `NEXT_PUBLIC_SITE_URL` to match.
 3. Create the mailbox `hello@` on that domain (or change
    `NEXT_PUBLIC_CONTACT_EMAIL`). The site shows it on every page.
-4. Brevo: create a list for Freehold, set `BREVO_API_KEY` and `BREVO_LIST_ID`
-   in Vercel. Until then the forms tell visitors to email, which works.
+4. Brevo: verify a sender address, create a list for Freehold, create two
+   text contact attributes `FH_KIND` and `FH_DATE`, then set `BREVO_API_KEY`,
+   `BREVO_LIST_ID`, `BREVO_SENDER`, and `INQUIRY_TO` in Vercel. Until then
+   the forms tell visitors to email, which works.
 5. Plausible: set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` if you want analytics. Nothing
    is tracked otherwise.
 6. Have the privacy and terms pages read by a professional before the domain

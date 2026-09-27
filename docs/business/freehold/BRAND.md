@@ -30,31 +30,47 @@ be named, any commission rate, any uptime figure, any client's name.
 
 ## Palette
 
-Named after the deed and the vault. Contrast checked in `freehold/scripts/check-contrast.mjs`.
+Deeds are paper and ink, so the palette is paper, graphite, and one accent:
+signature ink, a cobalt. Cream-and-oxblood was the first draft and was
+dropped because it is the default reach for anything called luxury; a private
+firm should not look like a template for one. Contrast checked in
+`freehold/scripts/check-contrast.mjs` in both modes.
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `--deed` | `#F4EFE4` | `#0E1524` | Page background |
-| `--paper` | `#FBF8F1` | `#151D2E` | Raised surfaces, cards |
-| `--vault` | `#0E1524` | `#F4EFE4` | Text, the mark |
-| `--stone` | `#5B5F6B` | `#A9AEBA` | Secondary text |
-| `--seal` | `#7C2D2D` | `#D0716B` | The one accent: links, the seal dot, focus rings |
-| `--hairline` | `#D9D2C3` | `#263041` | Rules and borders |
+| `--paper` | `#F2F3F0` | `#0F1115` | Page background |
+| `--plate` | `#E9EBE6` | `#171A20` | Raised surfaces, the plat's sheet |
+| `--graphite` | `#15171C` | `#ECEDE9` | Text, the mark, primary button |
+| `--stone` | `#5C616B` | `#A2A7B1` | Secondary text |
+| `--ink` | `#1E3FAE` | `#8AA4FF` | The one accent: links, the seal, the signature, focus rings |
+| `--hairline` | `#D3D6D0` | `#272B33` | Rules and borders |
 
-No gradients, no glass, no glow. One accent, used sparingly, like a wax
-seal on a page.
+No gradients, no glass, no glow. A fixed paper-grain overlay at 4 percent.
 
 ## Type
 
-- Display: **Instrument Serif**, regular, tight tracking, large. Headlines
-  are sentences, not labels.
-- Body: **Instrument Sans**, variable, 17px base, 1.6 line height.
-- Wordmark: FREEHOLD in Instrument Serif, small caps feel via letter-spacing
-  of 0.18em, never bold.
-- Numbers and section markers set as `01`, `02` in the sans, stone colour.
+- Display: **Instrument Serif**, regular, at very large sizes. Justification,
+  because a serif is the lazy choice for anything premium: Freehold sells
+  ownership under law to buyers who read contracts; the serif is the face of
+  the deed, not a mood. Headlines are sentences under eight words.
+- Body: **Instrument Sans**, variable, 17px, 1.6 line height.
+- Technical: **JetBrains Mono** for survey labels, small captions, and step
+  numbers. It is the ledger voice.
+- Wordmark: FREEHOLD in the serif, letter-spaced 0.18em, never bold.
 
-Both fonts are self-hosted from `@fontsource`, not fetched from Google at
-runtime.
+All three are self-hosted from `@fontsource`; nothing is fetched from Google
+at runtime.
+
+## The signature visual
+
+The plat: a survey drawing of a plot, which is what a freehold is. Boundary,
+monuments at the corners, bearings and distances in the mono, a hatched
+residence, a north arrow, a title block, and a signature in ink with the
+seal. It server-renders complete; with JavaScript it draws itself once and
+tilts a few degrees toward the pointer. Under reduced motion it is static.
+It stands in for stock photography, which the brand forbids, and for
+generated imagery, which this environment could not download; the owner can
+add editorial stills later.
 
 ## The mark
 
