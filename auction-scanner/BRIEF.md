@@ -3,7 +3,7 @@
 Gavel is an **AI car-auction scanner**. It is a brand-new product in this
 repository. It shares nothing with any other app here: not code, not design,
 not voice. Build it from this brief and from the user's ask below, and from
-nothing else. Do not read or copy from `trading-bot/`.
+nothing else. Do not read or copy from any other folder in this repository.
 
 Working name: **Gavel**. The name lives in one constant (`src/brand.ts`, `BRAND`)
 so the owner can rename it in one line.

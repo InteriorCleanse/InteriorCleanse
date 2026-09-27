@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sign in — Gavel</title>
+<meta name="theme-color" content="#EDE4CF" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#15130F" media="(prefers-color-scheme: dark)" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap" />
+<link rel="stylesheet" href="/css/app.css" />
+</head>
+<body class="on-paper">
+<main class="login">
+  <div class="tag">
+    <span class="string" aria-hidden="true"></span>
+    <div class="hole" aria-hidden="true"></div>
+    <span class="wordmark">Gavel</span>
+    <p class="tagline">Clean cars, dumb cheap, explained.</p>
+    <div class="seg" role="tablist" aria-label="Who is signing in">
+      <button type="button" role="tab" id="tab-member" aria-selected="true" aria-controls="form-member">Member</button>
+      <button type="button" role="tab" id="tab-owner" aria-selected="false" aria-controls="form-owner">Owner</button>
+    </div>
+    <form id="form-member" role="tabpanel" aria-labelledby="tab-member" novalidate>
+      <label class="f">Email <input type="email" name="email" autocomplete="email" required inputmode="email" /></label>
+      <label class="f" style="margin-top:10px">Access code <input type="text" name="code" autocomplete="one-time-code" required placeholder="GVL-XXXX-XXXX" spellcheck="false" /><small>Your code came with your subscription. Lost it? Ask the owner for a new one.</small></label>
+      <button class="btn" type="submit" style="margin-top:14px;width:100%">Sign in</button>
+    </form>
+    <form id="form-owner" role="tabpanel" aria-labelledby="tab-owner" hidden novalidate>
+      <label class="f">Owner PIN <input type="password" name="pin" inputmode="numeric" autocomplete="current-password" required /><small>The PIN is printed in the terminal when Gavel starts, or set in .env as GAVEL_PIN.</small></label>
+      <button class="btn" type="submit" style="margin-top:14px;width:100%">Sign in as owner</button>
+    </form>
+    <p class="err" id="err" role="alert"></p>
+    <p class="dim mono" style="margin:12px 0 0;text-align:center">Paper bidding by default · Nothing here spends money</p>
+  </div>
+</main>
+<script type="module" src="/js/login.js"></script>
+</body>
+</html>

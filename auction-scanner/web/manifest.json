@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "Gavel",
+  "short_name": "Gavel",
+  "description": "An AI car-auction scanner. Clean cars, dumb cheap, explained. Paper bidding by default.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EDE4CF",
+  "theme_color": "#EDE4CF",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gavel</title>
+<meta name="description" content="Gavel — an AI car-auction scanner. Clean cars, dumb cheap, explained. Paper bidding by default." />
+<meta name="theme-color" content="#EDE4CF" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#15130F" media="(prefers-color-scheme: dark)" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap" />
+<link rel="stylesheet" href="/css/app.css" />
+</head>
+<body class="on-paper">
+<header class="topbar">
+  <a class="brand" href="#feed" aria-label="Gavel, go to the feed"><span class="eyelet" aria-hidden="true"></span><span class="wordmark">Gavel</span></a>
+  <span class="spacer"></span>
+  <button class="chip" id="mode-chip" type="button" title="Where the cars on the feed come from">…</button>
+  <button class="ring" id="account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">·</button>
+  <div class="menu" id="account-menu" role="menu" hidden></div>
+</header>
+
+<nav class="tabs" aria-label="Screens">
+  <a href="#feed" data-tab="feed">Feed</a>
+  <a href="#watch" data-tab="watch">Watch</a>
+  <a href="#auctions" data-tab="auctions">Auctions</a>
+  <a href="#playbook" data-tab="playbook">Playbook</a>
+  <a href="#rental" data-tab="rental">Rental</a>
+  <a href="#settings" data-tab="settings" class="desk-only">Settings</a>
+</nav>
+
+<main id="main">
+  <section class="screen" id="screen-feed" data-screen="feed" hidden></section>
+  <section class="screen" id="screen-plan" data-screen="plan" hidden></section>
+  <section class="screen" id="screen-watch" data-screen="watch" hidden></section>
+  <section class="screen" id="screen-auctions" data-screen="auctions" hidden></section>
+  <section class="screen" id="screen-playbook" data-screen="playbook" hidden></section>
+  <section class="screen" id="screen-rental" data-screen="rental" hidden></section>
+  <section class="screen" id="screen-settings" data-screen="settings" hidden></section>
+  <section class="screen" id="screen-admin" data-screen="admin" hidden></section>
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+<div id="sheet-root"></div>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
