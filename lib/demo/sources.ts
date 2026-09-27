@@ -1,5 +1,7 @@
+import { localStartOfDay, type AgendaEvent } from '@/lib/assistant/agenda'
 import { addDays, type PipelineDeal } from '@/lib/crm/pipeline'
 import { searchTerms, snippet, type KnowledgeHit } from '@/lib/knowledge/search'
+import { gmailMessageUrl, type MailMessage } from '@/lib/mail/gmail'
 
 /**
  * The demo workspace's CRM and notes.
@@ -187,4 +189,63 @@ export function searchDemoKnowledge(question: string, limit: number): KnowledgeH
 
 function escape(term: string): string {
   return term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// ── The demo day ────────────────────────────────────────────────────────────
+// A prospect asking "run my day" in the demo workspace should hear a day, not
+// "no mailbox is connected". Four messages and five events, each there to
+// show something: a supplier delay to act on, a customer question to answer,
+// a deal call before its close date, an all-day reorder point from the
+// supplier note. Relative to the fixed clock, so they never age.
+
+const HOUR = 3_600_000
+
+export function buildDemoInbox(now: Date): MailMessage[] {
+  const at = (hoursAgo: number) => new Date(now.getTime() - hoursAgo * HOUR).toISOString()
+  const message = (
+    id: string,
+    from: string,
+    fromAddress: string,
+    subject: string,
+    hoursAgo: number,
+    snippet: string,
+  ): MailMessage => ({
+    id,
+    threadId: id,
+    from,
+    fromAddress,
+    subject,
+    receivedAt: at(hoursAgo),
+    snippet,
+    url: gmailMessageUrl(id),
+  })
+
+  return [
+    message('demo-mail-1', 'Maya Chen', 'maya@harbourandco.example', 'Spring order — PO attached, one question', 1, 'PO for the wholesale spring order is attached. Can we move Thursday’s call to 2pm? Also, is the Stoneware Mug available at wholesale yet?'),
+    message('demo-mail-2', 'Glassworks Supply', 'orders@glassworks.example', 'Delay on diffuser glass — new ETA', 3, 'The vessel batch slipped a week. New ETA is the 12th. Let us know if you need a partial shipment sooner.'),
+    message('demo-mail-3', 'Priya N.', 'priya.n@example.com', 'Refund on order #48213?', 6, 'Hi, I returned the candle set last Tuesday and have not seen the refund yet. Can you check? Thanks.'),
+    message('demo-mail-4', 'Nordic Living', 'buying@nordicliving.example', 'Re: retail listing, 12 stores', 20, 'Thanks for the samples. Our buying committee meets Thursday; a decision should follow the same day.'),
+  ]
+}
+
+export function buildDemoAgenda(now: Date): AgendaEvent[] {
+  const start = localStartOfDay(now, 'UTC').getTime()
+  const at = (dayOffset: number, hour: number, minute = 0) =>
+    new Date(start + dayOffset * 24 * HOUR + hour * HOUR + minute * 60_000).toISOString()
+  const event = (
+    id: string,
+    title: string,
+    startsAt: string,
+    endsAt: string,
+    description: string | null,
+    allDay = false,
+  ): AgendaEvent => ({ id, title, description, startsAt, endsAt, allDay, source: 'demo' })
+
+  return [
+    event('demo-event-1', 'Ops stand-up', at(0, 9, 30), at(0, 9, 45), null),
+    event('demo-event-2', 'Harbour & Co — contract call', at(0, 13), at(0, 13, 45), 'Spring order terms. Contract sent; expected close this week.'),
+    event('demo-event-3', 'Investor update — Q1 numbers', at(1, 10), at(1, 10, 30), null),
+    event('demo-event-4', 'Fern & Field — gift box presentation', at(1, 15, 30), at(1, 16, 15), 'Corporate gift boxes, presentation scheduled.'),
+    event('demo-event-5', 'Cedar Reed Diffuser — reorder point', at(3, 0), at(4, 0), 'Reorder when stock reaches 120 units (supplier notes).', true),
+  ]
 }

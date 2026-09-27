@@ -617,6 +617,53 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     })
   })
 
+  it("keeps one person's mailbox from a colleague in the same workspace", async () => {
+    // A mailbox is the person's, not the workspace's. The policy is own-rows
+    // only, so even an admin in the same organization sees nothing — and the
+    // token behind it stays in the table nobody but the service role reads.
+    const { rows } = await db.query<{ id: string }>(
+      `insert into public.mail_connections
+         (organization_id, user_id, provider, account_email, status)
+       values ($1, $2, 'gmail', 'owner@example.com', 'connected') returning id`,
+      [orgA, ownerA],
+    )
+    await db.query(
+      `insert into public.integration_credentials
+         (organization_id, mail_connection_id, field, sealed, key_id, masked_hint)
+       values ($1, $2, 'refresh_token', '{"ct":"m"}'::jsonb, 'k1', 'rt_****')`,
+      [orgA, rows[0]!.id],
+    )
+
+    // A colleague: an admin in the same workspace, with every tenant power
+    // short of ownership, and still no view of someone else's inbox.
+    const colleague = await createUser(db, 'colleague-a@example.com')
+    await db.query(
+      `insert into public.organization_members (organization_id, user_id, role, status)
+       values ($1, $2, 'tenant_admin', 'active')`,
+      [orgA, colleague],
+    )
+
+    await asUser(db, colleague, async (s) => {
+      const conns = await s.query('select id from public.mail_connections')
+      expect(conns.rowCount).toBe(0)
+
+      // Nor can they connect a mailbox in someone else's name.
+      const failure = await s.refused(
+        `insert into public.mail_connections (organization_id, user_id, provider, account_email)
+         values ($1, $2, 'gmail', 'forged@example.com')`,
+        [orgA, ownerA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+
+    await asUser(db, ownerA, async (s) => {
+      const conns = await s.query<{ account_email: string }>('select account_email from public.mail_connections')
+      expect(conns.rows.map((r) => r.account_email)).toEqual(['owner@example.com'])
+      const secrets = await s.query('select id from public.integration_credentials')
+      expect(secrets.rowCount).toBe(0)
+    })
+  })
+
   it('refuses a credential that claims both owners, or neither', async () => {
     // The check constraint is what keeps "exactly one owner" a database rule
     // rather than a convention every future call site has to remember.
@@ -778,6 +825,7 @@ describe.skipIf(!hasTestDatabase)('the harness is testing what it claims to', ()
       'audit_logs',
       'orders',
       'integration_credentials',
+      'mail_connections',
       'subscriptions',
     ]) {
       const row = rows.find((r) => r.relname === table)

@@ -34,8 +34,15 @@ import { createHash, randomBytes } from 'node:crypto'
 
 export type CalendarProvider = 'google' | 'outlook'
 
+/**
+ * Every provider this module speaks OAuth to. Gmail is Google's endpoints
+ * with a narrower scope and its own consent, so a person who connected a
+ * calendar has granted nothing about their mail, and the other way round.
+ */
+export type OAuthProvider = CalendarProvider | 'gmail'
+
 export type ProviderConfig = {
-  provider: CalendarProvider
+  provider: OAuthProvider
   name: string
   authorizeUrl: string
   tokenUrl: string
@@ -44,23 +51,27 @@ export type ProviderConfig = {
   extraAuthParams: Record<string, string>
 }
 
-export const CALENDAR_PROVIDERS: Record<CalendarProvider, ProviderConfig> = {
+const GOOGLE_AUTH = {
+  authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenUrl: 'https://oauth2.googleapis.com/token',
+  extraAuthParams: {
+    access_type: 'offline',
+    // Without this a reconnect returns no refresh token and the connection
+    // quietly expires an hour later.
+    prompt: 'consent',
+    include_granted_scopes: 'true',
+  },
+}
+
+export const OAUTH_PROVIDERS: Record<OAuthProvider, ProviderConfig> = {
   google: {
     provider: 'google',
     name: 'Google Calendar',
-    authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenUrl: 'https://oauth2.googleapis.com/token',
+    ...GOOGLE_AUTH,
     scopes: [
       'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
     ],
-    extraAuthParams: {
-      access_type: 'offline',
-      // Without this a reconnect returns no refresh token and the connection
-      // quietly expires an hour later.
-      prompt: 'consent',
-      include_granted_scopes: 'true',
-    },
   },
   outlook: {
     provider: 'outlook',
@@ -71,20 +82,39 @@ export const CALENDAR_PROVIDERS: Record<CalendarProvider, ProviderConfig> = {
     scopes: ['offline_access', 'Calendars.Read', 'User.Read'],
     extraAuthParams: { response_mode: 'query' },
   },
+  gmail: {
+    provider: 'gmail',
+    name: 'Gmail',
+    ...GOOGLE_AUTH,
+    // Read only. The assistant summarises unread mail; it never sends,
+    // replies or deletes, and the consent screen must say exactly that.
+    scopes: [
+      'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/userinfo.email',
+    ],
+  },
+}
+
+export const CALENDAR_PROVIDERS: Record<CalendarProvider, ProviderConfig> = {
+  google: OAUTH_PROVIDERS.google,
+  outlook: OAUTH_PROVIDERS.outlook,
 }
 
 export type ProviderCredentials = { clientId: string; clientSecret: string }
 
-/** Reads the provider's client credentials, or null when it is not set up. */
-export function calendarCredentials(provider: CalendarProvider): ProviderCredentials | null {
-  const clientId =
-    provider === 'google'
-      ? process.env.GOOGLE_CLIENT_ID?.trim()
-      : process.env.MICROSOFT_CLIENT_ID?.trim()
-  const clientSecret =
-    provider === 'google'
-      ? process.env.GOOGLE_CLIENT_SECRET?.trim()
-      : process.env.MICROSOFT_CLIENT_SECRET?.trim()
+/**
+ * Reads the provider's client credentials, or null when it is not set up.
+ * Gmail is the same Google app as the calendar: one registration, one
+ * redirect URI per flow.
+ */
+export function calendarCredentials(provider: OAuthProvider): ProviderCredentials | null {
+  const google = provider === 'google' || provider === 'gmail'
+  const clientId = google
+    ? process.env.GOOGLE_CLIENT_ID?.trim()
+    : process.env.MICROSOFT_CLIENT_ID?.trim()
+  const clientSecret = google
+    ? process.env.GOOGLE_CLIENT_SECRET?.trim()
+    : process.env.MICROSOFT_CLIENT_SECRET?.trim()
 
   if (!clientId || !clientSecret) return null
   return { clientId, clientSecret }
@@ -115,13 +145,13 @@ export function beginFlow(): FlowSecrets {
 }
 
 export function authorizationUrl(input: {
-  provider: CalendarProvider
+  provider: OAuthProvider
   clientId: string
   redirectUri: string
   state: string
   codeChallenge: string
 }): string {
-  const config = CALENDAR_PROVIDERS[input.provider]
+  const config = OAUTH_PROVIDERS[input.provider]
 
   const params = new URLSearchParams({
     client_id: input.clientId,
@@ -168,7 +198,7 @@ export class OAuthError extends Error {
 }
 
 export async function exchangeCode(input: {
-  provider: CalendarProvider
+  provider: OAuthProvider
   code: string
   redirectUri: string
   codeVerifier: string
@@ -187,7 +217,7 @@ export async function exchangeCode(input: {
 }
 
 export async function refreshAccessToken(input: {
-  provider: CalendarProvider
+  provider: OAuthProvider
   refreshToken: string
   credentials: ProviderCredentials
   fetch?: typeof globalThis.fetch
@@ -215,23 +245,24 @@ type TokenResponse = {
 }
 
 async function tokenRequest(
-  provider: CalendarProvider,
+  provider: OAuthProvider,
   fetchImpl: typeof globalThis.fetch | undefined,
   now: Date | undefined,
   body: Record<string, string>,
 ): Promise<TokenSet> {
   const doFetch = fetchImpl ?? globalThis.fetch
   const at = now ?? new Date()
+  const config = OAUTH_PROVIDERS[provider]
 
   let response: Response
   try {
-    response = await doFetch(CALENDAR_PROVIDERS[provider].tokenUrl, {
+    response = await doFetch(config.tokenUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body: new URLSearchParams(body).toString(),
     })
   } catch {
-    throw new OAuthError(`${CALENDAR_PROVIDERS[provider].name} could not be reached.`, true)
+    throw new OAuthError(`${config.name} could not be reached.`, true)
   }
 
   const payload = (await response.json().catch(() => ({}))) as TokenResponse
@@ -241,10 +272,11 @@ async function tokenRequest(
     // the refresh token expired. It is permanent, and the only fix is that the
     // person reconnects — so it must not be retried on a schedule forever.
     const permanent = payload.error === 'invalid_grant' || response.status === 400
+    const what = provider === 'gmail' ? 'the mailbox' : 'the calendar'
     throw new OAuthError(
       permanent
-        ? `${CALENDAR_PROVIDERS[provider].name} rejected the authorization. Reconnect the calendar.`
-        : `${CALENDAR_PROVIDERS[provider].name} returned ${response.status} while exchanging the token.`,
+        ? `${config.name} rejected the authorization. Reconnect ${what}.`
+        : `${config.name} returned ${response.status} while exchanging the token.`,
       !permanent,
     )
   }
@@ -280,14 +312,14 @@ export type CalendarEvent = {
 
 /** The address of the account that was just connected, for display. */
 export async function fetchAccountEmail(
-  provider: CalendarProvider,
+  provider: OAuthProvider,
   accessToken: string,
   fetchImpl: typeof globalThis.fetch = globalThis.fetch,
 ): Promise<string | null> {
   const url =
-    provider === 'google'
-      ? 'https://www.googleapis.com/oauth2/v3/userinfo'
-      : 'https://graph.microsoft.com/v1.0/me'
+    provider === 'outlook'
+      ? 'https://graph.microsoft.com/v1.0/me'
+      : 'https://www.googleapis.com/oauth2/v3/userinfo'
 
   const response = await fetchImpl(url, {
     headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' },

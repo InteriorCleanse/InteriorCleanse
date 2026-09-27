@@ -8,7 +8,8 @@ import { ADAPTERS } from '@/lib/integrations/sync'
 import { SOURCE_ADAPTERS } from '@/lib/knowledge/sync'
 import { can } from '@/lib/authz'
 import { ObsidianPanel } from './obsidian-panel'
-import { CALENDAR_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
+import { CALENDAR_PROVIDERS, OAUTH_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
+import { MailPanel } from './mail-panel'
 import { SyncButton } from './sync-button'
 
 export const metadata = { title: 'Integrations' }
@@ -40,7 +41,7 @@ export default async function IntegrationsPage({
   ])
   const supabase = await supabaseServer()
 
-  const [{ data: rows }, { data: runs }, { data: calendarRows }] = await Promise.all([
+  const [{ data: rows }, { data: runs }, { data: calendarRows }, { data: mailRows }] = await Promise.all([
     supabase
       .from('integration_connections')
       .select('id, provider, display_name, status, status_detail, last_success_at, last_attempt_at')
@@ -60,9 +61,16 @@ export default async function IntegrationsPage({
       .select('provider, account_email, status')
       .eq('organization_id', membership.organizationId)
       .eq('user_id', session.userId),
+    // Likewise the mailbox: only this person's, and only the fact of it.
+    supabase
+      .from('mail_connections')
+      .select('provider, account_email, status, status_detail')
+      .eq('organization_id', membership.organizationId)
+      .eq('user_id', session.userId),
   ])
 
   const calendars = calendarRows ?? []
+  const mailboxes = mailRows ?? []
 
   const connectionIds = new Map((rows ?? []).map((row) => [row.provider, row.id as string]))
   const lastRun = new Map<string, NonNullable<typeof runs>[number]>()
@@ -261,6 +269,25 @@ export default async function IntegrationsPage({
               </li>
             )
           })}
+        </ul>
+      </Panel>
+
+      <Panel>
+        <Eyebrow>Mail</Eyebrow>
+        <p className="mt-1 text-sm text-muted">
+          Connect your own mailbox and the assistant can tell you what is new and what needs a
+          reply. It reads unread mail <strong className="text-ink">live, and stores none of it</strong>;
+          the connection is read-only, and nothing here can send, reply or delete.
+        </p>
+
+        <ul className="mt-4 space-y-3">
+          <MailPanel
+            providerName={OAUTH_PROVIDERS.gmail.name}
+            configured={isCalendarConfigured('google')}
+            connected={mailboxes
+              .filter((m) => m.provider === 'gmail')
+              .map((m) => ({ accountEmail: m.account_email, status: m.status, detail: m.status_detail }))}
+          />
         </ul>
       </Panel>
     </div>

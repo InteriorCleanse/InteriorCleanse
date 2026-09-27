@@ -12,8 +12,12 @@ import { TOOLS, TOOLS_BY_NAME, type CitationSource, type ToolContext } from '@/l
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { logFailure } from '@/lib/log'
 import { snippet, toTsQuery } from '@/lib/knowledge/search'
-import { buildDemoPipeline, searchDemoKnowledge } from '@/lib/demo/sources'
+import { buildDemoAgenda, buildDemoInbox, buildDemoPipeline, searchDemoKnowledge } from '@/lib/demo/sources'
 import { DEMO_NOW } from '@/lib/workspace-analytics'
+import { eventsIn } from '@/lib/assistant/agenda'
+import { readInbox } from '@/lib/mail/read'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import { isVaultConfigured } from '@/lib/vault'
 
 /**
  * The assistant endpoint.
@@ -204,11 +208,65 @@ export async function POST(request: Request) {
     qty: 1,
   })
 
+  const now = membership.isDemo ? DEMO_NOW : new Date()
+
   const toolContext: ToolContext = {
     organizationId: membership.organizationId,
     isDemo: membership.isDemo,
     currency: membership.baseCurrency,
     can: (capability) => can(actor, capability),
+    now,
+    timeZone: membership.timezone,
+
+    // The person's own day. The mailbox is looked up through their client, so
+    // RLS returns only a connection they made; a colleague's is invisible
+    // here exactly as it is on the integrations page. The read itself needs
+    // the service role to open the sealed token, and runs only after that.
+    readInbox: async (limit) => {
+      if (membership.isDemo) {
+        return { connected: true, accountEmail: 'you@demo.example', messages: buildDemoInbox(now), error: null }
+      }
+      const { data: rows } = await supabase
+        .from('mail_connections')
+        .select('id, organization_id, user_id, provider, status, account_email, last_checked_at')
+        .eq('organization_id', membership.organizationId)
+        .eq('user_id', session.userId)
+        .in('status', ['connected', 'degraded'])
+        .order('updated_at', { ascending: false })
+        .limit(1)
+      const connection = rows?.[0]
+      if (!connection) {
+        return {
+          connected: false,
+          reason: 'No mailbox is connected for you in this workspace. Connect Gmail on the integrations page.',
+        }
+      }
+      if (!isVaultConfigured()) {
+        return { connected: false, reason: 'Credential storage is not configured on this deployment, so the mailbox cannot be read.' }
+      }
+      const read = await readInbox(supabaseAdmin(), connection, { limit, now })
+      return { connected: true, accountEmail: connection.account_email, messages: read.messages, error: read.error }
+    },
+    queryAgenda: async (from, to) => {
+      if (membership.isDemo) return eventsIn(buildDemoAgenda(now), { from, to, label: '' })
+      const { data } = await supabase
+        .from('calendar_events')
+        .select('id, title, description, starts_at, ends_at, all_day, source')
+        .eq('organization_id', membership.organizationId)
+        .gte('starts_at', from.toISOString())
+        .lt('starts_at', to.toISOString())
+        .order('starts_at', { ascending: true })
+        .limit(50)
+      return (data ?? []).map((e) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        startsAt: e.starts_at,
+        endsAt: e.ends_at,
+        allDay: e.all_day,
+        source: e.source,
+      }))
+    },
 
     // Both readers go through the user's own client, so RLS decides what the
     // assistant can see — the same rows the person asking could open
