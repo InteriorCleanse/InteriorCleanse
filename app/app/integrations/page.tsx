@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { ButtonLink, Eyebrow, Panel } from '@/components/ui'
 import { requireCapability } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
@@ -9,6 +10,7 @@ import { SOURCE_ADAPTERS } from '@/lib/knowledge/sync'
 import { can } from '@/lib/authz'
 import { ObsidianPanel } from './obsidian-panel'
 import { CALENDAR_PROVIDERS, OAUTH_PROVIDERS, isCalendarConfigured, type CalendarProvider } from '@/lib/calendar/oauth'
+import { ConnectForm } from './connect-form'
 import { MailPanel } from './mail-panel'
 import { SyncButton } from './sync-button'
 
@@ -30,6 +32,20 @@ const TONE_CLASS = {
  * figures is how someone ends up making a decision on numbers that stopped
  * updating on Tuesday.
  */
+/**
+ * The setting inputs a connector needs, read off its own Zod schema so the
+ * form and the validation cannot drift. Labels come from the key; the
+ * schema's message is the help, since it already says what a valid value is.
+ */
+function settingFields(schema: z.ZodTypeAny | undefined): { key: string; label: string; help?: string }[] {
+  if (!schema || !(schema instanceof z.ZodObject)) return []
+  return Object.entries(schema.shape as Record<string, z.ZodTypeAny>).map(([key, field]) => ({
+    key,
+    label: key.replace(/([A-Z])/g, ' $1').replace(/^\w/, (c) => c.toUpperCase()),
+    help: field.description,
+  }))
+}
+
 export default async function IntegrationsPage({
   searchParams,
 }: {
@@ -92,20 +108,30 @@ export default async function IntegrationsPage({
     ]),
   )
 
-  const healths = CONNECTORS.filter((c) => c.status === 'available').map((definition) =>
-    assessConnection(
-      byProvider.get(definition.provider) ?? {
-        provider: definition.provider,
-        displayName: definition.name,
-        status: 'not_connected',
-        statusDetail: null,
-        lastSuccessAt: null,
-        lastAttemptAt: null,
-      },
-    ),
-  )
+  const healths = CONNECTORS.filter((c) => c.status === 'available').map((definition) => {
+    const record = byProvider.get(definition.provider) ?? {
+      provider: definition.provider,
+      displayName: definition.name,
+      status: 'not_connected' as const,
+      statusDetail: null,
+      lastSuccessAt: null,
+      lastAttemptAt: null,
+    }
+    const health = assessConnection(record)
+    // A connector with no sync — one used only when an action needs it, like
+    // a publisher or a webhook — is not "never synced". Connected is healthy.
+    const syncs = Boolean(ADAPTERS[definition.provider] || SOURCE_ADAPTERS[definition.provider])
+    if (!syncs && record.status === 'connected') {
+      return { ...health, tone: 'ok' as const, label: 'Connected', detail: `${definition.name} is connected and used only when an action needs it.`, dataIsCurrent: true }
+    }
+    return health
+  })
 
   const summary = summariseHealth(healths)
+  const canConnect = can(
+    { userId: session.userId, tenantRole: membership.role, platformRole: session.platformRole },
+    'integrations:connect',
+  )
 
   return (
     <div className="space-y-6">
@@ -228,6 +254,23 @@ export default async function IntegrationsPage({
                   Needs: {definition.credentials.map((c) => c.label).join(', ')}. Stored sealed —
                   after saving, only a masked hint is ever shown.
                 </p>
+              ) : null}
+
+              {!planned && definition.credentials.length > 0 && canConnect && isVaultConfigured() ? (
+                <ConnectForm
+                  provider={definition.provider}
+                  name={definition.name}
+                  credentials={definition.credentials.map((c) => ({
+                    key: c.key,
+                    label: c.label,
+                    help: c.help,
+                    optional: c.optional,
+                  }))}
+                  settings={settingFields(definition.settings)}
+                  connected={
+                    (byProvider.get(definition.provider)?.status ?? 'not_connected') !== 'not_connected'
+                  }
+                />
               ) : null}
             </Panel>
           )

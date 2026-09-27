@@ -52,6 +52,7 @@ const MIGRATIONS = [
   '0012_knowledge_and_crm.sql',
   '0013_notion_delivery_channel.sql',
   '0014_mail_connections.sql',
+  '0015_site_builds.sql',
 ]
 
 export async function migrate(): Promise<Client> {

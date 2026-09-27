@@ -247,6 +247,21 @@ export async function POST(request: Request) {
       const read = await readInbox(supabaseAdmin(), connection, { limit, now })
       return { connected: true, accountEmail: connection.account_email, messages: read.messages, error: read.error }
     },
+    listSites: async () => {
+      const { data } = await supabase
+        .from('site_builds')
+        .select('id, name, status, published_url, created_at')
+        .eq('organization_id', membership.organizationId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      return (data ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        status: s.status,
+        publishedUrl: s.published_url,
+        createdAt: s.created_at,
+      }))
+    },
     queryAgenda: async (from, to) => {
       if (membership.isDemo) return eventsIn(buildDemoAgenda(now), { from, to, label: '' })
       const { data } = await supabase

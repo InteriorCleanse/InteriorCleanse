@@ -748,6 +748,30 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     })
   })
 
+  it('lets members see a built site but only admins make one', async () => {
+    // A site is written on an admin's approval and read by the workspace.
+    // The policy mirrors the approval gate rather than trusting it.
+    await db.query(
+      `insert into public.site_builds (organization_id, name, brief, html)
+       values ($1, 'Bakery', 'a site for the bakery', '<html></html>')`,
+      [orgA],
+    )
+    await asUser(db, ownerA, async (s) => {
+      const own = await s.query('select id from public.site_builds')
+      expect(own.rowCount).toBe(1)
+    })
+    await asUser(db, ownerB, async (s) => {
+      const other = await s.query('select id from public.site_builds')
+      expect(other.rowCount).toBe(0)
+      const failure = await s.refused(
+        `insert into public.site_builds (organization_id, name, brief, html)
+         values ($1, 'Forged', 'x', '<html></html>')`,
+        [orgA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+  })
+
   it('does not let a tenant edit their own subscription', async () => {
     // Entitlements are read from this table. A tenant that could write it could
     // grant themselves the top plan for nothing.
@@ -826,6 +850,7 @@ describe.skipIf(!hasTestDatabase)('the harness is testing what it claims to', ()
       'orders',
       'integration_credentials',
       'mail_connections',
+      'site_builds',
       'subscriptions',
     ]) {
       const row = rows.find((r) => r.relname === table)

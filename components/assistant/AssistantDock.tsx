@@ -93,6 +93,7 @@ const METRIC_LABELS: Record<string, string> = {
   crm_deals: 'CRM pipeline',
   calendar_events: 'Calendar',
   mail_inbox: 'Inbox',
+  site_builds: 'Sites',
 }
 
 /**
@@ -1021,6 +1022,7 @@ const TOOL_LABELS: Record<string, string> = {
   query_pipeline: 'Read the pipeline',
   read_inbox: 'Read the inbox',
   check_calendar: 'Checked the calendar',
+  list_sites: 'Listed the sites',
   create_goal: 'Proposed a goal',
   create_notification_rule: 'Proposed an alert',
   build_site: 'Proposed building a site',

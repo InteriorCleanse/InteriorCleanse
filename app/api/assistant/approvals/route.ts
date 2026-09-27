@@ -1,8 +1,11 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
+import { assistantEnv, isAssistantConfigured } from '@/lib/env'
 import { getSessionContext } from '@/lib/session'
-import { supabaseServer } from '@/lib/supabase/server'
+import { supabaseAdmin, supabaseServer } from '@/lib/supabase/server'
 import { checkApproval, type ActionApproval, type ApprovalState } from '@/lib/assistant/approval'
-import { executeApprovedAction } from '@/lib/assistant/execute'
+import { executeApprovedAction, type ExecutionServices } from '@/lib/assistant/execute'
+import { vercelPublisher } from '@/lib/sites/publisher'
 
 /**
  * Deciding an approval, and carrying it out.
@@ -111,6 +114,7 @@ export async function POST(request: Request) {
     args: row.arguments,
     organizationId: row.organization_id,
     actorUserId: session.userId,
+    services: await servicesFor(row.tool_name, supabase, row.organization_id),
   })
 
   if (!result.ok) {
@@ -123,6 +127,41 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ state: 'executed', message: result.summary, recordId: result.recordId })
+}
+
+/**
+ * The outside services an action may need, resolved only for the action that
+ * needs them. A goal needs none; a site needs the model; a publish needs the
+ * host. Absent services are plain answers from the executor, not errors here.
+ */
+async function servicesFor(
+  toolName: string,
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  organizationId: string,
+): Promise<ExecutionServices> {
+  if (toolName === 'build_site' && isAssistantConfigured()) {
+    const env = assistantEnv()
+    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+    return {
+      generateSite: async (system, user) => {
+        const message = await anthropic.messages.create({
+          model: env.ASSISTANT_MODEL,
+          // A page is long; the cap is the column limit, not the answer limit.
+          max_tokens: 16_000,
+          system,
+          messages: [{ role: 'user', content: user }],
+        })
+        return message.content
+          .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+          .map((block) => block.text)
+          .join('\n')
+      },
+    }
+  }
+  if (toolName === 'publish_site') {
+    return { publishSite: await vercelPublisher({ supabase, admin: supabaseAdmin, organizationId }) }
+  }
+  return {}
 }
 
 /** Postgres exception text is not user-facing copy. */

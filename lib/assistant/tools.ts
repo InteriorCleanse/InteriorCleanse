@@ -58,6 +58,16 @@ export type ToolContext = {
   readInbox?: (limit: number) => Promise<InboxRead>
   /** Calendar events in a window, from the synced calendar table. */
   queryAgenda?: (from: Date, to: Date) => Promise<AgendaEvent[]>
+  /** Sites the assistant has built in this workspace. */
+  listSites?: () => Promise<SiteRecord[]>
+}
+
+export type SiteRecord = {
+  id: string
+  name: string
+  status: string
+  publishedUrl: string | null
+  createdAt: string
 }
 
 export type InboxRead =
@@ -721,11 +731,105 @@ const checkCalendar: ToolDefinition = {
   },
 }
 
+// ── Sites ───────────────────────────────────────────────────────────────────
+// "Build me a site" is two approvals apart from a public address. Building
+// writes a page into the workspace as a private preview; publishing, later
+// and separately, puts it on the web through the workspace's own host. Each
+// step is a write tool with its own card, because "make it" and "make it
+// public" are different decisions.
+
+const listSites: ToolDefinition = {
+  name: 'list_sites',
+  kind: 'read',
+  capability: 'data:view',
+  description:
+    'The sites this assistant has built in this workspace — name, status, and the public address if published — with the id needed to publish one. Use it before proposing to publish, and to answer "what sites do we have".',
+  schema: z.object({}),
+  execute: async (_args, ctx) => {
+    if (!ctx.listSites) {
+      return {
+        data: { available: false, reason: 'Sites are not available in this workspace.' },
+        citations: ['site_builds'],
+      }
+    }
+    const sites = await ctx.listSites()
+    return {
+      data: {
+        available: true,
+        count: sites.length,
+        sites: sites.map((s) => ({ id: s.id, name: s.name, status: s.status, publishedUrl: s.publishedUrl, built: s.createdAt })),
+        note:
+          sites.length === 0
+            ? 'No sites built yet. Offer to build one from a brief.'
+            : 'Each site is previewed on the Sites page. Publishing needs approval and a connected Vercel account.',
+      },
+      citations: ['site_builds', ...sites.map((s) => `site:${s.id}`)],
+      sources: sites.map((s) => ({ key: `site:${s.id}`, label: s.name, url: s.publishedUrl })),
+    }
+  },
+}
+
+const buildSite: ToolDefinition = {
+  name: 'build_site',
+  kind: 'write',
+  capability: 'assistant:approve_action',
+  description:
+    'Propose building a one-page website from a plain-language brief, such as "a site for my bakery with the menu, opening hours and a contact form". Returns a preview for approval; on approval the page is written and saved in this workspace as a private preview. Nothing is put on the web by this tool. Ask for what the site should say before proposing; a thin brief makes a thin page.',
+  schema: z.object({
+    name: z.string().min(1).max(120).describe('What the site is called.'),
+    brief: z
+      .string()
+      .min(20)
+      .max(4000)
+      .describe('Everything the page should say and do, in plain words, including any real facts to show.'),
+    style: z.string().max(200).optional().describe('Optional look and feel: "warm and rustic", "minimal, dark".'),
+  }),
+  execute: (args) => ({
+    data: { staged: true },
+    preview: {
+      summary: `Build a one-page website called “${args.name}” from your brief, saved as a private preview in this workspace.`,
+      targetIntegration: null,
+      fields: [
+        { label: 'Site', value: args.name },
+        { label: 'Brief', value: args.brief.length > 240 ? `${args.brief.slice(0, 240)}…` : args.brief },
+        ...(args.style ? [{ label: 'Style', value: args.style }] : []),
+        { label: 'Visibility', value: 'Private preview until you approve publishing' },
+      ],
+      details: args,
+    },
+  }),
+}
+
+const publishSite: ToolDefinition = {
+  name: 'publish_site',
+  kind: 'write',
+  capability: 'assistant:approve_action',
+  description:
+    'Propose publishing a site this assistant already built to the public web through the workspace’s connected Vercel account. Get the site id from list_sites. Returns a preview for approval; once published the page is public at the address returned.',
+  schema: z.object({
+    siteId: z.string().uuid(),
+    siteName: z.string().min(1).max(120).describe('The site’s name, as list_sites returned it, so the approval card reads plainly.'),
+  }),
+  execute: (args) => ({
+    data: { staged: true },
+    preview: {
+      summary: `Publish “${args.siteName}” to the public web through Vercel.`,
+      targetIntegration: 'vercel',
+      fields: [
+        { label: 'Site', value: args.siteName },
+        { label: 'Becomes', value: 'Public, at an address on your Vercel account' },
+      ],
+      details: args,
+    },
+  }),
+}
+
 export const TOOLS: ToolDefinition[] = [
   searchKnowledge,
   queryPipeline,
   readInbox,
   checkCalendar,
+  listSites,
   queryKpis,
   comparePeriods,
   rankProducts,
@@ -735,6 +839,8 @@ export const TOOLS: ToolDefinition[] = [
   forecastRevenue,
   createGoal,
   createNotificationRule,
+  buildSite,
+  publishSite,
 ]
 
 export const TOOLS_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]))
@@ -757,6 +863,7 @@ export const SUGGESTED_COMMANDS = [
   'How reliable are these numbers right now?',
   'What did we decide about refunds?',
   'What is in the pipeline this month?',
+  'Build me a one-page site for the business — ask me what it should say.',
 ] as const
 
 export { PRESET_LABELS }
