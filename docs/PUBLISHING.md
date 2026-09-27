@@ -107,6 +107,16 @@ Create a Vercel project from this branch, set the environment variables from
 key, `CLIENT_ORIGINS` for the extension, and any connectors), and deploy. This
 is the backend the extension and desktop app both point at, so it comes first.
 
+## What changed since this was first written
+
+The assistant now speaks with an expressive cloud voice, listens for a wake
+word, reads a person's calendar and inbox, and builds and publishes one-page
+sites — all of which are the "native" capabilities an App Store reviewer looks
+for under guideline 4.2, and none of which changes the verdict above: they
+live in the web app, and an iOS client that carries them natively is its own
+project. `docs/RESEARCH.md` covers what that project is, what Google's review
+of the Gmail scope costs, and what to build first.
+
 ## Recommended order
 
 1. Deploy the web app to a real domain with a real Supabase project.

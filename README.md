@@ -13,6 +13,21 @@ remain partly open and say exactly what is missing.** See
 hardcoded. Change `NEXT_PUBLIC_APP_NAME` and `NEXT_PUBLIC_ASSISTANT_NAME` to
 rebrand without touching code.
 
+## The assistant
+
+Say its name and ask. It answers from the workspace's own figures, cites every
+record, and never acts without a card you approve.
+
+| It… | How |
+| --- | --- |
+| **Talks** | Hold to speak or say "Hey Arch". Replies read by Fish Audio's expressive voice (`FISH_AUDIO_API_KEY`, server-side) or the browser's own; hands-free mode listens for the next question. `docs/CLIENTS.md`. |
+| **Runs your day** | "What's on tomorrow, and what's new in my inbox?" Read-only Google Calendar and Gmail, per person. Mail is read live and never stored; nothing can send, reply or delete. `docs/INTEGRATIONS.md`. |
+| **Builds real projects** | "Build me a site for the bakery." A one-page site from a brief, validated to reach nothing outside itself, previewed in a sandbox — and published through your own Vercel account only on a second approval. |
+| **Knows the numbers** | Revenue, profit, ad spend, ROAS, forecasts, the pipeline, your notes — each with its formula, source and freshness. |
+
+What it will not do, and why, is in `docs/RESEARCH.md`, along with the plan
+for what comes next and what an App Store release actually requires.
+
 ## Run it
 
 ```bash
@@ -110,3 +125,6 @@ and includes a third-party review that has not happened.
 | `docs/TEST_PLAN.md` | What runs, including the tenant-isolation suite and how it is kept honest |
 | `docs/LAUNCH_CHECKLIST.md` | Honest gate list |
 | `docs/reference-audit.md` | Reference material audit |
+| `docs/CLIENTS.md` | The browser extension, the desktop app, and the voice |
+| `docs/PUBLISHING.md` | What can be published where, and how ready each path is |
+| `docs/RESEARCH.md` | The market, the App Store, Google's review, and what to build next |

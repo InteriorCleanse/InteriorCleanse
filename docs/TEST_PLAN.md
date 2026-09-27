@@ -44,6 +44,10 @@ npm run verify   # lint → typecheck → test → build
 | `tests/cors.test.ts` | The client allowlist: extension and web origins only, no wildcard however spelled, exact match with `Vary: Origin`, and only the two client routes | 9 passing |
 | `tests/extension-stream.test.ts` | The extension's reader of the assistant stream: torn NDJSON lines reassembled, malformed ones dropped, turns reduced the way the web dock does, citations and speech labelled the same | 7 passing |
 | `tests/citations.test.ts` | Source chips: a cited record shows its title and link, a metric key its dictionary label, and no chip ever follows a `javascript:` or relative link | 4 passing |
+| `tests/voice.test.ts` | Speech preparation: markdown stripped, mood tags normalised for the expressive engine and removed for the browser's, a long reply cut at a sentence; the wake matcher (leading name only, aliases, regex-safe); the exact Fish Audio request with the key in a header and never a URL; failure classes | 22 passing |
+| `tests/mail.test.ts` | Gmail read-only scope, sender and message parsing against recorded shapes, metadata-only fetches bounded by the limit, token and scope failures as permanent; the day window in a real time zone; the demo day fixed; the `read_inbox` and `check_calendar` tools citing every record | 21 passing |
+| `tests/sites.test.ts` | A generated page unwrapped from fences and held to its rules (no outside script, frame, object, base or redirect; Google Fonts the one exception); the sandboxing CSP; the Vercel request with the token in a header; the executor building, refusing, publishing and recording a failure against a fake database | 23 passing |
+| `tests/motion.test.ts` | The parallax and tilt arithmetic: pointer normalised to ±1, scroll capped, depth and lean clamped, garbage meaning "do not move", and a `-0` that would have printed in a transform | 10 passing |
 
 Authorization is deliberately pure functions so the rules are testable without a
 database. That is the point of `lib/authz.ts` existing as its own module.
@@ -112,7 +116,11 @@ per-user calendar connection — that widening the *ownership* of a secret did n
 widen access to it. Then `knowledge_documents` and `crm_deals`: cross-tenant reads
 return nothing, full-text search through the same policy returns only the
 tenant's own notes, a member can upload a note, and nobody can hand-write a
-deal.
+deal. Then `mail_connections`: a tenant admin in the same workspace sees
+nothing of a colleague's mailbox, cannot connect one in their name, and the
+token behind it stays in the table only the service role reads. And
+`site_builds`: members read a built site, another tenant sees nothing and
+cannot write one.
 
 ### What these tests found
 

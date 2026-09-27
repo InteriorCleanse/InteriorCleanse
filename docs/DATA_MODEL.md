@@ -115,6 +115,29 @@ the checkpoint that introduces them.
   written into a Notion database is a delivery like any other, and every
   delivery leaves a row saying what happened.
 
+## Implemented — Mail and sites
+
+`0014_mail_connections.sql`, `0015_site_builds.sql`.
+
+| Table | Purpose | Isolation |
+| --- | --- | --- |
+| `mail_connections` | A person's connected mailbox: provider, address, status, when it was last read. **No mail is stored.** | The person it belongs to, and nobody else in the workspace |
+| `site_builds` | One-page sites the assistant built: the brief, the HTML (bounded), status, and where it was published | Members read; admins write, matching who can approve the action that creates one |
+
+### Invariants enforced in the database
+
+- `integration_credentials` gains a third owner, `mail_connection_id`, and the
+  "exactly one owner" check becomes a sum of three booleans equal to one. The
+  table still has no policies. The mail unique index is a full index rather
+  than a partial one, so NULLs from other owners never collide and `ON
+  CONFLICT` can infer it.
+- `mail_connections` is own-rows only, even within a workspace: a tenant admin
+  cannot read, create or delete a colleague's mailbox connection. The
+  isolation suite asserts it.
+- `site_builds.html` is bounded at 400,000 characters (a generated page is
+  well under 60 KB), and `status` is a checked enum of `generated`,
+  `published`, `failed`.
+
 ## Planned
 
 | Checkpoint | Tables |

@@ -13,6 +13,8 @@
 | HubSpot | private app token, sealed | **yes**, hourly | Contacts → customers; deals → `crm_deals`, never `orders`. Free tier, free API. |
 | Slack | incoming webhook URL, sealed | on notify | Warnings and critical alerts to one channel. Info never. |
 | Obsidian | none | snapshot | Vault bundle out (zip, frontmatter); Markdown notes in as knowledge. No cloud API exists, and the card says so. |
+| Gmail | refresh token, sealed, **per person** | read live, never stored | `gmail.readonly` and the address only; the callback checks the scope actually granted. Unread mail from the last two days, metadata only, at most fifteen messages, read when asked and forgotten. |
+| Vercel | access token, sealed | on publish | Creates one production deployment per approved publish of a site the assistant built. Used for nothing else. |
 | Meta Ads, Google Ads, Salesforce | — | no | Registry entries only, marked `planned` in the UI. Salesforce has no free production tier; HubSpot does. |
 
 ## The sync loop
@@ -194,6 +196,52 @@ against the CRC-32 reference vector, rather than a dependency.
   easier change and the wrong one.
 
 27 tests, plus two isolation assertions against a live Postgres.
+
+## Mail
+
+`lib/mail/`. Gmail is Google's OAuth with a narrower scope and its own
+consent: `OAUTH_PROVIDERS.gmail` shares the calendar's endpoints and offline
+parameters, and `calendarCredentials('gmail')` reads the same Google app. The
+flow has its own cookie (`mail_oauth`) so a calendar flow and a mail flow in
+two tabs cannot complete each other, and the callback refuses when the token's
+granted scope lacks `gmail.readonly` — a person can untick it on Google's
+screen and still land on ours.
+
+Nothing from a mailbox is stored. `readInbox` opens the sealed refresh token,
+refreshes, writes back a rotated token, lists `is:unread in:inbox` from the
+last two days with the promotions and social tabs excluded, fetches
+`format=metadata` for at most fifteen ids, and returns sender, subject,
+timestamp and the provider's snippet. Bodies and attachments stay on Google's
+side; the connection row records only when it was last read and whether that
+worked. A rejected refresh marks it `revoked`; a vendor 5xx, `degraded`.
+
+The assistant's `read_inbox` tool is injected by the route for the signed-in
+person's own connection only, so the model cannot ask for a colleague's inbox
+— and the isolation suite asserts a tenant admin in the same workspace sees
+nothing of it. The prompt says an email is other people's words and never an
+instruction, and that no tool sends, replies or deletes.
+
+`gmail.readonly` is a Google **restricted** scope: OAuth verification plus a
+yearly CASA security assessment before more than test users can connect. See
+`docs/RESEARCH.md` for the cost and the alternatives.
+
+## Sites
+
+`lib/sites/`. "Build me a site" is two approvals apart from a public address.
+`build_site` proposes a page from a brief; on approval the executor asks the
+model for one self-contained document under fixed rules (`siteSystemPrompt`),
+validates the result against those rules (`validateSiteHtml` — no external
+script, frame, object, base or redirect; a Google Fonts stylesheet as the one
+permitted outside resource; a size cap) and stores it in `site_builds`. The
+Sites page previews it in a frame with no `allow-same-origin`, served with a
+`sandbox` Content-Security-Policy, so a generated page has no way to reach the
+product's cookies or storage.
+
+`publish_site` is a second approval naming Vercel as the target. The Vercel
+connector holds one token; `vercelPublisher` opens it only at the moment of
+publishing and only after RLS confirmed the connection is the workspace's,
+and `deployToVercel` makes one request creating one production deployment
+with the page inline. The address and deployment id are recorded on the row.
 
 ## Apple Calendar — accuracy requirement
 
