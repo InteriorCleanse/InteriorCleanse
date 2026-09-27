@@ -150,6 +150,13 @@ Output: `content/marketing/` in the new repository, `docs/FIRST_DOLLAR_PLAN.md`.
 Gate: every file audited against the rules above (no invented numbers, no
 undisclosed rates, only URLs that exist).
 
+### Phase 4b. High-value sales (for services sold to people, not self-serve)
+
+When the business sells a service to a named buyer rather than a product to
+a crowd, the demand phase is `docs/sales/`: services ranked for the buyer,
+a lawful lead engine, scripts, and the training programme run by
+`/sales-drill`. See `docs/sales/README.md` for the order of operations.
+
 ### Phase 5. The weekly loop
 
 Sunday, 45 minutes: five numbers (visitors, signups, orders, revenue,
