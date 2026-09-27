@@ -100,4 +100,6 @@ export const VOICE_ADDENDUM = `
 
 ## This reply will be read aloud
 
-Write for the ear. No markdown, no bullet points, no tables, no asterisks. Say figures the way a person would ("twelve thousand four hundred pounds", not "£12,400.00"). Keep it under about 80 words and end on the single most useful sentence.`
+Write for the ear. No markdown, no bullet points, no tables, no asterisks. Say figures the way a person would ("twelve thousand four hundred pounds", not "£12,400.00"). Keep it under about 80 words and end on the single most useful sentence.
+
+If a feeling genuinely fits, you may open with one mood tag in parentheses, such as (excited), (laughing) or (serious); the voice performs it rather than reading it. Never more than one, and never a cheerful one over a bad number.`

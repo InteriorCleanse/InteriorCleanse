@@ -88,7 +88,7 @@ export const browserSpeechToText: SpeechToTextProvider = {
     return { available: true }
   },
 
-  start({ onChunk, onError, onEnd, language }): SpeechToTextSession {
+  start({ onChunk, onError, onEnd, language, continuous }): SpeechToTextSession {
     const Ctor = recognitionCtor()
     if (!Ctor) {
       onError(VOICE_UNSUPPORTED)
@@ -98,9 +98,11 @@ export const browserSpeechToText: SpeechToTextProvider = {
 
     const recognition = new Ctor()
     recognition.lang = language ?? navigator.language ?? 'en-GB'
-    // Continuous, because a person pauses mid-sentence while thinking about
-    // their own business and the default cuts them off.
-    recognition.continuous = true
+    // Continuous by default, because a person pauses mid-sentence while
+    // thinking about their own business and the default cuts them off. A
+    // hands-free turn asks for the opposite: the pause is the end of the
+    // question.
+    recognition.continuous = continuous ?? true
     recognition.interimResults = true
     recognition.maxAlternatives = 1
 
@@ -209,21 +211,6 @@ export const browserTextToSpeech: TextToSpeechProvider = {
   },
 }
 
-/**
- * Strips markdown before speaking. A synthesiser reads "asterisk asterisk
- * revenue asterisk asterisk", which is unbearable within one sentence.
- */
-export function speakable(markdown: string): string {
-  return markdown
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/^\s*[#>]+\s*/gm, '')
-    .replace(/^\s*[-*+]\s+/gm, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/_{1,2}([^_]+)_{1,2}/g, '$1')
-    .replace(/\|/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
+// The markdown stripper lives with the rest of the speech preparation now;
+// re-exported so existing imports keep working.
+export { speakable } from './speech'

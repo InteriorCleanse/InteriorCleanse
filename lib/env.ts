@@ -41,6 +41,20 @@ const assistantSchema = z.object({
 
 export type AssistantEnv = z.infer<typeof assistantSchema>
 
+/**
+ * The expressive cloud voice is optional in the same way the model is: without
+ * a key the assistant still speaks, through the browser's own synthesiser, and
+ * the dock says which voice it is using rather than failing at playback.
+ */
+const voiceSchema = z.object({
+  FISH_AUDIO_API_KEY: z.string().min(16),
+  /** A voice from the vendor's library. Unset means the model's default voice. */
+  FISH_AUDIO_VOICE_ID: z.string().min(1).optional(),
+  FISH_AUDIO_MODEL: z.string().default('s1'),
+})
+
+export type VoiceEnv = z.infer<typeof voiceSchema>
+
 export type PublicEnv = z.infer<typeof publicSchema>
 export type ServerEnv = z.infer<typeof serverSchema>
 
@@ -99,6 +113,25 @@ export function assistantEnv(): AssistantEnv {
 /** True when the assistant can call a model — lets the dock explain itself when it cannot. */
 export function isAssistantConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY)
+}
+
+/** Server-only voice configuration. Throws if reached from a client bundle. */
+export function voiceEnv(): VoiceEnv {
+  if (typeof window !== 'undefined') {
+    throw new Error('voiceEnv() was called in the browser. This is a bug — it reads a secret.')
+  }
+  const parsed = voiceSchema.safeParse({
+    FISH_AUDIO_API_KEY: process.env.FISH_AUDIO_API_KEY,
+    FISH_AUDIO_VOICE_ID: process.env.FISH_AUDIO_VOICE_ID?.trim() || undefined,
+    FISH_AUDIO_MODEL: process.env.FISH_AUDIO_MODEL?.trim() || undefined,
+  })
+  if (!parsed.success) fail('voice', parsed.error)
+  return parsed.data
+}
+
+/** True when replies can be spoken by the cloud voice; otherwise the browser's is used. */
+export function isFishAudioConfigured(): boolean {
+  return Boolean(process.env.FISH_AUDIO_API_KEY)
 }
 
 /** True when Supabase is configured — lets surfaces render an honest Not Configured state. */

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { branding, isAssistantConfigured } from '@/lib/env'
+import { branding, isAssistantConfigured, isFishAudioConfigured } from '@/lib/env'
 import { can } from '@/lib/authz'
 import { requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
@@ -86,6 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           isDemo={active.isDemo}
           assistantName={branding.assistantName()}
           configured={isAssistantConfigured()}
+          voiceProvider={isFishAudioConfigured() ? 'fish' : 'browser'}
           canApproveActions={can(
             {
               userId: session.userId,
