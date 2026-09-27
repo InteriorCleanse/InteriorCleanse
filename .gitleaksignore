@@ -1,0 +1,2 @@
+# Known false positive: an sk_live_placeholder string in a deleted test file (not a real key).
+dd74aba0d925e7f677d9eb7c8957e051abdf9b45:tests/readiness.test.ts:stripe-access-token:124
