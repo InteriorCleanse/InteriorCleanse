@@ -14,13 +14,11 @@ clients.
    when asked.
 2. Brevity. Openers under fifteen seconds; answers under forty words unless
    they ask for more.
-3. No flattery. Do not comment on their success, their office, or their name.
-4. No name-dropping. You have no clients to drop and would not drop them if
-   you did.
-5. Ask before telling. A question about their current state precedes any
-   sentence about what you do.
-6. The gatekeeper is a peer. The chief of staff decides whether you exist;
-   for the first call they are the buyer.
+3. No flattery. Do not comment on their success, office, or name.
+4. No name-dropping. You have no clients to drop and would not if you did.
+5. Ask before telling. A current-state question precedes any sentence about
+   what you do.
+6. The gatekeeper is a peer. For the first call, they are the buyer.
 7. State price bands plainly and without apology. This buyer distrusts a
    seller who flinches at a number.
 8. Never pretend to have clients, results, or a team. "We are new and
@@ -37,10 +35,9 @@ To an existing contact who knows such people. 60 to 90 seconds spoken.
 > quarter talking to family offices and the advisors around them about
 > [service]. The problem I keep hearing about is [gap]; what I do is
 > [outcome]. I am one person, so I am looking for three or four
-> conversations, not a pipeline. Is there anyone who has mentioned [gap] to
-> you, where an introduction would not cost you anything? If not, no harm.
-> If so, I will send you two lines you can forward, and they can ignore it
-> without awkwardness for you.
+> conversations, not a pipeline. Has anyone mentioned [gap] to you, where an
+> introduction would cost you nothing? If not, no harm. If so, I will send
+> two lines you can forward, and they can ignore it without awkwardness.
 
 Two-line email, for the contact to forward:
 
@@ -85,9 +82,8 @@ Two-line email, for the contact to forward:
 **Close to a 20-minute meeting**
 
 > From what you have said, [restate the gap in their words]. I would like
-> twenty minutes with you, or with whoever owns that decision, to map it
-> properly. I will not present anything; I will ask questions and tell you
-> honestly whether I can help. Would Tuesday or Thursday suit?
+> twenty minutes with you, or whoever owns that decision, to map it
+> properly. I will not present anything. Would Tuesday or Thursday suit?
 
 **Graceful exit if no**
 
@@ -105,12 +101,12 @@ Two-line email, for the contact to forward:
 
 **Current-state questions**
 
-- "Walk me through [area] as it runs today, from the point something
-  changes to the point you see the result." *For:* the process in their words.
-- "Who touches it, and who is the one person it cannot run without?"
-  *For:* the single point of failure.
+- "Walk me through [area] as it runs today, from a change to the result."
+  *For:* the process in their words.
+- "Who is the one person it cannot run without?" *For:* the single point
+  of failure.
 - "What have you already tried, and why did it not stick?" *For:* what has
-  been rejected, so you do not propose it again.
+  been rejected.
 
 **Impact and quantification questions**
 
@@ -173,8 +169,8 @@ Two-line email, for the contact to forward:
 > Subject: [service] for [office type]
 >
 > I left a message today. I build [service] for family offices, one at a
-> time, and I am a one-person firm. If [gap] is a live question, twenty
-> minutes would tell us both whether I can help. If not, no reply needed.
+> time, as a one-person firm. If [gap] is a live question, twenty minutes
+> would tell us both whether I can help. If not, no reply needed.
 >
 > [Founder], [number]
 
@@ -186,22 +182,21 @@ deliverable. Ask "anything missing or unnecessary" after each section.
 **Price.** State the figure once, flat: "The price for that scope is
 [price], paid [terms]." Then stop.
 
-**The pause rule.** After the price, say nothing until they speak. Ten
-seconds of silence is normal. The first thing they say is the real objection
-or the real yes; do not fill the gap with justification.
+**The pause rule.** Say nothing until they speak. Ten seconds of silence is
+normal. The first thing they say is the real objection or the real yes; do
+not fill the gap with justification.
 
-**Terms.** Payment schedule, ownership (everything, theirs, from the first
-commit), what happens if either side stops, the handover document. Two
-minutes.
+**Terms.** Payment schedule, ownership (theirs, from the first commit),
+what happens if either side stops, the handover document. Two minutes.
 
 **Asking for the decision**
 
 > You have the scope, the price, and the terms. What would you like to do?
 
-Yes: agree the start date and first payment before ending the call. No:
-"Thank you for hearing it through. May I ask what decided it?" Record the
-answer. Undecided: "What would you need to know that you do not know now,
-and by when will you know it?" Set the date to speak again.
+Yes: agree the start date and first payment on the call. No: "Thank you for
+hearing it through. May I ask what decided it?" Undecided: "What would you
+need to know that you do not know now, and by when?" Set the date to speak
+again.
 
 ## 8. Post-call
 
@@ -220,19 +215,19 @@ Next action, date, owner:
 > Subject: Notes from today
 >
 > Thank you for the time. What I heard: [current state, one sentence].
-> The cost as you described it: [one sentence]. The people who would need
-> to agree: [roles]. What I will do: [next action] by [date]. If I have
-> anything wrong, please correct me; I would rather know now.
+> The cost as you described it: [one sentence]. Who would need to agree:
+> [roles]. What I will do: [next action] by [date]. If I have anything
+> wrong, please correct me; I would rather know now.
 >
 > [Founder]
 
 **Two-week rhythm**
 
 - Day 0: call, notes, follow-up email.
-- Day 2: the promised document, exactly as promised, nothing extra.
+- Day 2: the promised document, exactly as promised.
 - Day 7: one short note, only if there is new information for them.
 - Day 14: one call or email asking whether timing has changed. No reply:
-  move to re-contact in ninety days and stop.
+  re-contact in ninety days, and stop.
 
 ## 9. Call list format
 
@@ -281,14 +276,14 @@ you, and it will take me a minute to find out. Is now a bad time?
 office handles its reporting? How does consolidated reporting run at the
 moment: what tools, and who owns it?
 
-**Chief of staff:** Spreadsheets. Our controller maintains them. Custodians
-send statements, she reconciles, I assemble the quarterly pack.
+**Chief of staff:** Spreadsheets. Our controller maintains them, and I
+assemble the quarterly pack.
 
 **Founder:** When something changes, a new entity or custodian, who makes
 the change and how long does it take?
 
-**Chief of staff:** She does. A new entity is a week of her time, and errors
-creep in for a quarter afterwards.
+**Chief of staff:** She does. A week of her time, and errors creep in for a
+quarter afterwards.
 
 **Founder:** And when she is away?
 
@@ -301,9 +296,9 @@ different?
 would not depend on one person.
 
 **Founder:** I should be clear about what we are. I am one person. I build
-the system myself, I am the person you call, and I take on a small number of
-offices at a time. For some people that is the point; for others it rules us
-out. Which is it for you?
+the system myself, I am the person you call, and I take on a few offices at
+a time. For some that is the point; for others it rules us out. Which is it
+for you?
 
 **Chief of staff:** Depends where the data sits.
 
@@ -319,23 +314,14 @@ not present anything. Would Tuesday or Thursday suit?
 
 ### Discovery call
 
-**Founder:** Thank you for the time. I would like to spend most of it
-understanding how reporting runs today, then tell you honestly whether what I
-do fits, and if it does, agree what happens next. Does that work?
-
-**Chief of staff:** Yes.
-
-**Founder:** Walk me through a quarter, from the statements arriving to the
-principal seeing the pack.
+**Founder:** I would like to spend most of this call understanding how
+reporting runs today, then tell you honestly whether what I do fits. Walk me
+through a quarter, from the statements arriving to the principal seeing the
+pack.
 
 **Chief of staff:** Statements land over two weeks. The controller keys
-positions into the master workbook, reconciles to last quarter, and I build
-the summary. The principal gets a PDF about five weeks after quarter end.
-
-**Founder:** Who is the one person it cannot run without?
-
-**Chief of staff:** The controller. There is logic in that workbook nobody
-else understands.
+positions into the workbook and reconciles, I build the summary, and the
+principal gets a PDF about five weeks after quarter end.
 
 **Founder:** What have you tried already, and why did it not stick?
 
@@ -343,8 +329,7 @@ else understands.
 servers and neither handled the private holdings. The principal would not
 have it.
 
-**Founder:** When it goes wrong or slowly, what does it cost: in hours,
-decisions delayed, exposure?
+**Founder:** When it goes wrong or slowly, what does it cost?
 
 **Chief of staff:** Hours I could estimate. The real cost is that he decides
 on numbers five weeks old, and twice we found errors after he had acted.
@@ -375,17 +360,17 @@ firm doing this?
 
 **Founder:** That is the right test. Everything I build sits in your GitHub,
 your database, and your hosting, documented so any developer can take it
-over, and I write the handover into the contract. Let me check I have this
-right. Today, a workbook one person understands, a five-week lag, errors
-found after decisions. Two or three structural changes a year, each costing
-a week and a quarter of clean-up. The principal and counsel must agree, and
-the deadline is the annual review. Have I missed anything?
+over, and the handover is written into the contract. Let me check I have
+this right. A workbook one person understands, a five-week lag, errors found
+after decisions, two or three structural changes a year each costing a week
+and a quarter of clean-up. The principal and counsel must agree; the
+deadline is the annual review. Have I missed anything?
 
 **Chief of staff:** No, that is it.
 
 **Founder:** Then I write a two-page scope with a price band, honest about
-what a first version does and does not do, and send it by Monday. We spend
-fifteen minutes walking through it with you, and with the principal if you
-judge it ready. If it is wrong, you tell me and we stop. Does that work?
+what a first version does and does not do, and send it by Monday. We walk
+through it for fifteen minutes, with the principal if you judge it ready.
+If it is wrong, you tell me and we stop. Does that work?
 
 **Chief of staff:** Monday. Yes.
