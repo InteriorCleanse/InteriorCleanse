@@ -21,7 +21,9 @@ export interface ConciergeReply {
 }
 
 const MODEL = process.env.AVANT_AI_MODEL || 'claude-opus-5'
-const MAX_TOOL_ROUNDS = 5
+const MAX_TOOL_ROUNDS = 3
+/** Replies are two to five sentences; this leaves room for brief thinking. */
+const MAX_TOKENS = 1500
 
 const SYSTEM = `You are the AVANT concierge. AVANT is a peer-to-peer car sharing marketplace: guests book cars from local hosts.
 
@@ -51,7 +53,7 @@ export async function askConcierge(history: ChatTurn[]): Promise<ConciergeReply>
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const params = {
       model: MODEL,
-      max_tokens: 4000,
+      max_tokens: MAX_TOKENS,
       thinking: { type: 'adaptive' as const },
       output_config: { effort: 'low' as const },
       system: [

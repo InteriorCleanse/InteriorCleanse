@@ -1,11 +1,10 @@
 /**
  * Token-bucket rate limiting keyed by caller.
  *
- * The default store is in-process memory, which is correct for one server
- * and approximate across serverless instances. For a fleet, point
- * AVANT_VAULT_URL at the vault Worker; its /v1/ratelimit endpoint keeps the
- * buckets in one place. Either way the limiter fails closed on abuse and
- * open on its own errors, so a storage outage never takes the site down.
+ * The store is in-process memory: exact for one server, approximate across
+ * serverless instances (each instance keeps its own buckets). Before scaling
+ * out, put a platform rate limit in front as well (Vercel Firewall or
+ * Cloudflare rate limiting rules); see SECURITY.md.
  */
 
 interface Bucket {
@@ -25,6 +24,8 @@ export interface Limit {
 
 export const LIMITS = {
   concierge: { capacity: 12, refillPerSec: 12 / 300 },
+  /** Per anonymous session, on top of the per-IP limit: 60 questions a day. */
+  conciergeSession: { capacity: 60, refillPerSec: 60 / 86_400 },
   verify: { capacity: 5, refillPerSec: 5 / 3600 },
   checkout: { capacity: 10, refillPerSec: 10 / 600 },
   default: { capacity: 60, refillPerSec: 1 },

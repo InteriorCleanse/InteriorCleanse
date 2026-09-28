@@ -11,17 +11,51 @@ within two business days and will not pursue good-faith research.
 | Licence images | Never reach AVANT; the verification session is redacted after the result is read, and again on account deletion | `lib/verification/stripe-identity.ts` |
 | Vault | Ciphertext only, refuses plaintext, HMAC-signed requests with a 5-minute window, audit log without personal data, daily purge | `services/vault/` |
 | Sessions | Random id, HMAC-signed, `__Host-` httpOnly Secure SameSite=Lax cookie; storage keyed by an HMAC of the id | `lib/security/session.ts` |
-| Payments | Stripe Checkout; the server re-prices and re-checks eligibility before creating the session; confirmations bound to the session | `lib/checkout.ts`, `app/api/checkout/` |
-| Webhooks | Stripe signature on the raw body with a 5-minute tolerance; the object is re-fetched before it is trusted | `lib/verification/stripe-signature.ts` |
+| Payments | Stripe Checkout; the server re-prices and re-checks eligibility before creating the session; only licence-checked drivers can pay (demo passes are refused once payments are live); the delivery address is sealed before it goes into Stripe metadata; confirmations bound to the session | `lib/checkout.ts`, `app/api/checkout/` |
+| Webhooks | Stripe signature on the raw body (capped at 256 KB) with a 5-minute tolerance; the object is re-fetched before it is trusted; an event only updates a record still waiting on that exact session, so it can never revive a deleted one; failed redactions return 503 so Stripe retries | `lib/verification/stripe-signature.ts` |
 | Browser | Per-request nonce CSP with `'strict-dynamic'`, HSTS preload, `frame-ancestors 'none'`, `base-uri 'none'`, COOP, strict Permissions-Policy | `middleware.ts`, `next.config.mjs` |
-| API | Same-origin check, JSON-only, body size caps, strict zod schemas, per-IP rate limits, `no-store` | `lib/security/request.ts` |
-| AI concierge | Read-only tools, validated tool inputs, never asks for identity documents, provider errors never leak | `lib/ai/` |
+| API | Same-origin check, JSON-only, body size caps enforced while streaming, strict zod schemas, per-IP rate limits keyed on an unspoofable address, `no-store`, redirects limited to same-site paths | `lib/security/request.ts`, `client-ip.ts`, `redirect.ts` |
+| AI concierge | Read-only tools, validated tool inputs, never asks for identity documents, provider errors never leak; replies are HMAC-signed per session and unsigned "assistant" turns are dropped; 60 questions per session per day, a per-instance daily model-call cap (`AVANT_AI_DAILY_CAP`), 1,500 output tokens and three tool rounds per answer | `lib/ai/`, `lib/security/turns.ts` |
 | Supply chain | gitleaks secret scan and `npm audit` gate in CI; patched PostCSS pinned via overrides | `.github/workflows/ci.yml` |
+
+## Client address
+
+Rate limits key on the caller's address. On Vercel that is `x-real-ip`,
+which the platform sets. Anywhere else, set `AVANT_TRUSTED_PROXY_HOPS` to
+the number of proxies in front of the app; the client is read that many
+entries from the right of `X-Forwarded-For`, never from the left, which the
+caller controls. The default, 0, ignores the header and puts every caller
+in one bucket: strict, never spoofable.
+
+## Audit log
+
+An independent review in September 2026 found no critical or high issues.
+Its five medium and four low findings, and what was done:
+
+| Finding | Fix |
+| --- | --- |
+| Open redirect after verification via `/\host` and `/<tab>/host` | `safeNext` rejects backslashes and control characters and requires the same origin |
+| Rate limits bypassable by forging `X-Forwarded-For` | `pickClientIp` trusts only platform or right-hand proxy entries |
+| Years licensed unbounded on the document path | Capped at verified age minus 16 |
+| A late webhook could recreate a deleted Driver Pass | Updates only a record waiting on that session; redaction failures retried |
+| Concierge cost abuse and forged assistant turns | Signed turns, per-session quota, daily cap, lower token and tool-round limits |
+| Metadata truncation could break confirmation after payment | No truncation; fails before charging if too long; address sealed |
+| Confirmation re-ran date checks after payment | Paid trips are re-priced for the receipt only |
+| Demo-verified drivers could pay once Stripe is live | Refused unless the licence was checked by the provider |
+| Body cap relied on `content-length` | Bytes counted while streaming; webhook body capped |
 
 ## Known limits
 
-- The in-process rate limiter is per server instance; put the vault (or a
-  shared store) behind it before scaling horizontally.
+- The in-process rate limiter is per server instance. Before scaling out,
+  add a platform rate-limit rule (Vercel Firewall or Cloudflare) in front of
+  `/api/concierge`, `/api/verify/*` and `/api/checkout`.
+- There is no server-side booking store yet, so two guests could pay for the
+  same dates. Before launch, add a hold (a row per car and date range with a
+  unique constraint) that checkout takes before creating the Stripe session.
+- Vault requests are signed with a 5-minute window but carry no nonce; a
+  captured request could be replayed within that window. The app talks to
+  the vault only over TLS from the server, so capture needs a compromised
+  host. Add a nonce table if the vault is ever exposed more widely.
 - Trips and saved cars live in the browser until accounts exist.
 - Preview mode uses temporary keys; set `AVANT_REQUIRE_SECRETS=1` in
   production so it cannot start without real ones.

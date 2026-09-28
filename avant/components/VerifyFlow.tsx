@@ -3,17 +3,13 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { safeNext } from '@/lib/security/redirect'
 import { useDriver } from './DriverProvider'
 import { Icon } from './Icons'
 import { useToast } from './Toast'
 import { Notice } from './ui'
 
 const STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
-
-function safeNext(raw: string | null): string {
-  // Only same-site paths; never an absolute URL or protocol-relative path.
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/search'
-}
 
 export function VerifyFlow() {
   const { facts, method, modes, loaded, refresh, pending } = useDriver()

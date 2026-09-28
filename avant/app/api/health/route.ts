@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { modes } from '@/lib/modes'
 
 export const runtime = 'nodejs'
 
+/** Liveness only. What is configured is not an unauthenticated caller's business. */
 export function GET() {
-  return NextResponse.json({ ok: true, modes: modes() })
+  return NextResponse.json({ ok: true })
 }

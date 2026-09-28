@@ -19,6 +19,8 @@ interface Msg {
   role: 'user' | 'assistant'
   content: string
   cars?: CardData[]
+  /** Server signature; unsigned assistant turns are ignored by the API. */
+  sig?: string
 }
 
 const SUGGESTIONS = [
@@ -56,12 +58,12 @@ function useChat() {
         const res = await fetch('/api/concierge', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ messages: history.map(({ role, content }) => ({ role, content })) }),
+          body: JSON.stringify({ messages: history.map(({ role, content, sig }) => ({ role, content, ...(sig ? { sig } : {}) })) }),
         })
         const json = await res.json()
         if (!res.ok) throw new Error(json.error ?? 'error')
         setMode(json.mode)
-        setMsgs((m) => [...m, { role: 'assistant', content: json.text, cars: json.cars }])
+        setMsgs((m) => [...m, { role: 'assistant', content: json.text, cars: json.cars, sig: json.sig }])
       } catch (err) {
         setMsgs((m) => [
           ...m,

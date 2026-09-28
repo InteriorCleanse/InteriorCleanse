@@ -103,11 +103,15 @@ export async function deleteRecord(sessionId: string): Promise<void> {
   ;(await cookies()).delete(COOKIE)
 }
 
-/** Webhook path: the vault is addressed by record key, with no session in hand. */
+/**
+ * Webhook path: the vault is addressed by record key, with no session in
+ * hand. Returns null when nothing is stored, so a late event can never
+ * recreate a record the driver has deleted.
+ */
 export async function loadByKey(key: string): Promise<DriverRecord | null> {
   if (!vaultConfigured()) return null
   const sealed = await vaultGet(key)
-  if (!sealed) return EMPTY_RECORD
+  if (!sealed) return null
   const plain = await open(sealed, encryptionKeys(), key)
   if (!plain) return null
   const parsed = DriverRecordSchema.safeParse(JSON.parse(plain))

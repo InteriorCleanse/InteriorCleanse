@@ -5,13 +5,13 @@
  */
 
 import { NextResponse, type NextRequest } from 'next/server'
+import { pickClientIp } from './client-ip'
 import { take, type Limit } from './rate-limit'
 
 const MAX_BODY_BYTES = 32 * 1024
 
 export function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  return (fwd ? fwd.split(',')[0] : req.headers.get('x-real-ip') ?? 'unknown').trim()
+  return pickClientIp(req.headers)
 }
 
 export function sameOrigin(req: NextRequest): boolean {
@@ -46,9 +46,35 @@ export async function guard(
   return null
 }
 
+/**
+ * Reads the body as text, counting bytes as they arrive and stopping at the
+ * cap, so a missing or lying content-length cannot make us buffer more.
+ */
+export async function readCapped(req: NextRequest, maxBytes = MAX_BODY_BYTES): Promise<string> {
+  if (!req.body) return ''
+  const reader = req.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined)
+      throw new Error('too large')
+    }
+    chunks.push(value)
+  }
+  const all = new Uint8Array(total)
+  let at = 0
+  for (const c of chunks) {
+    all.set(c, at)
+    at += c.byteLength
+  }
+  return new TextDecoder('utf-8', { fatal: true }).decode(all)
+}
+
 /** Reads a JSON body with a hard size cap even when content-length lies. */
 export async function readJson(req: NextRequest): Promise<unknown> {
-  const text = await req.text()
-  if (text.length > MAX_BODY_BYTES) throw new Error('too large')
-  return JSON.parse(text)
+  return JSON.parse(await readCapped(req))
 }

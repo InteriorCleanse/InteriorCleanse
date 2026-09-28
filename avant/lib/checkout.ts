@@ -33,23 +33,35 @@ export type Priced =
   | { ok: true; car: Car; quote: Quote; days: number }
   | { ok: false; status: number; error: string; reasons?: string[] }
 
-export function priceTrip(req: TripRequest, driver: DriverFacts, today = todayIso()): Priced {
+export interface PriceOptions {
+  /**
+   * Payment already succeeded for exactly this request, which passed every
+   * check below before the charge. Re-price for the receipt only: skip the
+   * checks that can change with the clock (pickup now "in the past" after a
+   * midnight checkout, availability, a record deleted since).
+   */
+  paid?: boolean
+}
+
+export function priceTrip(req: TripRequest, driver: DriverFacts, today = todayIso(), opts: PriceOptions = {}): Priced {
   const car = getCar(req.slug)
   if (!car) return { ok: false, status: 404, error: 'That car is not available.' }
   if (req.end < req.start) return { ok: false, status: 400, error: 'Return is before pickup.' }
-  if (req.start < today) return { ok: false, status: 400, error: 'Pickup is in the past.' }
+  if (!opts.paid && req.start < today) return { ok: false, status: 400, error: 'Pickup is in the past.' }
   const days = billableDays(req.start, req.startTime, req.end, req.endTime)
   if (days < car.minDays || days > car.maxDays) {
     return { ok: false, status: 400, error: `This car books for ${car.minDays} to ${car.maxDays} days.` }
   }
-  if (blockedRanges(car, today).some((b) => rangesOverlap(req.start, req.end, b.start, b.end))) {
+  if (!opts.paid && blockedRanges(car, today).some((b) => rangesOverlap(req.start, req.end, b.start, b.end))) {
     return { ok: false, status: 409, error: 'Those dates were just taken. Try others.' }
   }
   if (req.delivery && (!car.delivery.offered || req.deliveryAddress.length < 6)) {
     return { ok: false, status: 400, error: 'Add a delivery address, or pick up instead.' }
   }
-  const elig = checkEligibility(driver, car.valueTier, req.end, today)
-  if (!elig.ok) return { ok: false, status: 403, error: elig.messages[0], reasons: elig.reasons }
+  if (!opts.paid) {
+    const elig = checkEligibility(driver, car.valueTier, req.end, today)
+    if (!elig.ok) return { ok: false, status: 403, error: elig.messages[0], reasons: elig.reasons }
+  }
 
   const q = quote({
     dailyRateCents: car.dailyRateCents,

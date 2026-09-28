@@ -43,3 +43,11 @@ describe('recordFromOutcome', () => {
     assert.equal(failed.pendingProviderRef, null)
   })
 })
+
+describe('recordFromOutcome: attested years', () => {
+  it('caps the claimed years licensed at what the verified age allows', () => {
+    const r = recordFromOutcome({ ...EMPTY, attestedLicenceYears: 80 }, { status: 'verified', recordKey: 'k', dob: { year: 2004, month: 1, day: 1 }, expires: null, issuingState: null }, 'vs_1', '2026-06-01')
+    assert.equal(r.age, 22)
+    assert.equal(r.licenceYears, 6)
+  })
+})
