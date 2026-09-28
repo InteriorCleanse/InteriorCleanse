@@ -510,6 +510,9 @@ test('a member\'s Home: no step they cannot finish, one best pick, one pick and 
   const fay = (path: string, init: any = {}) => api(path, { ...init, asMember: c, headers: { ...(init.headers ?? {}), 'x-gavel-csrf': r.body.csrf } })
   assert.equal((await fay('/api/onboard', { method: 'POST', json: { goal: 'rental', homeState: 'GA', budgetUsd: 15000, makes: ['Honda', 'Toyota'] } })).status, 200)
   assert.equal((await fay('/api/settings')).body.cashUsd, 15000)
+  const me = (await fay('/api/me')).body
+  assert.equal(me.goal, 'rental', 'the app shapes its menus to the goal')
+  assert.equal(me.homeState, 'GA')
   // A second target that overlaps the first: the same Toyotas match both.
   assert.equal((await fay('/api/sniper/targets', { method: 'POST', json: { name: 'Toyotas too', makes: ['Toyota'], maxBudgetUsd: 15000, minScore: 40, starterOnly: true } })).status, 200)
   const run = await fay('/api/sniper/run', { method: 'POST', json: {} })

@@ -594,6 +594,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         ai: { available: ai.available, reason: ai.reason },
         research: await researchAvailable(),
         sniper: { unread: listAlerts().filter((a) => !a.read).length, targets: listTargets().filter((t) => t.active).length },
+        goal: getSettings().goal ?? null,
+        homeState: getSettings().homeState ?? null,
         dataDir: session.role === 'owner' ? DATA_DIR : undefined,
       })
     }

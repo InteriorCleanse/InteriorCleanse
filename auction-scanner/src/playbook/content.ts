@@ -215,6 +215,10 @@ export const GUIDES: Guide[] = [
     minutes: 8,
     sections: [
       {
+        title: 'The short answer',
+        body: 'To buy one car to drive or to rent out: no. Anyone can buy on eBay Motors, Cars & Bids, Bring a Trailer, GovDeals, GSA Auctions and public auctions, and Copart and IAA sell to the public in many states. You need a licence for two things: buying at dealer-only auctions (Manheim, ADESA, ACV), and selling more cars in a year than your state lets a private person sell. Renting a car out is not selling it; a rental business has its own rules on insurance and business registration, covered in the rental guide.',
+      },
+      {
         title: 'Public versus dealer-only',
         body: 'Anyone can buy on eBay Motors, Cars & Bids, Bring a Trailer, GovDeals and public auctions. Copart and IAA sell to the public in many states but not all. Manheim, ADESA and ACV are dealer-only: no licence, no account. That is where used-car lots buy their inventory at wholesale, so it is the main reason to get a licence.',
       },

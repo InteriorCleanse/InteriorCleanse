@@ -51,7 +51,8 @@ export function setMode(kind, detail) {
 
 function moreSheet() {
   const owner = ctx.me.role === 'owner'
-  const items = [['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ['#rental', 'Rental', 'Your first rental car, ranked'], ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'], ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
+  const rental = ctx.me.goal === 'rental'
+  const items = [...(rental ? [['#garage', 'Garage', 'The cars you bought: every cost in, every dollar out']] : []), ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'], ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
   if (owner) items.push(['#admin', 'Members', 'Access codes and Stripe'])
   const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
   document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
@@ -106,6 +107,11 @@ async function boot() {
     return
   }
   setCsrf(ctx.me.csrf)
+  // Building a rental business: Rental takes Garage's place in the phone bar, and Garage moves into More.
+  if (ctx.me.goal === 'rental') {
+    document.querySelector('.tabs [data-tab="rental"]').classList.remove('desk-only')
+    document.querySelector('.tabs [data-tab="garage"]').classList.add('desk-only')
+  }
   document.title = ctx.me.brand || 'Gavel'
   const live = (ctx.me.sources || []).filter((s) => s.kind === 'api' && s.connected)
   setMode(live.length ? 'LIVE' : 'EMPTY', live.map((s) => s.name).join(', '))

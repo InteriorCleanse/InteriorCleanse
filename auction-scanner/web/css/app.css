@@ -282,6 +282,9 @@ textarea { min-height: 80px; }
 .steps li::before { counter-increment: s; content: counter(s); font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; color: var(--ink); }
 .steps li div > b:first-child { display: block; margin-bottom: 2px; }
 .steps li p { margin: 0; font-size: 15px; line-height: 1.5; }
+.steps details.more { margin-top: 4px; }
+.steps details.more summary { cursor: pointer; font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); min-height: 32px; display: flex; align-items: center; }
+.steps details.more p { margin-top: 2px; }
 .warnings { margin-top: 12px; border-left: 3px solid var(--hot); padding: 6px 10px; }
 .warnings .k { color: var(--hot); }
 .warnings ul { margin: 4px 0 0; padding-left: 16px; }

@@ -30,10 +30,16 @@ function ledgerHtml(plan, inputs, listing) {
   <details style="margin-top:10px"><summary>Every line, in words</summary><ul class="why">${plan.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`
 }
 
+/** The first sentence, and the rest. A step shows its first sentence; the rest waits behind Read more. */
+function splitFirst(text) {
+  const m = /^(.{20,}?[.!?])\s+(\S[\s\S]*)$/.exec(String(text || ''))
+  return m && m[2].length > 40 ? [m[1], m[2]] : [String(text || ''), '']
+}
+
 function walkthroughHtml(w) {
   return `<div class="mono dim">Explained by: ${esc(w.source === 'ai' ? 'AI · checked against the rules' : 'the rules')}</div>
     <h2 style="margin:6px 0 8px">${esc(w.title)}</h2>
-    <ol class="steps">${w.steps.map((s) => `<li><div><b>${esc(s.title)}</b><p>${esc(s.body)}</p></div></li>`).join('')}</ol>
+    <ol class="steps">${w.steps.map((s) => { const [first, rest] = splitFirst(s.body); return `<li><div><b>${esc(s.title)}</b><p>${esc(first)}</p>${rest ? `<details class="more"><summary>Read more</summary><p>${esc(rest)}</p></details>` : ''}</div></li>` }).join('')}</ol>
     ${w.warnings && w.warnings.length ? `<div class="warnings"><span class="k mono">Warnings</span><ul>${w.warnings.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${w.note ? `<p class="dim" style="margin-top:8px;font-size:14px">${esc(w.note)}</p>` : ''}`
 }
