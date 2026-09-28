@@ -27,6 +27,8 @@ nothing under `.claude/` is built, served, or linted.
 | ux-designer (+ 26 references) | github.com/szilu/ux-designer-skill | main @ 2026-09-23 | (repo README; no LICENSE file upstream) |
 | design-taste-frontend, high-end-visual-design, redesign-existing-projects (3 of 13) | github.com/Leonxlnx/taste-skill | main @ 2026-09-23 | see upstream |
 | frontend-design | github.com/anthropics/claude-plugins-official (`plugins/frontend-design`), taken from the vendored copy in github.com/JackInSightsV2/Automated-Agentic-AI-Web-Agency (`packages/api/claude/skills/`) | main @ 2026-09-27 | Apache-2.0 (`LICENSE.txt`) |
+| public-api-feature | written here from the owner's "PUB" guide (Public APIs + Claude Code) | — | this repository |
+| model-compare (+ `scripts/compare.mjs`) | written here from the owner's G0DM0D3 guide: the side-by-side comparison only; G0DM0D3 itself (github.com/elder-plinius/G0DM0D3, AGPL-3.0) is not vendored | — | this repository |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -37,6 +39,16 @@ and only used to transcribe videos that have no captions. The upstream plugin
 also ships a SessionStart hook that prints setup status; it is not installed
 here, since `/watch` runs the same check itself. Its dev-only
 `build-skill.sh` was left out.
+
+`public-api-feature` is a workflow, not code: verify a public API's docs,
+pricing and terms, build one small feature with the key kept server-side, and
+test the failure paths (timeout, 429, missing key) before calling it done.
+
+`model-compare` sends one prompt to up to six models in parallel and writes
+their answers side by side. `scripts/compare.mjs` is zero-dependency Node 18+.
+It uses OpenRouter with `OPENROUTER_API_KEY` from your shell, or a local
+OpenAI-compatible server (Ollama, LM Studio) through `--base`, which needs no
+key. Every hosted call is billed by the provider.
 
 `/caveman` switches Claude to a terse output style for the session (`/caveman
 off` restores normal). Only the skill itself is vendored; the upstream repo's
@@ -82,7 +94,7 @@ a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
 It is instructions plus two reference files; no scripts, no network.
 
 Every installed skill's name and description is loaded into **every** session
-before you type. This repository now carries 101 skills at roughly 10,900
+before you type. This repository now carries 108 skills at roughly 11,400
 tokens of always-on context, up from 48 at ~4,000 before any of this. That
 budget is why the cybersecurity pack is installed at 16 skills of its 818
 (the full pack costs ~108,000 tokens per session) and why the 166-skill
