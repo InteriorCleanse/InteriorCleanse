@@ -118,6 +118,8 @@ export type Book = {
   paperbackUrl: string
   kindleUrl: string
   featured: boolean
+  /** Spine and back-cover colour for the 3D book; the catalog's materialColor. */
+  spineColor?: string
 }
 
 export type DigitalProduct = {

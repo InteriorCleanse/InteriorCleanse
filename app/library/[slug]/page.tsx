@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { BookLd, BreadcrumbLd } from '@/components/StructuredData'
 import { Button } from '@/components/ui'
 import { allBooks, getBook } from '@/lib/content'
+import { amazonListing } from '@/lib/amazon'
+import { ObjectStage } from '@/components/3d/ObjectStage'
 
 export function generateStaticParams() {
   return allBooks.map((b) => ({ slug: b.slug }))
@@ -27,12 +29,14 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 export default function BookPage({ params }: { params: { slug: string } }) {
   const b = getBook(params.slug)
   if (!b) notFound()
+  const paperback = amazonListing(b.paperbackUrl)
+  const kindle = amazonListing(b.kindleUrl)
 
   return (
     <section
       className="section"
       style={{
-        background: b.track === 'health' ? '#0D1B2A' : 'var(--mind-bg)',
+        background: b.track === 'health' ? 'var(--body-bg)' : 'var(--mind-bg)',
         paddingTop: 'calc(var(--header-h) + 6rem)',
       }}
     >
@@ -44,12 +48,14 @@ export default function BookPage({ params }: { params: { slug: string } }) {
         ]}
       />
       <div className="book-detail-grid">
-        <img
-          src={b.coverImage}
-          alt={b.imageAlt}
-          className="book-detail-cover"
-          data-reveal
-        />
+        <div className="book-detail-stage" data-reveal>
+          <ObjectStage
+            object={{ kind: 'book', cover: b.coverImage, spineColor: b.spineColor ?? '#3F6A4C', title: b.title }}
+            name={b.title}
+            poster={b.coverImage}
+            posterAlt={b.imageAlt}
+          />
+        </div>
         <div>
           <p className="eyebrow">The Library</p>
           <h1 className="book-detail-title gsap-headline">{b.title}</h1>
@@ -75,14 +81,24 @@ export default function BookPage({ params }: { params: { slug: string } }) {
             ))}
           </ol>
 
-          <div className="hero-actions">
-            <Button href={b.paperbackUrl} external>
-              Buy the paperback ↗
-            </Button>
-            <Button href={b.kindleUrl} variant="ghost" external>
-              Kindle edition ↗
-            </Button>
-          </div>
+          {paperback || kindle ? (
+            <div className="hero-actions">
+              {paperback ? (
+                <Button href={paperback} external>
+                  Buy the paperback ↗
+                </Button>
+              ) : null}
+              {kindle ? (
+                <Button href={kindle} variant={paperback ? 'ghost' : undefined} external>
+                  Kindle edition ↗
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="book-detail-soon">
+              Coming to Amazon in paperback and Kindle. The listing goes up here the day it is live.
+            </p>
+          )}
 
           <div className="prose" style={{ marginTop: '4rem' }}>
             <h2>About the author</h2>

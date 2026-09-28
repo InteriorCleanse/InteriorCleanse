@@ -1,6 +1,7 @@
 import { checkoutModeFor } from '@/lib/category-experience'
 import { BRAND_NAME, SITE } from '@/lib/site-config'
 import type { Book, Product } from '@/lib/types'
+import { amazonListing } from '@/lib/amazon'
 
 /**
  * JSON-LD structured data.
@@ -114,10 +115,16 @@ export function BookLd({ book }: { book: Book }) {
         image: book.coverImage,
         publisher: { '@type': 'Organization', name: BRAND_NAME },
         // Amazon owns the price and availability; we link, we do not quote.
-        workExample: [
-          { '@type': 'Book', bookFormat: 'https://schema.org/Paperback', url: book.paperbackUrl },
-          { '@type': 'Book', bookFormat: 'https://schema.org/EBook', url: book.kindleUrl },
-        ],
+        // Placeholder links are left out rather than published as the book.
+        ...(() => {
+          const editions = [
+            { format: 'https://schema.org/Paperback', url: amazonListing(book.paperbackUrl) },
+            { format: 'https://schema.org/EBook', url: amazonListing(book.kindleUrl) },
+          ].filter((e) => e.url)
+          return editions.length
+            ? { workExample: editions.map((e) => ({ '@type': 'Book', bookFormat: e.format, url: e.url })) }
+            : {}
+        })(),
       }}
     />
   )

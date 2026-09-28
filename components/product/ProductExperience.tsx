@@ -9,6 +9,8 @@ import type { Product } from '@/lib/types'
 import { DepthInteractive } from './DepthInteractive'
 import { Spin360 } from './Spin360'
 import { GlbStageLoader } from '@/components/3d/GlbStageLoader'
+import { ObjectStage } from '@/components/3d/ObjectStage'
+import { PRINT_ARTWORK } from '@/lib/stage-surfaces'
 
 interface ProductExperienceProps {
   product: Product
@@ -38,6 +40,17 @@ export function ProductExperience({
   // still never open a WebGL context.
   if (variant === 'stage' && product.modelUrl) {
     return <GlbStageLoader url={product.modelUrl} name={product.name} poster={product.heroImage} />
+  }
+  const artwork = variant === 'stage' ? PRINT_ARTWORK[product.slug] : undefined
+  if (artwork) {
+    return (
+      <ObjectStage
+        object={{ kind: 'print', artwork }}
+        name={product.name}
+        poster={artwork}
+        posterAlt={`${product.name}, the print artwork`}
+      />
+    )
   }
 
   if (mode === 'true_3d') {
