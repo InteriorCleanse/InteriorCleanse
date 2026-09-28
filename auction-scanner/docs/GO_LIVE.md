@@ -83,5 +83,5 @@ member can also download their own backup in Settings.
   are empty (every member's data is their own).
 - Read `docs/SECURITY.md`'s operator checklist.
 - Bidding stays PAPER: the Bid button and the Sniper record your number and
-  open the lot; you place the real bid on the auction's site. No auction offers
-  a public bidding API, so this is how every tool in this space works.
+  open the lot; you place the real bid on the auction's site. None of the
+  auctions above offers a public bidding API, so Gavel never bids for you.

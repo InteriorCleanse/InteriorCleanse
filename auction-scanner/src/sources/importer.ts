@@ -14,6 +14,7 @@
  * import screen shows what was found and what is missing before it is saved.
  */
 import type { Damage, Listing, SaleType, TitleStatus } from '../types.ts'
+import { CATALOG } from '../catalog.ts'
 import { looksLikeVin, parseDamage, parseMileage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
 import { createHash } from 'node:crypto'
 
@@ -244,6 +245,12 @@ export function parseCsvImport(text: string, fallbackSource = 'other'): { rows: 
 const SOURCES = new Set(['copart', 'iaa', 'ebay', 'carsandbids', 'bat', 'manheim', 'adesa', 'acv', 'govdeals', 'gsa', 'collector', 'local', 'other'])
 
 /** Validate member-edited fields and build the listing. Title is required; everything else may be blank. */
+/** Lot pages shout (PORSCHE); keep the catalog's spelling so filters and the demand list match. */
+function catalogMake(m: string | undefined): string | undefined {
+  if (!m) return undefined
+  return CATALOG.find((c) => c.make.toLowerCase() === m.toLowerCase())?.make ?? m
+}
+
 export function listingFromImport(input: unknown, now = Date.now()): Listing {
   const p = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>
   const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined)
@@ -287,7 +294,7 @@ export function listingFromImport(input: unknown, now = Date.now()): Listing {
     url: url && /^https?:\/\//i.test(url) ? url : '#imported',
     title,
     year: yr ?? t.year,
-    make: make ?? t.make,
+    make: catalogMake(make ?? t.make),
     model: model ?? t.model,
     vin,
     mileage: miles,

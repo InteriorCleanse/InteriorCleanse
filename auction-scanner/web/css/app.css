@@ -109,7 +109,7 @@ p { margin: 0 0 12px; }
 .tabs a[aria-current="page"] { opacity: 1; box-shadow: inset 0 3px 0 var(--rail-text); }
 .tabs a.desk-only { display: none; }
 
-main { max-width: 1120px; margin: 0 auto; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
+main { max-width: 1120px; margin: 0 auto; overflow-wrap: anywhere; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
 @media (min-width: 960px) {
   body { padding-left: 220px; }
   .tabs { top: 0; bottom: 0; right: auto; width: 220px; flex-direction: column; height: auto; border-top: 0; border-right: 1px solid var(--rail-text); padding: 72px 0 0; justify-content: flex-start; }
@@ -207,7 +207,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 16px 16px calc(96px + env(saf
 /* ---------- forms ---------- */
 label.f { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
 label.f small { font-weight: 400; color: var(--ink-2); }
-input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea {
+input:not([type]), input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], input[type="url"], input[type="datetime-local"], input[type="date"], select, textarea {
   min-height: 44px; padding: 8px 10px; border: 1px solid var(--ink); border-radius: 4px; background: var(--tag); color: var(--ink); width: 100%;
 }
 select { appearance: auto; }
@@ -353,6 +353,9 @@ details summary { cursor: pointer; font-weight: 600; }
 .tabs button { flex: 1; display: grid; place-items: center; background: none; border: 0; color: var(--rail-text); font-family: var(--display); font-weight: 700; font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; opacity: .78; cursor: pointer; min-width: 44px; }
 .tabs button[aria-current="page"], .tabs a[aria-current="page"] { opacity: 1; }
 @media (min-width: 960px) { .tabs .phone-only { display: none; } }
+/* A long suggestion wraps inside the screen instead of pushing it sideways; the scrolling rail keeps one line. */
+.chips .chip { max-width: 100%; height: auto; min-height: 28px; padding-block: 4px; white-space: normal; text-align: left; }
+.rail .chips .chip { white-space: nowrap; }
 .chips.wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips.wrap .chip { min-height: 32px; }
 .tform .chip[aria-pressed="true"] { background: var(--ink); color: var(--tag); }

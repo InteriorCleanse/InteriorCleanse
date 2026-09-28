@@ -107,6 +107,15 @@ test('CSV: quoted cells, known columns used and named, rows without a name skipp
   assert.ok(!('Unrelated' in Object.values(r.used)))
 })
 
+test('listingFromImport keeps the catalog spelling of a shouted make', () => {
+  const l = listingFromImport({ title: '2019 PORSCHE 911 CARRERA S', make: 'PORSCHE', source: 'copart', lotNumber: '1' })
+  assert.equal(l.make, 'Porsche')
+  const fromTitle = listingFromImport({ title: '2018 LEXUS GX 460', source: 'iaa', lotNumber: '2' })
+  assert.equal(fromTitle.make, 'Lexus')
+  const unknown = listingFromImport({ title: '2001 ZASTAVA KORAL', make: 'ZASTAVA', source: 'other', lotNumber: '3' })
+  assert.equal(unknown.make, 'ZASTAVA', 'a make the catalog does not know is left as written')
+})
+
 test('listingFromImport validates and never invents', () => {
   assert.throws(() => listingFromImport({}), /name/)
   assert.throws(() => listingFromImport({ title: 'x', vin: 'BAD' }), /VIN/)

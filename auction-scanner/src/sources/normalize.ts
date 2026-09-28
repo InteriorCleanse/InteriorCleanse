@@ -12,7 +12,8 @@ export function parseTitleStatus(text: string | undefined): TitleStatus {
   if (/lemon|manufacturer buy ?back/.test(t)) return 'lemon'
   if (/rebuilt|reconstructed|prior salvage|previously salvage/.test(t)) return 'rebuilt'
   if (/salvage|total loss|totaled/.test(t)) return 'salvage'
-  if (/\bclean\b|clear title|clean title/.test(t)) return 'clean'
+  // Copart and IAA write a clean title as CLEAR ("TX - CLEAR"); the worse words above are checked first.
+  if (/\bclean\b|\bclear\b/.test(t)) return 'clean'
   return 'unknown'
 }
 
