@@ -25,6 +25,7 @@ export default function Journal() {
       />
       <section className="section" style={{ background: 'var(--ink)' }}>
         <div className="section-inner">
+          <h2 className="sr-only">Journal entries</h2>
           <div className="grid-2">
             {articles.map((a) => (
               <ArticleCard article={a} key={a.slug} />

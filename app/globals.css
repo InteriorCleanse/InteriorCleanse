@@ -5775,3 +5775,18 @@ html[data-intro='skip'] .intro-veil { display: none; }
 @media (max-width: 900px) {
   .book-detail-stage { max-width: 420px; margin: 0 auto; }
 }
+
+/* ─── PHASE 14 · finishing sweep ──────────────────────────────────────────── */
+/* The 3D caption sits on cream stages and on the print's black stage alike,
+   so it carries its own backing instead of trusting the surface under it. */
+.glb-status {
+  background: rgba(242, 236, 224, 0.9);
+  color: #4a443b;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+}
+.glb-status:empty { display: none; }
+/* Collection pages sit on tinted track colours; the brass price and the dim
+   category label fell just under 4.5:1 there. */
+.collection-section .product-card-price { color: #6e552c; }
+.collection-section .product-card-category { color: #5f5a52; }

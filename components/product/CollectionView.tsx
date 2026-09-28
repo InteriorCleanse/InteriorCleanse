@@ -35,16 +35,19 @@ export function CollectionView({ collection }: { collection: Collection }) {
       />
 
       <section
-        className="section"
+        className="section collection-section"
         style={{ background: collection.background ?? 'var(--black)', paddingTop: 0 }}
       >
         <div className="section-inner">
           {products.length > 0 ? (
-            <div className="product-grid gsap-stagger" style={{ marginTop: 0 }}>
-              {products.map((p, i) => (
-                <ProductCard product={p} index={i} key={p.slug} />
-              ))}
-            </div>
+            <>
+              <h2 className="sr-only">{collection.title}: the objects</h2>
+              <div className="product-grid gsap-stagger" style={{ marginTop: 0 }}>
+                {products.map((p, i) => (
+                  <ProductCard product={p} index={i} key={p.slug} />
+                ))}
+              </div>
+            </>
           ) : (
             <div className="collection-empty">
               <span className="rule-draw" aria-hidden="true" />

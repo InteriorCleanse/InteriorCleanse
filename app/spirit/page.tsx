@@ -60,6 +60,7 @@ export default function Spirit() {
 
       <section className="section" style={{ background: 'var(--spirit-bg)', paddingTop: 0 }}>
         <div className="section-inner">
+          <h2 className="sr-only">Books for the spirit</h2>
           <div className="grid-4 gsap-stagger">
             {spiritBooks.map((book) => (
               <SpiritCard book={book} key={book.slug} />
