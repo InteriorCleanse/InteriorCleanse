@@ -38,3 +38,8 @@ export function markAlertsRead(): number {
 export function alreadyFired(targetId: string, listingId: string): boolean {
   return listAlerts().some((a) => a.kind === 'paper-fired' && a.targetId === targetId && a.listingId === listingId)
 }
+
+/** True when any target has already fired a paper bid on this car: one car, one paper bid, however many targets match it. */
+export function firedOnCar(listingId: string): boolean {
+  return listAlerts().some((a) => a.kind === 'paper-fired' && a.listingId === listingId)
+}

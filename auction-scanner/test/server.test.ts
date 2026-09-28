@@ -502,3 +502,38 @@ test('the lot reader has a per-member limit', async () => {
   for (let i = 0; i < 41; i++) last = (await api('/api/import/parse', { method: 'POST', asMember: c, headers: { 'x-gavel-csrf': r.body.csrf }, json: { text: '2019 Toyota Camry\nCurrent Bid: $1', useAi: false } })).status
   assert.equal(last, 429)
 })
+
+test('a member\'s Home: no step they cannot finish, one best pick, one pick and one alert per car', async () => {
+  const made = await api('/api/admin/members', { method: 'POST', json: { email: 'fay@example.com' } })
+  const r = await api('/api/login', { method: 'POST', json: { email: 'fay@example.com', code: made.body.code }, noCsrf: true })
+  const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+  const fay = (path: string, init: any = {}) => api(path, { ...init, asMember: c, headers: { ...(init.headers ?? {}), 'x-gavel-csrf': r.body.csrf } })
+  assert.equal((await fay('/api/onboard', { method: 'POST', json: { goal: 'rental', homeState: 'GA', budgetUsd: 15000, makes: ['Honda', 'Toyota'] } })).status, 200)
+  assert.equal((await fay('/api/settings')).body.cashUsd, 15000)
+  // A second target that overlaps the first: the same Toyotas match both.
+  assert.equal((await fay('/api/sniper/targets', { method: 'POST', json: { name: 'Toyotas too', makes: ['Toyota'], maxBudgetUsd: 15000, minScore: 40, starterOnly: true } })).status, 200)
+  const run = await fay('/api/sniper/run', { method: 'POST', json: {} })
+  assert.equal(run.status, 200)
+  const ids = run.body.picks.map((p: any) => p.card.listing.id)
+  assert.ok(ids.length > 0, 'the SAMPLE feed has rental cars to pick')
+  assert.equal(new Set(ids).size, ids.length, 'each car once')
+  assert.ok(run.body.picks.some((p: any) => p.targetNames.length === 2), 'a car matching both targets names both')
+  const again = await fay('/api/sniper/run', { method: 'POST', json: {} })
+  assert.equal(again.status, 200)
+  const alerts = (await fay('/api/sniper')).body.alerts.filter((a: any) => a.kind === 'pick')
+  const alertCars = alerts.map((a: any) => a.listingId)
+  assert.equal(new Set(alertCars).size, alertCars.length, 'one pick alert per car, however many targets and runs')
+  const home = (await fay('/api/home')).body
+  assert.ok(!home.next.some((n: any) => n.id === 'source'), 'a member is never told to connect a source')
+  assert.ok(home.sniper.best, 'Home names a best pick')
+  assert.equal(home.sniper.best.card.listing.id, run.body.picks[0].card.listing.id)
+  const pickStep = home.next.find((n: any) => n.id === 'pick')
+  assert.match(pickStep.title, /Open your best pick/)
+  assert.ok(pickStep.href.startsWith('#plan/'))
+  assert.ok(home.sniper.best.fire.maxBidUsd > 0 && home.sniper.best.plan.cashNeededUsd <= 15000, 'the best pick fits the cash')
+  assert.equal(home.next.find((n: any) => n.id === 'learn').done, false)
+  assert.equal((await fay('/api/guides/read', { method: 'POST', json: { id: 'first-car' } })).status, 200)
+  assert.equal((await fay('/api/home')).body.next.find((n: any) => n.id === 'learn').done, true, 'opening the guide ticks it off')
+  // The owner still sees the connect step.
+  assert.ok((await api('/api/home')).body.next.some((n: any) => n.id === 'source'))
+})

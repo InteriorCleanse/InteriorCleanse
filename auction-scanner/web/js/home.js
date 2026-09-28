@@ -15,18 +15,34 @@ function countdown(ms) {
   return t ? `<span class="cd ${t.tone}" data-ends="${ms}">${esc(t.text)}</span>` : '<span class="cd dim">No end time</span>'
 }
 
+function bestHtml(p) {
+  const l = p.card.listing
+  const now = l.currentBidUsd ?? l.buyNowUsd
+  const why = (p.card.score.reasons || [])[0]
+  return `<a class="tag nextup best" href="#plan/${encodeURIComponent(l.id)}"><div class="body" style="padding:16px 18px">
+      <div class="mono dim">Your best pick${l.kind === 'SAMPLE' ? ' · sample, for practice' : ''}${l.endsAt ? ' · ' + countdown(l.endsAt) : ''}</div>
+      <h2 class="nt">${esc(l.title)}</h2>
+      <div class="row" style="gap:18px;margin:6px 0 2px"><div><span class="k mono">Price now</span><div class="bn">${esc(money(now))}</div></div><div><span class="k mono">Never bid above</span><div class="bn" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div></div></div>
+      ${why ? `<p style="margin:4px 0 0">${esc(why)}</p>` : ''}
+    </div><span class="go-arrow" aria-hidden="true">→</span></a>`
+}
+
 export async function render(el, ctx) {
   if (ticker) { clearInterval(ticker); ticker = null }
   el.innerHTML = `<div class="head"><div><h1>Home</h1></div></div>${loading('Pulling everything together…')}`
   let h
   try { h = await getJson('/api/home') } catch (e) { el.innerHTML += errorStrip(e.message); return }
   if (!h.onboarded && !sessionStorage.getItem('gavel-setup-skipped')) { location.hash = '#setup'; return }
+  const best = h.sniper.best
   const nextUp = h.next.find((n) => !n.done)
+  // The best pick has its own card; the next step would only repeat it.
+  const showNext = nextUp && !(best && nextUp.id === 'pick')
   const done = h.next.filter((n) => n.done).length
   const netTone = h.garage.netUsd > 0 ? 'go' : h.garage.netUsd < 0 ? 'hot' : ''
   el.innerHTML = `<div class="head"><div><h1>Home</h1><p>${esc(h.goal ? GOAL[h.goal] : 'Your auction desk')}. ${h.liveSource ? 'Reading live auctions.' : 'No live source yet, so the feed shows SAMPLE cars.'}</p></div>
       <div class="row"><a class="btn" href="#sniper">Sniper</a><a class="btn outline" href="#feed">Browse the feed</a></div></div>
-    ${nextUp ? `<a class="tag nextup" href="${esc(nextUp.href)}"><div class="body" style="padding:16px 18px"><div class="mono dim">Next step · ${done} of ${h.next.length} done</div><h2 class="nt">${esc(nextUp.title)}</h2><p style="margin:4px 0 0">${esc(nextUp.body)}</p></div><span class="go-arrow" aria-hidden="true">→</span></a>` : ''}
+    ${best ? bestHtml(best) : ''}
+    ${showNext ? `<a class="tag nextup" href="${esc(nextUp.href)}"><div class="body" style="padding:16px 18px"><div class="mono dim">Next step · ${done} of ${h.next.length} done</div><h2 class="nt">${esc(nextUp.title)}</h2><p style="margin:4px 0 0">${esc(nextUp.body)}</p></div><span class="go-arrow" aria-hidden="true">→</span></a>` : ''}
     <div class="tiles four">
       ${tile('Sniper', `${h.sniper.active}`, `${h.sniper.active === 1 ? 'target' : 'targets'} hunting · ${h.sniper.picks} pick${h.sniper.picks === 1 ? '' : 's'}`, '#sniper')}
       ${tile('Alerts', `${h.alerts.unread}`, h.alerts.unread ? 'new since you looked' : 'all caught up', '#sniper', h.alerts.unread ? 'hot' : '')}

@@ -75,7 +75,7 @@ function pickHtml(p) {
   return `<article class="tag pick" data-id="${esc(l.id)}">
     ${l.kind === 'SAMPLE' ? '<div class="band">Sample. Not a real car.</div>' : ''}
     <div class="tagbody"><div class="body">
-      <div class="mono dim">${esc(p.targetName)} · fit ${p.fit}/100</div>
+      <div class="mono dim">For ${esc((p.targetNames || [p.targetName]).join(' + '))} · ${p.fit}/100 match</div>
       <h3 class="title">${esc(l.title)}</h3>
       <div class="subline mono">${esc([l.mileage ? l.mileage.toLocaleString('en-US') + ' mi' : null, l.location && l.location.state, sourceName(l.source), t && t.text].filter(Boolean).join(' · '))}</div>
       <div class="money"><div><span class="k mono">Price now</span><div class="now">${esc(money(l.currentBidUsd ?? l.buyNowUsd))}</div></div><div><span class="k mono">Never bid above</span><div class="now" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div></div></div>
@@ -103,7 +103,7 @@ export async function render(el, ctx) {
         ${data.alerts.length ? `<div class="list">${data.alerts.slice(0, 12).map((a) => `<div class="item ${a.read ? '' : 'unread'}"><div class="main"><b>${esc(a.title)}</b><div style="font-size:14px">${esc(a.body)}</div><div class="mono dim">${esc(when(a.at))}</div></div>${a.listingId ? `<a class="btn outline sm" href="#plan/${encodeURIComponent(a.listingId)}">Plan</a>` : ''}</div>`).join('')}</div><div class="row" style="margin-top:10px"><button class="btn outline sm" id="sn-read">Mark all read</button></div>` : '<p class="dim">Alerts appear here when a target finds a pick or fires a paper bid.</p>'}
       </div>
     </div>
-    <div style="margin-top:20px"><h2 style="margin-bottom:10px">Picks (${data.picks.length})</h2>
+    <div style="margin-top:20px"><h2 style="margin-bottom:4px">Picks (${data.picks.length})</h2><p class="dim" style="margin:0 0 10px;font-size:14px">Best match first. The match mixes the steal score, how far the price is under your number, and how fresh the listing is.</p>
       ${data.picks.length ? `<div class="feed">${data.picks.map(pickHtml).join('')}</div>` : `<div class="tag empty"><p>${targets.length ? 'No picks yet. Press Scan now, or loosen a target (a lower minimum score, more makes, a bigger budget).' : 'Picks show up here once you have a target.'}</p></div>`}
     </div>`
   const reload = () => render(el, ctx)

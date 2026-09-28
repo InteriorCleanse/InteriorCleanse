@@ -1,5 +1,5 @@
 // The Playbook: the guides, with a checklist that remembers your ticks on this device.
-import { getJson, esc, store } from './api.js'
+import { getJson, postJson, esc, store } from './api.js'
 import { loading, errorStrip } from './ui.js'
 
 const LEVEL = { start: ['go', 'Start here'], next: ['', 'Next'], later: ['wait', 'Later'] }
@@ -20,6 +20,7 @@ export async function render(el, ctx, [id]) {
   const g = id && cache.find((x) => x.id === id)
   if (g) {
     el.innerHTML = guideHtml(g)
+    postJson('/api/guides/read', { id: g.id }).catch(() => {}) // ticks it off on Home
     el.querySelectorAll('[data-ck]').forEach((c) => c.addEventListener('change', () => {
       const ticks = store('gavel-check-' + g.id) || {}
       ticks[c.dataset.ck] = c.checked

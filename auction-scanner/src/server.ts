@@ -66,7 +66,8 @@ import { listTargets, saveTarget, removeTarget } from './sniper/targets.ts'
 import type { Target } from './sniper/targets.ts'
 import { pickFor } from './sniper/engine.ts'
 import type { Pick } from './sniper/engine.ts'
-import { addAlert, alreadyFired, listAlerts, markAlertsRead } from './sniper/alerts.ts'
+import { addAlert, alreadyFired, firedOnCar, listAlerts, markAlertsRead } from './sniper/alerts.ts'
+import { money } from './ui.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = resolve(HERE, '..', 'web')
@@ -387,12 +388,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
             const pick = pickFor(target, card, plan, now())
             if (!pick) continue
             picks.push(pick)
-            if (target.armed && !alreadyFired(target.id, card.listing.id)) {
+            if (target.armed && !alreadyFired(target.id, card.listing.id) && !firedOnCar(card.listing.id)) {
               const bid = placePaperBid(card.listing, pick.fire.maxBidUsd, `Sniper "${target.name}": ${pick.fire.method}`)
               addAlert({ kind: 'paper-fired', targetId: target.id, listingId: card.listing.id, title: `PAPER bid fired: ${card.listing.title}`, body: `${target.name} recorded a paper bid of $${bid.maxBidUsd.toLocaleString('en-US')} (${pick.fire.method}). Nothing was sent to the auction. ${pick.fire.why}` }, now())
               fired++
               console.log(`[sniper] PAPER fired ${card.listing.id} $${bid.maxBidUsd} for a target`)
-            } else if (!listAlerts().some((a) => a.kind === 'pick' && a.targetId === target.id && a.listingId === card.listing.id)) {
+            } else if (!target.armed && !listAlerts().some((a) => (a.kind === 'pick' || a.kind === 'paper-fired') && a.listingId === card.listing.id)) {
               addAlert({ kind: 'pick', targetId: target.id, listingId: card.listing.id, title: `New pick for ${target.name}: ${card.listing.title}`, body: `Score ${card.score.total} (${card.score.grade}). Never bid above $${pick.fire.maxBidUsd.toLocaleString('en-US')}. ${pick.fire.why}` }, now())
             }
           }
@@ -426,8 +427,19 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     kick.unref()
   }
 
-  function serialisePick(p: Pick): Record<string, unknown> {
-    return { targetId: p.targetId, targetName: p.targetName, card: p.card, plan: p.plan, fire: p.fire, fit: p.fit, reasons: p.reasons }
+  function serialisePick(p: Pick & { targetNames?: string[] }): Record<string, unknown> {
+    return { targetId: p.targetId, targetName: p.targetName, targetNames: p.targetNames ?? [p.targetName], card: p.card, plan: p.plan, fire: p.fire, fit: p.fit, reasons: p.reasons }
+  }
+
+  /** One entry per car, best match first: a car that suits two targets shows once, naming both. */
+  function uniquePicks(picks: Pick[]): Array<Pick & { targetNames: string[] }> {
+    const byId = new Map<string, Pick & { targetNames: string[] }>()
+    for (const p of [...picks].sort((a, b) => b.fit - a.fit)) {
+      const have = byId.get(p.card.listing.id)
+      if (!have) byId.set(p.card.listing.id, { ...p, targetNames: [p.targetName] })
+      else if (!have.targetNames.includes(p.targetName)) have.targetNames.push(p.targetName)
+    }
+    return [...byId.values()]
   }
 
   async function ensureKnown(id: string): Promise<Listing> {
@@ -743,7 +755,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       if (path === '/api/sniper' && method === 'GET') {
         const alerts = listAlerts()
         const st = sniperFor(session.email)
-        return json(res, 200, { targets: listTargets(), picks: st.picks.map(serialisePick), alerts: alerts.slice(0, 50), unread: alerts.filter((a) => !a.read).length, lastRunAt: st.lastRun || null, everyMs: sniperEvery, paper: true })
+        return json(res, 200, { targets: listTargets(), picks: uniquePicks(st.picks).map(serialisePick), alerts: alerts.slice(0, 50), unread: alerts.filter((a) => !a.read).length, lastRunAt: st.lastRun || null, everyMs: sniperEvery, paper: true })
       }
       if (path === '/api/sniper/targets' && method === 'POST') {
         const body = await readJsonBody(req)
@@ -759,7 +771,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       }
       if (path === '/api/sniper/run' && method === 'POST') {
         const r = await runSniper()
-        return json(res, 200, { picks: r.picks.map(serialisePick), fired: r.fired, ranAt: sniperFor(session.email).lastRun, paper: true })
+        return json(res, 200, { picks: uniquePicks(r.picks).map(serialisePick), fired: r.fired, ranAt: sniperFor(session.email).lastRun, paper: true })
       }
       if (path === '/api/sniper/alerts/read' && method === 'POST') return json(res, 200, { read: markAlertsRead() })
     }
@@ -861,31 +873,48 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const watch = listWatch()
       const paper = listPaper()
       const garage = garageSummary(t)
-      const endingSoon = st.picks
+      const picks = uniquePicks(st.picks)
+      const best = picks[0]
+      const endingSoon = picks
         .filter((p) => p.card.listing.endsAt && p.card.listing.endsAt > t)
         .sort((a, b) => (a.card.listing.endsAt ?? 0) - (b.card.listing.endsAt ?? 0))
         .slice(0, 4)
       const liveSource = sourceStatuses().some((x) => x.kind === 'api' && x.connected)
+      const owner = session.role === 'owner'
+      const bestTitle = best ? best.card.listing.title : ''
       const next: Array<{ id: string; title: string; body: string; href: string; done: boolean }> = [
-        { id: 'setup', title: 'Tell Gavel what you are after', body: 'Four questions: your goal, your state, your budget, and the cars you like.', href: '#setup', done: settings.onboarded },
-        { id: 'source', title: 'Connect a live auction source', body: 'eBay Motors and GSA Auctions are free to connect. The Connect screen walks you through each one.', href: '#connect', done: liveSource },
-        { id: 'import', title: 'Bring in a lot from Copart, IAA or any auction', body: 'Add the Send to Gavel button once, then one click on any lot page scores it and plans your bid.', href: '#import', done: listImports().length > 0 },
+        { id: 'setup', title: 'Tell Gavel what you are after', body: 'Four questions: your goal, your state, your cash, and the cars you like.', href: '#setup', done: settings.onboarded },
+        // Only the owner can connect a source; for a member it would be a step they can never finish.
+        ...(owner ? [{ id: 'source', title: 'Connect a live auction source', body: 'eBay Motors and GSA Auctions are free to connect. The Connect screen walks you through each one.', href: '#connect', done: liveSource }] : []),
         { id: 'target', title: 'Set your first Sniper target', body: 'Makes, models, years and the most you will spend. It watches for you.', href: '#sniper', done: targets.length > 0 },
-        { id: 'learn', title: 'Read "Your first auction car"', body: 'Twelve minutes that save you from the expensive mistakes.', href: '#playbook/first-car', done: false },
+        best
+          ? { id: 'pick', title: `Open your best pick: ${bestTitle}`, body: `Never bid above ${money(best.fire.maxBidUsd)}. The plan shows where every dollar goes.`, href: `#plan/${encodeURIComponent(best.card.listing.id)}`, done: paper.length > 0 }
+          : { id: 'pick', title: 'Look at the best cars in your price', body: 'The Feed ranks them. Open one and press Plan my bid.', href: '#feed', done: paper.length > 0 },
+        { id: 'learn', title: 'Read "Your first auction car"', body: 'Twelve minutes that save you from the expensive mistakes.', href: '#playbook/first-car', done: (settings.readGuides ?? []).includes('first-car') },
         { id: 'paper', title: 'Place three PAPER bids', body: 'Practise the number before you spend a dollar. Record how each one ended.', href: '#feed', done: paper.length >= 3 },
+        { id: 'import', title: 'Bring in a lot from Copart, IAA or any auction', body: 'Add the Send to Gavel button once, then one click on any lot page scores it and plans your bid.', href: '#import', done: listImports().length > 0 },
         { id: 'garage', title: settings.goal === 'rental' ? 'Log your first rental car in the Garage' : 'Log your first car in the Garage', body: 'Every cost in, every dollar out. The ledger tells you if the business works.', href: '#garage', done: garage.cars > 0 },
       ]
       return json(res, 200, {
         goal: settings.goal ?? null,
         onboarded: settings.onboarded,
         liveSource,
-        sniper: { targets: targets.length, active: targets.filter((x) => x.active).length, armed: targets.filter((x) => x.armed).length, picks: st.picks.length, lastRunAt: st.lastRun || null, endingSoon: endingSoon.map(serialisePick) },
+        sniper: { targets: targets.length, active: targets.filter((x) => x.active).length, armed: targets.filter((x) => x.armed).length, picks: picks.length, lastRunAt: st.lastRun || null, endingSoon: endingSoon.map(serialisePick), best: best ? serialisePick(best) : null },
         alerts: { unread: alerts.filter((a) => !a.read).length, latest: alerts.slice(0, 5) },
         watch: watch.slice(0, 6).map((w) => ({ listingId: w.listingId, title: w.title, endsAt: w.snapshot?.endsAt ?? null, priceUsd: w.snapshot ? (w.snapshot.currentBidUsd ?? w.snapshot.buyNowUsd ?? null) : null, kind: w.snapshot?.kind ?? null })),
         paper: paperSummary(),
         garage,
         next,
       })
+    }
+
+    if (path === '/api/guides/read' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const id = str(body.id, 60)
+      if (!/^[a-z0-9-]{1,60}$/.test(id)) throw new HttpError(400, 'Which guide?')
+      const read = getSettings().readGuides ?? []
+      if (!read.includes(id)) updateSettings({ readGuides: [...read, id].slice(-100) })
+      return json(res, 200, { ok: true })
     }
 
     if (path === '/api/onboard' && method === 'POST') {

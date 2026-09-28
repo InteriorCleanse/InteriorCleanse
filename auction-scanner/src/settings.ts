@@ -47,6 +47,8 @@ export type Settings = {
   goal?: 'rental' | 'flip' | 'keep'
   /** All the cash the member has for one car: bid, fee, transport, fixes and cushion must fit inside it. */
   cashUsd?: number
+  /** Playbook guides the member has opened, by id, so Home can tick them off. */
+  readGuides?: string[]
 }
 
 const DAMAGE = new Set(['none', 'minor', 'moderate', 'severe'])
@@ -152,6 +154,11 @@ function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest:
     else throw new Error('goal must be rental, flip or keep.')
   }
 
+  if ('readGuides' in patch) {
+    const v = patch.readGuides
+    if (!Array.isArray(v) || v.length > 100 || !v.every((x) => typeof x === 'string' && /^[a-z0-9-]{1,60}$/.test(x))) throw new Error('readGuides must be a list of guide ids.')
+    rest.readGuides = [...new Set(v as string[])]
+  }
   if ('cashUsd' in patch) {
     const v = patch.cashUsd
     if (v === '' || v === null || v === undefined) clear.push('cashUsd')
@@ -190,7 +197,7 @@ function merge(base: Settings, saved: unknown): Settings {
       apply(() => Object.assign(out.starter, validateStarter({ [k]: v })))
     }
   }
-  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal', 'cashUsd'] as const) {
+  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal', 'cashUsd', 'readGuides'] as const) {
     if (!(key in saved)) continue
     apply(() => {
       const { rest, clear } = validatePatch({ [key]: saved[key] })

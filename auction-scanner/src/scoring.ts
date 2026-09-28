@@ -124,18 +124,20 @@ export function scoreListing(l: Listing, est: Estimate, demand?: DemandEntry, ru
   const base = discountScore(discount)
   const reasons: string[] = []
 
+  // The first line is the one a beginner reads: the gap, in words. The arithmetic comes last.
+  const similar = `${est.comps} similar car${est.comps === 1 ? '' : 's'}`
   if (discount >= 0) {
-    reasons.push(`Priced ${pct(discount)} under the estimate of ${money(est.valueUsd)} (asking ${money(asking)}, ${est.method}): base score ${base}.`)
+    reasons.push(`Priced ${pct(discount)} under the ${money(est.valueUsd)} that ${similar} go for. Asking ${money(asking)}.`)
   } else {
-    reasons.push(`Priced ${pct(discount)} above the estimate of ${money(est.valueUsd)} (asking ${money(asking)}, ${est.method}): base score ${base}. It is not a deal at this price.`)
+    reasons.push(`Priced ${pct(discount)} above the ${money(est.valueUsd)} that ${similar} go for. Not a deal at ${money(asking)}.`)
   }
-  reasons.push(`A car counts as no deal at ${pct(config.scoring.noDealDiscount)} under and earns full marks at ${pct(config.scoring.fullMarksDiscount)} under.`)
 
   let adjust = 0
   const add = (points: number, text: string): void => {
     adjust += points
-    const sign = points > 0 ? `+${points}` : points < 0 ? `${points}` : '+0'
-    reasons.push(`${text} ${sign}.`)
+    // A line worth no points is a fact, not a score change: say it plainly.
+    if (points === 0) reasons.push(text.replace(/:$/, '.'))
+    else reasons.push(`${text} ${points > 0 ? `+${points}` : points}.`)
   }
 
   // Title.
@@ -145,7 +147,7 @@ export function scoreListing(l: Listing, est: Estimate, demand?: DemandEntry, ru
 
   // Damage.
   switch (l.damage) {
-    case 'none': add(0, 'No damage reported:'); break
+    case 'none': add(0, 'No damage reported by the seller:'); break
     case 'minor': add(-8, 'Minor damage (scratches, dings, cosmetic wear):'); break
     case 'unknown': add(-10, 'Caution: nobody says whether the car is damaged, so assume some is hidden until you see it or get photos:'); break
     case 'moderate': add(-25, 'Moderate damage, likely a body shop visit:'); break
@@ -194,6 +196,8 @@ export function scoreListing(l: Listing, est: Estimate, demand?: DemandEntry, ru
   } else if (l.buyNowUsd !== undefined && l.currentBidUsd === undefined) {
     reasons.push('Buy-now price: this is what you would pay, with no bidding.')
   }
+
+  reasons.push(`How the score works: ${base} of 100 from the price gap (no deal at ${pct(config.scoring.noDealDiscount)} under, full marks at ${pct(config.scoring.fullMarksDiscount)} under, from ${est.method}), then the points above.`)
 
   const total = clamp(Math.round(base + adjust), 0, 100)
   return {

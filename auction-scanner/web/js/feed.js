@@ -3,8 +3,8 @@ import { getJson, postJson, del, esc, debounce, store, when } from './api.js'
 import { cardHtml, wireCards, loading, errorStrip, toast } from './ui.js'
 import { setMode } from './app.js'
 
-const TIERS = [['all', 'All'], ['supercar', 'Supercar'], ['enthusiast', 'Enthusiast'], ['holds-value', 'Holds value'], ['rental', 'Rental']]
-const state = { q: '', make: '', maxPrice: '', state: '', tier: 'all', starter: true, sample: true, sort: 'score', showHidden: false }
+const TIERS = [['all', 'All cars'], ['rental', 'Rental'], ['holds-value', 'Holds value'], ['enthusiast', 'Enthusiast'], ['supercar', 'Supercar']]
+const state = { q: '', make: '', maxPrice: '', state: '', tier: 'all', starter: true, sample: true, sort: 'score', showHidden: false, seeded: false }
 let watched = new Set()
 let lastKind = null
 let root = null
@@ -12,12 +12,12 @@ let seq = 0
 
 function chipsHtml() {
   return `<div class="rail" id="rail">
+    <div class="chips wrap tiers" role="toolbar" aria-label="Kind of car">${TIERS.map(([k, v]) => `<button class="chip" type="button" data-tier="${k}" aria-pressed="${state.tier === k}">${v}</button>`).join('')}</div>
     <div class="chips" role="toolbar" aria-label="Filters">
       <label class="switch" title="Hides salvage titles, damage beyond minor, cars that do not run, and cars over your price, mileage or age caps (Settings)."><input type="checkbox" id="f-starter" ${state.starter ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Starter mode</span></label>
       <input type="search" id="f-q" placeholder="Search a car" aria-label="Search" value="${esc(state.q)}" />
       <input type="number" id="f-max" placeholder="Max $" aria-label="Maximum price in dollars" min="0" step="any" value="${esc(state.maxPrice)}" />
       <input type="search" id="f-state" placeholder="State" aria-label="US state, two letters" maxlength="2" style="width:80px" value="${esc(state.state)}" />
-      ${TIERS.map(([k, v]) => `<button class="chip" type="button" data-tier="${k}" aria-pressed="${state.tier === k}">${v}</button>`).join('')}
       <select id="f-sort" aria-label="Sort"><option value="score" ${state.sort === 'score' ? 'selected' : ''}>Best score</option><option value="ending" ${state.sort === 'ending' ? 'selected' : ''}>Ending soonest</option><option value="price" ${state.sort === 'price' ? 'selected' : ''}>Price low to high</option></select>
       <label class="switch" id="f-sample-wrap" hidden title="Sample cars are not real. They show what the app does until a source is connected."><input type="checkbox" id="f-sample" ${state.sample ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Show sample cars</span></label>
     </div>
@@ -74,7 +74,7 @@ async function load() {
     if (why) why.addEventListener('click', () => { state.showHidden = !state.showHidden; load() })
     let html = ''
     if (feed.kind === 'LIVE' && feed.errors && feed.errors.length) html += feed.errors.map((e) => errorStrip(e)).join('')
-    if (feed.kind === 'SAMPLE') html += `<div class="strip"><b>You are looking at SAMPLE cars. They are not real.</b> Connect a source to see live auctions${feed.errors && feed.errors.length ? ': ' + esc(feed.errors[0]) : ' (see Settings).'}</div>`
+    if (feed.kind === 'SAMPLE') html += `<div class="strip wait"><b>Practice cars, not for sale.</b> ${me.role === 'owner' ? 'Real auctions appear here once a source is connected: <a href="#connect">Connect</a>.' : 'Use them to learn the plan. Real auctions appear here when the owner connects them.'}</div>`
     if (feed.kind === 'EMPTY') html += emptyHtml(me)
     else if (!feed.cards.length) html += `<div class="tag empty"><h2>Nothing matches</h2><p>Loosen a filter, or turn Starter mode off to see the cars it hid (each one says why).</p></div>`
     html += `<div class="feed">${feed.cards.map((c) => cardHtml(c, { watched: watched.has(c.listing.id), showBlocks: state.showHidden })).join('')}</div>`
@@ -86,11 +86,21 @@ async function load() {
   }
 }
 
-export function render(el, ctx) {
+export async function render(el, ctx) {
   window.__gavelMe = ctx.me
   if (root === el && el.querySelector('#f-list')) { load(); return } // back from Plan: refresh the cards, keep the filters
   root = el
   Object.assign(state, store('gavel-feed') || {})
+  if (!state.seeded) {
+    // First visit: start from what the member told setup, their goal and their cash.
+    try {
+      const s = await getJson('/api/settings')
+      if (s.goal === 'rental') state.tier = 'rental'
+      if (typeof s.cashUsd === 'number') state.maxPrice = String(s.cashUsd)
+    } catch { /* the defaults stand */ }
+    state.seeded = true
+    store('gavel-feed', state)
+  }
   el.innerHTML = `<div class="head"><div><h1>Feed</h1><p>Clean cars priced under what similar cars list for. The score says how big the gap is; the three lines say why.</p></div></div>${chipsHtml()}<div id="f-list"></div>`
   const save = () => store('gavel-feed', state)
   const reload = debounce(() => { save(); load() }, 350)

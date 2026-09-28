@@ -92,14 +92,17 @@ test('grade boundaries: steal ≥ 80, good deal ≥ 60, fair ≥ 40, else pass',
   }
   const perfect = score(fx({ buyNowUsd: 65_000 }))
   assert.equal(perfect.discount, 0.35)
-  assert.ok(perfect.reasons[0].includes('35% under the estimate of $100,000'), perfect.reasons[0])
+  assert.ok(perfect.reasons[0].startsWith('Priced 35% under the $100,000 that 3 similar cars go for'), perfect.reasons[0])
+  assert.ok(!perfect.reasons[0].includes('base score'), 'the first line is words, not arithmetic')
+  assert.ok(perfect.reasons.at(-1)!.startsWith('How the score works: 100 of 100'), perfect.reasons.at(-1))
+  assert.ok(!perfect.reasons.some((r) => r.endsWith('+0.')), 'no +0 lines')
 })
 
 test('priced above the estimate scores 0 and says so', () => {
   const s = score(fx({ buyNowUsd: 105_000 }))
   assert.equal(s.total, 0)
   assert.equal(s.grade, 'pass')
-  assert.ok(s.reasons[0].includes('above the estimate'), s.reasons[0])
+  assert.ok(s.reasons[0].includes('above the $100,000'), s.reasons[0])
 })
 
 test('damage adjustments: minor −8, unknown −10 with a caution, moderate −25, severe −45', () => {
