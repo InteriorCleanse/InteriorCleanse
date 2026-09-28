@@ -188,6 +188,11 @@ POST /api/garage/:id/cost      {label, usd, date?}    POST /api/garage/:id/incom
 DELETE /api/garage/:id/entry/:entryId
 GET  /api/backup               → {app, version, exportedAt, email, files:{watchlist.json, paper-bids.json, targets.json, alerts.json, settings.json, garage.json}}
 POST /api/backup               that same shape → {restored:[names]}; validated first, nothing written on a bad file
+POST /api/import/parse         {text, url?, useAi?} → {fields, found[], missing[], usedAi}
+POST /api/import               {fields} → Card (the lot is saved to the member's imports)
+POST /api/import/csv           {csv, source?} → {added, skipped, used:{field:column}}
+GET  /api/imports              → Listing[]          DELETE /api/imports/:id
+GET  /api/connect              → {items:[{id, group, name, done, unlocks, cost, steps[], env[], link?}], done, total} (booleans only, never a secret)
 Every route after sign-in reads and writes only the signed-in member's files.
 GET  /api/admin/members        owner only → Member[] (codes never echoed in full; show last 4)
 POST /api/admin/members        {email} → {member, code}  (the only time the full code is shown)

@@ -446,6 +446,12 @@ body.in-setup .tabs, body.in-setup #mode-chip { visibility: hidden; }
 .gallery img { display: block; height: 150px; width: auto; max-width: 240px; object-fit: cover; }
 @media (min-width: 960px) { .gallery img { height: 200px; max-width: 320px; } }
 
+.conn.done { opacity: .82; }
+.conn h3 { font-size: 20px; }
+.conn code, .strip code { background: var(--paper); border: 1px solid var(--ink-3); padding: 1px 6px; border-radius: 3px; font-size: 13px; color: var(--ink); }
+#bm { cursor: grab; }
+@media (min-width: 960px) { .tabs a { flex: 0 0 46px; } }
+
 /* ---------- print ---------- */
 @media print {
   .topbar, .tabs, .rail, .toasts, .actions, .btn { display: none !important; }

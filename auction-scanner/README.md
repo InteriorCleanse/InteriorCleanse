@@ -31,6 +31,11 @@ state, your budget, the makes you like) and starts your first Sniper target.
 - **Home.** The command centre: your next step, the Sniper's picks with live
   countdowns, the latest alerts, the cars you watch, your paper record, the
   Garage's net, and a checklist of the path from first sign-in to first car.
+- **Import.** Bring in any lot from any auction: drag the Send to Gavel
+  button to your bookmarks once, then click it on a Copart, IAA, Bring a
+  Trailer or Cars & Bids page. Or paste the lot, or upload a CSV export.
+- **Connect.** The go-live guide with a live tick next to every source, the
+  AI, hosting and payments.
 - **Garage.** The business ledger: every car you actually bought, every cost
   (fees, transport, parts, labour, tyres, insurance) and every dollar in
   (rental payouts, the sale), with the net per car and overall. Only what you
@@ -78,28 +83,19 @@ source. **SAMPLE** means the demonstration cars: not real, labelled on every
 card, never mixed into a live estimate. **NO SOURCE** means nothing is
 connected and samples are off; the Feed then shows exactly what to add.
 
-## Connecting eBay Motors (the live source)
+## Connecting the auctions
 
-eBay is the one big auction site with an official, free developer API.
+| Source | How Gavel reads it | Cost |
+|---|---|---|
+| GSA Auctions | Live, official government Auctions API | Free key from api.data.gov |
+| eBay Motors | Live, official Browse API (read-only) | Free developer keyset |
+| MarketCheck | Live, official paid API: auction lots, plus dealer prices as comparables | Paid plan |
+| Copart, IAA, Bring a Trailer, Cars & Bids, Manheim, GovDeals, dealers | **Import**: the Send to Gavel button on any lot page, a paste, or a CSV export | Free in Gavel |
 
-1. Go to [developer.ebay.com](https://developer.ebay.com), sign in with your
-   eBay account, open **Application Keys**, and create a **Production**
-   keyset.
-2. Copy the **App ID** (client ID) and the **Cert ID** (client secret).
-3. Copy `.env.example` to `.env` and fill in:
-   ```
-   GAVEL_EBAY_CLIENT_ID=...
-   GAVEL_EBAY_CLIENT_SECRET=...
-   ```
-4. Restart the app. The chip turns **LIVE · eBay Motors**.
-
-Gavel uses the Browse API with a read-only token. It can search and read
-listings. It cannot bid, buy or touch your eBay account.
-
-Every other house (Copart, IAA, Manheim, ADESA, ACV, Cars & Bids, Bring a
-Trailer, GovDeals, Mecum and Barrett-Jackson, local public auctions) publishes
-no API. Gavel lists them in **Auctions** with how to register and opens their
-search for you. See `docs/AUCTIONS.md`.
+The **Connect** screen shows which are live and walks through each one.
+`docs/GO_LIVE.md` is the full go-live guide, including hosting and payments.
+Gavel never scrapes a site: auctions without a public API are read only from
+lots you open or export yourself.
 
 ## Members and access codes
 
@@ -173,7 +169,7 @@ Gavel is built to run on a laptop, a home server, or a small VPS.
 ```
 config.ts            tunables: starter rules, scoring, plan defaults, AI model
 src/server.ts        the app and its API
-src/sources/         eBay adapter, the auction directory, SAMPLE cars, registry
+src/sources/         eBay, GSA and MarketCheck adapters, the importer, the directory, SAMPLE cars, registry
 src/valuation.ts     comps-based estimate        src/scoring.ts   the Steal score
 src/filters.ts       starter rules               src/fees.ts      published fee schedules
 src/bidplan.ts       never-bid-above maths       src/explain.ts   the rules walkthrough

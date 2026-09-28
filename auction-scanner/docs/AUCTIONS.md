@@ -6,16 +6,18 @@ Auctions screen. Fees change: every entry links to the house's own fee page.
 | House | Who may buy | Registering | Buyer fee basis | In person | API | Gavel reads it |
 |---|---|---|---|---|---|---|
 | eBay Motors | Anyone | Free account | None on vehicles | No | Official, free | **Yes** (Browse API, read-only) |
-| Cars & Bids | Anyone | Free account + card | 5%, min $250, max $7,500 (as published) | No | None | No |
-| Bring a Trailer | Anyone | Free account + card | 5%, min $250, max $7,500 (as published) | No | None | No |
-| Copart | Public in many states | Free basic; paid tier to bid; broker where required | Sliding scale + gate and internet fees | Yes | None | No |
-| IAA | Public in many states | Registration tiers with an annual fee; broker where required | Sliding scale + fees | Yes | None | No |
-| Manheim | Dealers only | Dealer licence | Sliding scale by location | Yes | None | No |
-| ADESA / OPENLANE | Dealers only | Dealer licence | Sliding scale | Yes | None | No |
-| ACV | Dealers only | Dealer licence | Flat by price band | No | None | No |
-| GovDeals / GSA | Anyone | Free | Stated per lot; GSA none | Yes | None | No |
-| Local public auctions | Anyone | ID + deposit at the door | Stated at the door | Yes | None | No |
-| Mecum / Barrett-Jackson | Anyone | Bidder registration fee, proof of funds | About 10% in person, more online (per event) | Yes | None | No |
+| Cars & Bids | Anyone | Free account + card | 5%, min $250, max $7,500 (as published) | No | None | Import |
+| Bring a Trailer | Anyone | Free account + card | 5%, min $250, max $7,500 (as published) | No | None | Import |
+| Copart | Public in many states | Free basic; paid tier to bid; broker where required | Sliding scale + gate and internet fees | Yes | None | Import |
+| IAA | Public in many states | Registration tiers with an annual fee; broker where required | Sliding scale + fees | Yes | None | Import |
+| Manheim | Dealers only | Dealer licence | Sliding scale by location | Yes | None | Import |
+| ADESA / OPENLANE | Dealers only | Dealer licence | Sliding scale | Yes | None | Import |
+| ACV | Dealers only | Dealer licence | Flat by price band | No | None | Import |
+| GovDeals | Anyone | Free | Stated per lot | Yes | None | Import |
+| GSA Auctions | Anyone | Free, identity verified | None (no buyer premium) | Yes | Official | **Yes** (GSA Auctions API) |
+| MarketCheck | A data service; the seller decides | Paid API plan | Set by the dealer or auction | No | Official (paid) | **Yes** (auction lots; dealer prices as comparables) |
+| Local public auctions | Anyone | ID + deposit at the door | Stated at the door | Yes | None | Import |
+| Mecum / Barrett-Jackson | Anyone | Bidder registration fee, proof of funds | About 10% in person, more online (per event) | Yes | None | Import |
 
 ## How a beginner should use each
 
@@ -47,3 +49,10 @@ licence and use their own tools. Gavel's bid gate (`GAVEL_LIVE_BIDDING` and a
 source's `capabilities.bid`) is in place so an adapter can be added the day one
 of them offers an API to an account the owner holds. Until then, Gavel
 prepares the number and opens the lot.
+
+## "Import" means
+
+Gavel reads the lot you open yourself: the **Send to Gavel** bookmark button
+passes the visible page text to Gavel, or you paste it, or you upload a CSV
+exported from your own auction account. Nothing is scraped. See
+`src/sources/importer.ts` for the labels it reads.

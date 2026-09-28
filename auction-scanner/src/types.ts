@@ -48,6 +48,10 @@ export type Listing = {
   description?: string
   kind: DataKind
   fetchedAt: number
+  /** Where Gavel got it: a source's API, or a member's own import (paste, CSV or the one-click button). */
+  origin?: 'api' | 'import'
+  /** The auction's own lot or stock number, when it has one. */
+  lotNumber?: string
 }
 
 export type SourceCapabilities = {

@@ -48,7 +48,7 @@ const deadFetch: typeof fetch = async () => {
   throw new Error('network down')
 }
 
-test('sourceStatuses lists eBay as the API source and every other house as directory-only', () => {
+test('sourceStatuses lists the API sources and every other house as directory-only', () => {
   disconnectEbay()
   const statuses = sourceStatuses()
   assert.equal(statuses.length, AUCTION_HOUSES.length)
@@ -60,7 +60,9 @@ test('sourceStatuses lists eBay as the API source and every other house as direc
   assert.match(ebay.reason, /GAVEL_EBAY_CLIENT_SECRET/)
   assert.match(ebay.reason, /developer\.ebay\.com/)
   assert.deepEqual(ebay.capabilities, { search: false, bid: false })
-  for (const s of statuses.filter((x) => x.id !== 'ebay')) {
+  const apiIds = AUCTION_HOUSES.filter((h) => h.api === 'official').map((h) => h.id)
+  assert.deepEqual(apiIds.sort(), ['ebay', 'gsa', 'marketcheck'])
+  for (const s of statuses.filter((x) => x.id !== 'ebay' && x.id !== 'gsa' && x.id !== 'marketcheck')) {
     assert.equal(s.kind, 'directory')
     assert.equal(s.connected, false)
     assert.deepEqual(s.capabilities, { search: false, bid: false })

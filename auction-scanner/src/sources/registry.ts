@@ -2,16 +2,20 @@
  * The source registry — the one place that knows which auction sites Gavel
  * can read live, which it can only point you at, and how to scan them all.
  *
- * Today exactly one source has an official API: eBay Motors (read-only). Every
- * other house in the directory is listed so the app can say honestly "no public
- * API — here is their search page and how to register". `scanAll()` reads what
- * is connected, never throws (problems come back as plain-English strings), and
- * labels the result LIVE, SAMPLE or EMPTY so the feed can never pass a sample
- * car off as a real one.
+ * Three sources have official, read-only APIs: eBay Motors (Browse API),
+ * GSA Auctions (the government's Auctions API) and MarketCheck (a paid data
+ * API: auction lots for the feed, dealer asking prices as comparables). Every
+ * other house is reached through the member's own imports (the Send to Gavel
+ * button, a paste or a CSV), never by scraping. `scanAll()` reads every
+ * connected source at once, each with a time limit, never throws (problems
+ * come back as plain-English strings), drops duplicates by VIN, and labels the
+ * result LIVE, SAMPLE or EMPTY so a sample car is never passed off as real.
  */
 import type { Listing, SearchQuery, SourceStatus } from '../types.ts'
 import { AUCTION_HOUSES } from './directory.ts'
 import { ebayConfigured, searchEbay } from './ebay.ts'
+import { gsaConfigured, searchGsa } from './gsa.ts'
+import { marketcheckComps, marketcheckConfigured, searchMarketcheckAuctions } from './marketcheck.ts'
 import { sampleComps, sampleListings } from './sample.ts'
 
 export type ScanResult = {
@@ -27,6 +31,9 @@ export type ScanResult = {
 const EBAY_SETUP =
   'Add GAVEL_EBAY_CLIENT_ID and GAVEL_EBAY_CLIENT_SECRET to the .env file (copy .env.example). ' +
   'Get them free at developer.ebay.com: sign in, open "Application Keys", create a Production keyset and copy the App ID (client ID) and Cert ID (client secret).'
+
+const GSA_SETUP = 'Add GAVEL_GSA_API_KEY (a free key from api.data.gov: fill in the short form and it arrives by email), or set GAVEL_GSA=1 to try it with the shared DEMO_KEY and its low rate limit.'
+const MC_SETUP = 'Add GAVEL_MARKETCHECK_API_KEY from your MarketCheck account (marketcheck.com/apis; a paid plan, trial data on request). If your plan uses a different auction path, set GAVEL_MARKETCHECK_AUCTION_PATH.'
 
 /** Every source Gavel knows about, and whether it is connected right now. */
 export function sourceStatuses(): SourceStatus[] {
@@ -44,6 +51,12 @@ export function sourceStatuses(): SourceStatus[] {
           : `Not connected. ${EBAY_SETUP}`,
         capabilities: { search: connected, bid: false },
       })
+    } else if (h.id === 'gsa') {
+      const connected = gsaConfigured()
+      out.push({ id: h.id, name: h.name, kind: 'api', connected, reason: connected ? 'Connected. Gavel reads federal surplus vehicles live through the GSA Auctions API. Bidding happens on gsaauctions.gov.' : `Not connected. ${GSA_SETUP}`, capabilities: { search: connected, bid: false } })
+    } else if (h.id === 'marketcheck') {
+      const connected = marketcheckConfigured()
+      out.push({ id: h.id, name: h.name, kind: 'api', connected, reason: connected ? 'Connected. Auction lots come into the feed, and dealer asking prices sharpen every estimate.' : `Not connected. ${MC_SETUP}`, capabilities: { search: connected, bid: false } })
     } else {
       out.push({
         id: h.id,
@@ -107,29 +120,69 @@ function describeError(source: string, err: unknown): string {
   return `${source}: ${msg}`
 }
 
+const SOURCE_TIMEOUT_MS = 12_000
+
+function withTimeout<T>(p: Promise<T>, ms: number, name: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${name} did not answer within ${Math.round(ms / 1000)} seconds.`)), ms)
+    p.then((v) => { clearTimeout(t); resolve(v) }, (e) => { clearTimeout(t); reject(e) })
+  })
+}
+
+/** Drop repeats of the same car across sources: the same VIN keeps the first listing seen. */
+export function dedupeByVin(listings: Listing[]): Listing[] {
+  const seen = new Set<string>()
+  return listings.filter((l) => {
+    if (!l.vin) return true
+    if (seen.has(l.vin)) return false
+    seen.add(l.vin)
+    return true
+  })
+}
+
+/** Dealer comparables for the distinct make and model groups in these listings, up to six groups. */
+async function dealerComps(listings: Listing[], fetchImpl: typeof fetch, errors: string[]): Promise<Listing[]> {
+  if (!marketcheckConfigured()) return []
+  const groups = new Map<string, { make: string; model: string }>()
+  for (const l of listings) {
+    if (!l.make || !l.model) continue
+    const key = `${l.make.toLowerCase()}|${l.model.toLowerCase().split(' ')[0]}`
+    if (!groups.has(key)) groups.set(key, { make: l.make, model: l.model })
+    if (groups.size >= 6) break
+  }
+  const out: Listing[] = []
+  await Promise.all([...groups.values()].map((g) => withTimeout(marketcheckComps(g.make, g.model, fetchImpl), SOURCE_TIMEOUT_MS, 'MarketCheck').then((c) => { out.push(...c) }).catch((e) => { errors.push(describeError('MarketCheck comparables', e)) })))
+  return out
+}
+
 /**
- * Read every connected source. Failures are collected, not thrown. LIVE
- * listings are their own comparables pool. With nothing live: SAMPLE data when
- * `allowSample` is on (clearly labelled), otherwise EMPTY with the errors that
- * explain why, so the feed can say exactly how to connect a source.
+ * Read every connected source at once. Failures are collected, not thrown.
+ * LIVE listings, plus MarketCheck dealer prices when connected, are the
+ * comparables pool. `extra` is the member's own imported lots, which count
+ * as LIVE. With nothing live: SAMPLE data when `allowSample` is on (clearly
+ * labelled), otherwise EMPTY with the errors that explain why.
  */
-export async function scanAll(q: SearchQuery, opts: { allowSample: boolean; fetchImpl?: typeof fetch }): Promise<ScanResult> {
+export async function scanAll(q: SearchQuery, opts: { allowSample: boolean; fetchImpl?: typeof fetch; extra?: Listing[] }): Promise<ScanResult> {
   const fetchImpl = opts.fetchImpl ?? fetch
   const errors: string[] = []
   const live: Listing[] = []
 
-  if (ebayConfigured()) {
-    try {
-      live.push(...(await searchEbay(q, fetchImpl)))
-    } catch (err) {
-      errors.push(describeError('eBay Motors', err))
-    }
-  } else {
-    errors.push(`eBay Motors is not connected. ${EBAY_SETUP}`)
-  }
+  const jobs: Array<{ name: string; run: () => Promise<Listing[]> }> = []
+  if (ebayConfigured()) jobs.push({ name: 'eBay Motors', run: () => searchEbay(q, fetchImpl) })
+  else errors.push(`eBay Motors is not connected. ${EBAY_SETUP}`)
+  if (gsaConfigured()) jobs.push({ name: 'GSA Auctions', run: async () => applyQuery(await searchGsa(q, fetchImpl), q, true) })
+  if (marketcheckConfigured()) jobs.push({ name: 'MarketCheck', run: () => searchMarketcheckAuctions(q, fetchImpl) })
+  const results = await Promise.allSettled(jobs.map((j) => withTimeout(j.run(), SOURCE_TIMEOUT_MS, j.name)))
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') live.push(...r.value)
+    else errors.push(describeError(jobs[i].name, r.reason))
+  })
 
-  if (live.length > 0) {
-    return { listings: applyQuery(live, q, false), comps: live, kind: 'LIVE', errors }
+  const extra = applyQuery(opts.extra ?? [], { ...q, limit: undefined }, true)
+  const merged = dedupeByVin([...extra, ...live])
+  if (merged.length > 0) {
+    const comps = dedupeByVin([...merged, ...(await dealerComps(merged, fetchImpl, errors))])
+    return { listings: applyQuery(merged, { ...q, text: undefined }, false), comps, kind: 'LIVE', errors }
   }
 
   if (opts.allowSample) {

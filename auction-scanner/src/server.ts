@@ -52,6 +52,11 @@ import { Throttle } from './security/throttle.ts'
 import { DATA_DIR, PERSONAL_FILES, adoptLegacyFiles, currentUser, ensureDataDir, listUserScopes, readJson, userFile, withUser, writeJson } from './store.ts'
 import { addCar, addCost, addIncome, garageSummary, listGarage, removeCar, removeEntry, totalsFor, updateCar, validateGarageFile } from './garage.ts'
 import { validateTarget } from './sniper/targets.ts'
+import { listImports, removeImport, saveImports } from './imports.ts'
+import { listingFromImport, parseCsvImport, parseLotText } from './sources/importer.ts'
+import { aiExtractLot } from './research/extract.ts'
+import { marketcheckComps, marketcheckConfigured } from './sources/marketcheck.ts'
+import { createHash } from 'node:crypto'
 import { HOUSE_POLICIES, REGULATIONS, GLOSSARY, searchKnowledge } from './knowledge/index.ts'
 import { carIntel, intelSummary } from './research/intel.ts'
 import { researchAvailable, webResearch } from './research/web.ts'
@@ -193,14 +198,26 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   const pools = new Map<Listing['kind'], Listing[]>()
   const scanCache = new Map<string, { at: number; result: ScanResult }>()
 
+  /** A short fingerprint of a member's imports, so the scan cache never hands one member's lots to another. */
+  function importsSignature(extra: Listing[]): string {
+    if (!extra.length) return ''
+    return `${currentUser() ?? ''}:${createHash('sha256').update(extra.map((l) => `${l.id}@${l.fetchedAt}`).join('|')).digest('hex').slice(0, 16)}`
+  }
+
+  /** Extra comparables for one LIVE car: MarketCheck dealer prices for its make and model, when connected. */
+  async function extraComps(l: Listing): Promise<Listing[]> {
+    if (l.kind !== 'LIVE' || !l.make || !l.model || !marketcheckConfigured()) return []
+    try { return await marketcheckComps(l.make, l.model, fetchImpl) } catch { return [] }
+  }
+
   function remember(result: ScanResult): void {
     for (const l of result.listings) known.set(l.id, l)
     if (result.kind !== 'EMPTY') pools.set(result.kind, result.comps)
     for (const w of listWatch()) if (!known.has(w.listingId)) known.set(w.listingId, w.snapshot)
   }
 
-  function cardFor(l: Listing, settings: Settings): Card {
-    const pool = pools.get(l.kind) ?? []
+  function cardFor(l: Listing, settings: Settings, extraPool: Listing[] = []): Card {
+    const pool = extraPool.length ? [...(pools.get(l.kind) ?? []), ...extraPool] : pools.get(l.kind) ?? []
     const estimate = estimateValue(l, pool)
     const demand = demandFor(l.make, l.model, settings.demandExtra)
     const score = scoreListing(l, estimate, demand, settings.starter, now())
@@ -218,7 +235,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     const allowSample = params.get('sample') !== '0' && settings.allowSample
     const sort = str(params.get('sort'), 10) || 'score'
 
-    const key = JSON.stringify({ q, make, maxPrice, allowSample })
+    const extra = listImports()
+    const key = JSON.stringify({ q, make, maxPrice, allowSample, imports: importsSignature(extra) })
     const hit = scanCache.get(key)
     let result: ScanResult
     let scannedAt: number
@@ -227,7 +245,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       scannedAt = hit.at
     } else {
       const query: SearchQuery = { text: q || undefined, make: make || undefined, maxPriceUsd: maxPrice, limit: 100 }
-      result = await scanAll(query, { allowSample, fetchImpl })
+      result = await scanAll(query, { allowSample, fetchImpl, extra })
       scannedAt = now()
       scanCache.set(key, { at: scannedAt, result })
       remember(result)
@@ -261,12 +279,13 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   /** Scan one query (cached like the feed) and score every car, starter rules not applied. */
   async function scanCards(text: string | undefined, settings: Settings): Promise<{ cards: Card[]; kind: ScanResult['kind']; errors: string[] }> {
     const allowSample = settings.allowSample
-    const key = JSON.stringify({ q: text ?? '', make: '', maxPrice: undefined, allowSample })
+    const extra = listImports()
+    const key = JSON.stringify({ q: text ?? '', make: '', maxPrice: undefined, allowSample, imports: importsSignature(extra) })
     const hit = scanCache.get(key)
     let result: ScanResult
     if (hit && now() - hit.at < SCAN_CACHE_MS) result = hit.result
     else {
-      result = await scanAll({ text, limit: 100 }, { allowSample, fetchImpl })
+      result = await scanAll({ text, limit: 100 }, { allowSample, fetchImpl, extra })
       scanCache.set(key, { at: now(), result })
       remember(result)
     }
@@ -357,6 +376,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       remember(await scanAll({ limit: 100 }, { allowSample: getSettings().allowSample, fetchImpl }))
       l = known.get(id)
     }
+    if (!l) l = listImports().find((x) => x.id === id)
     if (!l) throw new HttpError(404, 'That car is not in the current scan any more. Go back to the Feed and open it again.')
     return l
   }
@@ -512,7 +532,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const id = decodeURIComponent(parts[2])
       const l = await ensureKnown(id)
       const settings = getSettings()
-      const card = cardFor(l, settings)
+      const card = cardFor(l, settings, await extraComps(l))
       const plan = planFor(l, card.estimate, {}, settings)
       const wt = walkthrough({ ...card, plan }, houseById(l.source))
       return json(res, 200, { ...card, plan, walkthrough: wt })
@@ -522,7 +542,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const body = await readJsonBody(req)
       const l = await ensureKnown(str(body.listingId, 200))
       const settings = getSettings()
-      const card = cardFor(l, settings)
+      const card = cardFor(l, settings, await extraComps(l))
       return json(res, 200, planFor(l, card.estimate, planInputs(body), settings))
     }
 
@@ -684,6 +704,76 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       if (path === '/api/sniper/alerts/read' && method === 'POST') return json(res, 200, { read: markAlertsRead() })
     }
 
+    if (path === '/api/import/parse' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const text = typeof body.text === 'string' ? body.text.slice(0, 60_000) : ''
+      const pageUrl = str(body.url, 500)
+      if (!text.trim()) throw new HttpError(400, 'Paste the lot page text first.')
+      const parsed = parseLotText(text, pageUrl || undefined)
+      let usedAi = false
+      if ((!parsed.fields.title || (parsed.fields.currentBidUsd === undefined && parsed.fields.buyNowUsd === undefined)) && body.useAi !== false) {
+        const ai = await aiExtractLot(text, pageUrl || undefined)
+        if (ai) {
+          usedAi = true
+          for (const [k, v] of Object.entries(ai)) if (v !== undefined && (parsed.fields as Record<string, unknown>)[k] === undefined) (parsed.fields as Record<string, unknown>)[k] = v
+          parsed.found = Object.entries(parsed.fields).filter(([k, v]) => v !== undefined && k !== 'source').map(([k]) => k)
+          parsed.missing = parsed.missing.filter((k) => (parsed.fields as Record<string, unknown>)[k] === undefined)
+        }
+      }
+      return json(res, 200, { ...parsed, usedAi })
+    }
+    if (path === '/api/import' && method === 'POST') {
+      const body = await readJsonBody(req)
+      let listing: Listing
+      try { listing = listingFromImport(body, now()) } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : 'That lot was not saved.') }
+      saveImports([listing])
+      known.set(listing.id, listing)
+      const settings = getSettings()
+      return json(res, 200, cardFor(listing, settings, await extraComps(listing)))
+    }
+    if (path === '/api/import/csv' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const csv = typeof body.csv === 'string' ? body.csv : ''
+      if (!csv.trim()) throw new HttpError(400, 'Choose a CSV file first.')
+      const src = str(body.source, 20) || 'other'
+      const parsed = parseCsvImport(csv, src)
+      const listings: Listing[] = []
+      let bad = 0
+      for (const row of parsed.rows) {
+        try { listings.push(listingFromImport({ ...row, source: row.source === 'other' ? src : row.source }, now())) } catch { bad++ }
+      }
+      if (listings.length) saveImports(listings)
+      for (const l of listings) known.set(l.id, l)
+      return json(res, 200, { added: listings.length, skipped: parsed.skipped + bad, used: parsed.used })
+    }
+    if (path === '/api/imports' && method === 'GET') return json(res, 200, listImports())
+    if (parts[1] === 'imports' && parts.length === 3 && method === 'DELETE') {
+      if (!removeImport(decodeURIComponent(parts[2]))) throw new HttpError(404, 'No imported lot with that id.')
+      return json(res, 200, { ok: true })
+    }
+
+    if (path === '/api/connect' && method === 'GET') {
+      const owner = session.role === 'owner'
+      const st = Object.fromEntries(sourceStatuses().filter((x) => x.kind === 'api').map((x) => [x.id, x.connected]))
+      const ai = await aiStatus()
+      const items: Array<{ id: string; group: string; name: string; done: boolean; unlocks: string; cost: string; steps: string[]; env: string[]; link?: string; ownerOnly?: boolean }> = [
+        { id: 'ebay', group: 'Auction sources', name: 'eBay Motors', done: !!st.ebay, unlocks: 'Live eBay Motors auctions and Buy It Now cars in the feed and the Sniper.', cost: 'Free developer account.', link: 'https://developer.ebay.com', env: ['GAVEL_EBAY_CLIENT_ID', 'GAVEL_EBAY_CLIENT_SECRET'], steps: ['Sign in at developer.ebay.com with your eBay account and join the developer programme.', 'Open Application Keys and create a Production keyset.', 'Copy the App ID into GAVEL_EBAY_CLIENT_ID and the Cert ID into GAVEL_EBAY_CLIENT_SECRET.', 'Restart Gavel. The chip at the top turns LIVE.'] },
+        { id: 'gsa', group: 'Auction sources', name: 'GSA Auctions (federal surplus)', done: !!st.gsa, unlocks: 'Government fleet cars, trucks and SUVs, live, with no buyer premium.', cost: 'Free.', link: 'https://api.data.gov/signup/', env: ['GAVEL_GSA_API_KEY', 'or GAVEL_GSA=1 to try with DEMO_KEY'], steps: ['Fill in the short form at api.data.gov/signup; the key arrives by email in a minute.', 'Put it in GAVEL_GSA_API_KEY. (To try it first, GAVEL_GSA=1 uses the shared demo key, which is rate-limited.)', 'Restart Gavel.'] },
+        { id: 'marketcheck', group: 'Auction sources', name: 'MarketCheck (dealers and auctions)', done: !!st.marketcheck, unlocks: 'Auction lots in the feed, and dealer asking prices from across the country behind every estimate. The biggest single upgrade to pricing.', cost: 'Paid API plan; ask them for trial data. Check current pricing on their site.', link: 'https://www.marketcheck.com/apis/', env: ['GAVEL_MARKETCHECK_API_KEY', 'GAVEL_MARKETCHECK_AUCTION_PATH (only if your plan uses a different path)'], steps: ['Create an account at marketcheck.com/apis and choose a plan that includes Inventory Search and Auction Inventory Search.', 'Copy your API key into GAVEL_MARKETCHECK_API_KEY.', 'If your dashboard shows a different auction search path than search/car/auction/active, put that path in GAVEL_MARKETCHECK_AUCTION_PATH.', 'Restart Gavel.'] },
+        { id: 'import', group: 'Auction sources', name: 'Copart, IAA, Bring a Trailer, Cars & Bids and every other house', done: listImports().length > 0, unlocks: 'Any lot you are looking at, scored against live comparables with a full bid plan.', cost: 'Free. Copart and IAA need their own membership to bid.', env: [], steps: ['Open Import in Gavel and drag the Send to Gavel button to your bookmarks bar.', 'On any lot page (Copart, IAA, BaT, Cars & Bids, GovDeals, a dealer), click the bookmark.', 'Check the fields Gavel found, fill any blanks, save. The car appears in your feed and can be planned and watched.', 'For many lots at once, export a CSV from your auction account and upload it on the same screen.'] },
+        { id: 'anthropic', group: 'Intelligence', name: 'Claude (the AI explainer, web research and lot reader)', done: ai.available, unlocks: 'Walkthroughs rewritten for each car, a research desk that searches the live web with sources, and a reader for messy lot pages.', cost: 'Pay as you go; see the Anthropic pricing page.', link: 'https://console.anthropic.com', env: ['ANTHROPIC_API_KEY'], steps: ['Create an account at console.anthropic.com and add a payment method.', 'Create an API key and put it in ANTHROPIC_API_KEY.', 'Run npm install once in the Gavel folder, then restart.'] },
+      ]
+      if (owner) {
+        items.push(
+          { id: 'pin', group: 'Running it', name: 'A fixed owner PIN', done: !!env('GAVEL_PIN'), unlocks: 'The same PIN every start.', cost: 'Free.', env: ['GAVEL_PIN'], steps: ['Pick six digits nobody would guess and put them in GAVEL_PIN.'], ownerOnly: true },
+          { id: 'session', group: 'Running it', name: 'Members stay signed in across restarts', done: env('GAVEL_SESSION_SECRET').length >= 32, unlocks: 'Nobody is signed out when you restart or update Gavel.', cost: 'Free.', env: ['GAVEL_SESSION_SECRET'], steps: ['Put 32 or more random characters in GAVEL_SESSION_SECRET (a password manager can generate them).', 'Never share it and never put it in the code.'], ownerOnly: true },
+          { id: 'hosting', group: 'Running it', name: 'On the internet, behind HTTPS', done: flag('GAVEL_SECURE_COOKIES'), unlocks: 'Subscribers can sign in from anywhere.', cost: 'A small always-on server with a disk; see docs/GO_LIVE.md for options.', env: ['GAVEL_HOST=0.0.0.0', 'GAVEL_SECURE_COOKIES=1'], steps: ['Rent a small server that keeps running and keeps its files (a VPS, or a platform with a persistent disk).', 'Install Node 22, copy the Gavel folder, fill in the environment, and run npm start as a service.', 'Put HTTPS in front with Caddy or your platform, point your domain at it, and set GAVEL_SECURE_COOKIES=1.'], ownerOnly: true },
+          { id: 'stripe', group: 'Getting paid', name: 'Stripe subscriptions', done: !!env('GAVEL_STRIPE_WEBHOOK_SECRET'), unlocks: 'A paid checkout creates the member automatically; a cancelled one switches them off.', cost: 'Stripe takes a fee per payment; see their pricing.', link: 'https://dashboard.stripe.com', env: ['GAVEL_STRIPE_WEBHOOK_SECRET'], steps: ['In Stripe, create a product with a monthly price and a Payment Link for it.', 'Add a webhook endpoint at https://your-domain/api/stripe/webhook with checkout.session.completed, customer.subscription.updated and customer.subscription.deleted.', 'Copy the endpoint signing secret into GAVEL_STRIPE_WEBHOOK_SECRET on the server.', 'When someone pays, issue their code on the Members page and send it to them.'], ownerOnly: true },
+        )
+      }
+      return json(res, 200, { items, done: items.filter((i) => i.done).length, total: items.length })
+    }
+
     if (path === '/api/home' && method === 'GET') {
       const settings = getSettings()
       const st = sniperFor(session.email)
@@ -700,7 +790,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const liveSource = sourceStatuses().some((x) => x.kind === 'api' && x.connected)
       const next: Array<{ id: string; title: string; body: string; href: string; done: boolean }> = [
         { id: 'setup', title: 'Tell Gavel what you are after', body: 'Four questions: your goal, your state, your budget, and the cars you like.', href: '#setup', done: settings.onboarded },
-        { id: 'source', title: 'Connect a live auction source', body: 'Add your free eBay developer keys to .env so the feed and the Sniper see real cars.', href: '#settings', done: liveSource },
+        { id: 'source', title: 'Connect a live auction source', body: 'eBay Motors and GSA Auctions are free to connect. The Connect screen walks you through each one.', href: '#connect', done: liveSource },
+        { id: 'import', title: 'Bring in a lot from Copart, IAA or any auction', body: 'Add the Send to Gavel button once, then one click on any lot page scores it and plans your bid.', href: '#import', done: listImports().length > 0 },
         { id: 'target', title: 'Set your first Sniper target', body: 'Makes, models, years and the most you will spend. It watches for you.', href: '#sniper', done: targets.length > 0 },
         { id: 'learn', title: 'Read "Your first auction car"', body: 'Twelve minutes that save you from the expensive mistakes.', href: '#playbook/first-car', done: false },
         { id: 'paper', title: 'Place three PAPER bids', body: 'Practise the number before you spend a dollar. Record how each one ended.', href: '#feed', done: paper.length >= 3 },

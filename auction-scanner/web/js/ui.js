@@ -91,7 +91,7 @@ export function badges(l, now = Date.now()) {
 }
 
 export function sourceName(id) {
-  return { ebay: 'eBay Motors', sample: 'SAMPLE', carsandbids: 'Cars & Bids', bat: 'Bring a Trailer', copart: 'Copart', iaa: 'IAA' }[id] || id
+  return { ebay: 'eBay Motors', sample: 'SAMPLE', carsandbids: 'Cars & Bids', bat: 'Bring a Trailer', copart: 'Copart', iaa: 'IAA', gsa: 'GSA Auctions', marketcheck: 'MarketCheck', manheim: 'Manheim', adesa: 'ADESA', acv: 'ACV', govdeals: 'GovDeals', collector: 'Mecum / B-J', local: 'Local auction', other: 'Imported' }[id] || id
 }
 
 /**

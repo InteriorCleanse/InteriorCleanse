@@ -33,7 +33,9 @@ export const FEE_SCHEDULES: FeeSchedule[] = [
   { houseId: 'manheim', basis: 'sliding', note: 'Buy fee on a sliding scale, set per auction location. Check the location page and type the fee in.', verifyUrl: 'https://www.manheim.com/publications/fees' },
   { houseId: 'adesa', basis: 'sliding', note: 'Sliding scale by sale price. Check the current schedule and type the fee in.', verifyUrl: 'https://www.openlane.com/us/fees' },
   { houseId: 'acv', basis: 'sliding', note: 'Flat buy fee by price band, shown in the app. Type the fee for your price band in.', verifyUrl: 'https://www.acvauctions.com/faq' },
-  { houseId: 'govdeals', basis: 'stated-per-lot', note: 'Buyer premium varies by seller and is stated on each lot; GSA Auctions charges none. Read the lot page and type it in.', verifyUrl: 'https://www.govdeals.com/en/help' },
+  { houseId: 'govdeals', basis: 'stated-per-lot', note: 'Buyer premium varies by seller and is stated on each lot. Read the lot page and type it in.', verifyUrl: 'https://www.govdeals.com/en/help' },
+  { houseId: 'gsa', basis: 'none', note: 'GSA Auctions charges no buyer premium: the bid is the price, plus any sales tax. Verify on the lot.', verifyUrl: 'https://www.gsaauctions.gov/' },
+  { houseId: 'marketcheck', basis: 'stated-per-lot', note: 'The seller behind the listing sets the fee: a dealer documentation fee, or the auction\'s buyer fee. Read the listing and type it in.', verifyUrl: 'https://www.marketcheck.com/apis/pricing/' },
   { houseId: 'local', basis: 'stated-per-lot', note: 'Stated at the door, usually a percent of hammer with a minimum. Ask before you register and type it in.', verifyUrl: 'https://www.google.com/maps/search/public+auto+auction' },
   { houseId: 'collector', basis: 'percent', percent: 10, note: 'About 10% of hammer in person and more online, as published per event; verify before you register.', verifyUrl: 'https://www.mecum.com/faq/' },
 ]

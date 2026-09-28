@@ -40,8 +40,8 @@ a rental car company as the first business, starting with one car.
 
 ## Layout
 
-`src/server.ts` (node:http app + API) · `src/sources/` (eBay adapter,
-directory, SAMPLE, registry) · `src/valuation.ts` `scoring.ts` `filters.ts`
+`src/server.ts` (node:http app + API) · `src/sources/` (eBay, GSA and
+MarketCheck adapters, the importer, directory, SAMPLE, registry) · `src/valuation.ts` `scoring.ts` `filters.ts`
 `fees.ts` `bidplan.ts` `demand.ts` (the engine) · `src/explain.ts` `ai.ts`
 (walkthrough, optional Claude) · `src/paper.ts` `settings.ts` `garage.ts` `store.ts`
 (JSON stores; personal files resolve through `userFile()` into the
@@ -76,8 +76,10 @@ screenshots. Data for a test run goes in a temp `GAVEL_DATA_DIR`, never `data/`.
 
 - No live bidding adapter: no auction publishes one to the public. The
   Sniper therefore fires on paper and hands the person the number and the time.
-- Only eBay Motors is read live. Copart, IAA, Manheim, ADESA, ACV, Cars & Bids,
-  Bring a Trailer, GovDeals and the collector houses are directory entries.
+- Live sources: eBay Motors, GSA Auctions, MarketCheck (official APIs only).
+  Copart, IAA, Manheim, ADESA, ACV, Cars & Bids, Bring a Trailer, GovDeals
+  and the collector houses have no public API; members bring their lots in
+  through the importer (button, paste, CSV). Never add a scraper.
 - No email sending: the owner sends access codes.
 - No paid value guide: estimates are medians of the comparables in the scan.
 - No two-factor login; no rate limit on the feed beyond the scan cache.

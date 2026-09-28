@@ -14,8 +14,10 @@ import * as intel from './intel.js'
 import * as home from './home.js'
 import * as garage from './garage.js'
 import * as setup from './setup.js'
+import * as importer from './import.js'
+import * as connect from './connect.js'
 
-const SCREENS = { home, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup }
+const SCREENS = { home, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup, import: importer, connect }
 const ctx = { me: null, feedKind: null }
 
 function route() {
@@ -26,7 +28,7 @@ function route() {
   if (screen === 'admin' && ctx.me && ctx.me.role !== 'owner') { location.hash = '#feed'; return }
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.dataset.screen !== screen })
   document.querySelectorAll('.tabs a').forEach((a) => {
-    const grouped = ['watch', 'intel', 'auctions', 'playbook', 'rental', 'settings', 'admin']
+    const grouped = ['watch', 'intel', 'auctions', 'playbook', 'rental', 'settings', 'admin', 'import', 'connect']
     const active = a.dataset.tab === screen || (screen === 'plan' && a.dataset.tab === 'feed') || (a.dataset.tab === 'more' && grouped.includes(screen))
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current')
   })
@@ -47,7 +49,7 @@ export function setMode(kind, detail) {
 
 function moreSheet() {
   const owner = ctx.me.role === 'owner'
-  const items = [['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ['#rental', 'Rental', 'Your first rental car, ranked'], ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
+  const items = [['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ['#rental', 'Rental', 'Your first rental car, ranked'], ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'], ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
   if (owner) items.push(['#admin', 'Members', 'Access codes and Stripe'])
   const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
   document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
@@ -59,7 +61,8 @@ function accountMenu() {
   const owner = ctx.me.role === 'owner'
   btn.textContent = (ctx.me.email || 'o')[0].toUpperCase()
   menu.innerHTML = `<div class="who dim">${esc(ctx.me.email)} · ${owner ? 'owner' : 'member'}</div>
-    <a href="#settings" role="menuitem">Settings &amp; sources</a>
+    <a href="#connect" role="menuitem">Connect (go-live guide)</a>
+    <a href="#settings" role="menuitem">Settings</a>
     ${owner ? '<a href="#admin" role="menuitem">Members (admin)</a>' : ''}
     <button type="button" role="menuitem" id="signout">Sign out</button>`
   const toggle = (open) => { menu.hidden = !open; btn.setAttribute('aria-expanded', String(open)) }
