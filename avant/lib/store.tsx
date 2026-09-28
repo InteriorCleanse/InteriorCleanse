@@ -8,6 +8,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { CHECK_IN_ITEMS } from './catalog'
+import type { Listing } from './listing'
 import type { Trip } from './types'
 
 const KEY = 'avant:v1'
@@ -17,10 +18,11 @@ export interface LocalState {
   saved: string[]
   recent: string[]
   trips: Trip[]
+  listings: Listing[]
   allIn: boolean
 }
 
-const EMPTY: LocalState = { hydrated: false, saved: [], recent: [], trips: [], allIn: true }
+const EMPTY: LocalState = { hydrated: false, saved: [], recent: [], trips: [], listings: [], allIn: true }
 let state = EMPTY
 const subs = new Set<() => void>()
 const emit = () => subs.forEach((f) => f())
@@ -33,6 +35,7 @@ function load(): LocalState {
       saved: Array.isArray(raw.saved) ? raw.saved.filter((x) => typeof x === 'string') : [],
       recent: Array.isArray(raw.recent) ? raw.recent.filter((x) => typeof x === 'string') : [],
       trips: Array.isArray(raw.trips) ? raw.trips : [],
+      listings: Array.isArray(raw.listings) ? raw.listings : [],
       allIn: raw.allIn !== false,
     }
   } catch {
@@ -80,7 +83,7 @@ export function useLocal(): LocalState {
   )
 }
 
-const strip = (s: LocalState) => ({ saved: s.saved, recent: s.recent, trips: s.trips, allIn: s.allIn })
+const strip = (s: LocalState) => ({ saved: s.saved, recent: s.recent, trips: s.trips, listings: s.listings, allIn: s.allIn })
 
 export const actions = {
   toggleSaved(id: string) {
@@ -117,8 +120,17 @@ export const actions = {
       trips: s.trips.map((t) => (t.id === tripId ? { ...t, checkIn: t.checkIn.map((c) => (c.id === itemId ? { ...c, done: !c.done } : c)) } : t)),
     })
   },
+  saveListing(listing: Listing) {
+    const s = strip(state)
+    const exists = s.listings.some((l) => l.id === listing.id)
+    write({ ...s, listings: exists ? s.listings.map((l) => (l.id === listing.id ? listing : l)) : [listing, ...s.listings] })
+  },
+  deleteListing(id: string) {
+    const s = strip(state)
+    write({ ...s, listings: s.listings.filter((l) => l.id !== id) })
+  },
   clear() {
-    write({ saved: [], recent: [], trips: [], allIn: true })
+    write({ saved: [], recent: [], trips: [], listings: [], allIn: true })
   },
   export(): string {
     return JSON.stringify(strip(state), null, 2)

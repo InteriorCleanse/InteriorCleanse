@@ -20,6 +20,7 @@ this codebase does today unless marked *planned*.
 | Loyalty | — | AVANT Miles with tiers that unlock free delivery and waived deposits (*earning live; perks planned*) |
 | Long-term | Multi-month rentals since October 2025 ([Wikipedia](https://en.wikipedia.org/wiki/Turo_(company))) | Weekly and monthly discounts set by hosts; months-long trips *planned* |
 | Remote unlock | Turo Go ([Wikipedia](https://en.wikipedia.org/wiki/Turo_(company))) | Keyless pickup is the default promise; hardware integration *planned* |
+| Listing a car | Multi-screen host onboarding | Five steps with a live guest-view preview, VIN check-digit validation that catches typos instantly, a price suggestion from local medians, and a recall check linked to NHTSA |
 
 ## Next features worth building
 
@@ -28,7 +29,8 @@ this codebase does today unless marked *planned*.
 2. **Continuous MVR** for repeat guests, feeding the clean-record discount.
 3. **In-app photo check-in** with device timestamps and hashes, stored in R2
    behind the vault.
-4. **Host dashboard**: calendar, pricing suggestions from local medians,
-   payouts.
+4. **Host dashboard**: listing is built (`/host/new`); still to build are
+   the availability calendar, trip requests and payouts, plus a server-side
+   listings store once accounts exist.
 5. **Trip sharing**: send the itinerary to a friend, add a second verified
    driver.

@@ -29,7 +29,14 @@ ocd wrangler deploy
 
 ## 3. The app
 
-- Deploy `avant/` (Vercel: set the project root to `avant`).
+- Deploy `avant/` (Vercel: set the project root to `avant`). A project
+  named `avant` was created on 2026-09-28 in the GTEnterprises team with root
+  `avant`, a skip-if-unchanged build step, and random
+  `AVANT_SESSION_SECRET` / `AVANT_ENCRYPTION_KEY` values. The automated
+  deploy was refused for lack of permission, and the project could not be
+  read back afterwards. Check the Vercel dashboard: if it is there, connect
+  it to the repository and deploy the branch; if not, create it with the
+  same settings. Rotate both keys before real users arrive.
 - Set `NEXT_PUBLIC_SITE_URL` to the real domain.
 - Run the "AVANT: land assets" workflow once so images are served locally.
 - Keep `AVANT_INDEXABLE=0` until listings and legal review are real.

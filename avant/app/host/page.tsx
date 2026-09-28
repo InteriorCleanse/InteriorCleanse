@@ -27,6 +27,10 @@ export default function HostPage() {
               Your car could <em>pay for itself.</em>
             </h1>
             <p>Share it when you&apos;re not using it. You set the price, the rules and the days.</p>
+            <div className="row" style={{ marginTop: 14 }}>
+              <ButtonLink href="/host/new" icon="plus">List your car</ButtonLink>
+              <ButtonLink href="/host/listings" variant="secondary">My listings</ButtonLink>
+            </div>
           </div>
           <div className="b-span-3 b-photo" style={{ minHeight: 380 }}>
             <HeroImage src={keys.src} alt="" />
@@ -55,7 +59,8 @@ export default function HostPage() {
             ))}
           </div>
           <div className="row" style={{ marginTop: 24 }}>
-            <ButtonLink href="/concierge" iconAfter="arrow-right">Ask about listing your car</ButtonLink>
+            <ButtonLink href="/host/new" iconAfter="arrow-right">List your car in five steps</ButtonLink>
+            <ButtonLink href="/concierge" variant="secondary">Ask the concierge</ButtonLink>
           </div>
           <p className="small dim" style={{ marginTop: 12 }}>Hosting opens city by city. Vehicles must be under 12 years old, under 130,000 miles, with no open safety recalls.</p>
         </section>

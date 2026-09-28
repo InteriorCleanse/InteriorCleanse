@@ -26,7 +26,8 @@ charges, and a banner that says so.
 
 | Area | Files |
 | --- | --- |
-| Pages | `app/` — home, search with live price map, car, one-page checkout, Driver Pass, coverage, trips, host, account, trust & safety, concierge |
+| Pages | `app/` — home, search with live price map, car, one-page checkout, Driver Pass, coverage, trips, host (estimator, five-step listing wizard, my listings), account, trust & safety, concierge |
+| Host listing rules | `lib/listing.ts` (VIN check digit, vehicle age and mileage limits, recall attestation) |
 | Pricing, coverage, age rules | `lib/pricing.ts`, `lib/catalog.ts`, `lib/eligibility.ts`, `lib/checkout.ts` |
 | AI concierge | `lib/ai/` (Claude with read-only tools; rules-based fallback) |
 | Security | `lib/security/`, `middleware.ts`, `SECURITY.md` |
