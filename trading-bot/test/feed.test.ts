@@ -32,11 +32,16 @@ test('with the stream off, the heartbeat IS the feed: it fills the store over RE
   feed.start({ stream: false, heartbeatMs: 60_000 })
   try {
   assert.equal(feed.health().mode, 'rest')
+  // A candle can close while the heartbeat runs, so the latest closed
+  // candle is read on both sides of it and either one is right.
+  const closedBefore = cs.lastClosedOpenTime(config.interval)
   const filled = await feed.runHeartbeat()
+  const closedAfter = cs.lastClosedOpenTime(config.interval)
   assert.ok(filled >= 1, 'an empty store means the heartbeat fetches the latest candles')
   assert.ok(announced.length >= 1)
   assert.ok(announced.every((a) => a.source === 'rest'))
-  assert.equal(cs.lastStoredCandle(config.symbol, config.interval)!.openTime, cs.lastClosedOpenTime(config.interval))
+  assert.ok([closedBefore, closedAfter].includes(cs.lastStoredCandle(config.symbol, config.interval)!.openTime))
+  if (closedAfter !== closedBefore) await feed.runHeartbeat()
   const again = await feed.runHeartbeat()
   assert.equal(again, 0, 'nothing new: nothing announced')
   assert.equal(feed.health().lastClosed?.via, 'rest')
