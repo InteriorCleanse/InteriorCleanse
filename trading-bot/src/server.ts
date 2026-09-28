@@ -75,6 +75,8 @@ import { lastStoredCandle, getCandles as storedCandles } from './data/candleStor
 import { CallDesk } from './forecast/service.ts'
 import { PredictionDesk } from './predict/desk.ts'
 import * as builder from './research/builder.ts'
+import { ResearchDesk } from './researchdesk/service.ts'
+import type { MarketInput as DeskMarket } from './researchdesk/roles.ts'
 import { keywords as pmKeywords } from './predict/minds.ts'
 import type { Council, OracleRead } from './predict/minds.ts'
 import type { PmMarket } from './predict/sources.ts'
@@ -334,7 +336,7 @@ async function streamAnswer(res: ServerResponse, question: string, context: stri
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()) + predictContext(), history, (t) => res.write(t), image, skillById(skillId))
+    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()) + predictContext() + researchDeskContext(), history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -601,6 +603,18 @@ const server = createServer(async (req, res) => {
         }
         if (path === '/api/builder/save' && req.method === 'POST') { const b = await body(); json(res, 200, { ok: true, data: builder.saveFromText(String(b.name ?? ''), String(b.text ?? '').slice(0, 2000)) }); return }
         if (path === '/api/builder/delete' && req.method === 'POST') { const b = await body(); json(res, 200, { ok: true, data: builder.deleteStrategy(String(b.id ?? '')) }); return }
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 200) }); return }
+      json(res, 404, { ok: false, error: 'not found' }); return
+    }
+    // The research desk: six roles, the owner's rules, at most three decision cards a day. Research only; no route here trades.
+    if (path.startsWith('/api/rdesk')) {
+      const body = async () => JSON.parse((await readBody(req, 16 * 1024)) || '{}') as Record<string, unknown>
+      try {
+        if (path === '/api/rdesk' && req.method === 'GET') { json(res, 200, { ok: true, data: researchDesk.snapshot() }); return }
+        if (path === '/api/rdesk/dryrun' && req.method === 'GET') { json(res, 200, { ok: true, data: researchDesk.dry() }); return }
+        if (path === '/api/rdesk/config' && req.method === 'POST') { json(res, 200, { ok: true, data: researchDesk.setConfig(await body()) }); return }
+        if (path === '/api/rdesk/choice' && req.method === 'POST') { const b = await body(); const c = researchDesk.choose(String(b.id ?? ''), b.choice as 'research' | 'watch' | 'ignore'); if (!c) throw new Error('No such card, or not a known choice.'); json(res, 200, { ok: true, data: c }); return }
+        if (path === '/api/rdesk/drill' && req.method === 'POST') { json(res, 200, { ok: true, data: await researchDesk.fireDrill() }); return }
       } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 200) }); return }
       json(res, 404, { ok: false, error: 'not found' }); return
     }
@@ -1736,6 +1750,21 @@ async function predictOracle(c: Council, m: PmMarket, headlines: Headline[]): Pr
     return { p, confidence: conf >= 0 && conf <= 1 ? conf : 0.3, for: list(j.for), against: list(j.against), model: config.ai.model, at: Date.now() }
   } catch { return null }
 }
+// The research desk: Scout, Hunter, Reporter, Whale, Skeptic and Chief over the market watch, the news, the calendar and
+// public insider filings; at most three decision cards a day. Research only. MRCASH_RESEARCH_DESK=0 turns it off.
+const researchDesk = new ResearchDesk({
+  markets: (): DeskMarket[] => marketWatch.snapshot().rows.map((r) => ({ key: `${r.kind}:${r.symbol}`, kind: r.kind, symbol: r.symbol, label: r.label, status: r.scan.status, price: r.scan.price, changePct24h: r.scan.changePct24h, candles: marketWatch.candles(`${r.kind}:${r.symbol}`), provenance: r.provenance })),
+  candles: (key) => marketWatch.candles(key),
+  news: async () => { try { const r = await getNews(); return { headlines: r.headlines, calendar: r.calendar } } catch { return null } },
+  insiders: () => { const b = bigMoney.snapshot(); return b.sources.sec.status === 'CONNECTED' || b.sources.sec.status === 'OVERRIDE' || b.sources.quiver.status === 'CONNECTED' || b.insiders.length ? b.insiders : null },
+  alert: (title, body) => { eventLog.push('info', title, body, 'info') },
+})
+function researchDeskContext(): string {
+  try {
+    const s = researchDesk.snapshot()
+    return `\n\nRESEARCH DESK (research only, the owner decides; cards today ${s.cardsToday.length} of max ${s.config.limits.maxCardsPerDay}): ${s.cardsToday.map((c) => `${c.label}: ${c.whatHappened}; why ${c.why}; ${c.fit}; against: ${c.against}`).join(' | ') || 'no cards today'}. Held today: ${s.heldToday.slice(0, 5).map((h) => `${h.label} (${h.why})`).join('; ') || 'none'}.`
+  } catch { return '' }
+}
 const predictionDesk = new PredictionDesk({
   news: async () => { try { const r = await getNews(); return { headlines: r.headlines, calendar: r.calendar } } catch { return null } },
   oracle: process.env.MRCASH_PREDICT_AI === '1' ? predictOracle : undefined,
@@ -1802,6 +1831,7 @@ const callDesk = new CallDesk({ symbol: config.symbol, windowMinutes: Number(pro
 server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
   if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_PREDICT !== '0') predictionDesk.start()
+  if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_RESEARCH_DESK !== '0') researchDesk.start()
   if (process.env.MRCASH_CALLS !== '0') { callDesk.start(); callDesk5.start() }
   if (process.env.MRCASH_MARKETS !== '0') { const t = setInterval(() => { void checkConditions() }, 5 * 60_000); t.unref?.(); setTimeout(() => { void checkConditions() }, 90_000).unref?.() }
   ui.heading('MR. CASH IS RUNNING')
