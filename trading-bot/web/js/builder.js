@@ -16,7 +16,7 @@ const num = (v, d = 2) => (v == null ? '—' : Number(v).toFixed(d))
 const VERDICT = { 'NOT ENOUGH DATA': 'medium', 'NO EDGE SHOWN': 'low', 'FAILED OUT-OF-SAMPLE': 'low', 'SURVIVED OUT-OF-SAMPLE': 'good' }
 const REASON = { stop: 'stop', target: 'target', time: 'time limit', rule: 'exit rule' }
 
-let meta = null, result = null, busy = false, err = null, text = '', name = '', savedNote = null, showAll = false, loaded = false
+let meta = null, result = null, busy = false, rephrase = null, rephrasing = false, err = null, text = '', name = '', savedNote = null, showAll = false, loaded = false
 
 async function csrf() { const cfg = await fetch('/api/config', { credentials: 'same-origin' }).then((r) => r.json()); return cfg.csrf }
 async function post(path, body) {
@@ -34,9 +34,26 @@ async function run() {
   const ta = $('bd-text'); if (ta) text = ta.value
   const nm = $('bd-name'); if (nm) name = nm.value
   if (!text.trim()) { err = 'Describe a strategy first.'; paint(); return }
-  busy = true; err = null; savedNote = null; showAll = false; paint()
+  busy = true; err = null; savedNote = null; showAll = false; rephrase = null; paint()
   try { result = await post('/api/builder/run', { text, name }); const m = await fetch('/api/builder', { credentials: 'same-origin' }).then((r) => r.json()); if (m.ok) meta = m.data } catch (e) { err = e.message } finally { busy = false; paint() }
 }
+async function askRephrase() {
+  rephrasing = true; rephrase = null; paint()
+  try { rephrase = await post('/api/builder/rephrase', { text }) } catch (e) { rephrase = { error: e.message } } finally { rephrasing = false; paint() }
+}
+
+function rephraseBlock(p) {
+  const needs = p.ignored.length || p.error
+  if (!needs && !rephrase) return ''
+  if (!meta.ai) return needs ? '<p class="muted pl-note">With the AI assistant on (ANTHROPIC_API_KEY in .env), the builder can suggest a rewrite in its own phrases for you to accept or ignore.</p>' : ''
+  if (rephrase && rephrase.error) return `<p class="pl-err">${esc(rephrase.error)}</p>`
+  if (rephrase) return `<div class="bd-rephrase"><h3>Suggested rewrite <span class="badge sc-prov">AI · CHECK IT</span></h3><blockquote>${esc(rephrase.text)}</blockquote>
+    ${rephrase.leftOut ? `<p class="muted">Left out: ${esc(rephrase.leftOut)}</p>` : ''}
+    <p class="muted">${rephrase.parsed && rephrase.parsed.spec ? `The builder understands ${rephrase.parsed.understood.length - 1} rule${rephrase.parsed.understood.length === 2 ? '' : 's'} in it${rephrase.parsed.ignored.length ? `, and still not ${rephrase.parsed.ignored.length} phrase${rephrase.parsed.ignored.length === 1 ? '' : 's'}` : ''}.` : 'The builder still finds no entry rule in it.'} Cost about $${Number(rephrase.costUsd || 0).toFixed(4)}.</p>
+    <div class="row"><button class="btn" id="bd-use" type="button" ${rephrase.parsed && rephrase.parsed.spec ? '' : 'disabled'}>Use this and backtest</button><button class="chip" id="bd-dismiss" type="button">Keep mine</button></div></div>`
+  return `<button class="chip" id="bd-rephrase" type="button" ${rephrasing ? 'disabled' : ''}>${rephrasing ? 'Asking…' : 'Ask Claude to rephrase it in the builder\'s words'}</button>`
+}
+
 async function save() {
   const nm = $('bd-name'); if (nm) name = nm.value
   if (!name.trim()) { savedNote = 'Give it a name first.'; paint(); return }
@@ -71,7 +88,7 @@ function results() {
     <ul class="bd-list ok">${p.understood.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>
     ${p.assumed.length ? `<h3>Filled in, because you did not say</h3><ul class="bd-list assumed">${p.assumed.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>` : ''}
     ${p.ignored.length ? `<h3>Not understood, so left out</h3><ul class="bd-list ignored">${p.ignored.map((u) => `<li>${esc(u)}</li>`).join('')}</ul><p class="muted pl-note">Rephrase with the phrases under "What it understands" and run again.</p>` : ''}
-    ${p.error ? `<p class="pl-err">${esc(p.error)}</p>` : ''}</div>`
+    ${p.error ? `<p class="pl-err">${esc(p.error)}</p>` : ''}${rephraseBlock(p)}</div>`
   if (!result.code) return understood
   const code = `<div class="card bd-code"><h2>The code <span class="badge sc-prov">READ-ONLY</span></h2><p class="muted" style="margin-top:0">The rules as code, so you can check exactly what was tested. This text is shown, not run.</p><pre><code>${esc(result.code)}</code></pre></div>`
   const rep = result.report
@@ -89,6 +106,8 @@ function results() {
       <span>Builder runs counted: <b>${rep.trials}</b></span>
       ${rep.missedEntries ? `<span>Entries skipped because price opened too far away: <b>${rep.missedEntries}</b></span>` : ''}
     </div>
+    <div class="bd-thirds"><h3>Across time <span class="badge ${rep.stable === 'CONSISTENT' ? 'good' : rep.stable === 'MIXED' ? 'low' : 'medium'}">${esc(rep.stable)}</span></h3><p class="muted">The whole history in three equal periods. A rule that only worked in one of them is fragile, whatever the totals say.</p>
+      <div class="bd-cols">${rep.thirds.map((t, k) => `<div class="bd-col"><h3>Period ${k + 1}</h3><dl><div><dt>From</dt><dd>${nyTime(t.from)}</dd></div><div><dt>Trades</dt><dd>${t.trades}</dd></div><div><dt>Expectancy</dt><dd class="${t.expectancyR > 0 ? 'bd-up' : t.expectancyR < 0 ? 'bd-down' : ''}">${r2(t.expectancyR)}</dd></div><div><dt>Win rate</dt><dd>${pct(t.winRate)}</dd></div></dl></div>`).join('')}</div></div>
     ${curve(rep)}
     ${rep.trades.length ? `<div class="scroll"><table class="bd-trades"><thead><tr><th>Entry (ET)</th><th>Side</th><th class="num">Entry</th><th class="num">Exit</th><th>Exit by</th><th class="num">Candles</th><th class="num">R</th><th>Sample</th></tr></thead><tbody>
       ${trades.map((t) => `<tr><td>${nyTime(t.time)}</td><td>${esc(t.direction)}</td><td class="num">${num(t.entry)}</td><td class="num">${num(t.exit)}</td><td>${esc(REASON[t.reason] || t.reason)}</td><td class="num">${t.candlesHeld}</td><td class="num ${t.rMultiple > 0 ? 'bd-up' : t.rMultiple < 0 ? 'bd-down' : ''}">${fmtR(t.rMultiple)}</td><td><span class="bd-s ${t.sample === 'OUT-OF-SAMPLE' ? 'oos' : ''}">${t.sample === 'OUT-OF-SAMPLE' ? 'out' : 'in'}</span></td></tr>`).join('')}
@@ -136,6 +155,9 @@ function init() {
   section.addEventListener('click', (e) => {
     const t = e.target.closest('button'); if (!t) return
     if (t.id === 'bd-run') run()
+    else if (t.id === 'bd-rephrase') askRephrase()
+    else if (t.id === 'bd-use' && rephrase) { text = rephrase.text; rephrase = null; run() }
+    else if (t.id === 'bd-dismiss') { rephrase = null; paint() }
     else if (t.id === 'bd-save') save()
     else if (t.id === 'bd-all') { showAll = !showAll; paint() }
     else if (t.dataset.ex !== undefined) { const ex = meta.examples[Number(t.dataset.ex)]; text = ex.text; name = ex.name; paint() }

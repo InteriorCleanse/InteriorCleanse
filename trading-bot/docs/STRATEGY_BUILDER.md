@@ -39,7 +39,22 @@ backtest it"), done without a language model and without ever trading.
      from luck.
    - **SURVIVED OUT-OF-SAMPLE**: a backtest pass, not a promise; the next
      step is a paper test.
-7. **You can save it.** Named strategies are kept on this computer with
+7. **It checks stability across time.** The whole history is cut into three
+   equal periods, each with its own trades, expectancy and win rate.
+   - **CONSISTENT**: every period leans the same way.
+   - **MIXED**: the periods disagree. A rule that only worked in one period
+     is fragile, whatever the totals say.
+   - **NOT ENOUGH DATA**: a period has fewer than 10 trades.
+8. **Claude can rephrase it (optional).** With the AI assistant on
+   (`ANTHROPIC_API_KEY` in `.env`), a description with phrases the builder
+   did not understand gets an "Ask Claude to rephrase it" button.
+   - Claude rewrites the description using only the builder's phrases. It
+     may not add rules, invent numbers or claim anything about performance,
+     and it names anything it had to leave out.
+   - You see the rewrite, what the builder understands in it, and the cost.
+   - Nothing runs until you choose "Use this and backtest". The same visible
+     parser then reads it, so the model never decides what is tested.
+9. **You can save it.** Named strategies are kept on this computer with
    their latest verdict, as "My strategies". Saving does not count as
    another run.
 
@@ -69,6 +84,7 @@ on, and it will not guess one.
   count, trial count.
 - `POST /api/builder/run` with `{ text, name? }`: the parse, the code and
   the backtest.
+- `POST /api/builder/rephrase` with `{ text }`: a suggested rewrite (needs the AI assistant; costs a fraction of a cent).
 - `POST /api/builder/save` with `{ name, text }`.
 - `POST /api/builder/delete` with `{ id }`.
 - Every POST goes through the same CSRF check as the rest of the app.
