@@ -77,6 +77,9 @@ npm test              # all pass, offline
 npm start             # boots, prints the PIN; sign in; the feed shows SAMPLE cars
 ```
 
+CI (`.github/workflows/gavel.yml`) runs the first three on every change to
+this folder, and builds the Docker image and waits for `/healthz`.
+
 For UI work, drive the app in Chromium at 390×844 and 1280×800 and look at the
 screenshots. Data for a test run goes in a temp `GAVEL_DATA_DIR`, never `data/`.
 

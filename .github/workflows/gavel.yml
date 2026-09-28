@@ -1,0 +1,46 @@
+name: Gavel (auction-scanner)
+
+# Gavel's own checks, run only when Gavel changes. Everything is offline: the
+# tests use a fake network and a temporary data folder, so no key is needed.
+
+on:
+  push:
+    paths: ['auction-scanner/**', '.github/workflows/gavel.yml']
+  pull_request:
+    paths: ['auction-scanner/**', '.github/workflows/gavel.yml']
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auction-scanner
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - name: Type check
+        run: npm run typecheck
+      - name: Self-test
+        run: npm run selftest
+      - name: Tests
+        run: npm test
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the image
+        run: docker build -t gavel:ci auction-scanner
+      - name: Start it and wait for /healthz
+        run: |
+          docker run -d --name gavel -e GAVEL_PIN=135790 -p 127.0.0.1:8790:8790 gavel:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8790/healthz; then echo; exit 0; fi
+            sleep 1
+          done
+          docker logs gavel
+          exit 1
