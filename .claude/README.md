@@ -12,6 +12,7 @@ nothing under `.claude/` is built, served, or linted.
 | motion-design | github.com/lottiefiles/motion-design-skill | f9a8a04 | MIT |
 | cast, paint, genjutsu/_jutsu/* | github.com/AThevon/genjutsu | 94a260a | MIT |
 | watch | github.com/bradautomates/claude-video (`skills/watch`) | 83da59f | MIT |
+| see-video | "Claude's Eyes" guide (supplied by the owner as a .docx), script and SKILL.md transcribed with two marked fixes | guide @ 2026-09-28 | none stated |
 | caveman | github.com/JuliusBrussee/caveman (`skills/caveman`) | 15581d1 | MIT (the skill; that repo's engine and Go binaries are BSL-1.1 and are not included) |
 | ui-ux-pro-max, design, design-system, brand, banner-design, slides | github.com/nextlevelbuilder/ui-ux-pro-max-skill (`.claude/skills/*`) | 7f69fed | MIT |
 | last30days | github.com/mvanhorn/last30days-skill (`skills/last30days`) | ac0ed3b | MIT |
@@ -49,6 +50,18 @@ their answers side by side. `scripts/compare.mjs` is zero-dependency Node 18+.
 It uses OpenRouter with `OPENROUTER_API_KEY` from your shell, or a local
 OpenAI-compatible server (Ollama, LM Studio) through `--base`, which needs no
 key. Every hosted call is billed by the provider.
+
+`see-video` watches long videos cheaply. It samples one frame every few
+seconds and tiles them sixteen to an image, each labelled `mm:ss`, so a
+30-minute video fits in about 23 images instead of hundreds of frames. It
+needs `ffmpeg`, `yt-dlp` for URLs, and Python `pillow`, and has no audio
+transcription of its own. Two changes from the guide are marked `# local:`
+in `see_video.py`. The guide's `-r 1/N` frame pass emits the opening frame
+twice on ffmpeg 6, so every label after 00:00 ran one interval late; frames
+are now taken by seeking to each timestamp, and a burned-in-clock test clip
+matched every label to the millisecond. The timestamp font also falls back
+to DejaVu or Liberation on Linux instead of Pillow's tiny bitmap font. Use
+`/watch` for short clips, exact moments, or captionless audio.
 
 `/caveman` switches Claude to a terse output style for the session (`/caveman
 off` restores normal). Only the skill itself is vendored; the upstream repo's
@@ -94,7 +107,7 @@ a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
 It is instructions plus two reference files; no scripts, no network.
 
 Every installed skill's name and description is loaded into **every** session
-before you type. This repository now carries 108 skills at roughly 11,400
+before you type. This repository now carries 109 skills at roughly 11,500
 tokens of always-on context, up from 48 at ~4,000 before any of this. That
 budget is why the cybersecurity pack is installed at 16 skills of its 818
 (the full pack costs ~108,000 tokens per session) and why the 166-skill

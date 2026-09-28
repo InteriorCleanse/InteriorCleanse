@@ -351,3 +351,40 @@ vendored from upstream:
 - **The Public APIs directory** (`public-apis/public-apis`) is a list of
   links, not a skill. The skill points at it; nothing was cloned.
 
+---
+
+## Added later: see-video, and what cloud sessions need
+
+Two owner-supplied guides, applied on 2026-09-28.
+
+**"Claude's Eyes" became the `see-video` skill.** It turns a video into
+contact sheets: one frame every few seconds, sixteen to an image, each
+stamped `mm:ss`. That makes a long video affordable to read, where `/watch`
+suits short clips and exact moments. The guide's script labelled every frame
+after the first one interval late, so a 30-second moment was reported at
+35 seconds. It now seeks to each timestamp instead, verified against a test
+clip with a burned-in clock. Details and provenance are in
+`.claude/README.md`. The description adds roughly 110 tokens to every
+session.
+
+**The cloud-sessions guide changes where skills must live.** A cloud session
+clones the repository into a fresh machine and keeps nothing else. Skills in
+`~/.claude/skills/`, keys in `~/.config/`, and tools installed by hand on a
+laptop are all absent. Everything here is vendored into `.claude/skills/`
+for that reason, and `see-video` went in the same way rather than into the
+home folder the guide suggests.
+
+Three things only the owner can set, in the cloud environment's settings:
+
+- **Network access.** The default policy allows package registries and a
+  short list of sites. Instagram, TikTok, and most video hosts return a
+  proxy `403`, so neither video skill can download from them. Add the hosts
+  to the allowed domains, or pick a broader access level.
+- **`/watch` first-run setup.** It stores a setup marker in
+  `~/.config/watch/.env`, which a cloud session loses, so each new session
+  would stop at its setup questions. It reads the environment first, so the
+  environment variables `SETUP_COMPLETE=true` and `WATCH_DETAIL=balanced`
+  skip that for good.
+- **Whisper transcription.** Set `GROQ_API_KEY` or `OPENAI_API_KEY` as an
+  environment variable there if captionless videos should be transcribed.
+  Never commit it.

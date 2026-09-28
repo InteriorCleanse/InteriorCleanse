@@ -20,3 +20,6 @@ __pycache__/
 
 # Graphify knowledge graph output (regenerate with: graphify .)
 graphify-out/
+
+# see-video skill output (downloaded videos, frames, contact sheets)
+eyes_out/
