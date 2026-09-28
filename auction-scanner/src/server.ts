@@ -1014,6 +1014,17 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     const nonce = newNonce()
     try {
       const url = new URL(req.url ?? '/', 'http://local')
+      if (url.pathname === '/share' && req.method === 'GET') {
+        // Android's share sheet (the manifest's share_target): a lot shared from an auction's app
+        // opens the Import screen with the link and whatever text came with it.
+        const q = url.searchParams
+        const text = `${q.get('title') ?? ''}\n${q.get('text') ?? ''}`.trim().slice(0, 4000)
+        const link = q.get('url') || /https?:\/\/\S+/.exec(text)?.[0] || ''
+        const payload = encodeURIComponent(JSON.stringify({ u: /^https?:\/\//i.test(link) ? link.slice(0, 500) : '', t: text }))
+        res.writeHead(302, { location: `/#import/${payload}`, 'cache-control': 'no-store' })
+        res.end()
+        return
+      }
       if (url.pathname === '/healthz') {
         // For the host's health check: says the process answers, nothing more.
         res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' })

@@ -18,7 +18,9 @@ import * as importer from './import.js'
 import * as connect from './connect.js'
 
 const SCREENS = { home, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup, import: importer, connect }
-const ctx = { me: null, feedKind: null }
+const ctx = { me: null, feedKind: null, installPrompt: null }
+// Chrome and Edge offer an install prompt once per load; keep it for the button in Settings.
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); ctx.installPrompt = e })
 
 function route() {
   const raw = location.hash.replace(/^#/, '') || 'home'
@@ -112,6 +114,8 @@ async function boot() {
   route()
   pollAlerts()
   setInterval(pollAlerts, 60_000)
+  // Installable on a phone's home screen; the worker only shows an offline notice.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
 }
 
 boot()

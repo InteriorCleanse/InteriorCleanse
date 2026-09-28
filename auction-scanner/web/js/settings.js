@@ -32,8 +32,11 @@ export async function render(el, ctx) {
     <div class="panel"><h2>Live bidding</h2><p><span class="pill ${me.liveBidding ? 'wait' : ''}">${me.liveBidding ? 'Switch is on' : 'Off'}</span></p><p>Every bid in Gavel is a <b>PAPER</b> bid unless two things are true at once: the switch <code>GAVEL_LIVE_BIDDING=1</code> is set on the server, and the listing's source can take a bid by API. No connected source can today: eBay's public API is read-only and the other houses publish no API. So the Bid button prepares your number and opens the lot on the auction's own site.</p></div>
     <div class="panel"><h2>AI explainer</h2><p><span class="pill ${me.ai && me.ai.available ? 'go' : ''}">${me.ai && me.ai.available ? 'On' : 'Off'}</span> ${esc(me.ai ? me.ai.reason : '')}</p></div>
     <div class="panel"><h2>Decode a VIN</h2><p class="dim">Free, from the US government's vehicle database. It tells you what the factory built, not the car's history.</p><form id="v-form" class="row"><input type="text" name="vin" maxlength="17" placeholder="17 characters" style="flex:1;min-width:220px;font-family:var(--mono)" aria-label="VIN" /><button class="btn outline" type="submit">Decode</button></form><div id="v-out"></div></div>
+    <div class="panel"><h2>Gavel on your phone</h2><p class="dim" style="font-size:14px">Put Gavel on your home screen and it opens like an app, full screen.</p>
+      <p id="i-btn-row" hidden><button class="btn" type="button" id="i-btn">Install Gavel</button></p>
+      <ul class="fire-steps"><li><b>iPhone:</b> open Gavel in Safari, tap the Share button, then <b>Add to Home Screen</b>.</li><li><b>Android:</b> open Gavel in Chrome, tap the menu (three dots), then <b>Install app</b>. After that, Gavel is in Android's <b>Share</b> list: share a lot page to it and it opens on Import.</li></ul></div>
     <div class="panel"><h2>Alerts on this device</h2><p class="dim" style="font-size:14px">Get a browser notification when the Sniper finds a pick or fires a paper bid, while Gavel is open in a tab.</p><div class="row"><button class="btn outline" type="button" id="n-on">Turn on alerts</button><span class="dim" id="n-state"></span></div></div>
-    <div class="panel"><h2>Backup</h2><p class="dim" style="font-size:14px">Your watchlist, paper bids, Sniper targets, alerts, settings and garage in one file. Keep a copy; restore it here or on another install.</p><div class="row"><a class="btn outline" href="/api/backup" download>Download a backup</a><label class="btn outline" style="cursor:pointer">Restore from a file<input type="file" id="b-file" accept="application/json,.json" hidden /></label></div></div>
+    <div class="panel"><h2>Backup</h2><p class="dim" style="font-size:14px">Your watchlist, paper bids, Sniper targets, alerts, settings, garage, imported lots and sold prices in one file. Keep a copy; restore it here or on another install.</p><div class="row"><a class="btn outline" href="/api/backup" download>Download a backup</a><label class="btn outline" style="cursor:pointer">Restore from a file<input type="file" id="b-file" accept="application/json,.json" hidden /></label></div></div>
     <div class="panel"><h2>Account</h2><p>${esc(me.email)} · ${esc(me.role)}${me.dataDir ? `<br /><span class="mono dim">Data: ${esc(me.dataDir)}</span>` : ''}</p></div>`
 
   el.querySelector('#s-form').addEventListener('submit', async (e) => {
@@ -60,6 +63,15 @@ export async function render(el, ctx) {
   const nState = el.querySelector('#n-state')
   const showN = () => { nState.textContent = !('Notification' in window) ? 'This browser does not support notifications.' : Notification.permission === 'granted' ? 'On for this device.' : Notification.permission === 'denied' ? 'Blocked in the browser settings for this site.' : 'Off.' }
   showN()
+  if (ctx.installPrompt && !matchMedia('(display-mode: standalone)').matches) {
+    el.querySelector('#i-btn-row').hidden = false
+    el.querySelector('#i-btn').addEventListener('click', async () => {
+      const p = ctx.installPrompt
+      ctx.installPrompt = null
+      el.querySelector('#i-btn-row').hidden = true
+      await p.prompt()
+    })
+  }
   el.querySelector('#n-on').addEventListener('click', async () => { if ('Notification' in window) { await Notification.requestPermission(); showN() } })
   el.querySelector('#b-file').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0]

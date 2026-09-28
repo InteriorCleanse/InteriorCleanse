@@ -36,6 +36,9 @@ state, your budget, the makes you like) and starts your first Sniper target.
   Trailer or Cars & Bids page. Or paste the lot, or upload a CSV export.
   Click it on a **sold** result too: Gavel keeps sold prices apart and uses
   them first in every estimate for that car.
+- **On your phone.** Gavel installs to the home screen like an app (Settings
+  shows how). On Android it joins the Share list, so a lot page shared to it
+  opens on Import. With no connection it says so plainly.
 - **Connect.** The go-live guide with a live tick next to every source, the
   AI, hosting and payments.
 - **Garage.** The business ledger: every car you actually bought, every cost

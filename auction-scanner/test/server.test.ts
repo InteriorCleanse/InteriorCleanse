@@ -50,6 +50,24 @@ test('/healthz answers ok without a session and says nothing else', async () => 
   assert.equal(r.body, 'ok')
 })
 
+test('/share turns an Android share into the Import screen, link and text carried in the hash', async () => {
+  const r = await api('/share?title=' + encodeURIComponent('2019 Porsche 911') + '&text=' + encodeURIComponent('Look at this https://www.copart.com/lot/123'), { asMember: '' })
+  assert.equal(r.status, 302)
+  const loc = r.headers.get('location') ?? ''
+  assert.match(loc, /^\/#import\//)
+  const d = JSON.parse(decodeURIComponent(loc.slice('/#import/'.length)))
+  assert.equal(d.u, 'https://www.copart.com/lot/123', 'the link is found inside the shared text')
+  assert.match(d.t, /2019 Porsche 911/)
+  const evil = await api('/share?url=' + encodeURIComponent('javascript:alert(1)'), { asMember: '' })
+  assert.equal(JSON.parse(decodeURIComponent((evil.headers.get('location') ?? '').slice('/#import/'.length))).u, '', 'only http(s) links are carried')
+  const manifest = await api('/manifest.json', { asMember: '' })
+  assert.equal(manifest.status, 200)
+  assert.equal(manifest.body.share_target.action, '/share')
+  for (const icon of manifest.body.icons) assert.equal((await api(icon.src, { asMember: '' })).status, 200, icon.src)
+  assert.equal((await api('/sw.js', { asMember: '' })).status, 200)
+  assert.equal((await api('/offline.html', { asMember: '' })).status, 200)
+})
+
 test('the login throttle keys on the proxy-supplied address only when GAVEL_TRUST_PROXY=1', () => {
   const req = { headers: { 'x-forwarded-for': '198.51.100.7, 203.0.113.9' }, socket: { remoteAddress: '127.0.0.1' } } as unknown as Parameters<typeof clientKey>[0]
   process.env.GAVEL_TRUST_PROXY = ''

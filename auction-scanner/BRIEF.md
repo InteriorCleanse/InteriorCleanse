@@ -195,6 +195,7 @@ POST /api/import/csv           {csv, source?, sold?} → {added, sold, skipped, 
 GET  /api/imports              → Listing[]          DELETE /api/imports/:id
 GET  /api/sold                 → Listing[]          DELETE /api/sold/:id
 GET  /healthz                  → "ok" (no session; for the host's health check)
+GET  /share?title&text&url     → 302 to /#import/<payload> (the manifest's Android share target)
 GET  /api/connect              → {items:[{id, group, name, done, unlocks, cost, steps[], env[], link?}], done, total} (booleans only, never a secret)
 Every route after sign-in reads and writes only the signed-in member's files.
 GET  /api/admin/members        owner only → Member[] (codes never echoed in full; show last 4)

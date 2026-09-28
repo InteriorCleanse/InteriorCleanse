@@ -168,7 +168,11 @@ export async function render(el, ctx, [payload]) {
     try {
       const d = JSON.parse(payload)
       history.replaceState(null, '', '#import')
-      if (d && typeof d.t === 'string') { el.querySelector('#p-form textarea').value = d.t.slice(0, 15000); el.querySelector('#p-form input[name=url]').value = typeof d.u === 'string' ? d.u : ''; read(d.t, typeof d.u === 'string' ? d.u : '') }
+      const u = d && typeof d.u === 'string' ? d.u : ''
+      const t = d && typeof d.t === 'string' ? d.t.slice(0, 15000) : ''
+      el.querySelector('#p-form input[name=url]').value = u
+      if (t.trim()) { el.querySelector('#p-form textarea').value = t; read(t, u) }
+      else if (u) { showForm({ url: u }, [], [], false); toast('Only the link came through. Fill in what the lot page says.') }
     } catch { toast('That button click did not carry a readable page. Paste the lot text instead.', 'hot') }
   }
 }
