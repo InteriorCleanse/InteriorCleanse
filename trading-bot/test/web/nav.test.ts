@@ -107,3 +107,28 @@ test('the test suite is inside the typecheck, not outside it', () => {
     `tsc only looks at ${cfg.include!.join(', ')} — the tests would not be typechecked`,
   )
 })
+
+test('every page has a one-line description for the More panel and the Home launcher', () => {
+  const block = html.slice(html.indexOf('const PAGE_DESC = {'), html.indexOf('const TAB = '))
+  const described = new Set([...block.matchAll(/\b([a-z]+):'/g)].map((m) => m[1]))
+  const missing = tabIds().filter((id) => !described.has(id))
+  assert.deepEqual(missing, [], `pages without a description: ${missing.join(', ')}`)
+  assert.match(html, /id="home-go"/, 'Home carries the launcher')
+})
+
+test('tab code loaded as a module never misses its first open (the empty-Home bug)', () => {
+  // Settings can arrive before the js/*.js modules have run; a loader looked up
+  // at that moment was undefined and Home stayed on its intro paragraph forever.
+  const direct = [...html.matchAll(/if \(id === '[a-z]+' && window\.(\w+)\) window\.\1\(\)/g)].map((m) => m[1])
+  assert.deepEqual(direct, [], `loaders called without waiting for the modules: ${direct.join(', ')}`)
+  assert.match(html, /function whenReady\(fn\)/)
+  assert.match(html, /if \(id === 'desk'\) whenReady\(/)
+})
+
+test('the bright Daylight look is the default, and the dark rooms stay one tap away', () => {
+  const theme = readFileSync(join(ROOT, 'web', 'js', 'theme.js'), 'utf8')
+  assert.match(theme, /return THEMES\[t\] \? t : 'daylight'/)
+  for (const t of ['daylight', 'midnight', 'plum', 'slate', 'onyx']) assert.match(theme, new RegExp(`${t}: '#`), `theme ${t} is offered`)
+  const css = readFileSync(join(ROOT, 'web', 'css', 'app.css'), 'utf8')
+  assert.match(css, /html\[data-theme="daylight"\] \{[^}]*color-scheme:light/)
+})
