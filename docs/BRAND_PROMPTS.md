@@ -195,3 +195,14 @@ so the object appears to sit on the card rather than in a photo.
 `image_to_3d` with `should_texture: true` turns a packshot into a textured
 GLB (30 credits). Set the result's URL as the record's `modelUrl`; the
 product page's stage loads it, frames it, and lets it turn. Grids never do.
+
+Scanned models exist for the candle, mug, tote, and hoodie.
+
+Books and the art print are not scanned. Their shapes are simple enough to
+build exactly, so `components/3d/ObjectStage.tsx` does it in the browser
+from the real artwork: a paperback with the book's own cover, a spine in its
+`spineColor` (from `content/books.json`) with the title set on it, and a
+page block; or one sheet of paper faced with the print file. A new print
+gets its web-sized artwork in `public/products/prints/` and one line in
+`lib/stage-surfaces.ts`. A new book needs nothing beyond its record. No
+credits are spent, and the model can never drift from what ships.

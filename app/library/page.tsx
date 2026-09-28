@@ -38,14 +38,14 @@ export default function Library() {
       ) : null}
 
       {healthBooks.length > 0 ? (
-        <section className="section" style={{ background: '#0D1B2A' }}>
+        <section className="section" style={{ background: 'var(--body-bg)' }}>
           <div className="section-inner">
             <div className="section-header">
-              <p className="eyebrow" style={{ color: '#60A5FA' }}>
+              <p className="eyebrow" style={{ color: 'var(--body-accent)' }}>
                 Mind &amp; body — health reads
               </p>
               <h2 className="gsap-headline">
-                Books for a <em style={{ color: '#60A5FA' }}>healthier life.</em>
+                Books for a <em style={{ color: 'var(--body-accent)' }}>healthier life.</em>
               </h2>
             </div>
             <div className="book-grid gsap-stagger" style={{ marginTop: 0 }}>

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ProductExperience } from '@/components/product/ProductExperience'
 import { ProductImage } from '@/components/product/ProductImage'
 import type { Article, Book, Product, SpiritBook } from '@/lib/types'
+import { amazonListing } from '@/lib/amazon'
 
 /** A channel URL is only real once the owner has replaced the TODO marker. */
 export const validUrl = (url?: string) => Boolean(url && url !== 'TODO')
@@ -33,6 +34,28 @@ export function ProductCard({
   )
 }
 
+function BookBuyLinks({ book }: { book: Book }) {
+  const paperback = amazonListing(book.paperbackUrl)
+  const kindle = amazonListing(book.kindleUrl)
+  if (!paperback && !kindle) {
+    return <p className="book-buy-soon">Coming to Amazon</p>
+  }
+  return (
+    <div className="book-buy-buttons">
+      {paperback ? (
+        <a href={paperback} target="_blank" rel="noreferrer" className="book-buy-btn">
+          Paperback ↗
+        </a>
+      ) : null}
+      {kindle ? (
+        <a href={kindle} target="_blank" rel="noreferrer" className="book-buy-btn">
+          Kindle ↗
+        </a>
+      ) : null}
+    </div>
+  )
+}
+
 export function BookCard({ book }: { book: Book }) {
   return (
     <article className="book-card" data-cursor-label="Read">
@@ -45,24 +68,7 @@ export function BookCard({ book }: { book: Book }) {
           <Link href={`/library/${book.slug}/`}>{book.title}</Link>
         </h3>
         <p className="book-card-hook">{book.hook}</p>
-        <div className="book-buy-buttons">
-          <a
-            href={book.paperbackUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="book-buy-btn"
-          >
-            Paperback ↗
-          </a>
-          <a
-            href={book.kindleUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="book-buy-btn"
-          >
-            Kindle ↗
-          </a>
-        </div>
+        <BookBuyLinks book={book} />
       </div>
     </article>
   )

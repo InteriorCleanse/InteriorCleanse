@@ -15,7 +15,8 @@
     ],
     "paperbackUrl": "https://www.amazon.com/",
     "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
-    "featured": true
+    "featured": true,
+    "spineColor": "#3F6A4C"
   },
   {
     "slug": "small-home-reset",
@@ -33,7 +34,8 @@
     ],
     "paperbackUrl": "https://www.amazon.com/",
     "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
-    "featured": true
+    "featured": true,
+    "spineColor": "#2B4C7E"
   },
   {
     "slug": "edited-kitchen",
@@ -51,7 +53,8 @@
     ],
     "paperbackUrl": "https://www.amazon.com/",
     "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
-    "featured": true
+    "featured": true,
+    "spineColor": "#A4593A"
   },
   {
     "slug": "the-rested-body",
@@ -60,7 +63,7 @@
     "track": "health",
     "coverImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_07cfd994-ee04-4e8f-a21e-0f7a8dfe1b76.png",
     "imageAlt": "Illustrated front cover of The Rested Body",
-    "hook": "How the design of a bedroom shapes the quality of a night \u2014 light, texture, temperature, and the small rituals that close a day.",
+    "hook": "How the design of a bedroom shapes the quality of a night — light, texture, temperature, and the small rituals that close a day.",
     "bullets": [
       "Evening light and why the last hour matters most",
       "Bedding materials that regulate rather than trap",
@@ -69,7 +72,8 @@
     ],
     "paperbackUrl": "https://www.amazon.com/",
     "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
-    "featured": false
+    "featured": false,
+    "spineColor": "#5A3F72"
   },
   {
     "slug": "clean-air-clean-home",
@@ -78,7 +82,7 @@
     "track": "health",
     "coverImage": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260926_224049_af91161b-d55f-4242-9199-11acaffd4617.png",
     "imageAlt": "Illustrated front cover of Clean Air, Clean Home",
-    "hook": "A plain-English look at indoor air \u2014 ventilation, filtration, fragrance, and the cleaning products worth reconsidering.",
+    "hook": "A plain-English look at indoor air — ventilation, filtration, fragrance, and the cleaning products worth reconsidering.",
     "bullets": [
       "What actually improves indoor air, in order of impact",
       "Choosing and maintaining a filter that works",
@@ -87,6 +91,7 @@
     ],
     "paperbackUrl": "https://www.amazon.com/",
     "kindleUrl": "https://www.amazon.com/kindle-dbs/storefront",
-    "featured": false
+    "featured": false,
+    "spineColor": "#2E5E58"
   }
 ]
