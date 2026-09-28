@@ -3,7 +3,7 @@
   "version": "2.3.0",
   "private": true,
   "type": "module",
-  "description": "Mr. Cash \u2014 a paper-trading bot built on the ICT session model that explains every decision and learns from its own mistakes. No real money, ever.",
+  "description": "Trading Bot \u2014 a paper-trading bot built on the ICT session model that explains every decision and learns from its own mistakes. No real money, ever.",
   "engines": {
     "node": ">=22.18"
   },

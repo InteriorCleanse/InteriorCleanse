@@ -35,7 +35,7 @@ export type BigMoneySnapshot = {
   note: string
 }
 
-const NOTE = 'Public disclosures, delayed by law: congress up to 45 days, insiders about two business days, off-exchange volume a day or more. They show what was done, not what will happen, and Mr. Cash does not trade on them.'
+const NOTE = 'Public disclosures, delayed by law: congress up to 45 days, insiders about two business days, off-exchange volume a day or more. They show what was done, not what will happen, and Trading Bot does not trade on them.'
 
 export function tickersFromEnv(spec = process.env.MRCASH_BIGMONEY_TICKERS || DEFAULT_TICKERS): string[] {
   return [...new Set(spec.split(',').map((s) => s.trim().toUpperCase()).filter((s) => /^[A-Z][A-Z0-9.\-]{0,9}$/.test(s)))].slice(0, 25)

@@ -6,7 +6,7 @@
  *
  * The classic Information Coefficient is a CROSS-SECTIONAL factor metric: you
  * score every asset in a universe each period, then correlate those scores with
- * the forward returns across assets. Mr. Cash is none of that. It trades ONE
+ * the forward returns across assets. Trading Bot is none of that. It trades ONE
  * symbol, event-driven, emitting a handful of discrete setups rather than a
  * continuous score on every bar. Correlating "signal value" against "subsequent
  * return" over bars would be a correlation over a series that is null on ~99% of

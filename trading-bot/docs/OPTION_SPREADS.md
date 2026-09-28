@@ -37,7 +37,7 @@ ticket** puts a plain-text summary of the multi-leg order on your clipboard.
 
 - **It places nothing and sends nothing.** `web/js/spread-math.js` and
   `web/js/spreads.js` make no network calls, and a test enforces this.
-  **Mr. Cash does not trade options.** The engine's strategies, risk, fills and
+  **Trading Bot does not trade options.** The engine's strategies, risk, fills and
   validation are built for crypto, and changing that needs its own research
   and paper validation (see `CLAUDE.md`).
 - **Every number is at expiry.** Time value, implied volatility and the odds

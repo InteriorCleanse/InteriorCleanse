@@ -1,7 +1,7 @@
 # Tickers: stocks, index futures, commodities and rates
 
 The **Tickers** tab (More → Markets → Tickers) collects what to know about
-eleven instruments before you trade them yourself. Mr. Cash does not trade
+eleven instruments before you trade them yourself. Trading Bot does not trade
 any of them.
 
 | Group | Tickers |

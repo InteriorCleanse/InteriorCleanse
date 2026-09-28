@@ -1,5 +1,5 @@
 /**
- * The playbook: every strategy Mr. Cash knows, and how to run them all over
+ * The playbook: every strategy Trading Bot knows, and how to run them all over
  * one candle. The session model is first because it is the one that trades;
  * the rest are read-only opinions for now.
  */

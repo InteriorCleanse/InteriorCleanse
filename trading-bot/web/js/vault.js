@@ -74,7 +74,7 @@ function wheelSvg() {
 function ringText() {
   return `<svg class="vx-ring-svg" viewBox="0 0 400 400" aria-hidden="true">
     <defs><path id="vxRingPath" d="M200,200 m-176,0 a176,176 0 1,1 352,0 a176,176 0 1,1 -352,0"/></defs>
-    <text><textPath href="#vxRingPath" startOffset="0">MR. CASH · PRIVATE RESERVE · TIME-LOCKED · TWO-KEY ENTRY · MR. CASH · PRIVATE RESERVE · TIME-LOCKED · TWO-KEY ENTRY ·</textPath></text>
+    <text><textPath href="#vxRingPath" startOffset="0">TRADING BOT · PRIVATE RESERVE · TIME-LOCKED · TWO-KEY ENTRY · TRADING BOT · PRIVATE RESERVE · TIME-LOCKED · TWO-KEY ENTRY ·</textPath></text>
   </svg>`
 }
 
@@ -96,7 +96,7 @@ function door() {
         <div class="vx-wheel">${wheelSvg()}</div>
         <div class="vx-dial">${dialSvg()}</div>
         <i class="vx-pointer"></i>
-        <div class="vx-plate"><b>Mr. Cash</b><span>Private vault</span></div>
+        <div class="vx-plate"><b>Trading Bot</b><span>Private vault</span></div>
       </div>
     </div>
     <i class="vx-hinge h1" aria-hidden="true"></i><i class="vx-hinge h2" aria-hidden="true"></i>
@@ -109,12 +109,12 @@ function lockPanel(msg) {
     return `<div class="vx-panel">
       <div class="vx-kicker">Two-key entry</div>
       <h2>Your vault is not set up yet</h2>
-      <p>The vault opens only with a passcode you choose <em>and</em> a six-digit code from an authenticator app on your phone. Set it up once, on the computer that runs Mr. Cash:</p>
+      <p>The vault opens only with a passcode you choose <em>and</em> a six-digit code from an authenticator app on your phone. Set it up once, on the computer that runs Trading Bot:</p>
       <ol class="vx-steps">
         <li>Run <code>npm run vault:setup</code>. It prints a setup key.</li>
         <li>Add that key to your authenticator app (Google Authenticator, 1Password, Authy…).</li>
         <li>Put the two lines it shows into <code>.env</code>, choosing your passcode.</li>
-        <li>Restart Mr. Cash. From then on your real balances live only in here.</li>
+        <li>Restart Trading Bot. From then on your real balances live only in here.</li>
       </ol>
       <p class="vx-fine">Neither secret ever leaves that computer: not the repo, not a log, not this page.</p>
     </div>`
@@ -158,7 +158,7 @@ function balances(d) {
     <div class="vx-accts">
       ${acctCard('Alpaca', a && a.connected ? `${a.mode === 'LIVE' ? 'live account' : 'Alpaca paper account'} · read-only` : 'not linked', alpacaBody, a && a.connected ? '' : 'off', 'alpaca')}
       ${acctCard('Kraken', k && k.connected ? 'live account · read-only' : 'not linked', krakenBody, k && k.connected ? '' : 'off', 'kraken')}
-      ${acctCard('Mr. Cash paper account', 'PAPER · simulated, no real money', `<div class="vx-big">${usd(p.equityUsd)}</div><dl><dt>Started with</dt><dd>${usd(p.startUsd)}</dd><dt>Closed trades</dt><dd>${p.trades}</dd><dt>Open now</dt><dd>${p.open}</dd></dl>`, 'paper', 'paper')}
+      ${acctCard('Trading Bot paper account', 'PAPER · simulated, no real money', `<div class="vx-big">${usd(p.equityUsd)}</div><dl><dt>Started with</dt><dd>${usd(p.startUsd)}</dd><dt>Closed trades</dt><dd>${p.trades}</dd><dt>Open now</dt><dd>${p.open}</dd></dl>`, 'paper', 'paper')}
     </div>
     <div class="vx-actions"><button class="btn ghost" id="vx-lock" type="button">Lock the vault</button></div>
     <p class="vx-fine">Balances are read with read-only keys. Nothing in the vault can move money or place an order.</p>

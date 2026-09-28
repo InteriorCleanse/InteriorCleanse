@@ -73,7 +73,7 @@ does not repeat it. One idea per market per New York day.
 
 ## What it does not do
 
-- No orders, no broker, no second execution path. Mr. Cash's own trading is
+- No orders, no broker, no second execution path. Trading Bot's own trading is
   untouched; the desk only reads the market watch, the news and big money.
 - No invented causes. A move without two outlets stays unconfirmed.
 - No profitability claims. The scorecard counts direction only, labelled with

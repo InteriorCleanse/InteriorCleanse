@@ -46,7 +46,7 @@ function quantLab() {
   ]
   return `<div class="card"><h2>Quant lab <span class="muted">— the four research tools</span></h2>
     <div class="rs-lab">${rows.map(([id, title, what, on]) => `<div class="rs-lab-item"><b>${esc(title)}</b><div class="muted">${esc(what)}</div><div class="rs-lab-foot"><span class="muted">runs on: ${esc(on)}</span><button class="chip" data-labview="${id}">Open</button></div></div>`).join('')}
-      <div class="rs-lab-item"><b>Prediction-market arithmetic</b><div class="muted">YES + NO under one dollar, costs, cross-venue divergence and Kelly sizing, taught with SIMULATED numbers. Mr. Cash is not connected to any prediction market and does not trade them.</div><div class="rs-lab-foot"><span class="muted">runs on: worked examples</span><button class="chip" data-tab="school">School → Other markets</button></div></div>
+      <div class="rs-lab-item"><b>Prediction-market arithmetic</b><div class="muted">YES + NO under one dollar, costs, cross-venue divergence and Kelly sizing, taught with SIMULATED numbers. Trading Bot is not connected to any prediction market and does not trade them.</div><div class="rs-lab-foot"><span class="muted">runs on: worked examples</span><button class="chip" data-tab="school">School → Other markets</button></div></div>
     </div>
     <div class="plain">Research reads the record and writes proposals. A proposal that passes its gates still needs a human; nothing here reaches the engine.</div></div>`
 }

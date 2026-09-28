@@ -1,9 +1,9 @@
 ---
 name: mr-cash-market-read
-description: Give Mr. Cash's market read in the fixed five-section format (market read → what confirms → what invalidates → current decision → why not yet), straight from the engine. Use when the user asks "what's the read", "what does the bot think right now", or wants the house view. Paper only; it explains a decision, it never places one.
+description: Give Trading Bot's market read in the fixed five-section format (market read → what confirms → what invalidates → current decision → why not yet), straight from the engine. Use when the user asks "what's the read", "what does the bot think right now", or wants the house view. Paper only; it explains a decision, it never places one.
 ---
 
-# Mr. Cash — the market read
+# Trading Bot — the market read
 
 1. The read comes from the engine, not from guesswork: the feature snapshot, the fused strategy decision, and the risk verdict. Get it from `GET /api/narrate` (the app's **Market read** button on the Today tab), or describe it from `npm run scan`.
 2. Answer in EXACTLY these five sections, in order, each under a `## ` header:

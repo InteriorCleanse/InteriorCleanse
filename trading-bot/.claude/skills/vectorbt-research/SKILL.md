@@ -1,13 +1,13 @@
 ---
 name: vectorbt-research
-description: Backtest research on Mr. Cash's recorded candles with vectorbt (Python), in the isolated research/ folder. Use when the user asks to sweep parameters, test an idea on history, run a vectorbt backtest, or types /vectorbt-research. Research only; it never changes how Mr. Cash trades.
+description: Backtest research on Trading Bot's recorded candles with vectorbt (Python), in the isolated research/ folder. Use when the user asks to sweep parameters, test an idea on history, run a vectorbt backtest, or types /vectorbt-research. Research only; it never changes how Trading Bot trades.
 ---
 
 # vectorbt research (BACKTEST only)
 
 vectorbt (github.com/polakowo/vectorbt, Apache 2.0 with Commons Clause) runs
 thousands of backtests at once on NumPy arrays. Here it is a research bench
-next to the bot, not part of it: nothing in `src/` imports it, and Mr. Cash
+next to the bot, not part of it: nothing in `src/` imports it, and Trading Bot
 keeps zero runtime dependencies.
 
 ## Setup (once)
@@ -50,6 +50,6 @@ error; do not paper over it.
   `trading-bot/CLAUDE.md`). Offer to write it up as a hypothesis for the
   Research tab instead.
 - The moving-average crossover in `vbt_sweep.py` is a textbook example of the
-  method, not Mr. Cash's strategy.
+  method, not Trading Bot's strategy.
 - Never point it at a live broker. vectorbt's Telegram and data-download
   helpers are not used here.

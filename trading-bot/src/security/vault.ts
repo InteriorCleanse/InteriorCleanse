@@ -6,7 +6,7 @@
  * only with BOTH a passcode and a six-digit code from an authenticator app
  * (TOTP, RFC 6238 — Google Authenticator, 1Password, Authy and the rest), and it
  * locks itself again after a short while. It applies to the computer running
- * Mr. Cash too; being on localhost does not skip it.
+ * Trading Bot too; being on localhost does not skip it.
  *
  * SECURITY
  * - Both secrets live only in the environment (MRCASH_VAULT_PASSCODE and
@@ -88,7 +88,7 @@ export function generateSecret(): string {
 
 /** The link an authenticator app understands; most apps also take the secret typed in. */
 export function otpauthUri(secret: string, account = 'vault'): string {
-  return `otpauth://totp/${encodeURIComponent('Mr. Cash')}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent('Mr. Cash')}&algorithm=SHA1&digits=${DIGITS}&period=${STEP_SEC}`
+  return `otpauth://totp/${encodeURIComponent('Trading Bot')}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent('Trading Bot')}&algorithm=SHA1&digits=${DIGITS}&period=${STEP_SEC}`
 }
 
 /** Loads .env once if the vault secrets are not already in the environment. */
@@ -146,7 +146,7 @@ export class VaultGate {
 
   unlock(client: string, passcode: unknown, code: unknown): UnlockResult {
     const cfg = this.config()
-    if (!cfg) return { ok: false, status: 409, reason: 'The vault is not set up yet. On the computer running Mr. Cash, run npm run vault:setup.' }
+    if (!cfg) return { ok: false, status: 409, reason: 'The vault is not set up yet. On the computer running Trading Bot, run npm run vault:setup.' }
     const allowed = this.throttle.allowed(client)
     if (!allowed.ok) return { ok: false, status: 429, reason: `Too many attempts from this device. The vault stays shut for ${Math.ceil(allowed.retryInMs / 60_000)} more minute(s).`, retryInMs: allowed.retryInMs }
     const passOk = safeEqual(String(passcode ?? ''), cfg.passcode)

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Mr. Cash",
-  "short_name": "Mr. Cash",
+  "name": "Trading Bot",
+  "short_name": "Trading Bot",
   "description": "A paper-trading desk that explains every decision. Live market data, simulated execution, no real money — ever.",
   "lang": "en",
   "dir": "ltr",

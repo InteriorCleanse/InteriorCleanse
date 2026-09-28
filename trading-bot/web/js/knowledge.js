@@ -1,5 +1,5 @@
 /**
- * KNOWLEDGE VAULT — what Mr. Cash remembers, including what did not work; the
+ * KNOWLEDGE VAULT — what Trading Bot remembers, including what did not work; the
  * living strategy passport; the daily brief, end-of-day and weekly reviews;
  * the concept graph. Draws /api/knowledge/* and nothing else.
  */
@@ -29,14 +29,14 @@ const growthBar = (g) => `<div class="sc-growth"><div class="sc-growth-bar"><div
 const labelled = (title, block, body) => `<div class="card"><h2>${esc(title)} ${pill(block.evidenceLabel)}</h2>${body}<div class="muted sc-prov">source: ${esc(block.source)}</div></div>`
 
 /**
- * Tell him something to remember: a note from you, stored as an untested
+ * Tell it something to remember: a note from you, stored as an untested
  * HYPOTHESIS with its source on it. A watch date brings it back for review on
  * that day. The vault is memory only; a note never reaches the engine.
  */
-const noteForm = `<details class="card kn-note"><summary><b>Tell him something to remember</b> <span class="muted">a date, a headline, a reel — stored untested, never traded on</span></summary>
+const noteForm = `<details class="card kn-note"><summary><b>Tell it something to remember</b> <span class="muted">a date, a headline, a reel — stored untested, never traded on</span></summary>
   <form id="kn-note" class="kn-note-form">
     <label>Title<input name="title" required maxlength="160" placeholder="e.g. Avengers: Doomsday opens Dec 18"></label>
-    <label>What he should remember<textarea name="body" required maxlength="4000" placeholder="What you heard, and what you think it could mean for the market"></textarea></label>
+    <label>What it should remember<textarea name="body" required maxlength="4000" placeholder="What you heard, and what you think it could mean for the market"></textarea></label>
     <div class="kn-note-row">
       <label>Market <span class="muted">(optional)</span><input name="market" maxlength="20" placeholder="DIS"></label>
       <label>Bring it back on <span class="muted">(optional)</span><input name="watchAt" type="date"></label>
@@ -130,7 +130,7 @@ async function renderGraph() {
   for (const n of g.nodes) (byTrack[n.track] = byTrack[n.track] || []).push(n)
   const edgesOf = (id) => g.edges.filter((e) => e.from === id)
   return `<div class="ev-note">${g.nodes.length} concepts, ${g.edges.length} edges: related concepts, the strategies that use them, and the case-study kinds that illustrate them.${g.dangling.length ? ` Dangling: ${esc(g.dangling.join(', '))}` : ''}</div>
-    ${holoGraph(graphData(g), { height: 520, caption: 'Everything Mr. Cash knows, and how it connects' })}
+    ${holoGraph(graphData(g), { height: 520, caption: 'Everything Trading Bot knows, and how it connects' })}
     <details class="vz-raw"><summary>Every concept, as a list</summary>${Object.entries(byTrack).map(([t, ns]) => `<div class="card"><h2>${esc(t)}</h2>${ns.map((n) => `<div class="kn-node"><b>${esc(n.title)}</b> <span class="muted">${esc(n.level)}</span><div class="muted">${edgesOf(n.id).map((e) => `<span class="badge">${esc(e.kind)}: ${esc(e.to)}</span>`).join(' ')}</div></div>`).join('')}</div>`).join('')}</details>`
 }
 

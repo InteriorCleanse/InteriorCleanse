@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Mr. Cash</title>
+<title>Trading Bot</title>
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
 <meta name="theme-color" content="#0B1220" />
 <meta name="color-scheme" content="dark" />
-<meta name="description" content="Mr. Cash — a paper-trading desk that explains every decision. Live market data, simulated execution, no real money." />
+<meta name="description" content="Trading Bot — a paper-trading desk that explains every decision. Live market data, simulated execution, no real money." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Mr. Cash" />
+<meta name="apple-mobile-web-app-title" content="Trading Bot" />
 <link rel="preload" href="/fonts/instrument-sans-400.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="/css/app.css" />
 <script src="/js/theme.js"></script>
@@ -20,14 +20,14 @@
 <body>
 <canvas id="bg" aria-hidden="true"></canvas>
 <header>
-  <span class="brand" title="Mr. Cash — paper trading, explained"><img class="brand-mark" src="/mr-cash.svg" width="30" height="30" alt="Mr. Cash" /><h1>Mr. Cash</h1></span>
+  <span class="brand" title="Trading Bot — paper trading, explained"><img class="brand-mark" src="/mr-cash.svg" width="30" height="30" alt="Trading Bot" /><h1>Trading Bot</h1></span>
   <span class="muted" id="market">loading…</span>
   <span id="live" class="muted" title="Where prices are coming from"><span class="dot" id="live-dot"></span><b id="live-price"></b></span>
   <button class="cd-chip hidden" id="cond-chip" data-tab="conditions" title="Market conditions: open the Conditions page"><i></i><span>Conditions</span></button>
   <span class="muted" id="clock"></span>
   <span class="spacer"></span>
   <button class="hbtn" id="btn-palette" title="Jump anywhere (Ctrl/⌘ K)">⌘K</button>
-  <button class="hbtn" id="btn-voice" title="Mr. Cash speaks alerts and answers aloud">Voice</button>
+  <button class="hbtn" id="btn-voice" title="Trading Bot speaks alerts and answers aloud">Voice</button>
   <button class="hbtn" id="btn-install" title="Install as an app">Install</button>
   <button class="hbtn" id="btn-notify" title="Get alerts as notifications">Alerts</button>
   <button class="hbtn" id="btn-vault" title="Your vault: real balances behind a passcode and a code" aria-label="Open the vault"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 7.5v2M12 14.5v2M7.5 12h2M14.5 12h2"/></svg></button>
@@ -47,7 +47,7 @@
       <button class="btn ghost" id="btn-refresh">Refresh</button>
       <span class="td-tools" role="group" aria-label="More actions">
         <button class="td-tool" id="btn-narrate" title="The market read in five sections, from the engine">Market read</button>
-        <button class="td-tool" id="btn-read" title="Mr. Cash reads the brief aloud">Read aloud</button>
+        <button class="td-tool" id="btn-read" title="Trading Bot reads the brief aloud">Read aloud</button>
         <button class="td-tool" id="btn-journal-now" title="Open the journal with this moment filled in">Journal</button>
         <button class="td-tool" id="btn-accounts" title="Your broker balances, in the vault">Accounts</button>
         <button class="td-tool" id="btn-card" title="A 1080×1350 image of today's brief">Share card</button>
@@ -92,7 +92,7 @@
         <li>Clean shows candles, volume, VWAP and the key levels; Full markup adds sessions, gaps, structure and order blocks. Scroll to zoom, drag to look back, double-click to return to the latest candle.</li>
         <li>Hover (or touch) for prices and New York time, and for what any box or label means.</li>
         <li>Session boxes span each session's high and low.</li>
-        <li>A gap turns grey when price closes through it. That's an inversion, and the retest of a grey box is the entry Mr. Cash waits for.</li>
+        <li>A gap turns grey when price closes through it. That's an inversion, and the retest of a grey box is the entry Trading Bot waits for.</li>
         <li>Filled triangles mark raids on session levels; hollow ones mark raids on swing points.</li>
         <li>Dashed boxes are order blocks (the last candle against a forceful move); a purple one has been broken and flipped into a breaker.</li>
         <li>HH/HL/LH/LL label the swings. BOS is a break that continues the trend, CHoCH the first break against it.</li>
@@ -124,7 +124,7 @@
     <div class="row td-bar">
       <button class="btn" id="btn-j-new">New entry</button>
       <button class="btn ghost" id="btn-j-prefill">From current setup</button>
-      <span class="td-tools" role="group" aria-label="More actions"><button class="td-tool" id="btn-j-ask">Ask Mr. Cash about my journal</button></span>
+      <span class="td-tools" role="group" aria-label="More actions"><button class="td-tool" id="btn-j-ask">Ask Trading Bot about my journal</button></span>
       <span class="muted" id="j-status"></span>
     </div>
     <div id="j-form" class="card hidden"></div>
@@ -134,7 +134,7 @@
   <section id="tab-tv" class="hidden">
     <div class="card" id="tv-sessions">
       <h2>Mark the sessions on your chart</h2>
-      <p class="plain" style="margin-top:0">This draws <b>Asia</b>, <b>London</b>, <b>New York AM</b> and <b>New York PM</b> on TradingView — each session's box, its high and its low, the killzones shaded, yesterday's high and low, and a triangle wherever one of those levels gets swept. The times come straight from your config, so the chart and Mr. Cash always mean the same thing by "London".</p>
+      <p class="plain" style="margin-top:0">This draws <b>Asia</b>, <b>London</b>, <b>New York AM</b> and <b>New York PM</b> on TradingView — each session's box, its high and its low, the killzones shaded, yesterday's high and low, and a triangle wherever one of those levels gets swept. The times come straight from your config, so the chart and Trading Bot always mean the same thing by "London".</p>
       <div id="tv-session-times" class="muted" style="font-size:12.5px;margin-bottom:12px"></div>
       <div class="row" style="margin-bottom:0">
         <button class="btn" id="btn-pine-copy">Copy the script</button>
@@ -145,7 +145,7 @@
       <ol style="padding-left:18px;font-size:13.5px;color:var(--dim);margin-bottom:0">
         <li>Copy the script, then in TradingView open <b>Pine Editor</b> (bottom of the chart).</li>
         <li>Paste over whatever is there, press <b>Save</b>, then <b>Add to chart</b>.</li>
-        <li>The session boxes appear straight away. Killzones are the shaded ones — the only windows Mr. Cash will enter in.</li>
+        <li>The session boxes appear straight away. Killzones are the shaded ones — the only windows Trading Bot will enter in.</li>
       </ol>
     </div>
     <div class="card" style="padding:8px"><div id="tv-container" style="height:560px"></div></div>
@@ -193,7 +193,7 @@
   <section id="tab-scanner" class="hidden">
     <div class="card">
       <h2>Chart scanner</h2>
-      <p class="plain" style="margin-top:0">Two ways to read a chart, both drawn on the chart itself. The <b>live pattern finder</b> checks every watched market's real candles with fixed rules you can verify, no AI involved. The <b>screenshot scan</b> reads any chart picture you give it with AI and marks it up. Neither is a signal, and Mr. Cash does not trade on them.</p>
+      <p class="plain" style="margin-top:0">Two ways to read a chart, both drawn on the chart itself. The <b>live pattern finder</b> checks every watched market's real candles with fixed rules you can verify, no AI involved. The <b>screenshot scan</b> reads any chart picture you give it with AI and marks it up. Neither is a signal, and Trading Bot does not trade on them.</p>
     </div>
     <div id="scanner-out"></div>
   </section>
@@ -201,7 +201,7 @@
   <section id="tab-bigmoney" class="hidden">
     <div class="card">
       <h2>Big money</h2>
-      <p class="plain" style="margin-top:0">What large and connected money has <b>disclosed</b>: trades by members of Congress, insider buying and selling from SEC Form 4 filings, and how much volume trades off the public exchanges, plus the stocks trading the most today. Every row names its source and how late it is. None of it is a signal, and Mr. Cash does not trade on it.</p>
+      <p class="plain" style="margin-top:0">What large and connected money has <b>disclosed</b>: trades by members of Congress, insider buying and selling from SEC Form 4 filings, and how much volume trades off the public exchanges, plus the stocks trading the most today. Every row names its source and how late it is. None of it is a signal, and Trading Bot does not trade on it.</p>
     </div>
     <div id="bigmoney-out"></div>
   </section>
@@ -222,7 +222,7 @@
 
   <section id="tab-playbook" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-playbook">Reload votes</button><span class="muted" id="playbook-status"></span></div>
-    <div id="playbook-out"><div class="plain">Every strategy Mr. Cash knows, each judged on its own. Only the ICT session model opens paper trades; the rest are opinions. Turn any on or off, see its vote right now, and test it in full on past prices.</div></div>
+    <div id="playbook-out"><div class="plain">Every strategy Trading Bot knows, each judged on its own. Only the ICT session model opens paper trades; the rest are opinions. Turn any on or off, see its vote right now, and test it in full on past prices.</div></div>
   </section>
 
   <section id="tab-factory" class="hidden">
@@ -263,42 +263,42 @@
 
   <section id="tab-evidence" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-evidence">Reload evidence</button><a class="btn ghost" href="/api/evidence" target="_blank" rel="noopener">Evidence (JSON)</a><span class="muted" id="evidence-status"></span></div>
-    <div class="ev-head"><div><div class="ev-title">MR. CASH — EVIDENCE &amp; ATTRIBUTION</div><div class="muted">What actually happened, where it came from, and how much data says so. PAPER and BACKTEST never share a table.</div></div><div id="evidence-source"></div></div>
+    <div class="ev-head"><div><div class="ev-title">TRADING BOT — EVIDENCE &amp; ATTRIBUTION</div><div class="muted">What actually happened, where it came from, and how much data says so. PAPER and BACKTEST never share a table.</div></div><div id="evidence-source"></div></div>
     <div class="ev-views" id="evidence-views"></div>
     <div id="evidence-out"><div class="plain">Loading the evidence…</div></div>
   </section>
 
   <section id="tab-school" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-school">Reload school</button><a class="btn ghost" href="/api/school" target="_blank" rel="noopener">School (JSON)</a><span class="muted" id="school-status"></span></div>
-    <div class="ev-head"><div><div class="ev-title">MR. CASH — MARKET SCHOOL</div><div class="muted">How this engine reads the market, taught from its own case studies and its own paper record. Nothing here is a recommendation; mastery is engagement, not skill.</div></div></div>
+    <div class="ev-head"><div><div class="ev-title">TRADING BOT — MARKET SCHOOL</div><div class="muted">How this engine reads the market, taught from its own case studies and its own paper record. Nothing here is a recommendation; mastery is engagement, not skill.</div></div></div>
     <div class="ev-views" id="school-views"></div>
     <div id="school-out"><div class="plain">Loading the school…</div></div>
   </section>
 
   <section id="tab-research" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-research">Reload lab</button><a class="btn ghost" href="/api/research" target="_blank" rel="noopener">Research (JSON)</a><span class="muted" id="research-status"></span></div>
-    <div class="ev-head"><div><div class="ev-title">MR. CASH — RESEARCH LAB</div><div class="muted">Questions the record raises, hypotheses with their statuses, the overfitting detector, the regime atlas, news-to-price diffusion, and proposals that wait for a human. The engine reads none of it.</div></div></div>
+    <div class="ev-head"><div><div class="ev-title">TRADING BOT — RESEARCH LAB</div><div class="muted">Questions the record raises, hypotheses with their statuses, the overfitting detector, the regime atlas, news-to-price diffusion, and proposals that wait for a human. The engine reads none of it.</div></div></div>
     <div class="ev-views" id="research-views"></div>
     <div id="research-out"><div class="plain">Loading the lab…</div></div>
   </section>
 
   <section id="tab-knowledge" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-knowledge">Reload vault</button><a class="btn ghost" href="/api/knowledge" target="_blank" rel="noopener">Knowledge (JSON)</a><span class="muted" id="knowledge-status"></span></div>
-    <div class="ev-head"><div><div class="ev-title">MR. CASH — KNOWLEDGE VAULT</div><div class="muted">What it remembers, including what did not work; every item versioned, with provenance, and expiring into review. The living passport, the daily brief, end of day and the weekly review.</div></div></div>
+    <div class="ev-head"><div><div class="ev-title">TRADING BOT — KNOWLEDGE VAULT</div><div class="muted">What it remembers, including what did not work; every item versioned, with provenance, and expiring into review. The living passport, the daily brief, end of day and the weekly review.</div></div></div>
     <div class="ev-views" id="knowledge-views"></div>
     <div id="knowledge-out"><div class="plain">Loading the vault…</div></div>
   </section>
 
   <section id="tab-observer" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-observer">Reload observer</button><a class="btn ghost" href="/api/ops" target="_blank" rel="noopener">Status (JSON)</a><span class="muted" id="observer-status"></span></div>
-    <div class="ev-head"><div><div class="ev-title">MR. CASH — LIVE OBSERVER &amp; RESEARCH OPS</div><div class="muted">What Mr. Cash is observing right now, explained from what was knowable; today's learning; the research queue, active experiments, findings and contradictions; what needs review; paper vs historical; champions and challengers; failure memory; what to study next; and the system status. Nothing here is a forecast or a recommendation.</div></div></div>
+    <div class="ev-head"><div><div class="ev-title">TRADING BOT — LIVE OBSERVER &amp; RESEARCH OPS</div><div class="muted">What Trading Bot is observing right now, explained from what was knowable; today's learning; the research queue, active experiments, findings and contradictions; what needs review; paper vs historical; champions and challengers; failure memory; what to study next; and the system status. Nothing here is a forecast or a recommendation.</div></div></div>
     <div class="ev-views" id="observer-views"></div>
     <div id="observer-out"><div class="plain">Loading the observer…</div></div>
   </section>
 
   <section id="tab-ops" class="hidden">
     <div class="row"><button class="btn ghost" id="btn-ops">Reload operations</button><a class="btn ghost" href="/api/ops/health" target="_blank" rel="noopener">Health (JSON)</a><a class="btn ghost" href="/api/ops/log?n=200" target="_blank" rel="noopener">Ops log (JSON)</a><span class="muted" id="ops-status"></span></div>
-    <div class="ev-head"><div><div class="ev-title">MR. CASH — OPERATIONS</div><div class="muted">Is it running, on what data, and is the record whole? PAPER means live market data with <b>SIMULATED EXECUTION</b>; MOCK means a recorded feed and no market evidence. Every mark shows its age and the threshold its status came from. Nothing here changes a strategy.</div></div></div>
+    <div class="ev-head"><div><div class="ev-title">TRADING BOT — OPERATIONS</div><div class="muted">Is it running, on what data, and is the record whole? PAPER means live market data with <b>SIMULATED EXECUTION</b>; MOCK means a recorded feed and no market evidence. Every mark shows its age and the threshold its status came from. Nothing here changes a strategy.</div></div></div>
     <div class="ev-views" id="ops-views"></div>
     <div id="ops-out"><div class="plain">Loading operations…</div></div>
   </section>
@@ -334,7 +334,7 @@
           <button class="ask-icon" id="btn-pic" title="Attach a chart screenshot" aria-label="Attach a chart screenshot"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg></button>
           <button class="btn" id="btn-ask">Ask</button>
         </div>
-        <p class="ask-foot">Attach or paste a chart screenshot and Mr. Cash breaks it down: what it sees, the levels, the gaps, an entry zone, stop and target with the reasoning, what would invalidate it, and what news to check. It says "I can't read this" rather than guess a price.</p>
+        <p class="ask-foot">Attach or paste a chart screenshot and Trading Bot breaks it down: what it sees, the levels, the gaps, an entry zone, stop and target with the reasoning, what would invalidate it, and what news to check. It says "I can't read this" rather than guess a price.</p>
       </div>
     </div>
   </section>
@@ -342,14 +342,14 @@
 <div class="tip" id="tip"></div>
 <div class="overlay hidden" id="palette-wrap"><div class="palette"><input id="palette-q" placeholder="Type to jump anywhere or do anything…  (Esc to close)"><div class="items" id="palette-items"></div></div></div>
 <div class="overlay hidden" id="tour-wrap"><div class="tour">
-  <h2>Welcome. This is Mr. Cash.</h2>
+  <h2>Welcome. This is Trading Bot.</h2>
   <div class="muted">A paper-trading partner that explains everything, prompts you when something matters, and learns as it trades. No real money, ever.</div>
   <div class="map">
     <div><b>Today</b> — the brief, the checklist, your plan, the paper account</div>
-    <div><b>Home</b> — the core: every model he runs, what each one sees, and what he decides</div>
-    <div><b>Chart</b> — what he sees: sessions, levels, gaps, sweeps</div>
+    <div><b>Home</b> — the core: every model it runs, what each one sees, and what it decides</div>
+    <div><b>Chart</b> — what it sees: sessions, levels, gaps, sweeps</div>
     <div><b>Flow</b> — where the big orders are</div>
-    <div><b>News</b> — what could move price, and when he'll stand aside</div>
+    <div><b>News</b> — what could move price, and when it'll stand aside</div>
     <div><b>Journal</b> — your habits, your leaks, your growth</div>
     <div><b>TradingView</b> — the live chart and your alerts</div>
     <div><b>Test</b> — the honest look-back over 30 days</div>
@@ -359,11 +359,11 @@
     <div><b>Strategy builder</b> — describe a strategy in plain English, read the rules and the code, and see how it did on data it never saw</div>
     <div><b>Prediction desk</b> — ten minds read Polymarket and Kalshi on paper, with the score the viral bot never showed</div>
     <div><b>Conditions</b> — is the market fit to trade? Every market, its hours, and the header chip</div>
-    <div><b>Memory</b> — what he's learned, the track record</div>
-    <div><b>Ask</b> — talk to him; pick a hat; paste a chart; use your voice</div>
+    <div><b>Memory</b> — what it's learned, the track record</div>
+    <div><b>Ask</b> — talk to it; pick a hat; paste a chart; use your voice</div>
   </div>
-  <div class="muted" style="font-size:13.5px">Three shortcuts worth knowing: <b>⌘K</b> (or Ctrl K) jumps anywhere and runs anything · <b>1–9</b> switch tabs · the <b>🔔</b> is where he taps you on the shoulder.</div>
-  <div class="row" style="margin:16px 0 0"><button class="btn ok" id="tour-ok">Got it</button><button class="btn ghost" id="tour-voice">Turn on his voice</button></div>
+  <div class="muted" style="font-size:13.5px">Three shortcuts worth knowing: <b>⌘K</b> (or Ctrl K) jumps anywhere and runs anything · <b>1–9</b> switch tabs · the <b>🔔</b> is where it taps you on the shoulder.</div>
+  <div class="row" style="margin:16px 0 0"><button class="btn ok" id="tour-ok">Got it</button><button class="btn ghost" id="tour-voice">Turn on its voice</button></div>
 </div></div>
 
 <script>
@@ -382,7 +382,7 @@ const $ = (id) => document.getElementById(id)
 const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['conditions','Conditions','🚦'],['rdesk','Research desk','🗞'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['road','Road to live','🛣'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['predict','Prediction desk','🔮'],['builder','Strategy builder','🛠'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'every market he watches, what price is doing, the research desk, and whether conditions are fit to trade', ['markets','conditions','rdesk','scanner','bigmoney','tickers','flow','news','intel','tv']],
+  ['Markets', 'every market it watches, what price is doing, the research desk, and whether conditions are fit to trade', ['markets','conditions','rdesk','scanner','bigmoney','tickers','flow','news','intel','tv']],
   ['Calls and plans', 'the up-or-down call, the prediction desk, the strategy builder, the scalp desk, and planning your own trades', ['forecast','predict','builder','scalp','planner','spreads']],
   ['Is it working?', 'the honest scoreboard, and how far live trading is', ['road','evidence','validation','ops','test','replay']],
   ['You and learning', 'your vault, your journal, the school, the lab, and what it remembers', ['portfolio','journal','school','research','knowledge','observer']],
@@ -392,7 +392,7 @@ const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]
 // Each area of the app has its own colour, so you always know where you are:
 // the accent on the page, the breadcrumb, the active tab and the More panel all
 // carry it. None of them is emerald or rose — those two mean up and down only.
-const HOME_AREA = ['Home', 'the desk, today, the chart and Mr. Cash himself', PRIMARY]
+const HOME_AREA = ['Home', 'the desk, today, the chart and Trading Bot itself', PRIMARY]
 const AREA_HUE = { 'Home':'gold', 'Markets':'cyan', 'Calls and plans':'violet', 'Is it working?':'sky', 'You and learning':'coral', 'Under the hood':'lilac' }
 const AREA_OF = Object.fromEntries([HOME_AREA, ...GROUPS].flatMap(([title, blurb, ids]) => ids.map(id => [id, { title, blurb, ids, hue: AREA_HUE[title] }])))
 
@@ -579,7 +579,7 @@ window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); defe
 $('btn-install').onclick = async () => {
   if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; return }
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
-  alert(ios ? 'On iPhone: tap the Share button, then "Add to Home Screen". Mr. Cash opens like an app from then on.' : 'In Chrome or Edge: open the ⋮ menu → "Install Mr. Cash" (or the install icon in the address bar). In Safari on Mac: File → Add to Dock.')
+  alert(ios ? 'On iPhone: tap the Share button, then "Add to Home Screen". Trading Bot opens like an app from then on.' : 'In Chrome or Edge: open the ⋮ menu → "Install Trading Bot" (or the install icon in the address bar). In Safari on Mac: File → Add to Dock.')
 }
 if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) $('btn-install').classList.add('hidden')
 function notifyState() { if (!('Notification' in window)) { $('btn-notify').textContent = 'Alerts'; return } $('btn-notify').textContent = Notification.permission === 'granted' ? 'Alerts on' : 'Alerts' }
@@ -601,7 +601,7 @@ async function pollEvents() {
       renderEvents(evs, true)
       const n = Number($('bell-n').textContent || 0) + evs.length
       $('bell-n').textContent = n; $('bell-n').classList.remove('hidden')
-      if ('Notification' in window && Notification.permission === 'granted') for (const e of evs) if (e.severity !== 'info') new Notification('Mr. Cash — ' + e.title, { body: e.body.slice(0, 180), icon: '/icon-192.png', tag: 'mrcash-' + e.id })
+      if ('Notification' in window && Notification.permission === 'granted') for (const e of evs) if (e.severity !== 'info') new Notification('Trading Bot — ' + e.title, { body: e.body.slice(0, 180), icon: '/icon-192.png', tag: 'mrcash-' + e.id })
       if (voiceOn) { const important = evs.filter(e => e.severity !== 'info'); if (important.length) speak(important.map(e => `${e.title}. ${e.body}`).join(' Next: ').slice(0, 900)) }
       if (evs.some(e => e.kind === 'setup' || e.kind === 'sweep' || e.kind === 'tradingview')) loadToday(false)
     }
@@ -610,7 +610,7 @@ async function pollEvents() {
 function renderEvents(evs, prepend=false) {
   const html = evs.slice().reverse().map(e => `<div class="e ${e.severity}"><b>${esc(e.title)}</b><span class="t">${when(e.time)} · ${esc(e.kind)}</span><div>${esc(e.body)}</div></div>`).join('')
   const el = $('events')
-  if (prepend) el.insertAdjacentHTML('afterbegin', html); else el.innerHTML = html || '<div class="e muted">Nothing yet. Mr. Cash re-reads the market every few minutes and tells you here when something matters.</div>'
+  if (prepend) el.insertAdjacentHTML('afterbegin', html); else el.innerHTML = html || '<div class="e muted">Nothing yet. Trading Bot re-reads the market every few minutes and tells you here when something matters.</div>'
 }
 $('btn-vault').onclick = () => showTab('portfolio')
 $('btn-accounts').onclick = () => showTab('portfolio')
@@ -632,7 +632,7 @@ function connectLive() {
   es.addEventListener('candle', (e) => { const c = JSON.parse(e.data); if (c.complete) { clearTimeout(candleTimer); candleTimer = setTimeout(() => loadToday(false), 1500) } })
   es.addEventListener('event', () => pollEvents())
   es.addEventListener('gap', (e) => { const g = JSON.parse(e.data); console.info('feed gap:', g.what) })
-  es.onerror = () => { setLive(liveMode === 'stream' ? 'rest' : liveMode, 'Lost the live connection to Mr. Cash; retrying. Polling still works.') }
+  es.onerror = () => { setLive(liveMode === 'stream' ? 'rest' : liveMode, 'Lost the live connection to Trading Bot; retrying. Polling still works.') }
 }
 connectLive()
 
@@ -657,7 +657,7 @@ function renderStop() {
 }
 async function toggleStop() {
   const on = !!(cfg && cfg.stop && cfg.stop.stopped)
-  if (!on && !confirm('Engage the kill switch?\n\nMr. Cash will open NO new positions (paper included) until you resume. Open paper positions are still managed to their stop or target.')) return
+  if (!on && !confirm('Engage the kill switch?\n\nTrading Bot will open NO new positions (paper included) until you resume. Open paper positions are still managed to their stop or target.')) return
   await call(on ? '/api/resume' : '/api/stop', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({reason:'stopped from the app'})})
   await loadConfig()
 }
@@ -719,9 +719,9 @@ function stateCard(s) {
 function paperCard(p) {
   if (!p) return ''
   const eq = p.equityUsd - p.startUsd
-  return `<div class="card"><h2>Paper account — Mr. Cash trading 24/7 on paper <span class="muted" title="Live market data; every fill is simulated by the fill model at the next candle open plus spread and slippage.">— live data · SIMULATED EXECUTION</span></h2>
+  return `<div class="card"><h2>Paper account — Trading Bot trading 24/7 on paper <span class="muted" title="Live market data; every fill is simulated by the fill model at the next candle open plus spread and slippage.">— live data · SIMULATED EXECUTION</span></h2>
     <div class="stats"><div class="stat"><div class="k">Equity</div><div class="v ${eq>=0?'win':'loss'}">${money(p.equityUsd)}</div></div><div class="stat"><div class="k">Since start</div><div class="v ${eq>=0?'win':'loss'}">${money(eq,3)}</div></div><div class="stat"><div class="k">Closed trades</div><div class="v">${p.trades}</div></div><div class="stat"><div class="k">Win rate</div><div class="v">${p.winRate===null?'—':Math.round(p.winRate*100)+'%'}</div></div><div class="stat"><div class="k">Total</div><div class="v ${p.totalR>=0?'win':'loss'}">${R(p.totalR)}</div></div></div>
-    ${p.open.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Queued</th><th>Side</th><th>Status</th><th>Entry</th><th>Stop</th><th>Target</th><th>Now</th><th></th></tr>${p.open.map(o=>`<tr><td>${when(o.openedAt)}</td><td>${esc(o.direction)}</td><td>${o.status==='pending'?'<span class="badge medium">fills next candle</span>':'<span class="badge good">filled</span>'}</td><td class="num">${px(o.entry)}${o.status==='open'&&o.intendedEntry!==o.entry?`<div class="muted" style="font-size:11px">wanted ${px(o.intendedEntry)}</div>`:''}</td><td class="num loss">${px(o.stop)}</td><td class="num win">${px(o.target)}</td><td class="num ${o.unrealized&&o.unrealized.rMultiple>=0?'win':'loss'}">${o.status==='pending'?'—':o.unrealized?R(o.unrealized.rMultiple):'—'}</td><td><button class="chip" data-close="${esc(o.id)}">${o.status==='pending'?'cancel':'close now'}</button></td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No open paper position. Mr. Cash opens one only when the whole checklist passes inside a killzone.</div>'}
+    ${p.open.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Queued</th><th>Side</th><th>Status</th><th>Entry</th><th>Stop</th><th>Target</th><th>Now</th><th></th></tr>${p.open.map(o=>`<tr><td>${when(o.openedAt)}</td><td>${esc(o.direction)}</td><td>${o.status==='pending'?'<span class="badge medium">fills next candle</span>':'<span class="badge good">filled</span>'}</td><td class="num">${px(o.entry)}${o.status==='open'&&o.intendedEntry!==o.entry?`<div class="muted" style="font-size:11px">wanted ${px(o.intendedEntry)}</div>`:''}</td><td class="num loss">${px(o.stop)}</td><td class="num win">${px(o.target)}</td><td class="num ${o.unrealized&&o.unrealized.rMultiple>=0?'win':'loss'}">${o.status==='pending'?'—':o.unrealized?R(o.unrealized.rMultiple):'—'}</td><td><button class="chip" data-close="${esc(o.id)}">${o.status==='pending'?'cancel':'close now'}</button></td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No open paper position. Trading Bot opens one only when the whole checklist passes inside a killzone.</div>'}
     ${p.closed.length ? `<div class="muted" style="font-size:12.5px;margin-top:8px">Last closed: ${p.closed.slice(0,3).map(c=>c.exitReason==='missed'?'<span class="skip">missed</span>':`${c.direction} ${c.exitReason} <b class="${(c.rMultiple||0)>=0?'win':'loss'}">${R(c.rMultiple||0)}</b>`).join(' · ')}.${p.missed?` ${p.missed} missed (price ran away before the fill).`:''} Costs so far: ${money(p.costsUsd,3)}. Full history in the Memory tab.</div>` : ''}
     <div class="plain">Orders fill at the next candle's open plus spread and slippage, never at the price the signal wanted. Every close goes into memory (so a setup that keeps failing gets refused), may become a lesson, and creates a journal entry for you. This is the track record — let it get long before you trust it.</div></div>`
 }
@@ -763,7 +763,7 @@ function renderToday() {
     </section>
     ${decisionCard(data.decision)}
     <div class="td-grid">
-    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Mr. Cash is waiting for.</div></div>
+    <div class="card"><h2>The checklist</h2>${evidenceList(s.evidence)}<div class="plain">Every entry needs every box ticked, in this order. The first ✗ is what Trading Bot is waiting for.</div></div>
     ${stateCard(data.state)}
     ${riskCard(data.risk)}
     ${paperCard(data.paper)}
@@ -775,7 +775,7 @@ function renderToday() {
         <label class="muted">max trades <input id="plan-max" type="number" min="0" max="10" style="width:66px" value="${plan?plan.maxTrades:b.proposal.maxTrades}"></label></div>
       <textarea id="plan-notes" placeholder="Notes to yourself (optional)">${plan?esc(plan.notes):''}</textarea>
       <div class="row" style="margin:10px 0 0"><button class="btn ok" id="btn-arm">${plan?'Update plan':'Arm this plan'}</button>${plan?'<button class="btn ghost" id="btn-plan-clear">Clear plan</button>':''}</div>
-      <div class="plain">The bot proposes, you decide, every scan obeys. Arming a plan places nothing — it narrows what Mr. Cash may do on paper today.</div>
+      <div class="plain">The bot proposes, you decide, every scan obeys. Arming a plan places nothing — it narrows what Trading Bot may do on paper today.</div>
     </div>
     </div>
     <details class="card td-fold td-brief"><summary>Read the full brief</summary><pre class="brief">${esc(b.lines.join('\n'))}</pre></details>
@@ -821,7 +821,7 @@ $('btn-scan').onclick = async () => {
   const r = await call('/api/scan?memory=1'); setBusy(false); $('today-status').textContent = ''
   if (!r.ok) { $('today-out').insertAdjacentHTML('afterbegin', errBox(r.error)); return }
   const d = r.data
-  const explain = {BUY:'Bought on paper. Nothing was sent anywhere; the decision is in data/ledger.csv.', SELL:'Sold on paper. Nothing was sent anywhere; the decision is in data/ledger.csv.', HOLD:'Nothing to do. The first ✗ in the checklist says what it is waiting for.', SKIP:'A full setup appeared and Mr. Cash refused it — your limits, your plan, or memory said no.'}[d.finalAction]
+  const explain = {BUY:'Bought on paper. Nothing was sent anywhere; the decision is in data/ledger.csv.', SELL:'Sold on paper. Nothing was sent anywhere; the decision is in data/ledger.csv.', HOLD:'Nothing to do. The first ✗ in the checklist says what it is waiting for.', SKIP:'A full setup appeared and Trading Bot refused it — your limits, your plan, or memory said no.'}[d.finalAction]
   $('today-out').insertAdjacentHTML('afterbegin', `<div class="card"><h2>Scan result — logged</h2><div class="decision ${d.finalAction}">${d.finalAction}</div><div>${esc(d.finalReason)}</div><table style="margin-top:10px"><tr><th>Risk</th><td>${esc(d.risk.reason)}</td></tr>${d.memory?`<tr><th>Memory</th><td>${esc(d.memory.reason)}</td></tr>`:''}</table><div class="plain">${explain}</div></div>`)
 }
 $('btn-journal-now').onclick = () => { showTab('journal'); openJournalForm(true) }
@@ -836,7 +836,7 @@ function shareCard() {
   const wrap = (t, x, y, size, maxW, lh, color='#D8D0C2', weight='500') => { ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${F}`; let line = '', yy = y; for (const w of String(t).split(' ')) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, yy); line = w; yy += lh } else line = test } if (line) ctx.fillText(line, x, yy); return yy + lh }
   ctx.fillStyle = '#0B0A08'; ctx.fillRect(0, 0, W, H)
   ctx.fillStyle = '#16130F'; ctx.fillRect(0, 0, W, 150)
-  T('MR. CASH', 60, 78, 44, '#DEBE7C', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#AAA091', '600')
+  T('TRADING BOT', 60, 78, 44, '#DEBE7C', '800'); T('DAILY BRIEF · PAPER TRADING', 60, 118, 22, '#AAA091', '600')
   T(`${a.weekday} ${a.etClock} ET`, W - 60 - ctx.measureText(`${a.weekday} ${a.etClock} ET`).width * 0.9, 78, 24, '#AAA091')
   let y = 215
   T(cfg.symbol, 60, y, 48, '#F4EEE3', '800'); T(px(a.price), 60 + ctx.measureText(cfg.symbol).width * 1.15 + 20, y, 48, '#F4EEE3', '500')
@@ -857,8 +857,8 @@ function shareCard() {
   T('Paper trading · educational · not financial advice · the bot shows its losses too', 60, H - 38, 20, '#AAA091', '500')
   const url = c.toDataURL('image/png')
   const w = window.open('', '_blank')
-  if (!w) { alert('Pop-up blocked — allow pop-ups for Mr. Cash to see the card.'); return }
-  w.document.write(`<title>Mr. Cash card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#60C892;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
+  if (!w) { alert('Pop-up blocked — allow pop-ups for Trading Bot to see the card.'); return }
+  w.document.write(`<title>Trading Bot card</title><body style="margin:0;background:#000;text-align:center;font-family:sans-serif"><a download="mr-cash-${a.dayKey}.png" href="${url}" style="display:block;padding:14px;background:#60C892;color:#04111f;font-weight:700;text-decoration:none">Download PNG (1080×1350)</a><img src="${url}" style="max-width:100%;height:auto"></body>`)
 }
 $('btn-card').onclick = shareCard
 
@@ -1224,7 +1224,7 @@ async function loadNews(force) {
   $('news-out').innerHTML = `
     ${d.errors.length ? `<div class="warnbox">${d.fromCache ? 'Showing cached news. ' : ''}Feed problems: ${esc(d.errors.join(' | '))}</div>` : ''}
     <div class="card"><h2>Scheduled — the ones with a known time</h2>${cal.length ? `<div class="scroll"><table><tr><th>When</th><th>Impact</th><th>Event</th><th>Forecast</th><th>Previous</th></tr>${cal.slice(0,20).map(e=>`<tr><td>${et(e.time)}</td><td><span class="badge ${e.impact.toLowerCase()}">${esc(e.impact)}</span></td><td>${esc(e.country)} ${esc(e.title)}</td><td>${esc(e.forecast||'—')}</td><td>${esc(e.previous||'—')}</td></tr>`).join('')}</table></div>` : '<div class="muted">Nothing in the next 36 hours.</div>'}
-      <div class="plain">High-impact events are stand-aside windows: no entries within ${cfg?cfg.ict.newsBlackoutMinutes:15} minutes of one. Mr. Cash doesn't guess the direction — it just knows the tape gets random.</div></div>
+      <div class="plain">High-impact events are stand-aside windows: no entries within ${cfg?cfg.ict.newsBlackoutMinutes:15} minutes of one. Trading Bot doesn't guess the direction — it just knows the tape gets random.</div></div>
     <div class="card"><h2>Headlines — ranked by what they touch</h2>${d.headlines.length ? d.headlines.slice(0,15).map(h=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><div>${h.score>=3?'<b style="color:var(--purple)">●</b> ':'<span class="muted">○</span> '}<a href="${esc(h.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(h.title)}</a></div><div class="muted" style="font-size:12px;margin-top:2px">${esc(h.source)} · ${when(h.time)} · ${h.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')||'general'}</div>${h.score>=3?`<div class="muted" style="font-size:12.5px;margin-top:2px">${esc(h.whyItMatters)}</div>`:''}</div>`).join('') : '<div class="muted">No headlines available.</div>'}</div>`
 }
 $('btn-news').onclick = () => loadNews(true)
@@ -1269,7 +1269,7 @@ function renderJournal() {
       return `<div class="goal"><span class="badge ${cls}">${esc(st)}</span><span class="jn-goal-t" style="flex:2">${esc(g.title)}${bar !== null ? `<span class="jn-goal-bar"><i style="width:${bar}%"></i></span>` : ''}</span>${g.progress!==null&&g.progress!==undefined?`<span class="muted">${typeof g.progress==='number'?(g.metric==='avgExecution'?g.progress.toFixed(1):Math.round(g.progress)):g.progress}${g.metric==='processScore'?'%':''} / ${g.target}${g.metric==='processScore'?'%':''}</span>`:''}${g.kind==='manual'?`<input type="checkbox" data-goal="${esc(g.id)}" ${g.done?'checked':''}>`:''}<button class="chip" data-delgoal="${esc(g.id)}">✕</button></div>`}).join('')}
       <div class="row" style="margin:10px 0 0"><input id="goal-title" placeholder="Add a goal of your own, e.g. 'No trades before the London killzone'" style="flex:1;min-width:200px"><button class="btn ghost" id="btn-goal">Add</button></div></div>
     </div>
-    <div class="card jn-entries"><h2>Entries <span class="muted">newest first</span></h2>${entries.length ? entries.map(e=>`<div class="entry"><div class="head"><b>${when(e.tradeTime)}</b><span class="badge ${e.outcome==='win'?'good':e.outcome==='loss'?'high':'low'}">${esc(e.outcome)}</span>${e.direction!=='none'?`<span>${esc(e.direction)}</span>`:''}${e.session?`<span class="muted">${esc(e.session)}</span>`:''}${e.rMultiple!==null?`<b class="${e.rMultiple>0?'win':'loss'}">${R(e.rMultiple)}</b>`:''}<span class="muted">exec ${'★'.repeat(e.execution)}${'☆'.repeat(5-e.execution)}</span>${e.followedPlan===false?'<span class="badge high">broke plan</span>':e.followedPlan===true?'<span class="badge good">plan ✓</span>':''}${e.emotions.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${e.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}<span class="spacer"></span><button class="chip" data-edit="${esc(e.id)}">edit</button><button class="chip" data-del="${esc(e.id)}">✕</button></div>${e.lesson?`<div class="body"><b>Lesson:</b> ${esc(e.lesson)}</div>`:''}${e.wentWell?`<div class="body">＋ ${esc(e.wentWell)}</div>`:''}${e.improve?`<div class="body">− ${esc(e.improve)}</div>`:''}${e.botSnapshot?`<div class="body muted">Mr. Cash at the time: ${esc(e.botSnapshot.decision)}${e.botSnapshot.firstFail?` (waiting on ${esc(e.botSnapshot.firstFail)})`:''} · bias ${esc(e.botSnapshot.bias)}${e.botSnapshot.state?` · ${esc(e.botSnapshot.state)}`:''}</div>`:''}</div>`).join('') : '<div class="muted">No entries yet. "From current setup" fills one in from what Mr. Cash sees right now — you add how you felt and what you did.</div>'}</div>`
+    <div class="card jn-entries"><h2>Entries <span class="muted">newest first</span></h2>${entries.length ? entries.map(e=>`<div class="entry"><div class="head"><b>${when(e.tradeTime)}</b><span class="badge ${e.outcome==='win'?'good':e.outcome==='loss'?'high':'low'}">${esc(e.outcome)}</span>${e.direction!=='none'?`<span>${esc(e.direction)}</span>`:''}${e.session?`<span class="muted">${esc(e.session)}</span>`:''}${e.rMultiple!==null?`<b class="${e.rMultiple>0?'win':'loss'}">${R(e.rMultiple)}</b>`:''}<span class="muted">exec ${'★'.repeat(e.execution)}${'☆'.repeat(5-e.execution)}</span>${e.followedPlan===false?'<span class="badge high">broke plan</span>':e.followedPlan===true?'<span class="badge good">plan ✓</span>':''}${e.emotions.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${e.tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}<span class="spacer"></span><button class="chip" data-edit="${esc(e.id)}">edit</button><button class="chip" data-del="${esc(e.id)}">✕</button></div>${e.lesson?`<div class="body"><b>Lesson:</b> ${esc(e.lesson)}</div>`:''}${e.wentWell?`<div class="body">＋ ${esc(e.wentWell)}</div>`:''}${e.improve?`<div class="body">− ${esc(e.improve)}</div>`:''}${e.botSnapshot?`<div class="body muted">Trading Bot at the time: ${esc(e.botSnapshot.decision)}${e.botSnapshot.firstFail?` (waiting on ${esc(e.botSnapshot.firstFail)})`:''} · bias ${esc(e.botSnapshot.bias)}${e.botSnapshot.state?` · ${esc(e.botSnapshot.state)}`:''}</div>`:''}</div>`).join('') : '<div class="muted">No entries yet. "From current setup" fills one in from what Trading Bot sees right now — you add how you felt and what you did.</div>'}</div>`
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { editing = journal.entries.find(e => e.id === b.dataset.edit); openJournalForm(false) })
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('Delete this entry?')) return; await call('/api/journal/delete', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({id:b.dataset.del})}); loadJournal() })
   document.querySelectorAll('[data-goal]').forEach(c => c.onchange = () => saveGoalsFromUI(g => { if (g.id === c.dataset.goal) g.done = c.checked }))
@@ -1287,7 +1287,7 @@ async function openJournalForm(prefill) {
   const chip = (list, sel, cls='') => list.map(x => `<button type="button" class="chip ${cls} ${sel.includes(x)?'on':''}" data-chip="${esc(x)}">${esc(x)}</button>`).join('')
   const dt = new Date(e.tradeTime || Date.now()); const local = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16)
   $('j-form').classList.remove('hidden')
-  $('j-form').innerHTML = `<h2>${editing ? 'Edit entry' : 'New entry'}${e.botSnapshot ? ' — pre-filled from what Mr. Cash sees' : ''}</h2>
+  $('j-form').innerHTML = `<h2>${editing ? 'Edit entry' : 'New entry'}${e.botSnapshot ? ' — pre-filled from what Trading Bot sees' : ''}</h2>
     <div class="jgrid">
       <label>When<input type="datetime-local" id="jf-time" value="${local}"></label>
       <label>Direction<select id="jf-dir"><option value="none">no trade / skipped</option><option value="long">long</option><option value="short">short</option></select></label>
@@ -1332,16 +1332,16 @@ function loadTV() {
   const map = {'1m':'1','3m':'3','5m':'5','15m':'15','30m':'30','1h':'60','4h':'240','1d':'D'}
   const wh = cfg.app.webhook
   $('tv-out').innerHTML = `
-    <div class="card"><h2>Connect your alerts to Mr. Cash</h2>
-      ${wh ? `<div class="kv"><span class="k">Webhook URL</span><code>${esc(wh.url)}</code><span class="k">Secret</span><code>${esc(wh.secret)}</code></div>` : '<div class="muted">The webhook details are shown on the computer running Mr. Cash, not on other devices.</div>'}
-      <ol style="padding-left:18px;font-size:13.5px;color:var(--dim)"><li>Put <code>pine/ict-sessions.pine</code> on your chart (Pine Editor → paste → Add to chart).</li><li>Right-click the chart → <b>Add alert</b> → Condition: <i>Mr. Cash — ICT Sessions</i> → "Low swept" (make a second alert for "High swept").</li><li>In the message box, replace <code>PASTE_SECRET_HERE</code> with the secret above. Keep the rest exactly as it is — it's JSON Mr. Cash reads.</li><li>Under Notifications, tick <b>Webhook URL</b> and paste the URL above.</li></ol>
-      <div class="plain">Honest limits: TradingView can <i>send</i> to Mr. Cash; nothing can read your TradingView charts back. Webhook alerts need a paid TradingView plan (Essential or above). And TradingView's servers must be able to reach your computer — on plain home wifi they can't; a free tunnel like Tailscale Funnel or cloudflared gives your webhook URL a public https address. Without that, the chart below still works and the Pine scripts still draw everything.</div>
+    <div class="card"><h2>Connect your alerts to Trading Bot</h2>
+      ${wh ? `<div class="kv"><span class="k">Webhook URL</span><code>${esc(wh.url)}</code><span class="k">Secret</span><code>${esc(wh.secret)}</code></div>` : '<div class="muted">The webhook details are shown on the computer running Trading Bot, not on other devices.</div>'}
+      <ol style="padding-left:18px;font-size:13.5px;color:var(--dim)"><li>Put <code>pine/ict-sessions.pine</code> on your chart (Pine Editor → paste → Add to chart).</li><li>Right-click the chart → <b>Add alert</b> → Condition: <i>Trading Bot — ICT Sessions</i> → "Low swept" (make a second alert for "High swept").</li><li>In the message box, replace <code>PASTE_SECRET_HERE</code> with the secret above. Keep the rest exactly as it is — it's JSON Trading Bot reads.</li><li>Under Notifications, tick <b>Webhook URL</b> and paste the URL above.</li></ol>
+      <div class="plain">Honest limits: TradingView can <i>send</i> to Trading Bot; nothing can read your TradingView charts back. Webhook alerts need a paid TradingView plan (Essential or above). And TradingView's servers must be able to reach your computer — on plain home wifi they can't; a free tunnel like Tailscale Funnel or cloudflared gives your webhook URL a public https address. Without that, the chart below still works and the Pine scripts still draw everything.</div>
     </div>`
   if (tvLoaded) return
   const init = () => { try { new TradingView.widget({ container_id: 'tv-container', symbol: cfg.tradingview.widgetSymbol, interval: map[cfg.interval] || '5', timezone: 'America/New_York', theme: 'dark', style: '1', locale: 'en', autosize: true, withdateranges: true, allow_symbol_change: true, hide_side_toolbar: false }); tvLoaded = true } catch (e) { $('tv-container').innerHTML = '<div class="muted" style="padding:20px">Could not start the TradingView chart: ' + esc(e.message) + '</div>' } }
   if (window.TradingView) return init()
   const s = document.createElement('script'); s.src = 'https://s3.tradingview.com/tv.js'; s.onload = init
-  s.onerror = () => { $('tv-container').innerHTML = '<div class="muted" style="padding:20px">The TradingView chart could not load (no internet, or tradingview.com is blocked here). Everything else in Mr. Cash still works.</div>' }
+  s.onerror = () => { $('tv-container').innerHTML = '<div class="muted" style="padding:20px">The TradingView chart could not load (no internet, or tradingview.com is blocked here). Everything else in Trading Bot still works.</div>' }
   document.head.appendChild(s)
 }
 
@@ -1498,7 +1498,7 @@ async function loadMemory() {
   const paperHtml = `<div class="card"><h2>Paper trades — the track record</h2>
     <div class="stats"><div class="stat"><div class="k">Equity</div><div class="v ${p.equityUsd>=p.startUsd?'win':'loss'}">${money(p.equityUsd)}</div></div><div class="stat"><div class="k">Trades</div><div class="v">${p.trades}</div></div><div class="stat"><div class="k">Win rate</div><div class="v">${p.winRate===null?'—':Math.round(p.winRate*100)+'%'}</div></div><div class="stat"><div class="k">Expectancy</div><div class="v ${(p.expectancyR||0)>=0?'win':'loss'}">${p.expectancyR===null?'—':R(p.expectancyR)}</div></div><div class="stat"><div class="k">Total</div><div class="v ${p.totalR>=0?'win':'loss'}">${R(p.totalR)}</div></div></div>
     ${p.curve.length > 1 ? '<canvas id="eq-curve" style="width:100%;height:140px;display:block;margin-top:12px"></canvas>' : ''}
-    ${p.closed.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Closed</th><th>Side</th><th>Entry</th><th>Exit</th><th>How</th><th>Result</th><th>Setup</th></tr>${p.closed.map(c=>`<tr><td>${when(c.closedAt||0)}</td><td>${esc(c.direction)}</td><td class="num">${px(c.entry)}</td><td class="num">${px(c.exit||0)}</td><td>${esc(c.exitReason||'')}</td><td class="num ${(c.rMultiple||0)>=0?'win':'loss'}">${R(c.rMultiple||0)}</td><td class="muted">${esc(c.setupKey.split('|').slice(3).join(' '))}</td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No paper trades closed yet. They appear here as Mr. Cash takes and finishes them.</div>'}
+    ${p.closed.length ? `<div class="scroll" style="margin-top:10px"><table><tr><th>Closed</th><th>Side</th><th>Entry</th><th>Exit</th><th>How</th><th>Result</th><th>Setup</th></tr>${p.closed.map(c=>`<tr><td>${when(c.closedAt||0)}</td><td>${esc(c.direction)}</td><td class="num">${px(c.entry)}</td><td class="num">${px(c.exit||0)}</td><td>${esc(c.exitReason||'')}</td><td class="num ${(c.rMultiple||0)>=0?'win':'loss'}">${R(c.rMultiple||0)}</td><td class="muted">${esc(c.setupKey.split('|').slice(3).join(' '))}</td></tr>`).join('')}</table></div>` : '<div class="muted" style="margin-top:8px">No paper trades closed yet. They appear here as Trading Bot takes and finishes them.</div>'}
   </div>`
   const bs = p.byStrategy || [], cmp = p.comparison || []
   const cmpById = Object.fromEntries(cmp.map(c=>[c.strategyId,c]))
@@ -1517,7 +1517,7 @@ async function loadMemory() {
   }
 }
 $('btn-memshow').onclick = loadMemory
-$('btn-reset').onclick = async () => { if (!confirm('Wipe everything Mr. Cash has learned?\n\nYour settings and your journal are not affected.')) return; await call('/api/memory/reset',{method:'POST'}); loadMemory(); loadConfig() }
+$('btn-reset').onclick = async () => { if (!confirm('Wipe everything Trading Bot has learned?\n\nYour settings and your journal are not affected.')) return; await call('/api/memory/reset',{method:'POST'}); loadMemory(); loadConfig() }
 $('btn-doctor').onclick = async () => {
   $('memory-out').insertAdjacentHTML('afterbegin', '<div class="card" id="doc"><span class="spin">◐</span> Checking every connection…</div>')
   const r = await call('/api/doctor')
@@ -1525,7 +1525,7 @@ $('btn-doctor').onclick = async () => {
 }
 
 // ---------- ask + picture ----------
-const CHIPS = ['Why is Mr. Cash holding right now?', 'Are we in an uptrend or a downtrend, and will it continue?', 'Where are the big orders sitting?', 'What is an inversion fair value gap?', 'Should I arm longs only today?', 'Which news today could hurt this plan?']
+const CHIPS = ['Why is Trading Bot holding right now?', 'Are we in an uptrend or a downtrend, and will it continue?', 'Where are the big orders sitting?', 'What is an inversion fair value gap?', 'Should I arm longs only today?', 'Which news today could hurt this plan?']
 let skill = (()=>{ try { return localStorage.getItem('mrcash-skill') || '' } catch { return '' } })()
 // Line icons for the hats, drawn like the tab icons (24 grid, 1.6 stroke).
 const HAT_ICONS = {
@@ -1543,11 +1543,11 @@ const HAT_ICONS = {
 const hatIcon = (id) => `<svg viewBox="0 0 24 24" aria-hidden="true">${HAT_ICONS[id] || HAT_ICONS['']}</svg>`
 function renderSkills() {
   if (!cfg) return
-  const hats = [{ id: '', name: 'Mr. Cash', tagline: 'plain, no hat' }, ...cfg.skills]
+  const hats = [{ id: '', name: 'Trading Bot', tagline: 'plain, no hat' }, ...cfg.skills]
   const cur = hats.find(h => h.id === skill) || hats[0]
   $('skills').innerHTML = hats.map(h=>`<button class="${cur.id===h.id?'on':''}" data-skill="${esc(h.id)}" role="radio" aria-checked="${cur.id===h.id}">${hatIcon(h.id)}<span><b>${esc(h.name)}</b><span>${esc(h.tagline)}</span></span></button>`).join('')
   $('skills').querySelectorAll('button').forEach(b => b.onclick = () => { skill = b.dataset.skill; try { localStorage.setItem('mrcash-skill', skill) } catch {}; renderSkills() })
-  $('ask-intro').innerHTML = `<div class="ask-intro-ic">${hatIcon(cur.id)}</div><h2>${cur.id ? `Ask the ${esc(cur.name)}` : 'Ask Mr. Cash'}</h2><p>${esc(cur.tagline.charAt(0).toUpperCase() + cur.tagline.slice(1))}. Same brain, same data; the hat changes what it looks at first.</p>`
+  $('ask-intro').innerHTML = `<div class="ask-intro-ic">${hatIcon(cur.id)}</div><h2>${cur.id ? `Ask the ${esc(cur.name)}` : 'Ask Trading Bot'}</h2><p>${esc(cur.tagline.charAt(0).toUpperCase() + cur.tagline.slice(1))}. Same brain, same data; the hat changes what it looks at first.</p>`
   const prompts = skill ? (cfg.skills.find(s=>s.id===skill)||{}).prompts || CHIPS : CHIPS
   $('chips').innerHTML = prompts.map(c=>`<button>${esc(c)}</button>`).join('')
   $('chips').querySelectorAll('button').forEach(b => b.onclick = () => { $('q').value = b.textContent; ask() })
@@ -1592,7 +1592,7 @@ async function ask(withJournal=false) {
 // ---------- Jarvis: voice out, voice in ----------
 let voiceOn = (()=>{ try { return localStorage.getItem('mrcash-voice') === '1' } catch { return false } })()
 function voiceUI() { $('btn-voice').textContent = voiceOn ? 'Voice on' : 'Voice'; $('btn-voice').style.borderColor = voiceOn ? 'var(--green)' : '' }
-// His voice: unhurried and warm rather than clipped and formal. These three
+// Its voice: unhurried and warm rather than clipped and formal. These three
 // values mirror SPEECH in src/voice/persona.ts, and test/voice/persona.test.ts
 // fails if the two ever drift apart — one voice, defined once.
 const SPEECH_RATE = 0.86, SPEECH_PITCH = 1.06
@@ -1668,7 +1668,7 @@ const ACTIONS = () => [
   { label:'Refresh the market', icon:'🔄', group:'Do', key:'r', run:()=>{ showTab('today'); loadToday(true) } },
   { label:'Check the market now (scan and log)', icon:'🧭', group:'Do', run:()=>{ showTab('today'); $('btn-scan').click() } },
   { label:'Read the brief to me', icon:'🔊', group:'Do', run:()=>{ showTab('today'); $('btn-read').click() } },
-  { label:'Talk to Mr. Cash (microphone)', icon:'🎙', group:'Do', run:()=>{ showTab('ask'); $('btn-mic').click() } },
+  { label:'Talk to Trading Bot (microphone)', icon:'🎙', group:'Do', run:()=>{ showTab('ask'); $('btn-mic').click() } },
   { label:'Journal this moment', icon:'📓', group:'Do', run:()=>{ showTab('journal'); openJournalForm(true) } },
   { label:'Share card (Instagram)', icon:'🖼', group:'Do', run:()=>shareCard() },
   { label:'Run the look-back test', icon:'🧪', group:'Do', run:()=>{ showTab('test'); runTest('raw') } },

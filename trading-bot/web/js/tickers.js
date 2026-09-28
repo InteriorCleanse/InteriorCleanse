@@ -64,7 +64,7 @@ function nowCard(t) {
   if (!t.watched) {
     const pr = t.proxy ? rowFor(t.proxy) : null
     return `<div class="card tk-now"><h2>Right now <span class="badge tk-prov off">NOT WATCHED</span></h2>
-      <p class="muted">Mr. Cash has no futures data feed, so there is no ${esc(t.symbol)} price here, and none is estimated.${t.proxy ? ` The nearest market it does watch is <b>${esc(t.proxy)}</b>: ${esc(PROXY_NOTE[t.proxy] || 'a fund')}. Its price is not the future's price.` : ''}</p>
+      <p class="muted">Trading Bot has no futures data feed, so there is no ${esc(t.symbol)} price here, and none is estimated.${t.proxy ? ` The nearest market it does watch is <b>${esc(t.proxy)}</b>: ${esc(PROXY_NOTE[t.proxy] || 'a fund')}. Its price is not the future's price.` : ''}</p>
       ${pr ? `<div class="tk-proxy"><div class="tk-proxy-h"><b>${esc(t.proxy)}</b> <span class="badge tk-prov ${pr.provenance === 'LIVE DATA' ? 'live' : 'off'}">${esc(pr.provenance)}</span> <span class="badge tk-prov off">STAND-IN, NOT ${esc(t.symbol)}</span></div>${priceBlock(pr)}</div>`
         : t.proxy ? `<p class="muted">${waiting ? 'Reading the market watch…' : `${esc(t.proxy)} is not on the watchlist (MRCASH_WATCHLIST).`}</p>` : ''}
     </div>`
@@ -191,7 +191,7 @@ function render() {
       ${spreadsCard(t)}
       ${linksCard()}
     </div>
-    <p class="muted pl-foot">Reference facts reviewed ${esc(REVIEWED)}. Specifications and schedules change: confirm them with the company, the exchange and your broker. Nothing on this page is a forecast, and Mr. Cash does not trade these markets.</p>`
+    <p class="muted pl-foot">Reference facts reviewed ${esc(REVIEWED)}. Specifications and schedules change: confirm them with the company, the exchange and your broker. Nothing on this page is a forecast, and Trading Bot does not trade these markets.</p>`
   if (t.contract) {
     if (keep.mvn != null && keep.sym === current) { $('tk-mv-n').value = keep.mvn; $('tk-mv-x').value = keep.mvx }
     renderMove()

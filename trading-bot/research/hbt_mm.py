@@ -9,7 +9,7 @@ The quoting logic is hftbacktest's own basic market-making example (quote a
 spread around mid, skew away from inventory, cap the position), kept small
 so every step can be read. It exists to study HOW market making behaves:
 fills, inventory swings, adverse selection, fees and rebates. It is not a
-strategy for Mr. Cash, and Mr. Cash does not market-make.
+strategy for Trading Bot, and Trading Bot does not market-make.
 
 Real data: hftbacktest's own converters produce the .npz files, for example
 from Binance's historical market data or its Rust collector (see

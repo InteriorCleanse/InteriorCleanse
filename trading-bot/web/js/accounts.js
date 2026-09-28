@@ -22,7 +22,7 @@ async function loadAccounts() {
     try {
       const vs = await fetch('/api/vault/status'); const vj = await vs.json()
       if (vj.ok && vj.data.configured && !vj.data.open) {
-        box.innerHTML = `<div class="dk-accounts-head"><b>Your accounts</b><span>read-only — he can see them, never trade them</span></div><div class="dk-acct-row"><div class="dk-acct"><b>Locked in the vault</b><span class="muted">Real balances open with your passcode and a code from your authenticator app.</span><button class="btn ghost" data-tab="portfolio">Open the vault</button></div></div>`
+        box.innerHTML = `<div class="dk-accounts-head"><b>Your accounts</b><span>read-only — it can see them, never trade them</span></div><div class="dk-acct-row"><div class="dk-acct"><b>Locked in the vault</b><span class="muted">Real balances open with your passcode and a code from your authenticator app.</span><button class="btn ghost" data-tab="portfolio">Open the vault</button></div></div>`
         return
       }
     } catch { /* no vault route: fall through to the plain list */ }
@@ -37,7 +37,7 @@ async function loadAccounts() {
         return `<div class="dk-acct${p.connected ? '' : ' off'}"><b>${esc(b.name)}</b><span class="dk-acct-v">${p.connected ? usd(total) : 'not reachable'}</span><span class="muted">${esc(p.note || '')}</span></div>`
       } catch (e) { return `<div class="dk-acct off"><b>${esc(b.name)}</b><span class="dk-acct-v">not reachable</span><span class="muted">${esc(e.message)}</span></div>` }
     }))
-    box.innerHTML = `<div class="dk-accounts-head"><b>Your accounts</b><span>read-only — he can see them, never trade them</span></div>${rows.length ? `<div class="dk-acct-row">${rows.join('')}</div>` : '<p class="muted dk-acct-empty">No accounts linked yet. Kraken and Alpaca can be linked read-only; docs/BROKER.md shows how, step by step.</p>'}`
+    box.innerHTML = `<div class="dk-accounts-head"><b>Your accounts</b><span>read-only — it can see them, never trade them</span></div>${rows.length ? `<div class="dk-acct-row">${rows.join('')}</div>` : '<p class="muted dk-acct-empty">No accounts linked yet. Kraken and Alpaca can be linked read-only; docs/BROKER.md shows how, step by step.</p>'}`
   } catch (e) {
     box.innerHTML = `<p class="muted dk-acct-empty">Couldn't read your accounts: ${esc(e.message)}. Showing nothing rather than guessing.</p>`
   }

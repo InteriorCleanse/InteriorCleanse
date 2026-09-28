@@ -94,7 +94,7 @@ export async function fetchPortfolio(now = Date.now()): Promise<Portfolio> {
       ...base, connected: true, mode: cfg.mode,
       account: { equity: num(a.equity), cash: num(a.cash), buyingPower: num(a.buying_power), currency: String(a.currency ?? 'USD'), status: String(a.status ?? 'unknown') },
       positions,
-      note: `${cfg.mode} account, read-only. ${positions.length} open position${positions.length === 1 ? '' : 's'}. Mr. Cash can see this but cannot trade it.`,
+      note: `${cfg.mode} account, read-only. ${positions.length} open position${positions.length === 1 ? '' : 's'}. Trading Bot can see this but cannot trade it.`,
     }
   } catch (e) {
     return { ...base, mode: cfg.mode, note: `Could not read the ${cfg.mode} account: ${safeError(e)}` }

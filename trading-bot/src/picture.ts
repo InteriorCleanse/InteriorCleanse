@@ -1,7 +1,7 @@
 /**
  * `npm run picture -- chart.png "optional question"`
  *
- * Hands a screenshot of a chart to the assistant with Mr. Cash's rules
+ * Hands a screenshot of a chart to the assistant with Trading Bot's rules
  * and gets a structured breakdown: what it sees, the levels, the gaps,
  * where an entry / stop / target would sit and why, what would
  * invalidate it, and what news to check. The picture is a picture —
@@ -20,7 +20,7 @@ const TYPES: Record<string, 'image/png' | 'image/jpeg' | 'image/gif' | 'image/we
 const file = process.argv[2]
 const question = process.argv.slice(3).join(' ').trim() || PICTURE_QUESTION
 
-ui.heading('MR. CASH — PICTURE ANALYZER')
+ui.heading('TRADING BOT — PICTURE ANALYZER')
 ui.safetyBanner()
 if (!file) {
   console.log('\n  Usage: npm run picture -- path/to/chart.png "what do you make of this?"\n')

@@ -235,7 +235,7 @@ export const config = {
   // ---------- THE PLAYBOOK (many strategies, each judged alone) ----------
 
   /**
-   * Mr. Cash reads the market through several strategies at once. Each one
+   * Trading Bot reads the market through several strategies at once. Each one
    * votes on its own — nothing is combined into a single decision yet, and
    * only the ICT session model actually opens paper trades. The rest are
    * shown on the Playbook tab so you can watch what each would do and test
@@ -380,7 +380,7 @@ export const config = {
     promotionMinPaperTrades: 20,
   },
 
-  // ---------- MR. CASH INTELLIGENCE LAYER (Phase 22 — read-only) ----------
+  // ---------- TRADING BOT INTELLIGENCE LAYER (Phase 22 — read-only) ----------
 
   /**
    * The intelligence / visualization layer: automatic chart markup, provenance,
@@ -576,14 +576,14 @@ export const config = {
 
   app: {
     /**
-     * Let your phone open Mr. Cash over your home wifi.
+     * Let your phone open Trading Bot over your home wifi.
      *   false — this computer only (safest, the default)
      *   true  — also reachable from other devices on the same network,
      *           protected by the PIN below
      */
     allowPhone: false,
 
-    /** The PIN your phone must enter. Leave '' and Mr. Cash makes a fresh one every start and prints it. */
+    /** The PIN your phone must enter. Leave '' and Trading Bot makes a fresh one every start and prints it. */
     pin: '',
 
     /** While the app is open, re-read the market this often (minutes) and raise alerts. 5 = every candle. */
@@ -594,7 +594,7 @@ export const config = {
 
     /**
      * The 24/7 paper trader. When the checklist passes and risk and memory
-     * agree, Mr. Cash opens a PAPER position, manages it candle by candle,
+     * agree, Trading Bot opens a PAPER position, manages it candle by candle,
      * records the outcome in memory, and writes you a journal entry.
      * Still no exchange, still no real money — a record in a file.
      */
@@ -709,7 +709,7 @@ export const config = {
 
     /**
      * A secret your TradingView alerts must include, so nobody else can
-     * poke the webhook. Leave '' and Mr. Cash makes one and prints it.
+     * poke the webhook. Leave '' and Trading Bot makes one and prints it.
      */
     webhookSecret: '',
   },

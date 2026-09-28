@@ -1,8 +1,8 @@
-# Other trading bots, and what Mr. Cash took from them
+# Other trading bots, and what Trading Bot took from them
 
 The owner asked for a deep look at the leading trading bots and for their
 features to be built in. This is the list, checked in September 2026, with
-what Mr. Cash has, what was added now, and what was deliberately left out.
+what Trading Bot has, what was added now, and what was deliberately left out.
 
 Which bot makes the most money is not something any of these products can show. Vendors
 publish marketing, not audited live records, and 2026 saw regulators pursue
@@ -27,7 +27,7 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 
 ## Feature by feature
 
-| Feature | Seen in | Mr. Cash |
+| Feature | Seen in | Trading Bot |
 |---|---|---|
 | Many strategies researched overnight | Trade Ideas | **Has**: strategy factory, research scheduler, Research tab, and deflated-Sharpe overfitting check. |
 | One plain lean per market | TradingPilotAI | **Added**: bias score −6..+6 on the Scanner and Home. |
@@ -35,7 +35,7 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 | Large candle-pattern library | TrendSpider | **Added**: 20+ candle signals and a trend · level · signal grade (docs/PRICE_ACTION.md). |
 | Backtest a pattern before trusting it | TrendSpider, Trade Ideas | **Added**: evidence table per market (BACKTEST, no look-ahead). |
 | Chart screenshot reader | several | **Has**: the Scanner's AI screenshot scan. |
-| Paper trading | 3Commas, Cryptohopper | **Has**: the core of Mr. Cash, with a realistic fill model. |
+| Paper trading | 3Commas, Cryptohopper | **Has**: the core of Trading Bot, with a realistic fill model. |
 | Alerts and a morning brief | all | **Has**: bell, morning filings brief, daily brief. |
 | AI assistant | 3Commas, ChartingLens | **Has**: Ask, with skills (hats). |
 | Congress, insider and dark-pool flows | Quiver, Unusual Whales | **Has**: Big money tab. |
@@ -54,15 +54,15 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 ## The "4 AI × Quant projects" and NautilusTrader
 
 The owner shared a carousel of four quant projects and a NautilusTrader clip.
-Each project maps onto Mr. Cash as follows.
+Each project maps onto Trading Bot as follows.
 
-| Project | In Mr. Cash | Where |
+| Project | In Trading Bot | Where |
 |---|---|---|
 | 1. Prediction-market arbitrage (Polymarket × Kalshi) | **Edge check.** Type in both venues' asks. It tests YES + NO under $1 on each venue and both cross-venue routes (YES here + NO there), and reports the YES divergence. It takes off fees (Kalshi's published 0.07·C·P·(1−P) formula, rounded up to the cent, and your Polymarket rate), then gives a capped ¼-Kelly stake on your own probability, which can come from the call desk. SIMULATED arithmetic: it contacts no venue and places nothing. | The call tab → "Edge check"; `GET /api/forecast/edge`; `src/school/predictionMarket.ts` |
 | 2. News-to-price diffusion (Hawkes) | **Already built.** The panel now shows the fitted kernel as a heatmap and the decay curve φ(t) = α·e^(−βt) with its half-life. | Research → News diffusion |
 | 3. AI strategy search lab (regime curve, clusters) | **Already built** as the strategy factory and the strategy-by-regime atlas. The atlas now draws performance-by-regime curves, a family × condition heatmap and a rotating 3D bar field. | Research → Regime atlas; Factory |
 | 4. Backtest overfitting detector (deflated Sharpe) | **Already built.** The panel now draws the distribution of Sharpe ratios from 1,000 no-edge strategies, the best-by-luck line and this strategy's line, plus a curve showing how the luck bar rises with every variant tried. | Research → Overfitting |
-| NautilusTrader's graph of trading concepts | **3D knowledge graph.** Every concept Mr. Cash teaches, linked to the strategies and case studies that use it. Drag it to turn it; point at a node to read it. | Knowledge → Knowledge graph; School |
+| NautilusTrader's graph of trading concepts | **3D knowledge graph.** Every concept Trading Bot teaches, linked to the strategies and case studies that use it. Drag it to turn it; point at a node to read it. | Knowledge → Knowledge graph; School |
 
 **NautilusTrader itself** (github.com/nautechsystems/nautilus_trader, LGPL-3.0)
 is a full trading platform: a Rust core, a Python API, an event-driven engine
@@ -72,7 +72,7 @@ reasons:
 
 - It is a second execution engine.
 - It would add a large runtime dependency.
-- Mr. Cash already has its own event-driven paper engine.
+- Trading Bot already has its own event-driven paper engine.
 
 It is a good choice for the research bench if the owner wants tick-level,
 multi-venue backtests later, run outside the bot like vectorbt and

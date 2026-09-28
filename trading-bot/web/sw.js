@@ -1,4 +1,4 @@
-// Mr. Cash service worker: makes the app installable and lets the shell
+// Trading Bot service worker: makes the app installable and lets the shell
 // open even when the server is briefly unreachable. Market data is NEVER
 // cached — every /api call goes to the network, so nothing stale is ever
 // shown as fresh.
@@ -26,6 +26,6 @@ self.addEventListener('fetch', (event) => {
         if (res.ok && SHELL.includes(url.pathname)) caches.open(CACHE).then((c) => c.put(event.request, res.clone()))
         return res
       })
-      .catch(() => caches.match(event.request).then((hit) => hit || new Response('Mr. Cash is not running. Start it on your computer, then reload.', { status: 503, headers: { 'content-type': 'text/plain' } }))),
+      .catch(() => caches.match(event.request).then((hit) => hit || new Response('Trading Bot is not running. Start it on your computer, then reload.', { status: 503, headers: { 'content-type': 'text/plain' } }))),
   )
 })

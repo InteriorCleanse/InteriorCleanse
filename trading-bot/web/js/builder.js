@@ -143,7 +143,7 @@ function paint() {
     <p class="muted pl-note">Builder runs counted so far: ${meta.trials}. Every run counts, so the more variations you try, the stricter the deflated-Sharpe bar gets. That is how the builder keeps you from fitting the past.</p>
   </div>
   <div class="card"><h2>What will not happen</h2><ul class="cd-how">
-    <li>Nothing here trades. A strategy built here reaches Mr. Cash only through research, an out-of-sample test, a human review and a paper test.</li>
+    <li>Nothing here trades. A strategy built here reaches Trading Bot only through research, an out-of-sample test, a human review and a paper test.</li>
     <li>A good backtest is a backtest. The out-of-sample column is the one that counts, and under 30 out-of-sample trades it says NOT ENOUGH DATA.</li>
     <li>Costs are always on: the paper engine's spread, slippage, latency and fees, and a stop gapped through fills at the open.</li>
   </ul></div>`

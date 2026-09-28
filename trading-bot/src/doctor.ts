@@ -100,7 +100,7 @@ export async function runDoctor(): Promise<Check[]> {
     name: 'TradingView alerts',
     ok: tvCount > 0 ? true : null,
     detail: tvCount > 0 ? `${tvCount} alert(s) received` : 'none received yet',
-    fix: 'Optional. Open the TradingView tab in the app for the webhook URL and secret, then create an alert on the Mr. Cash indicator with that webhook.',
+    fix: 'Optional. Open the TradingView tab in the app for the webhook URL and secret, then create an alert on the Trading Bot indicator with that webhook.',
   })
 
   const lan = lanUrls()
@@ -140,12 +140,12 @@ export async function runDoctor(): Promise<Check[]> {
   const plan = readPlan()
   checks.push({ name: "Today's plan", ok: plan ? true : null, detail: plan ? `${plan.allow}, ${plan.riskPerTradePercent}% risk, max ${plan.maxTrades}` : 'none armed', fix: 'npm run talk → arm' })
   checks.push({ name: 'Memory', ok: true, detail: `${readLedger().length} decisions, ${lessonLines().length} lessons` })
-  checks.push({ name: 'Other repos', ok: null, detail: 'AutoHedge, Vibe-Trading and FinceptTerminal are NOT part of Mr. Cash', fix: 'By design. See docs/OTHER_TOOLS.md for what each is and how Vibe-Trading connects to Claude as an MCP server.' })
+  checks.push({ name: 'Other repos', ok: null, detail: 'AutoHedge, Vibe-Trading and FinceptTerminal are NOT part of Trading Bot', fix: 'By design. See docs/OTHER_TOOLS.md for what each is and how Vibe-Trading connects to Claude as an MCP server.' })
   return checks
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  ui.heading('MR. CASH — DOCTOR')
+  ui.heading('TRADING BOT — DOCTOR')
   ui.safetyBanner()
   ui.step('Checking every connection...')
   const checks = await runDoctor()
@@ -156,6 +156,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (c.ok !== true && c.fix) console.log(ui.dim(`      → ${c.fix}`))
   }
   const bad = checks.filter((c) => c.ok === false).length
-  ui.plainEnglish(bad === 0 ? ['Everything required is connected. Optional pieces marked "–" are off,', 'which is fine — each line says how to turn it on.'] : [`${bad} required connection(s) failed. The → lines say what to do.`, 'Mr. Cash refuses to guess when a feed is down, so fix those first.'])
+  ui.plainEnglish(bad === 0 ? ['Everything required is connected. Optional pieces marked "–" are off,', 'which is fine — each line says how to turn it on.'] : [`${bad} required connection(s) failed. The → lines say what to do.`, 'Trading Bot refuses to guess when a feed is down, so fix those first.'])
   console.log('')
 }

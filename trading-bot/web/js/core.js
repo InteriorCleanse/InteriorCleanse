@@ -1,5 +1,5 @@
 /**
- * THE CORE — every model Mr. Cash runs, drawn as one reactor.
+ * THE CORE — every model Trading Bot runs, drawn as one reactor.
  *
  * What is real and what is dressing:
  *

@@ -83,7 +83,7 @@ export type ScalpConditions = {
   note: string
 }
 
-export const SCALP_NOTE = 'A reading of the conditions a scalper looks for, not a signal. Mr. Cash has not tested scalping as a trading rule; the paper engine trades its own 5-minute strategies and nothing here changes them.'
+export const SCALP_NOTE = 'A reading of the conditions a scalper looks for, not a signal. Trading Bot has not tested scalping as a trading rule; the paper engine trades its own 5-minute strategies and nothing here changes them.'
 
 type SessionInfo = { name: string | null; killzone: boolean; weekend: boolean; nextKillzoneMin: number | null; nextKillzoneLabel: string | null }
 
