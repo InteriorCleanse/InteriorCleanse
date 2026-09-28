@@ -21,6 +21,7 @@ export function Footer() {
         </ul>
         <ul className="space-y-2 text-stone">
           <li><a href={`mailto:${SITE.email}`} className="hover:text-ink">{SITE.email}</a></li>
+          <li><Link href="/discretion/" className="hover:text-ink">Security and discretion</Link></li>
           <li><Link href="/privacy/" className="hover:text-ink">Privacy</Link></li>
           <li><Link href="/terms/" className="hover:text-ink">Terms</Link></li>
           <li>&copy; {new Date().getFullYear()} Freehold</li>

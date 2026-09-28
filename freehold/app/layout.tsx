@@ -27,6 +27,18 @@ export const viewport: Viewport = {
 
 const plausible = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: SITE.name,
+  slogan: SITE.tagline,
+  description: SITE.description,
+  url: SITE.url,
+  email: SITE.email,
+  logo: `${SITE.url}/brand/favicon.svg`,
+  knowsAbout: ['Software development', 'Email security', 'DMARC', 'Family office technology', 'Next.js'],
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="no-js">
@@ -41,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="main">{children}</main>
         <Footer />
         <Reveal />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         {plausible && <Script data-domain={plausible} src="https://plausible.io/js/script.outbound-links.js" strategy="afterInteractive" />}
       </body>
     </html>

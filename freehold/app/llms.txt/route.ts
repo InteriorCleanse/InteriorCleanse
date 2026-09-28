@@ -23,6 +23,8 @@ Bespoke software for family offices and the people who run them, delivered into 
 - ${SITE.url}/
 - ${SITE.url}/build/
 - ${SITE.url}/private/
+- ${SITE.url}/private/review/
+- ${SITE.url}/discretion/
 - ${SITE.url}/about/
 - ${SITE.url}/contact/
 `

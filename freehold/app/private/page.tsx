@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Faq } from '@/components/Faq'
 import { InquiryForm } from '@/components/InquiryForm'
+import { QuietCta } from '@/components/Cta'
 
 export const metadata: Metadata = {
   title: { absolute: 'Freehold Private. Bespoke software for family offices' },
@@ -13,7 +14,7 @@ const faq = [
   { q: 'Who is this for?', a: 'Single and multi-family offices, the chiefs of staff and estate managers who run a household, wealth advisers who serve them, and the founders behind them. If you are not one of those, Freehold Build is probably the right door.' },
   { q: 'What does it cost?', a: 'The review is a fixed fee quoted after a twenty-minute call, once we know the number of domains, mailboxes, and people involved. Bespoke software is scoped and priced in writing before any work starts. We do not publish a price list, and we do not quote one on the first call without the facts.' },
   { q: 'What have you built for people like us?', a: 'Freehold is new and one person. We will show you real work, not a client list, and we will tell you before you ask that there is no family office reference yet. What we can put in writing is how we handle your information, and that is where most conversations start.' },
-  { q: 'How do you handle confidentiality?', a: 'A mutual NDA before any document changes hands. Work happens inside accounts you own, so nothing of yours sits on our machines longer than the session. A written security and discretion policy is available on request and sent before the first call if you prefer.' },
+  { q: 'How do you handle confidentiality?', a: 'A mutual NDA before any document changes hands. Work happens inside accounts you own, so nothing of yours sits on our machines longer than the session. Our written security and discretion policy is published on this site, and a signed copy is sent before the first call if you prefer.' },
   { q: 'Do you work with our existing advisers and IT?', a: 'Yes, and as peers. The review is written for them as much as for you, and the software we build is theirs to run, read, and replace.' },
   { q: 'What do you not do?', a: 'We do not manage money, give legal or tax advice, run your IT, or sell hardware. We build and review software, and we say when someone else should be in the room.' },
 ]
@@ -54,6 +55,9 @@ export default function PrivatePage() {
             <p className="text-stone mt-5">
               Quoted after a twenty-minute call. Delivered as a document your existing IT or adviser can act on without us.
             </p>
+            <div className="mt-6">
+              <QuietCta href="/private/review/">What the review examines</QuietCta>
+            </div>
           </div>
         </div>
       </section>
@@ -86,6 +90,9 @@ export default function PrivatePage() {
               <li key={c} className="rule pt-4 text-stone rv" data-i={i}><span className="mono mr-4">{String(i + 1).padStart(2, '0')}</span>{c}</li>
             ))}
           </ol>
+          <div className="mt-8">
+            <QuietCta href="/discretion/">Read the security and discretion policy</QuietCta>
+          </div>
         </div>
       </section>
 
