@@ -25,6 +25,16 @@ so, and they exist only so you can see the app before a source is connected.
 
 ## What you are looking at
 
+The first time you sign in, **Setup** asks four questions (your goal, your
+state, your budget, the makes you like) and starts your first Sniper target.
+
+- **Home.** The command centre: your next step, the Sniper's picks with live
+  countdowns, the latest alerts, the cars you watch, your paper record, the
+  Garage's net, and a checklist of the path from first sign-in to first car.
+- **Garage.** The business ledger: every car you actually bought, every cost
+  (fees, transport, parts, labour, tyres, insurance) and every dollar in
+  (rental payouts, the sale), with the net per car and overall. Only what you
+  type goes in.
 - **Feed.** Cars priced under their comparables. Each lot tag shows the price
   now, what comparable cars list for (or **NOT ENOUGH COMPS**), the Steal
   score out of 100 with a one-word grade, badges (title, damage, runs and
@@ -57,7 +67,8 @@ so, and they exist only so you can see the app before a source is connected.
 - **Rental.** Type a budget and a road (peer-to-peer, own fleet, flip) and get
   a ranked short list of first cars with reasons, plus the first ten steps.
 - **Settings.** Starter rules, sample data, fee overrides, your demand-list
-  additions, sources, the live-bidding gate, a VIN decoder.
+  additions, sources, the live-bidding gate, a VIN decoder, browser alerts for
+  the Sniper, and a one-file backup and restore of everything you own.
 - **Admin** (owner only). Members and their access codes; the Stripe hook-up.
 
 ## LIVE, SAMPLE, or NO SOURCE
@@ -91,6 +102,10 @@ no API. Gavel lists them in **Auctions** with how to register and opens their
 search for you. See `docs/AUCTIONS.md`.
 
 ## Members and access codes
+
+Every member has their own watchlist, paper bids, Sniper targets, alerts,
+settings and garage, in their own folder under `data/users/`. Nobody sees
+anyone else's. Shared data is only the member list itself.
 
 - The **owner** signs in with the PIN. Set `GAVEL_PIN` in `.env` to keep it
   fixed; otherwise a random PIN is printed each start.
@@ -163,7 +178,8 @@ src/valuation.ts     comps-based estimate        src/scoring.ts   the Steal scor
 src/filters.ts       starter rules               src/fees.ts      published fee schedules
 src/bidplan.ts       never-bid-above maths       src/explain.ts   the rules walkthrough
 src/ai.ts            optional Claude explainer   src/demand.ts    the editable demand list
-src/paper.ts         watchlist and paper bids    src/settings.ts  per-install settings
+src/paper.ts         watchlist and paper bids    src/settings.ts  per-member settings
+src/garage.ts        the business ledger         src/store.ts     JSON files, scoped per member
 src/playbook/        the guides                  src/rental.ts    first-car finder
 src/knowledge/       policies, regulations, glossary, search
 src/research/        car intel (NHTSA, fueleconomy.gov); the web desk (Claude + web search)
@@ -172,5 +188,5 @@ src/security/        CSP, sessions, members, throttle, Stripe verification
 web/                 the members' app: index.html, login.html, css/, js/
 test/                node --test, offline, temp data directory per run
 docs/                DESIGN, AUCTIONS, BIDDING, MEMBERS, SECURITY, PLAYBOOK
-data/                your files: settings, watchlist, paper bids, members (git-ignored)
+data/                members.json at the top; each member's files in users/<id>/ (git-ignored)
 ```

@@ -9,18 +9,18 @@
  */
 import { randomUUID } from 'node:crypto'
 import type { Listing, PaperBid, WatchItem } from './types.ts'
-import { readJson, writeJson } from './store.ts'
+import { readJson, userFile, writeJson } from './store.ts'
 
 const WATCH_FILE = 'watchlist.json'
 const PAPER_FILE = 'paper-bids.json'
 
 function readWatch(): WatchItem[] {
-  const v = readJson<unknown>(WATCH_FILE, [])
+  const v = readJson<unknown>(userFile(WATCH_FILE), [])
   return Array.isArray(v) ? (v as WatchItem[]) : []
 }
 
 function readPaper(): PaperBid[] {
-  const v = readJson<unknown>(PAPER_FILE, [])
+  const v = readJson<unknown>(userFile(PAPER_FILE), [])
   return Array.isArray(v) ? (v as PaperBid[]) : []
 }
 
@@ -34,7 +34,7 @@ export function addWatch(l: Listing): WatchItem[] {
   const items = readWatch()
   if (items.some((w) => w.listingId === l.id)) return listWatch()
   items.push({ listingId: l.id, title: l.title, url: l.url, addedAt: Date.now(), snapshot: l })
-  writeJson(WATCH_FILE, items)
+  writeJson(userFile(WATCH_FILE), items)
   return listWatch()
 }
 
@@ -42,7 +42,7 @@ export function addWatch(l: Listing): WatchItem[] {
 export function removeWatch(listingId: string): WatchItem[] {
   const items = readWatch()
   const kept = items.filter((w) => w.listingId !== listingId)
-  if (kept.length !== items.length) writeJson(WATCH_FILE, kept)
+  if (kept.length !== items.length) writeJson(userFile(WATCH_FILE), kept)
   return listWatch()
 }
 
@@ -73,7 +73,7 @@ export function placePaperBid(l: Listing, maxBidUsd: number, note?: string): Pap
   if (trimmed) bid.note = trimmed.slice(0, 500)
   const bids = readPaper()
   bids.push(bid)
-  writeJson(PAPER_FILE, bids)
+  writeJson(userFile(PAPER_FILE), bids)
   return bid
 }
 
@@ -84,7 +84,7 @@ export function setOutcome(id: string, outcome: 'won' | 'lost' | 'withdrawn'): P
   const bid = bids.find((b) => b.id === id)
   if (!bid) return undefined
   bid.outcome = outcome
-  writeJson(PAPER_FILE, bids)
+  writeJson(userFile(PAPER_FILE), bids)
   return bid
 }
 

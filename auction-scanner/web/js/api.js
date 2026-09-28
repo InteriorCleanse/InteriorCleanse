@@ -32,7 +32,8 @@ export function safeUrl(u) { return typeof u === 'string' && /^https?:\/\//i.tes
 
 export function money(n) {
   if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
-  return '$' + Math.round(n).toLocaleString('en-US')
+  const r = Math.round(n)
+  return (r < 0 ? '−$' : '$') + Math.abs(r).toLocaleString('en-US')
 }
 export function moneyK(n) {
   if (typeof n !== 'number' || !Number.isFinite(n)) return '—'

@@ -180,6 +180,15 @@ GET  /api/playbook             → {guides:Guide[]}   Guide = {id, title, taglin
 GET  /api/rental?budget=&use=p2p|fleet|flip → {picks:[{make, model, years, whyPlain, watchOut, budgetFit}], steps:string[], notes:string[]}
 GET  /api/vin/:vin             → VinDecode | 400
 GET  /api/settings             → Settings           POST /api/settings {…partial} → Settings
+GET  /api/home                 → {goal, onboarded, liveSource, sniper:{targets, active, armed, picks, lastRunAt, endingSoon:Pick[]}, alerts:{unread, latest}, watch, paper, garage, next:[{id,title,body,href,done}]}
+POST /api/onboard              {goal:'rental'|'flip'|'keep', homeState?, budgetUsd, makes[], models[]} → {settings, target}
+GET  /api/garage               → {cars:(GarageCar & {totals})[], summary}    POST /api/garage {title, purchaseUsd, …}
+POST /api/garage/:id           {status?, channel?, notes?, soldAt?}          DELETE /api/garage/:id
+POST /api/garage/:id/cost      {label, usd, date?}    POST /api/garage/:id/income {label, usd, date?} ("Sale" marks it sold)
+DELETE /api/garage/:id/entry/:entryId
+GET  /api/backup               → {app, version, exportedAt, email, files:{watchlist.json, paper-bids.json, targets.json, alerts.json, settings.json, garage.json}}
+POST /api/backup               that same shape → {restored:[names]}; validated first, nothing written on a bad file
+Every route after sign-in reads and writes only the signed-in member's files.
 GET  /api/admin/members        owner only → Member[] (codes never echoed in full; show last 4)
 POST /api/admin/members        {email} → {member, code}  (the only time the full code is shown)
 DELETE /api/admin/members/:email

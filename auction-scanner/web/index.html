@@ -17,7 +17,7 @@
 <body class="on-paper">
 <div class="grain" aria-hidden="true"></div>
 <header class="topbar">
-  <a class="brand" href="#feed" aria-label="Gavel, go to the feed"><span class="eyelet" aria-hidden="true"></span><span class="wordmark">Gavel</span></a>
+  <a class="brand" href="#home" aria-label="Gavel, go home"><span class="eyelet" aria-hidden="true"></span><span class="wordmark">Gavel</span></a>
   <span class="spacer"></span>
   <button class="chip" id="mode-chip" type="button" title="Where the cars on the feed come from">…</button>
   <button class="ring" id="account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">·</button>
@@ -25,10 +25,12 @@
 </header>
 
 <nav class="tabs" aria-label="Screens">
+  <a href="#home" data-tab="home">Home</a>
   <a href="#feed" data-tab="feed">Feed</a>
   <a href="#sniper" data-tab="sniper">Sniper <span class="n" id="sniper-badge" hidden></span></a>
-  <a href="#watch" data-tab="watch">Watch</a>
-  <a href="#intel" data-tab="intel">Intel</a>
+  <a href="#garage" data-tab="garage">Garage</a>
+  <a href="#watch" data-tab="watch" class="desk-only">Watch</a>
+  <a href="#intel" data-tab="intel" class="desk-only">Intel</a>
   <a href="#auctions" data-tab="auctions" class="desk-only">Auctions</a>
   <a href="#playbook" data-tab="playbook" class="desk-only">Playbook</a>
   <a href="#rental" data-tab="rental" class="desk-only">Rental</a>
@@ -37,6 +39,9 @@
 </nav>
 
 <main id="main">
+  <section class="screen" id="screen-home" data-screen="home" hidden></section>
+  <section class="screen" id="screen-setup" data-screen="setup" hidden></section>
+  <section class="screen" id="screen-garage" data-screen="garage" hidden></section>
   <section class="screen" id="screen-feed" data-screen="feed" hidden></section>
   <section class="screen" id="screen-plan" data-screen="plan" hidden></section>
   <section class="screen" id="screen-watch" data-screen="watch" hidden></section>

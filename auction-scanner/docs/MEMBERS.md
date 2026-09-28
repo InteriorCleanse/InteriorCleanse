@@ -12,6 +12,16 @@ restart. Every state-changing request carries the session's CSRF token in
 `x-gavel-csrf`. Login attempts are throttled per client: eight failures lock
 that client for fifteen minutes.
 
+## Each member's own data
+
+Watchlist, paper bids, Sniper targets, alerts, settings and the garage live
+in `data/users/<id>/`, where the id is a hash of the email (the email never
+appears in a path; `who.json` inside maps it back). Every signed-in request
+runs in the member's scope, so no member can read another's files. The owner
+signs in as `owner`; files from before per-member data are moved into the
+owner's folder once, at start, and never over existing ones. Each member can
+download a one-file backup and restore it in Settings.
+
 ## Access codes
 
 Format `GVL-XXXX-XXXX-XXXX` from an alphabet without I, O, 0 or 1. Only the

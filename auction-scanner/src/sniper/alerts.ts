@@ -1,6 +1,6 @@
 /** ALERTS — what the sniper did and found, newest first, kept to the last 200. */
 import { randomUUID } from 'node:crypto'
-import { readJson, writeJson } from '../store.ts'
+import { readJson, userFile, writeJson } from '../store.ts'
 
 export type Alert = {
   id: string
@@ -16,13 +16,13 @@ export type Alert = {
 const FILE = 'alerts.json'
 
 export function listAlerts(): Alert[] {
-  return readJson<Alert[]>(FILE, [])
+  return readJson<Alert[]>(userFile(FILE), [])
 }
 
 export function addAlert(a: Omit<Alert, 'id' | 'at' | 'read'>, now = Date.now()): Alert {
   const alert: Alert = { id: randomUUID(), at: now, read: false, ...a }
   const all = [alert, ...listAlerts()].slice(0, 200)
-  writeJson(FILE, all)
+  writeJson(userFile(FILE), all)
   return alert
 }
 
@@ -30,7 +30,7 @@ export function markAlertsRead(): number {
   const all = listAlerts()
   let n = 0
   for (const a of all) if (!a.read) { a.read = true; n++ }
-  writeJson(FILE, all)
+  writeJson(userFile(FILE), all)
   return n
 }
 

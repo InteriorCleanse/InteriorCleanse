@@ -11,18 +11,22 @@ import * as settings from './settings.js'
 import * as admin from './admin.js'
 import * as sniper from './sniper.js'
 import * as intel from './intel.js'
+import * as home from './home.js'
+import * as garage from './garage.js'
+import * as setup from './setup.js'
 
-const SCREENS = { feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel }
+const SCREENS = { home, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup }
 const ctx = { me: null, feedKind: null }
 
 function route() {
-  const raw = location.hash.replace(/^#/, '') || 'feed'
+  const raw = location.hash.replace(/^#/, '') || 'home'
   const [name, ...rest] = raw.split('/')
-  const screen = SCREENS[name] ? name : 'feed'
+  const screen = SCREENS[name] ? name : 'home'
+  document.body.classList.toggle('in-setup', screen === 'setup')
   if (screen === 'admin' && ctx.me && ctx.me.role !== 'owner') { location.hash = '#feed'; return }
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.dataset.screen !== screen })
   document.querySelectorAll('.tabs a').forEach((a) => {
-    const grouped = ['auctions', 'playbook', 'rental', 'settings', 'admin']
+    const grouped = ['watch', 'intel', 'auctions', 'playbook', 'rental', 'settings', 'admin']
     const active = a.dataset.tab === screen || (screen === 'plan' && a.dataset.tab === 'feed') || (a.dataset.tab === 'more' && grouped.includes(screen))
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current')
   })
@@ -43,7 +47,7 @@ export function setMode(kind, detail) {
 
 function moreSheet() {
   const owner = ctx.me.role === 'owner'
-  const items = [['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ['#rental', 'Rental', 'Your first rental car, ranked'], ['#settings', 'Settings', 'Starter rules, sources, live-bidding gate']]
+  const items = [['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ['#rental', 'Rental', 'Your first rental car, ranked'], ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
   if (owner) items.push(['#admin', 'Members', 'Access codes and Stripe'])
   const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
   document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
@@ -69,6 +73,24 @@ function accountMenu() {
   })
 }
 
+let lastUnread = null
+/** Watch the Sniper's unread count; badge the tab and, when allowed, raise a browser notification. */
+async function pollAlerts() {
+  try {
+    const st = await getJson('/api/sniper')
+    const badge = document.getElementById('sniper-badge')
+    if (badge) { badge.textContent = String(st.unread); badge.hidden = !st.unread }
+    if (lastUnread !== null && st.unread > lastUnread && 'Notification' in window && Notification.permission === 'granted') {
+      const a = st.alerts.find((x) => !x.read)
+      if (a) {
+        const n = new Notification('Gavel', { body: a.title, tag: 'gavel-' + a.id, icon: '/icon.svg' })
+        n.onclick = () => { window.focus(); location.hash = a.listingId ? '#plan/' + encodeURIComponent(a.listingId) : '#sniper'; n.close() }
+      }
+    }
+    lastUnread = st.unread
+  } catch { /* a missed poll is harmless; the next one catches up */ }
+}
+
 async function boot() {
   document.getElementById('mode-chip').addEventListener('click', () => { location.hash = '#settings' })
   document.getElementById('more-btn').addEventListener('click', moreSheet)
@@ -83,10 +105,10 @@ async function boot() {
   const live = (ctx.me.sources || []).filter((s) => s.kind === 'api' && s.connected)
   setMode(live.length ? 'LIVE' : 'EMPTY', live.map((s) => s.name).join(', '))
   accountMenu()
-  const badge = document.getElementById('sniper-badge')
-  if (badge && ctx.me.sniper && ctx.me.sniper.unread) { badge.textContent = String(ctx.me.sniper.unread); badge.hidden = false }
   window.addEventListener('hashchange', route)
   route()
+  pollAlerts()
+  setInterval(pollAlerts, 60_000)
 }
 
 boot()

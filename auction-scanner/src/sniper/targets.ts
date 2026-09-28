@@ -4,7 +4,7 @@
  * cars to targets; the server runs it on a clock. Stored in targets.json.
  */
 import { randomUUID } from 'node:crypto'
-import { readJson, writeJson } from '../store.ts'
+import { readJson, userFile, writeJson } from '../store.ts'
 
 export type Target = {
   id: string
@@ -46,7 +46,7 @@ function numOr(v: unknown, fallback: number | undefined, min: number, max: numbe
 }
 
 export function listTargets(): Target[] {
-  return readJson<Target[]>(FILE, [])
+  return readJson<Target[]>(userFile(FILE), [])
 }
 
 export function validateTarget(input: unknown, existing?: Target): Target {
@@ -86,7 +86,7 @@ export function saveTarget(input: unknown, id?: string): Target {
   const t = validateTarget(input, existing)
   const next = existing ? all.map((x) => (x.id === t.id ? t : x)) : [...all, t]
   if (next.length > 50) throw new Error('That is enough targets for one account: 50. Remove one first.')
-  writeJson(FILE, next)
+  writeJson(userFile(FILE), next)
   return t
 }
 
@@ -94,6 +94,6 @@ export function removeTarget(id: string): boolean {
   const all = listTargets()
   const next = all.filter((t) => t.id !== id)
   if (next.length === all.length) return false
-  writeJson(FILE, next)
+  writeJson(userFile(FILE), next)
   return true
 }

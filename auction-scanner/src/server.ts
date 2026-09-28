@@ -49,7 +49,9 @@ import type { Session } from './security/session.ts'
 import { MemberGate, handleStripeEvent, verifyStripeSignature } from './security/members.ts'
 import type { StripeEvent } from './security/members.ts'
 import { Throttle } from './security/throttle.ts'
-import { DATA_DIR, ensureDataDir, readJson, writeJson } from './store.ts'
+import { DATA_DIR, PERSONAL_FILES, adoptLegacyFiles, currentUser, ensureDataDir, listUserScopes, readJson, userFile, withUser, writeJson } from './store.ts'
+import { addCar, addCost, addIncome, garageSummary, listGarage, removeCar, removeEntry, totalsFor, updateCar, validateGarageFile } from './garage.ts'
+import { validateTarget } from './sniper/targets.ts'
 import { HOUSE_POLICIES, REGULATIONS, GLOSSARY, searchKnowledge } from './knowledge/index.ts'
 import { carIntel, intelSummary } from './research/intel.ts'
 import { researchAvailable, webResearch } from './research/web.ts'
@@ -65,6 +67,8 @@ const WEB_DIR = resolve(HERE, '..', 'web')
 const BODY_LIMIT = 256 * 1024
 const WEBHOOK_LIMIT = 1024 * 1024
 const SCAN_CACHE_MS = 60_000
+/** The owner's session email and the name of the owner's data folder. */
+const OWNER_EMAIL = 'owner'
 
 export type Card = { listing: Listing; estimate: Estimate; score: Score; demand?: { tier: DemandEntry['tier']; why: string } }
 export type Feed = { kind: ScanResult['kind']; scannedAt: number; errors: string[]; hidden: number; cards: Card[] }
@@ -172,6 +176,7 @@ function safeUrl(u: string | undefined): string | null {
 export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   loadEnv()
   ensureDataDir()
+  const movedLegacy = adoptLegacyFiles(OWNER_EMAIL)
   const now = opts.now ?? Date.now
   const fetchImpl = opts.fetchImpl ?? fetch
   const host = opts.host ?? config.host
@@ -268,14 +273,21 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     return { cards: result.listings.map((l) => cardFor(l, settings)), kind: result.kind, errors: result.errors }
   }
 
-  let sniperLastRun = 0
-  let sniperPicks: Pick[] = []
-  let sniperRunning: Promise<{ picks: Pick[]; fired: number }> | null = null
+  type SniperState = { lastRun: number; picks: Pick[]; running: Promise<{ picks: Pick[]; fired: number }> | null }
+  /** Sniper state per member. The key is the member's email; every store call inside runs in that member's scope. */
+  const sniper = new Map<string, SniperState>()
+  function sniperFor(email: string): SniperState {
+    let st = sniper.get(email)
+    if (!st) { st = { lastRun: 0, picks: [], running: null }; sniper.set(email, st) }
+    return st
+  }
 
-  /** Run every active target: scan, match, rank, and (when armed) fire a PAPER bid once per car. */
+  /** Run every active target of the current member: scan, match, rank, and (when armed) fire a PAPER bid once per car. */
   function runSniper(): Promise<{ picks: Pick[]; fired: number }> {
-    if (sniperRunning) return sniperRunning
-    sniperRunning = (async () => {
+    const email = currentUser() ?? OWNER_EMAIL
+    const st = sniperFor(email)
+    if (st.running) return st.running
+    st.running = (async () => {
       const settings = getSettings()
       const targets = listTargets().filter((t) => t.active)
       const picks: Pick[] = []
@@ -299,7 +311,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
               const bid = placePaperBid(card.listing, pick.fire.maxBidUsd, `Sniper "${target.name}": ${pick.fire.method}`)
               addAlert({ kind: 'paper-fired', targetId: target.id, listingId: card.listing.id, title: `PAPER bid fired: ${card.listing.title}`, body: `${target.name} recorded a paper bid of $${bid.maxBidUsd.toLocaleString('en-US')} (${pick.fire.method}). Nothing was sent to the auction. ${pick.fire.why}` }, now())
               fired++
-              console.log(`[sniper] PAPER fired ${card.listing.id} $${bid.maxBidUsd} for target ${target.id}`)
+              console.log(`[sniper] PAPER fired ${card.listing.id} $${bid.maxBidUsd} for a target`)
             } else if (!listAlerts().some((a) => a.kind === 'pick' && a.targetId === target.id && a.listingId === card.listing.id)) {
               addAlert({ kind: 'pick', targetId: target.id, listingId: card.listing.id, title: `New pick for ${target.name}: ${card.listing.title}`, body: `Score ${card.score.total} (${card.score.grade}). Never bid above $${pick.fire.maxBidUsd.toLocaleString('en-US')}. ${pick.fire.why}` }, now())
             }
@@ -307,22 +319,30 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         }
       }
       picks.sort((a, b) => b.fit - a.fit)
-      sniperPicks = picks
-      sniperLastRun = now()
+      st.picks = picks
+      st.lastRun = now()
       return { picks, fired }
-    })().finally(() => { sniperRunning = null })
-    return sniperRunning
+    })().finally(() => { st.running = null })
+    return st.running
+  }
+
+  /** Run the sniper for every member who has an active target. */
+  function runAllSnipers(): void {
+    const emails = new Set<string>([OWNER_EMAIL, ...listUserScopes().map((u) => u.email)])
+    for (const email of emails) {
+      withUser(email, () => {
+        if (listTargets().some((t) => t.active)) runSniper().catch((e) => console.error('[sniper]', e instanceof Error ? e.message : e))
+      })
+    }
   }
 
   const sniperEvery = opts.sniperIntervalMs ?? 10 * 60_000
   let sniperTimer: NodeJS.Timeout | null = null
   if (sniperEvery > 0) {
-    sniperTimer = setInterval(() => {
-      if (listTargets().some((t) => t.active)) runSniper().catch((e) => console.error('[sniper]', e instanceof Error ? e.message : e))
-    }, sniperEvery)
+    sniperTimer = setInterval(runAllSnipers, sniperEvery)
     sniperTimer.unref()
-    // A fresh process has no picks in memory: hunt once soon after start when there is a target.
-    const kick = setTimeout(() => { if (listTargets().some((t) => t.active)) runSniper().catch((e) => console.error('[sniper]', e instanceof Error ? e.message : e)) }, 3_000)
+    // A fresh process has no picks in memory: hunt once soon after start.
+    const kick = setTimeout(runAllSnipers, 3_000)
     kick.unref()
   }
 
@@ -423,7 +443,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       if (typeof body.pin === 'string' && body.pin.trim()) {
         const r = gate.loginOwner(client, body.pin)
         if (!r.ok) return json(res, r.status, { error: r.reason })
-        who = { email: str(body.email, 200) || 'owner', role: 'owner' }
+        who = { email: OWNER_EMAIL, role: 'owner' }
       } else {
         const r = gate.loginMember(client, body.email, body.code)
         if (!r.ok) return json(res, r.status, { error: r.reason })
@@ -459,6 +479,14 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     // --- everything else needs a session ------------------------------------
     const session = requireSession(req)
     if (method !== 'GET' && method !== 'HEAD') requireCsrf(req, session)
+    return withUser(session.email, () => authed(req, res, url, session))
+  }
+
+  /** Every signed-in route. Runs inside the member's data scope. */
+  async function authed(req: IncomingMessage, res: ServerResponse, url: URL, session: Session): Promise<void> {
+    const method = req.method ?? 'GET'
+    const path = url.pathname
+    const parts = path.split('/').filter(Boolean)
 
     if (path === '/api/me' && method === 'GET') {
       const ai = await aiStatus()
@@ -634,7 +662,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     if (parts[1] === 'sniper') {
       if (path === '/api/sniper' && method === 'GET') {
         const alerts = listAlerts()
-        return json(res, 200, { targets: listTargets(), picks: sniperPicks.map(serialisePick), alerts: alerts.slice(0, 50), unread: alerts.filter((a) => !a.read).length, lastRunAt: sniperLastRun || null, everyMs: sniperEvery, paper: true })
+        const st = sniperFor(session.email)
+        return json(res, 200, { targets: listTargets(), picks: st.picks.map(serialisePick), alerts: alerts.slice(0, 50), unread: alerts.filter((a) => !a.read).length, lastRunAt: st.lastRun || null, everyMs: sniperEvery, paper: true })
       }
       if (path === '/api/sniper/targets' && method === 'POST') {
         const body = await readJsonBody(req)
@@ -650,9 +679,119 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       }
       if (path === '/api/sniper/run' && method === 'POST') {
         const r = await runSniper()
-        return json(res, 200, { picks: r.picks.map(serialisePick), fired: r.fired, ranAt: sniperLastRun, paper: true })
+        return json(res, 200, { picks: r.picks.map(serialisePick), fired: r.fired, ranAt: sniperFor(session.email).lastRun, paper: true })
       }
       if (path === '/api/sniper/alerts/read' && method === 'POST') return json(res, 200, { read: markAlertsRead() })
+    }
+
+    if (path === '/api/home' && method === 'GET') {
+      const settings = getSettings()
+      const st = sniperFor(session.email)
+      const t = now()
+      const targets = listTargets()
+      const alerts = listAlerts()
+      const watch = listWatch()
+      const paper = listPaper()
+      const garage = garageSummary(t)
+      const endingSoon = st.picks
+        .filter((p) => p.card.listing.endsAt && p.card.listing.endsAt > t)
+        .sort((a, b) => (a.card.listing.endsAt ?? 0) - (b.card.listing.endsAt ?? 0))
+        .slice(0, 4)
+      const liveSource = sourceStatuses().some((x) => x.kind === 'api' && x.connected)
+      const next: Array<{ id: string; title: string; body: string; href: string; done: boolean }> = [
+        { id: 'setup', title: 'Tell Gavel what you are after', body: 'Four questions: your goal, your state, your budget, and the cars you like.', href: '#setup', done: settings.onboarded },
+        { id: 'source', title: 'Connect a live auction source', body: 'Add your free eBay developer keys to .env so the feed and the Sniper see real cars.', href: '#settings', done: liveSource },
+        { id: 'target', title: 'Set your first Sniper target', body: 'Makes, models, years and the most you will spend. It watches for you.', href: '#sniper', done: targets.length > 0 },
+        { id: 'learn', title: 'Read "Your first auction car"', body: 'Twelve minutes that save you from the expensive mistakes.', href: '#playbook/first-car', done: false },
+        { id: 'paper', title: 'Place three PAPER bids', body: 'Practise the number before you spend a dollar. Record how each one ended.', href: '#feed', done: paper.length >= 3 },
+        { id: 'garage', title: settings.goal === 'rental' ? 'Log your first rental car in the Garage' : 'Log your first car in the Garage', body: 'Every cost in, every dollar out. The ledger tells you if the business works.', href: '#garage', done: garage.cars > 0 },
+      ]
+      return json(res, 200, {
+        goal: settings.goal ?? null,
+        onboarded: settings.onboarded,
+        liveSource,
+        sniper: { targets: targets.length, active: targets.filter((x) => x.active).length, armed: targets.filter((x) => x.armed).length, picks: st.picks.length, lastRunAt: st.lastRun || null, endingSoon: endingSoon.map(serialisePick) },
+        alerts: { unread: alerts.filter((a) => !a.read).length, latest: alerts.slice(0, 5) },
+        watch: watch.slice(0, 6).map((w) => ({ listingId: w.listingId, title: w.title, endsAt: w.snapshot?.endsAt ?? null, priceUsd: w.snapshot ? (w.snapshot.currentBidUsd ?? w.snapshot.buyNowUsd ?? null) : null, kind: w.snapshot?.kind ?? null })),
+        paper: paperSummary(),
+        garage,
+        next,
+      })
+    }
+
+    if (path === '/api/onboard' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const goal = str(body.goal, 10)
+      if (goal !== 'rental' && goal !== 'flip' && goal !== 'keep') throw new HttpError(400, 'Pick a goal: rental, flip or keep.')
+      const homeState = str(body.homeState, 2).toUpperCase()
+      if (homeState && !/^[A-Z]{2}$/.test(homeState)) throw new HttpError(400, 'Your state is two letters, for example TX.')
+      const budget = num(body.budgetUsd, 'budgetUsd', { min: 500, max: 5_000_000 })!
+      const makes = Array.isArray(body.makes) ? (body.makes as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 12) : []
+      const models = Array.isArray(body.models) ? (body.models as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 20) : []
+      try {
+        const settings = updateSettings({ onboarded: true, goal, homeState: homeState || null, starter: { maxPriceUsd: Math.max(budget, 1000) } })
+        const target = saveTarget({ name: goal === 'rental' ? 'My first rental car' : goal === 'flip' ? 'My first flip' : 'My next car', makes, models, maxBudgetUsd: budget, minScore: 60, starterOnly: true, armed: false, active: true })
+        scanCache.clear()
+        runSniper().catch(() => {})
+        return json(res, 200, { settings, target })
+      } catch (e) {
+        throw new HttpError(400, e instanceof Error ? e.message : 'Setup was not saved.')
+      }
+    }
+
+    if (parts[1] === 'garage') {
+      const t = now()
+      const withTotals = (c: ReturnType<typeof listGarage>[number]) => ({ ...c, totals: totalsFor(c, t) })
+      try {
+        if (path === '/api/garage' && method === 'GET') return json(res, 200, { cars: listGarage().map(withTotals), summary: garageSummary(t) })
+        if (path === '/api/garage' && method === 'POST') return json(res, 200, withTotals(addCar(await readJsonBody(req), t)))
+        const id = parts[2] ? decodeURIComponent(parts[2]) : ''
+        if (id && parts.length === 3 && method === 'POST') return json(res, 200, withTotals(updateCar(id, await readJsonBody(req), t)))
+        if (id && parts.length === 3 && method === 'DELETE') {
+          if (!removeCar(id)) throw new HttpError(404, 'No car with that id in your garage.')
+          return json(res, 200, { ok: true })
+        }
+        if (id && parts[3] === 'cost' && method === 'POST') return json(res, 200, withTotals(addCost(id, await readJsonBody(req), t)))
+        if (id && parts[3] === 'income' && method === 'POST') return json(res, 200, withTotals(addIncome(id, await readJsonBody(req), t)))
+        if (id && parts[3] === 'entry' && parts[4] && method === 'DELETE') return json(res, 200, withTotals(removeEntry(id, decodeURIComponent(parts[4]), t)))
+      } catch (e) {
+        if (e instanceof HttpError) throw e
+        throw new HttpError(/No car|No entry/.test(e instanceof Error ? e.message : '') ? 404 : 400, e instanceof Error ? e.message : 'That was not saved.')
+      }
+    }
+
+    if (path === '/api/backup' && method === 'GET') {
+      const files: Record<string, unknown> = {}
+      for (const name of PERSONAL_FILES) files[name] = readJson<unknown>(userFile(name), null)
+      res.setHeader('content-disposition', `attachment; filename="gavel-backup-${new Date(now()).toISOString().slice(0, 10)}.json"`)
+      return json(res, 200, { app: BRAND, version: VERSION, exportedAt: now(), email: session.email, files })
+    }
+    if (path === '/api/backup' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const files = body.files
+      if (!files || typeof files !== 'object' || Array.isArray(files)) throw new HttpError(400, 'That is not a Gavel backup file.')
+      const f = files as Record<string, unknown>
+      const restored: string[] = []
+      try {
+        const list = (name: string) => (f[name] === null || f[name] === undefined ? undefined : Array.isArray(f[name]) ? (f[name] as unknown[]) : (() => { throw new Error(`${name} must be a list.`) })())
+        const watch = list('watchlist.json')
+        const paper = list('paper-bids.json')
+        const targets = list('targets.json')?.map((x) => validateTarget(x, x as never))
+        const alerts = list('alerts.json')
+        const garage = f['garage.json'] === null || f['garage.json'] === undefined ? undefined : validateGarageFile(f['garage.json'])
+        for (const [i, w] of (watch ?? []).entries()) if (!w || typeof (w as { listingId?: unknown }).listingId !== 'string') throw new Error(`watchlist[${i}] is missing its listing id.`)
+        for (const [i, b] of (paper ?? []).entries()) if (!b || (b as { mode?: unknown }).mode !== 'PAPER' || typeof (b as { maxBidUsd?: unknown }).maxBidUsd !== 'number') throw new Error(`paper-bids[${i}] is not a paper bid.`)
+        if (f['settings.json'] && typeof f['settings.json'] === 'object') { updateSettings(f['settings.json']); restored.push('settings.json') }
+        if (watch) { writeJson(userFile('watchlist.json'), watch); restored.push('watchlist.json') }
+        if (paper) { writeJson(userFile('paper-bids.json'), paper); restored.push('paper-bids.json') }
+        if (targets) { writeJson(userFile('targets.json'), targets); restored.push('targets.json') }
+        if (alerts) { writeJson(userFile('alerts.json'), alerts.slice(0, 200)); restored.push('alerts.json') }
+        if (garage) { writeJson(userFile('garage.json'), garage); restored.push('garage.json') }
+      } catch (e) {
+        throw new HttpError(400, `Nothing was restored: ${e instanceof Error ? e.message : 'the file did not check out.'}`)
+      }
+      scanCache.clear()
+      return json(res, 200, { restored })
     }
 
     if (path === '/api/settings' && method === 'GET') return json(res, 200, getSettings())
@@ -737,7 +876,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     console.log(`  Sources:     ${live.length ? `LIVE from ${live.join(', ')}` : 'none connected — the feed shows SAMPLE cars, labelled, until you add a source (see .env.example)'}`)
     console.log(`  Bidding:     PAPER. ${flag('GAVEL_LIVE_BIDDING') ? 'GAVEL_LIVE_BIDDING=1 is set, but no connected source can take a bid by API, so bids still stay on paper.' : 'Live bidding is off (GAVEL_LIVE_BIDDING=0).'}`)
     if (!secretInfo.persistent) console.log(`  Sessions:    reset on restart. Set GAVEL_SESSION_SECRET (32+ characters) in .env to keep members signed in.`)
-    console.log(`  Data:        ${DATA_DIR}`)
+    console.log(`  Data:        ${DATA_DIR} (each member has their own folder)`)
+    if (movedLegacy.length) console.log(`  Moved:       ${movedLegacy.join(', ')} into the owner's folder`)
     console.log('')
   }
 

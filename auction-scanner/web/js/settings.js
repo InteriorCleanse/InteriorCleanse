@@ -32,6 +32,8 @@ export async function render(el, ctx) {
     <div class="panel"><h2>Live bidding</h2><p><span class="pill ${me.liveBidding ? 'wait' : ''}">${me.liveBidding ? 'Switch is on' : 'Off'}</span></p><p>Every bid in Gavel is a <b>PAPER</b> bid unless two things are true at once: the switch <code>GAVEL_LIVE_BIDDING=1</code> is set on the server, and the listing's source can take a bid by API. No connected source can today: eBay's public API is read-only and the other houses publish no API. So the Bid button prepares your number and opens the lot on the auction's own site.</p></div>
     <div class="panel"><h2>AI explainer</h2><p><span class="pill ${me.ai && me.ai.available ? 'go' : ''}">${me.ai && me.ai.available ? 'On' : 'Off'}</span> ${esc(me.ai ? me.ai.reason : '')}</p></div>
     <div class="panel"><h2>Decode a VIN</h2><p class="dim">Free, from the US government's vehicle database. It tells you what the factory built, not the car's history.</p><form id="v-form" class="row"><input type="text" name="vin" maxlength="17" placeholder="17 characters" style="flex:1;min-width:220px;font-family:var(--mono)" aria-label="VIN" /><button class="btn outline" type="submit">Decode</button></form><div id="v-out"></div></div>
+    <div class="panel"><h2>Alerts on this device</h2><p class="dim" style="font-size:14px">Get a browser notification when the Sniper finds a pick or fires a paper bid, while Gavel is open in a tab.</p><div class="row"><button class="btn outline" type="button" id="n-on">Turn on alerts</button><span class="dim" id="n-state"></span></div></div>
+    <div class="panel"><h2>Backup</h2><p class="dim" style="font-size:14px">Your watchlist, paper bids, Sniper targets, alerts, settings and garage in one file. Keep a copy; restore it here or on another install.</p><div class="row"><a class="btn outline" href="/api/backup" download>Download a backup</a><label class="btn outline" style="cursor:pointer">Restore from a file<input type="file" id="b-file" accept="application/json,.json" hidden /></label></div></div>
     <div class="panel"><h2>Account</h2><p>${esc(me.email)} · ${esc(me.role)}${me.dataDir ? `<br /><span class="mono dim">Data: ${esc(me.dataDir)}</span>` : ''}</p></div>`
 
   el.querySelector('#s-form').addEventListener('submit', async (e) => {
@@ -54,6 +56,17 @@ export async function render(el, ctx) {
     }
     const st = el.querySelector('#s-status')
     try { await postJson('/api/settings', patch); st.textContent = 'Saved.'; toast('Settings saved.') } catch (err) { st.textContent = ''; toast(err.message, 'hot') }
+  })
+  const nState = el.querySelector('#n-state')
+  const showN = () => { nState.textContent = !('Notification' in window) ? 'This browser does not support notifications.' : Notification.permission === 'granted' ? 'On for this device.' : Notification.permission === 'denied' ? 'Blocked in the browser settings for this site.' : 'Off.' }
+  showN()
+  el.querySelector('#n-on').addEventListener('click', async () => { if ('Notification' in window) { await Notification.requestPermission(); showN() } })
+  el.querySelector('#b-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    if (!window.confirm('Restore this backup? It replaces your watchlist, paper bids, targets, alerts, settings and garage with the file\'s.')) { e.target.value = ''; return }
+    try { const data = JSON.parse(await file.text()); const r = await postJson('/api/backup', data); toast(`Restored: ${r.restored.join(', ') || 'nothing'}.`) } catch (err) { toast(err.message, 'hot') }
+    e.target.value = ''
   })
   el.querySelector('#v-form').addEventListener('submit', async (e) => {
     e.preventDefault()

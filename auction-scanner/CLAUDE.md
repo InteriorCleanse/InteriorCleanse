@@ -43,14 +43,22 @@ a rental car company as the first business, starting with one car.
 `src/server.ts` (node:http app + API) · `src/sources/` (eBay adapter,
 directory, SAMPLE, registry) · `src/valuation.ts` `scoring.ts` `filters.ts`
 `fees.ts` `bidplan.ts` `demand.ts` (the engine) · `src/explain.ts` `ai.ts`
-(walkthrough, optional Claude) · `src/paper.ts` `settings.ts` `store.ts`
-(JSON stores in the data dir) · `src/playbook/content.ts` `rental.ts` (the
+(walkthrough, optional Claude) · `src/paper.ts` `settings.ts` `garage.ts` `store.ts`
+(JSON stores; personal files resolve through `userFile()` into the
+member's folder while a request runs in `withUser()`) · `src/playbook/content.ts` `rental.ts` (the
 teaching) · `src/knowledge/` (policies, regulations, glossary, search) ·
 `src/research/` (car intel from public databases; the web desk) ·
 `src/sniper/` (targets, engine, alerts; paper fires only) · `src/security/` (CSP nonce, sessions, members, throttle, Stripe
 signature) · `web/` (vanilla ES modules, no build; `docs/DESIGN.md` is the
 design spec) · `test/` (`node --test`, offline; `test/setup.ts` puts the data
 dir in a temp folder) · `scan.ts` `doctor.ts` `selftest.ts` (CLIs).
+
+## Per-member data
+
+Every signed-in API call runs inside `withUser(session.email)`. Anything a
+member owns must be read and written through `userFile(name)`, never a bare
+file name, or it leaks between members. Shared files (members, Stripe
+events) use bare names on purpose. The Sniper runs once per member scope.
 
 ## Verify before you push
 

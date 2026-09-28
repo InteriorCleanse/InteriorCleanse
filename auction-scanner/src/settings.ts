@@ -10,7 +10,7 @@
  * Unknown keys are ignored.
  */
 import { config } from '../config.ts'
-import { readJson, writeJson } from './store.ts'
+import { readJson, userFile, writeJson } from './store.ts'
 
 const FILE = 'settings.json'
 
@@ -41,6 +41,10 @@ export type Settings = {
   homeZip?: string
   /** Buyer-fee percentage to use for a house, by house id, when the person has checked the real number. 0–30. */
   feeOverrides: Record<string, number>
+  /** The first-run setup has been finished (or skipped). */
+  onboarded: boolean
+  /** What the member is buying for. Shapes the Home screen's next steps. */
+  goal?: 'rental' | 'flip' | 'keep'
 }
 
 const DAMAGE = new Set(['none', 'minor', 'moderate', 'severe'])
@@ -59,6 +63,7 @@ export function defaultSettings(): Settings {
     allowSample: true,
     demandExtra: [],
     feeOverrides: {},
+    onboarded: false,
   }
 }
 
@@ -127,16 +132,23 @@ function validateFeeOverrides(v: unknown): Record<string, number> {
  * dropped; a bad value throws a plain-English Error. `homeState` and `homeZip`
  * may be set to '' or null to clear them.
  */
-function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest: Partial<Omit<Settings, 'starter'>>; clear: Array<'homeState' | 'homeZip'> } {
+function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest: Partial<Omit<Settings, 'starter'>>; clear: Array<'homeState' | 'homeZip' | 'goal'> } {
   if (!isRecord(patch)) throw new Error('Settings must be sent as an object.')
   const rest: Partial<Omit<Settings, 'starter'>> = {}
-  const clear: Array<'homeState' | 'homeZip'> = []
+  const clear: Array<'homeState' | 'homeZip' | 'goal'> = []
   let starter: Partial<StarterRules> | undefined
 
   if ('starter' in patch) starter = validateStarter(patch.starter)
   if ('allowSample' in patch) rest.allowSample = bool(patch.allowSample, 'allowSample')
   if ('demandExtra' in patch) rest.demandExtra = validateDemandExtra(patch.demandExtra)
   if ('feeOverrides' in patch) rest.feeOverrides = validateFeeOverrides(patch.feeOverrides)
+  if ('onboarded' in patch) rest.onboarded = bool(patch.onboarded, 'onboarded')
+  if ('goal' in patch) {
+    const v = patch.goal
+    if (v === '' || v === null || v === undefined) clear.push('goal')
+    else if (v === 'rental' || v === 'flip' || v === 'keep') rest.goal = v
+    else throw new Error('goal must be rental, flip or keep.')
+  }
 
   if ('homeState' in patch) {
     const v = patch.homeState
@@ -169,7 +181,7 @@ function merge(base: Settings, saved: unknown): Settings {
       apply(() => Object.assign(out.starter, validateStarter({ [k]: v })))
     }
   }
-  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip'] as const) {
+  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal'] as const) {
     if (!(key in saved)) continue
     apply(() => {
       const { rest, clear } = validatePatch({ [key]: saved[key] })
@@ -182,7 +194,7 @@ function merge(base: Settings, saved: unknown): Settings {
 
 /** The settings in force: the saved file merged over the defaults, so new keys always appear. */
 export function getSettings(): Settings {
-  return merge(defaultSettings(), readJson<unknown>(FILE, {}))
+  return merge(defaultSettings(), readJson<unknown>(userFile(FILE), {}))
 }
 
 /**
@@ -196,6 +208,6 @@ export function updateSettings(patch: unknown): Settings {
   if (starter) Object.assign(next.starter, starter)
   Object.assign(next, rest)
   for (const c of clear) delete next[c]
-  writeJson(FILE, next)
+  writeJson(userFile(FILE), next)
   return next
 }
