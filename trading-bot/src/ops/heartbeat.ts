@@ -1,5 +1,5 @@
 /**
- * MR. CASH HEARTBEAT — every "last …" the operator needs, with a status
+ * TRADING BOT HEARTBEAT — every "last …" the operator needs, with a status
  * derived only from explicit, printed thresholds.
  *
  *   HEALTHY   the mark is within its healthy window

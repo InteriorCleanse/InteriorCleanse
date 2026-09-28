@@ -3,8 +3,8 @@
  *
  * Design brief, in order of priority:
  *   1. A person who has never traded should understand the top of this screen
- *      in about three seconds: what Mr. Cash thinks right now, in one sentence,
- *      next to a core that shows every model he runs and which of them are
+ *      in about three seconds: what Trading Bot thinks right now, in one sentence,
+ *      next to a core that shows every model it runs and which of them are
  *      talking. Everything else is detail and stays folded away.
  *   2. A model that cannot see must LOOK like it cannot see — grey, dashed,
  *      silent, with what it is waiting on written beside it. Never a zero
@@ -14,7 +14,7 @@
  *
  * This file draws `/api/desk` and nothing else. No trading logic, no thresholds
  * of its own, no way to place or shape an order. Every word and number comes
- * from the payload — including his voice lines, which are composed server-side
+ * from the payload — including its voice lines, which are composed server-side
  * so there is exactly one place they can be got wrong.
  *
  * THE CORE (web/js/core.js) draws `payload.agents` and `payload.core.panel`
@@ -129,7 +129,7 @@ function learningLine(l) {
   const when = (t, future) => { if (!t) return null; const m = mins(future ? t - Date.now() : Date.now() - t); return m < 1 ? (future ? 'any moment' : 'just now') : m < 60 ? (future ? `in ${m} min` : `${m} min ago`) : (future ? `in ${Math.round(m / 60)} h` : `${Math.round(m / 60)} h ago`) }
   const last = when(l.lastRun, false), next = when(l.nextRun, true)
   const state = l.lastError ? `<b class="warn">last run failed</b>: ${esc(l.lastError)}` : l.running ? 'studying now' : l.runs ? `${l.runs} research run${l.runs === 1 ? '' : 's'}${last ? `, last ${last}` : ''}${next ? `, next ${next}` : ''}` : 'first research run starts shortly'
-  return `<p class="hm-learn" title="Every 15 minutes Mr. Cash re-reads his own paper record and what he has watched: failures, drift, the research queue, daily and weekly reviews. It writes lessons; it never changes how he trades."><i aria-hidden="true"></i><span><b>Self-learning</b> · ${state} · ${Number(l.candlesObserved || 0).toLocaleString()} candles observed</span></p>`
+  return `<p class="hm-learn" title="Every 15 minutes Trading Bot re-reads its own paper record and what it has watched: failures, drift, the research queue, daily and weekly reviews. It writes lessons; it never changes how it trades."><i aria-hidden="true"></i><span><b>Self-learning</b> · ${state} · ${Number(l.candlesObserved || 0).toLocaleString()} candles observed</span></p>`
 }
 
 function homeHero(d) {
@@ -167,7 +167,7 @@ function homeHero(d) {
       <div class="hm-actions">
         <button class="btn" data-tab="today">Today's plan</button>
         <button class="btn ghost" data-tab="chart">Chart</button>
-        <button class="btn ghost" data-tab="ask">Ask Mr. Cash</button>
+        <button class="btn ghost" data-tab="ask">Ask Trading Bot</button>
       </div>
       ${learningLine(d.learning)}
       <p class="hm-stamp"><span id="desk-status"></span></p>
@@ -357,7 +357,7 @@ window.addEventListener('resize', () => { if (deskData && deskVisible()) { drawS
  * THE PIPELINE — the six steps every paper trade has to pass, left to right,
  * lit from the same /api/desk reading as everything else on this page. A step
  * is "done" only when the desk says so; the first step that is not done is
- * where Mr. Cash is right now. Nothing here is estimated: a step with no
+ * where Trading Bot is right now. Nothing here is estimated: a step with no
  * reading says so.
  */
 const ICON = {
@@ -441,7 +441,7 @@ function render(d) {
       </section>
     </details>
 
-    <p class="dk-foot">He reports what he sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order. Pulses in the core are readings and votes on their way to the decision — not trades, not prices.</p>
+    <p class="dk-foot">It reports what it sees. The engine decides, the safety checks can stop it, and nothing on this screen can place, size or shape an order. Pulses in the core are readings and votes on their way to the decision — not trades, not prices.</p>
   </div>`
 }
 
@@ -520,7 +520,7 @@ document.addEventListener('click', (e) => {
 })
 
 window.loadDesk = loadDesk
-/** What he'd say if you asked him to read the desk aloud. */
+/** What it'd say if you asked it to read the desk aloud. */
 window.deskSpoken = () => document.getElementById('desk-out')?.dataset.spoken || ''
 // The desk's own tools live inside the markup it redraws, so they are delegated rather than bound once.
 document.addEventListener('click', (e) => {

@@ -59,7 +59,7 @@ not through the author's own code. There is no supply chain here to poison.
 Your real broker balances sit behind a second lock, separate from the PIN:
 the Portfolio vault opens only with a passcode **and** a six-digit code from an
 authenticator app (TOTP, RFC 6238), and it applies on the computer running
-Mr. Cash too.
+Trading Bot too.
 
 - Set up once with `npm run vault:setup`. It prints a fresh authenticator secret
   for your phone and the two `.env` lines (`MRCASH_VAULT_TOTP`,
@@ -106,7 +106,7 @@ cookie `Secure`.
 prints PASS / WARN / FAIL with the fix for each. It scans every tracked file
 for keys by their published shapes: private key blocks, Alpaca, Kraken,
 Anthropic, OpenAI-style, Stripe live, GitHub, AWS and Slack, plus any line that
-gives one of Mr. Cash's own secrets a value. It also checks that `.env` is ignored and
+gives one of Trading Bot's own secrets a value. It also checks that `.env` is ignored and
 private to you, that Docker builds leave it out, the phone PIN and 2FA,
 whether the vault guards the broker keys, the live flag, runtime
 dependencies, the Node version and the webhook secret. It never prints a
@@ -126,7 +126,7 @@ to build a multi-user web app. It would not make this app safer:
   throttled, and now two-factor. Supabase Auth would replace it with a
   remote dependency and a new set of keys to leak.
 - **"Backdoors" come in through dependencies.** Most real compromises of small
-  Node apps arrive through a poisoned package. Mr. Cash has zero runtime
+  Node apps arrive through a poisoned package. Trading Bot has zero runtime
   dependencies; a hosted SDK would be the first.
 
 What actually protects your money, in order:
@@ -140,7 +140,7 @@ What actually protects your money, in order:
 3. **2FA on the broker accounts themselves**, with an authenticator app, not
    SMS. That protects the money even if this machine is lost.
 4. **Never expose the port.** Leave `allowPhone` off, or use it on your home
-   wifi only. To reach Mr. Cash from outside, use a VPN such as Tailscale or
+   wifi only. To reach Trading Bot from outside, use a VPN such as Tailscale or
    WireGuard. Never port-forward it.
 5. **Run `npm run security:audit`** after any change to keys or settings, and
    rotate any key that ever appeared in a screenshot, a chat or a commit.
@@ -183,7 +183,7 @@ is the one nobody will notice.
   authenticator (`npm run vault:setup`) so other devices also need a code,
   or set `MRCASH_PIN` to something longer.
 - **One session for every device.** A signed-in device keeps its cookie for
-  30 days or until Mr. Cash restarts, and there is no per-device sign-out
+  30 days or until Trading Bot restarts, and there is no per-device sign-out
   yet: restarting is how you sign every device out.
 - **Prompt injection is mitigated, not solved.** The AI narration is validated
   against the engine's own context and rejected if it invents a number

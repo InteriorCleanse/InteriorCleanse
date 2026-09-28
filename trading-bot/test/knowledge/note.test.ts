@@ -1,5 +1,5 @@
 /**
- * OWNER NOTES — you tell him something; he remembers it as an untested
+ * OWNER NOTES — you tell it something; it remembers it as an untested
  * hypothesis with its source on it, brings it back on the day you name, and
  * never trades on it.
  *
@@ -30,7 +30,7 @@ test('a note is stored as an untested USER hypothesis with its source and market
   assert.equal(it.provenance.symbol, 'DIS')
   assert.equal(it.provenance.sampleSize, 0)
   assert.ok(it.tags.includes('owner-note') && it.tags.includes('dis'))
-  assert.match(it.body, /https:\/\/example\.com\/reel \(not verified by Mr\. Cash\)/)
+  assert.match(it.body, /https:\/\/example\.com\/reel \(not verified by Trading Bot\)/)
   assert.match(it.body, /UNTESTED/)
   assert.match(it.body, /does not move a trade/)
   assert.equal(it.review_due, WATCH)

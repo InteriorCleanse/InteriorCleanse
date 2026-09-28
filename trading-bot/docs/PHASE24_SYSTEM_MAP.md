@@ -62,7 +62,7 @@ and the failure mode to guard. Nothing here changes the engine.
 ## Delivered
 
 The modules planned above were built in seven parts (commits "Phase 24, P1"
-through "Phase 24, P7"). The operator's map — how to run Mr. Cash 24/7 in
+through "Phase 24, P7"). The operator's map — how to run Trading Bot 24/7 in
 paper mode, the two entry points, where each store lives, the maturity
 lifecycle, the research boundaries and failure recovery — is
 `AUTONOMOUS_RESEARCH_OPS.md`. The adversarial tests are

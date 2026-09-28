@@ -1,9 +1,9 @@
 ---
 name: mr-cash-morning-filings
-description: Read Mr. Cash's morning filings brief, covering congressional trades, insider Form 4 buys and sells, off-exchange (dark pool) volume and the most-active movers, and explain what big money filed. Use when the user asks what insiders or Congress bought, where big money is, for the morning brief, or types /mr-cash-morning-filings. Read-only; it places nothing.
+description: Read Trading Bot's morning filings brief, covering congressional trades, insider Form 4 buys and sells, off-exchange (dark pool) volume and the most-active movers, and explain what big money filed. Use when the user asks what insiders or Congress bought, where big money is, for the morning brief, or types /mr-cash-morning-filings. Read-only; it places nothing.
 ---
 
-# Mr. Cash: the morning filings brief
+# Trading Bot: the morning filings brief
 
 The Big money service refreshes every three hours. At 6:00 New York time it
 also does a fresh read and, if anything came in, rings the bell with
@@ -37,11 +37,11 @@ also does a fresh read and, if anything came in, rings the bell with
 
 ## What it must not do
 
-- Place, stage or suggest sizing for any order. Mr. Cash has no stock
+- Place, stage or suggest sizing for any order. Trading Bot has no stock
   execution path and this does not add one. There is no Robinhood connector.
   Robinhood's official API covers crypto only, and the unofficial stock APIs
   break its terms.
-- Feed filings into Mr. Cash's strategies, fusion or risk. The data is shown
+- Feed filings into Trading Bot's strategies, fusion or risk. The data is shown
   to the owner; it is not a signal to the engine.
 - Print API keys, or ask the user to paste them into the chat. They go in
   `.env` only.

@@ -1,9 +1,9 @@
-# Mr. Cash — mascot master prompt
+# Trading Bot — mascot master prompt
 
 A reusable prompt for Higgsfield (or any image model) that keeps the mascot
 consistent across the logo, app icon, social posts and video.
 
-**The character is original.** Mr. Cash borrows the old-money tycoon look that
+**The character is original.** Trading Bot borrows the old-money tycoon look that
 belongs to nobody (top hat, monocle, handlebar mustache, tailcoat, cane) and
 makes it a robot. It must not copy Hasbro's Monopoly mascot (Rich Uncle
 Pennybags): no white walrus mustache on a round human face, no Monopoly
@@ -14,7 +14,7 @@ borrowed. Keep the "No …" line at the end of every prompt.
 ## Master prompt
 
 ```
-Mascot for "Mr. Cash", an ORIGINAL robopunk tycoon character (not any existing
+Mascot for "Trading Bot", an ORIGINAL robopunk tycoon character (not any existing
 brand mascot). A friendly chrome-and-gunmetal robot gentleman. Tall black silk
 top hat with a thin glowing mint-green (#34d399) neon band. One round
 holographic monocle lens over the right eye that projects a tiny floating green

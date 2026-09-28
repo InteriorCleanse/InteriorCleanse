@@ -5,7 +5,7 @@
  * tries to kill the idea, and Chief passes along only what survives, at most
  * three cards a day.
  *
- * Here the six are plain functions over data Mr. Cash already reads: the
+ * Here the six are plain functions over data Trading Bot already reads: the
  * market watch (hourly candles), the news feed, the economic calendar and the
  * public insider filings. They never trade, never size anything and never
  * feed the engine. The owner's files (watchlist, alert rules, checklist,

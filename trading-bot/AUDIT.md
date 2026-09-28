@@ -1,6 +1,6 @@
-# Mr. Cash — Technical Audit
+# Trading Bot — Technical Audit
 
-**Audited version:** commit `69b01f8` on branch `claude/new-session-31dwy7`, tagged locally as `v0-rough-draft` (Mr. Cash v2.3).
+**Audited version:** commit `69b01f8` on branch `claude/new-session-31dwy7`, tagged locally as `v0-rough-draft` (Trading Bot v2.3).
 **Audit date:** 2026-09-14.
 **Method:** every file in `trading-bot/` was read; `npm run selftest` (72 checks) and `npx tsc --noEmit` were run on the frozen tree and both pass. Nothing in this document is inferred from documentation alone — where a claim could not be verified from code or a run, it says so.
 **Rule followed:** no production functionality was changed during the audit. The only new file is this one. In-progress, unverified work from earlier today (BOS/CHoCH labels, order blocks, a multi-strategy engine) was moved to a local branch `claude/wip-v3-playbook` and a patch file, and is **not** part of the audited system.

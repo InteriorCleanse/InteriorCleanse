@@ -1,5 +1,5 @@
 /**
- * MARKETS — every market Mr. Cash watches, READ-ONLY.
+ * MARKETS — every market Trading Bot watches, READ-ONLY.
  *
  * Two views of `/api/markets`:
  *   - the strip on Home (one card per kind of market: crypto, stocks, forex,
@@ -76,7 +76,7 @@ function renderStrip(d) {
   const kinds = ['crypto', 'stock', 'forex', 'index'].filter((k) => d.rows.some((r) => r.kind === k))
   const notes = d.rows.flatMap((r) => r.scan.notes.map((n) => ({ ...n, label: r.label }))).sort((a, b) => b.at - a.at)
   box.innerHTML = `
-    <div class="mk-strip-hd"><b>Markets he's watching</b><span>${d.rows.length} markets, rescanned every ${d.everyMinutes} minutes · read-only</span></div>
+    <div class="mk-strip-hd"><b>Markets it's watching</b><span>${d.rows.length} markets, rescanned every ${d.everyMinutes} minutes · read-only</span></div>
     <div class="mk-strip">${kinds.map((k) => stripCard(k, d.rows.filter((r) => r.kind === k))).join('')}</div>
     ${notes.length ? `<p class="mk-latest"><i></i><b>${esc(notes[0].label)}</b> ${esc(notes[0].text)}</p>` : ''}
     <div id="dk-pa" class="pa-home"></div>`

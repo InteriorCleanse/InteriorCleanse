@@ -1,4 +1,4 @@
-# FINAL PRODUCTION READINESS — Mr. Cash (TITAN)
+# FINAL PRODUCTION READINESS — Trading Bot (TITAN)
 
 An independent pre-production / red-team audit of the whole system, treating the
 implementation as something to be *proven*, not assumed. Every verdict below has

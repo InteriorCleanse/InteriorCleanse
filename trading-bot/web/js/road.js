@@ -45,7 +45,7 @@ function render(r) {
       </div>
     </li>`).join('')}</ol>
   <div class="card"><h2>What will not happen</h2><ul class="cd-how">
-    <li>Mr. Cash never arms himself. No green gate, schedule or research result switches live trading on.</li>
+    <li>Trading Bot never arms itself. No green gate, schedule or research result switches live trading on.</li>
     <li>Passing every step is a passed validation stage, not proof that the strategy works, and never a promise of a return.</li>
     <li>Live starts at the smallest caps and only with money you can afford to lose. The full list is in docs/LIVE_READINESS.md.</li>
   </ul></div>`

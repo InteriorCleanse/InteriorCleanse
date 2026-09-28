@@ -3,7 +3,7 @@
 Each folder below was copied from an upstream repository at the commit shown
 and carries that repository's licence as `LICENSE` inside the folder. They
 are instructions for the agent working on this repo (Claude Code); none of
-them is loaded or executed by Mr. Cash. The seven `mr-cash-*` folders are the
+them is loaded or executed by Trading Bot. The seven `mr-cash-*` folders are the
 bot's own and are not in the vendored tables.
 
 Review note: every vendored SKILL.md was skimmed at import for instructions
@@ -39,7 +39,7 @@ audio (brag), and run only when you choose to run them.
 | `ux-designer` | github.com/szilu/ux-designer-skill | da9e9d0 | MIT | Accessibility, microcopy, forms, navigation, onboarding critique. |
 | `canvas-design` | github.com/anthropics/skills (`skills/canvas-design`) | 34040c9 | Apache 2.0 | Posters and static visual pieces as PNG/PDF. |
 | `web-artifacts-builder` | same (`skills/web-artifacts-builder`) | 34040c9 | Apache 2.0 | Multi-component HTML artifacts (React, Tailwind, shadcn/ui). |
-| `app-store-screenshots` | github.com/ParthJadhav/app-store-screenshots (`skills/app-store-screenshots`) | 18951dd | MIT | Marketing screenshot pages, if Mr. Cash ever ships as a store app. |
+| `app-store-screenshots` | github.com/ParthJadhav/app-store-screenshots (`skills/app-store-screenshots`) | 18951dd | MIT | Marketing screenshot pages, if Trading Bot ever ships as a store app. |
 | `brag` | github.com/latent-spaces/brag (`skills/brag`) | 57ce4c9 | MIT (code); SFX CC0 | A short launch video from the project. The five music tracks were **not** vendored — see `brag/assets/music/NOT_VENDORED.md`. |
 
 ### Motion, 3D and design-identity skills (added 2026-09-23)
@@ -54,7 +54,7 @@ either would be a new runtime dependency and a separate, stated decision.
 | `design-dna` | github.com/zanwei/design-dna | 593e39b | MIT | Measure a reference design's colours from its pixels and write the design identity down as tokens. Its optional scripts need `sharp` (npm); install them outside the repo. |
 | `motion-design` | github.com/lottiefiles/motion-design-skill (`skills/motion-design`) | f9a8a04 | MIT | Timing, easing and choreography; the source of the app's motion identity. |
 | `cast`, `paint`, `genjutsu/_jutsu` | github.com/AThevon/genjutsu (`skills/`) | 94a260a | MIT | Motion and polish pipelines. `cast` finds its sub-skills in `genjutsu/_jutsu`, which are not listed as skills of their own. |
-| `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`, `gsap-performance`, `gsap-utils`, `gsap-react`, `gsap-frameworks` | github.com/greensock/gsap-skills (`skills/`) | aed9cfd | MIT | GreenSock's official skills; useful for any GSAP work (the storefront or a future page), not used by Mr. Cash. |
+| `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`, `gsap-performance`, `gsap-utils`, `gsap-react`, `gsap-frameworks` | github.com/greensock/gsap-skills (`skills/`) | aed9cfd | MIT | GreenSock's official skills; useful for any GSAP work (the storefront or a future page), not used by Trading Bot. |
 | `threejs-fundamentals`, `-geometry`, `-materials`, `-lighting`, `-textures`, `-shaders`, `-animation`, `-interaction`, `-loaders`, `-postprocessing` | github.com/CloudAI-X/threejs-skills (`skills/`) | b1c6230 | MIT (stated in the README; the repository has no LICENSE file, so each folder's `LICENSE` quotes the README) | Three.js technique; relevant to the storefront's 3D viewers. |
 
 Every SKILL.md and bundled script was searched at import for remote fetches,

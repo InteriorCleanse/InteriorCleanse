@@ -3,7 +3,7 @@
 How the first real PAPER fill becomes a trustworthy, auditable event: the
 audited chain, the acceptance contract, the verifier that checks it over the
 durable record, and the screen that shows it. Nothing in this phase changes
-how Mr. Cash decides to trade.
+how Trading Bot decides to trade.
 
 State at the time of writing: zero real paper trades. The correct reading of
 every surface described here is WAITING FOR FIRST REAL PAPER FILL and NOT

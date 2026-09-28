@@ -1,5 +1,5 @@
 /**
- * MR. CASH CHALLENGER — the adversarial research agent.
+ * TRADING BOT CHALLENGER — the adversarial research agent.
  *
  * Its job is to attack every promising finding. For an experiment it asks the
  * questions the specification lists — overfitting, selection bias, data

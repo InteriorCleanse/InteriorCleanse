@@ -1,8 +1,8 @@
 @echo off
-REM Double-click this file to start Mr. Cash.
+REM Double-click this file to start Trading Bot.
 cd /d "%~dp0"
 echo.
-echo   Starting Mr. Cash...
+echo   Starting Trading Bot...
 echo   (PAPER MODE - no real money, no exchange account)
 echo.
 where node >nul 2>nul

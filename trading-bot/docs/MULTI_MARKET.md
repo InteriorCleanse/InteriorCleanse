@@ -1,6 +1,6 @@
 # Trading every market — the fleet
 
-Mr. Cash was built around one market at a time. Rather than rewrite the whole
+Trading Bot was built around one market at a time. Rather than rewrite the whole
 validated engine (strategies, fusion, risk, validation) to juggle many symbols
 in one process — which would touch the frozen, tested trading code — the fleet
 runs the **exact same engine once per market**, each fully isolated.
@@ -109,7 +109,7 @@ crypto pair is still the fleet's job, one isolated engine per market.
 
 ## Real money
 
-Mr. Cash places real orders nowhere by default. The one live path — Binance
+Trading Bot places real orders nowhere by default. The one live path — Binance
 spot, built in Phase 20 — is dormant behind every gate in `src/live/gates.ts`
 at once: the hard flag `LIVE_TRADING_ENABLED` (ships false), `config.live.enabled`,
 the `MRCASH_LIVE` phrase, a typed confirmation, a reconciled testnet track

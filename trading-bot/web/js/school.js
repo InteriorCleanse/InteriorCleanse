@@ -124,7 +124,7 @@ async function renderLearning() {
 async function renderMarkets() {
   const { data } = await getJson('/api/school/prediction-market')
   const w = data.example
-  return `<div class="ev-note">Prediction-market edge, costs and Kelly — the arithmetic, taught with SIMULATED numbers. Mr. Cash is not connected to any prediction market and does not trade them.</div>
+  return `<div class="ev-note">Prediction-market edge, costs and Kelly — the arithmetic, taught with SIMULATED numbers. Trading Bot is not connected to any prediction market and does not trade them.</div>
     <div class="card"><h2>Worked example <span class="ev-src sim">SIMULATED</span></h2>${w.steps.map((s) => `<div>${esc(s)}</div>`).join('')}<table><tr><td>single venue</td><td>${esc(w.single.note)}</td></tr><tr><td>cross venue</td><td>${esc(w.cross.note)}</td></tr><tr><td>net of costs</td><td>${esc(w.net.note)}</td></tr><tr><td>Kelly</td><td>${esc(w.kelly.note)}</td></tr></table></div>
     <div class="card"><h2>Try the arithmetic</h2><form id="sc-pm"><label>YES ask <input name="yes" value="0.47" size="5"></label> <label>NO ask <input name="no" value="0.51" size="5"></label> <label>fee/side <input name="fee" value="0.01" size="5"></label> <label>slippage <input name="slip" value="0.005" size="5"></label> <label>your p(YES) <input name="p" value="0.55" size="5"></label> <button class="btn" type="submit">Compute</button></form><div id="sc-pm-out"></div></div>
     <div class="card"><h2>Lesson</h2><button class="btn ghost" data-concept="prediction-market-edge">Open the concept</button></div>`

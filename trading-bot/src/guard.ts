@@ -38,7 +38,7 @@ function header(h: Headers, name: string): string | undefined {
 export function checkStateChange(headers: Headers, expectedToken: string, hostHeader: string | undefined): GuardVerdict {
   const token = header(headers, 'x-mrcash-csrf')
   if (!token || !safeEqual(token, expectedToken)) {
-    return { ok: false, status: 403, reason: 'This action needs the app\'s own token. Reload Mr. Cash and try again.' }
+    return { ok: false, status: 403, reason: 'This action needs the app\'s own token. Reload Trading Bot and try again.' }
   }
   const site = header(headers, 'sec-fetch-site')
   if (site && site !== 'same-origin' && site !== 'none') {

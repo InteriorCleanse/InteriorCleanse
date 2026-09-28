@@ -1,4 +1,4 @@
-# Mr. Cash — paper trading, 24/7. Data persists in a named volume; logs and the
+# Trading Bot — paper trading, 24/7. Data persists in a named volume; logs and the
 # store survive restarts. No exchange keys, no real orders.
 services:
   mrcash:

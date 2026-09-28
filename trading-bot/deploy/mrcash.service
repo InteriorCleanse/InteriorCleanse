@@ -2,7 +2,7 @@
 # node path, then: systemctl --user enable --now mrcash
 # Paper only; no exchange keys.
 [Unit]
-Description=Mr. Cash paper-trading bot
+Description=Trading Bot paper-trading bot
 After=network-online.target
 Wants=network-online.target
 

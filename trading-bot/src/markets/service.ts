@@ -112,7 +112,7 @@ export class MarketWatch {
         setups: this.rows.filter((r) => r.scan.setup && r.scan.setup.aligned >= 4).length,
       },
       note: this.asOf
-        ? 'Observations, not signals: Mr. Cash watches these markets and tells you what changed. He paper-trades only the engine\'s own market, and nothing here can place an order.'
+        ? 'Observations, not signals: Trading Bot watches these markets and tells you what changed. It paper-trades only the engine\'s own market, and nothing here can place an order.'
         : 'First look still running.',
     }
   }

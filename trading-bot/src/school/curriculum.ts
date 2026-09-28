@@ -1,5 +1,5 @@
 /**
- * THE MARKET SCHOOL CURRICULUM — the concepts Mr. Cash can teach, in its own
+ * THE MARKET SCHOOL CURRICULUM — the concepts Trading Bot can teach, in its own
  * words, tied to what its engine actually detects.
  *
  * Every concept says four things: what it is (plain language), what the ENGINE
@@ -62,7 +62,7 @@ export const CONCEPTS: Concept[] = [
   {
     id: 'what-you-trade', title: 'What you are actually trading', level: 'foundation', track: 'basics',
     summary: 'A share is a small piece of a company. A coin is a token on a crypto network. An ETF is a basket traded like one share. An option is a contract whose price comes from a share or index. Your broker (Robinhood, Webull, tastytrade, Kraken…) routes your order to a market where a buyer meets a seller. Stocks trade 09:30–16:00 New York time with thinner extended hours around them; crypto trades every hour of every day.',
-    engineChecks: ['Mr. Cash watches one crypto market (BTCUSDT) and trades it on paper only; nothing it does touches a real account.', 'Linked brokers are read-only: the Desk shows balances, never an order button (src/broker/).'],
+    engineChecks: ['Trading Bot watches one crypto market (BTCUSDT) and trades it on paper only; nothing it does touches a real account.', 'Linked brokers are read-only: the Desk shows balances, never an order button (src/broker/).'],
     annotationTypes: [], caseKinds: [], strategies: [],
     misreads: ['Owning a coin or a share is not the same as owning an option on it: the option can expire worth nothing while the share still exists.', 'A market being open 24/7 (crypto) does not mean liquidity is the same at 3 a.m. as at the New York open.'],
     related: ['bid-ask', 'order-types', 'options-basics'],
@@ -113,7 +113,7 @@ export const CONCEPTS: Concept[] = [
   {
     id: 'options-basics', title: 'Options: calls, puts, strike and expiry', level: 'foundation', track: 'basics',
     summary: 'A call gives the right to buy 100 shares at the strike price until expiry; a put gives the right to sell. You pay a premium per share, so a $2.00 option costs $200 per contract. A buyer can lose at most the premium. At expiry a call is worth only what the share is above the strike (a put, below it); break-even for a call is strike + premium.',
-    engineChecks: ['Mr. Cash does not trade options. The Planner\'s option calculator sizes contracts by the loss at your stop, always shows the worst case (the whole premium), and compares strikes at expiry.'],
+    engineChecks: ['Trading Bot does not trade options. The Planner\'s option calculator sizes contracts by the loss at your stop, always shows the worst case (the whole premium), and compares strikes at expiry.'],
     annotationTypes: [], caseKinds: [], strategies: [],
     misreads: ['Being right about direction is not enough: the move must beat the premium, and arrive before expiry.', 'Cheap far-out strikes look attractive because most of them expire worthless.'],
     related: ['options-decay-iv', 'bid-ask', 'position-sizing'],
@@ -528,7 +528,7 @@ export const CONCEPTS: Concept[] = [
   },
   {
     id: 'prediction-market-edge', title: 'Prediction-market edge, costs and Kelly', level: 'advanced', track: 'markets',
-    summary: 'In a binary market the YES and NO prices should sum to one. If the sum of the asks is below one on a single venue, or the same event trades at different YES prices on two venues, there is a theoretical edge. Detection is the easy half: fees, spread, slippage from walking the book, and the time to settle must be subtracted before the edge is real, and the position is sized with a fraction of Kelly so that a wrong probability estimate does not ruin you. Mr. Cash teaches the arithmetic with SIMULATED examples; it is not connected to any prediction market and does not trade them.',
+    summary: 'In a binary market the YES and NO prices should sum to one. If the sum of the asks is below one on a single venue, or the same event trades at different YES prices on two venues, there is a theoretical edge. Detection is the easy half: fees, spread, slippage from walking the book, and the time to settle must be subtracted before the edge is real, and the position is sized with a fraction of Kelly so that a wrong probability estimate does not ruin you. Trading Bot teaches the arithmetic with SIMULATED examples; it is not connected to any prediction market and does not trade them.',
     engineChecks: ['school/predictionMarket.ts is a pure calculator: single-venue edge, cross-venue divergence, cost-adjusted net edge, Kelly fraction with a cap. No venue connection exists in this system.'],
     annotationTypes: [], caseKinds: [], strategies: [],
     misreads: ['A 3% theoretical edge with 2% fees and 1.5% slippage is a loss.', 'Full Kelly assumes the probability is exactly right. It never is; fractional Kelly is the practical rule.'],

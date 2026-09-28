@@ -307,5 +307,5 @@ test('Home shows self-learning from the research scheduler\'s own state, and it 
   const fn = desk.slice(desk.indexOf('function learningLine'), desk.indexOf('function homeHero'))
   assert.ok(fn.length > 50)
   assert.equal(/profit|proven|guarantee|edge/i.test(fn), false, 'no profitability language')
-  assert.match(fn, /never changes how he trades/)
+  assert.match(fn, /never changes how it trades/)
 })

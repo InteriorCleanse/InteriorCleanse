@@ -1,6 +1,6 @@
-# Mr. Cash — working in this repository
+# Trading Bot — working in this repository
 
-Mr. Cash is a paper-trading bot: live BTCUSDT prices, simulated fills, no
+Trading Bot is a paper-trading bot: live BTCUSDT prices, simulated fills, no
 exchange account, no real money. Node 22+, TypeScript run directly, zero
 runtime dependencies, SQLite through `node:sqlite`. This file is the standing
 brief for any Claude Code session in `trading-bot/`; the project skills in
@@ -8,7 +8,7 @@ brief for any Claude Code session in `trading-bot/`; the project skills in
 
 ## Rules that do not bend
 
-- **Do not change how Mr. Cash decides to trade.** No edits to strategies,
+- **Do not change how Trading Bot decides to trade.** No edits to strategies,
   entry or exit logic, risk, sizing, fusion, regime rules, strategy parameters,
   validation thresholds, execution assumptions, the frozen paper-validation
   profile, or `config.ts`. If a task seems to need one, stop and report the

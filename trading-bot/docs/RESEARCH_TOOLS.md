@@ -9,7 +9,7 @@ why.
 
 | Piece | Where | What it is |
 |---|---|---|
-| vectorbt research | `research/vbt_sweep.py`, skill `/vectorbt-research` | Vectorised backtests on the candles Mr. Cash recorded. |
+| vectorbt research | `research/vbt_sweep.py`, skill `/vectorbt-research` | Vectorised backtests on the candles Trading Bot recorded. |
 | hftbacktest research | `research/hbt_mm.py`, skill `/hftbacktest-research` | Tick-level backtests that model queue position, latency and fees. |
 | Market-making study | skill `/market-making-study` (uses `hbt_mm.py`) | Explains quoting, inventory, adverse selection and prediction-market books, with a runnable study. |
 | Morning filings brief | `src/bigmoney/service.ts`, skill `/mr-cash-morning-filings` | A fresh Big money read at 6:00 New York time, rung in the bell. |
@@ -17,7 +17,7 @@ why.
 
 ## Why the research bench sits outside the bot
 
-Mr. Cash is TypeScript with zero runtime dependencies. vectorbt and
+Trading Bot is TypeScript with zero runtime dependencies. vectorbt and
 hftbacktest are Python libraries with large native stacks (NumPy, Numba,
 pandas, polars). Putting them inside the bot would add a runtime, a second
 language and hundreds of megabytes to every install. They live in
@@ -46,7 +46,7 @@ from `research/`, and a test enforces that.
 
 ## hftbacktest data
 
-Mr. Cash stores candles, not full order-book depth, so it cannot supply
+Trading Bot stores candles, not full order-book depth, so it cannot supply
 hftbacktest's input. Real data comes from hftbacktest's own converters, which
 produce `.npz` event files from exchange market-data archives or from its Rust
 collector. Pass them with `--data`, plus `--snapshot` and the market's `--tick`
@@ -62,7 +62,7 @@ and `--lot`. The selftest's order book is SYNTHETIC and shows mechanics only.
   Rust connector. It is not configured, and the skill forbids setting it up.
 - **A Robinhood connector.** Robinhood's official API covers crypto only, and
   the unofficial stock APIs break its terms of service. The Quiver post's
-  "trade what Congress trades" step is replaced by a read-only brief. Mr. Cash
+  "trade what Congress trades" step is replaced by a read-only brief. Trading Bot
   has no stock execution path and this does not add one. The existing Alpaca
   connection stays read-only.
 - **The Higgsfield / Seedance watch website.** It is a tool for making website

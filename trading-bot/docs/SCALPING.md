@@ -68,7 +68,7 @@ Scalpers trade around the *timing* of news, not its meaning:
 ## Predicting the future: the honest version
 
 No person or model can see the future. What a forecaster can do is state a
-probability, show its working and keep score. Mr. Cash does exactly that:
+probability, show its working and keep score. Trading Bot does exactly that:
 
 - The 15-minute and 5-minute desks log every call before its window closes.
 - Each call is settled against the real close and scored with the Brier

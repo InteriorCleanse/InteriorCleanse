@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * THE FLEET — Mr. Cash across every market you name, at once.
+ * THE FLEET — Trading Bot across every market you name, at once.
  *
  * Each symbol gets its OWN full engine: its own watch loop, paper record,
  * research, learning and web app, in its own data-dir lane so nothing collides
@@ -55,7 +55,7 @@ function main() {
   if (!symbols.length) { console.error('No symbols. Set MRCASH_SYMBOLS=BTCUSDT,ETHUSDT,...'); process.exit(1) }
 
   console.log('')
-  console.log('  MR. CASH FLEET — one full PAPER engine per market, real prices, pretend money.')
+  console.log('  TRADING BOT FLEET — one full PAPER engine per market, real prices, pretend money.')
   console.log('  ' + '-'.repeat(64))
   let stopping = false
   const lanes = symbols.map((symbol, index) => {
@@ -88,7 +88,7 @@ function main() {
   }
   lanes.forEach(launch)
   console.log('  ' + '-'.repeat(64))
-  console.log('  Open any URL above. Each is Mr. Cash on that one market. A lane that stops restarts itself. Ctrl+C stops the fleet.')
+  console.log('  Open any URL above. Each is Trading Bot on that one market. A lane that stops restarts itself. Ctrl+C stops the fleet.')
   console.log('')
 
   function stop() {

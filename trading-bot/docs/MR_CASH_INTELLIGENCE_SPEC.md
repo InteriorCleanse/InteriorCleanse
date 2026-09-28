@@ -1,4 +1,4 @@
-# MR. CASH INTELLIGENCE LAYER — ARCHITECTURE SPEC (Phase 22)
+# TRADING BOT INTELLIGENCE LAYER — ARCHITECTURE SPEC (Phase 22)
 
 A **read-only intelligence and visualization layer** that sits *above* the
 validated trading engine. Its job is to make what the engine already sees
@@ -38,7 +38,7 @@ the sole source of truth.
                     │  timeline / alerts / explain / pine   │
                     └───────┬──────────────────┬───────────┘
                             ▼                  ▼
-                   Native Mr. Cash chart   Pine export
+                   Native Trading Bot chart   Pine export
                    (real-time truth)       (offline artifact)
 ```
 
@@ -260,14 +260,14 @@ TradingView-provided data; it cannot fetch an external URL. Therefore:
 - ❌ We do **not** claim live remote drawing on a user's chart.
 - ❌ We do **not** scrape TradingView or automate a logged-in account.
 - ✅ We generate **self-contained Pine v5 source** whose drawing commands are
-  *baked from real Mr. Cash annotations* (fixed times and prices), which the
+  *baked from real Trading Bot annotations* (fixed times and prices), which the
   user pastes into the Pine Editor.
 - ✅ The existing webhook path (`/api/tv-alert`) remains the only *inbound*
   TradingView integration, unchanged.
 
 Consequence: the Pine export is a **point-in-time artifact**, not a live feed.
 It is stamped with the generation time and the engine version, and the generated
-header says plainly that it is a snapshot. The **native Mr. Cash chart remains
+header says plainly that it is a snapshot. The **native Trading Bot chart remains
 the real-time source of truth**. Full detail in `docs/TRADINGVIEW_INTEGRATION.md`.
 
 The generator emits levels/boxes/labels from the same canonical annotations the

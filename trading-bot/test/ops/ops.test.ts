@@ -130,7 +130,7 @@ test('lock: the first process acquires; a second live process is refused with th
   assert.deepEqual(K.readLock(dir)?.pid, 100)
   const b = K.acquireLock({ dir, pid: 200, role: 'app', now: NOW + 1000, isAlive, host: 'h' })
   assert.equal(b.ok, false)
-  if (!b.ok) { assert.equal(b.owner.pid, 100); assert.match(b.reason, /already owned by Mr. Cash pid 100/); assert.match(b.reason, /One process per data directory/) }
+  if (!b.ok) { assert.equal(b.owner.pid, 100); assert.match(b.reason, /already owned by Trading Bot pid 100/); assert.match(b.reason, /One process per data directory/) }
   assert.equal(K.readLock(dir)?.pid, 100, 'the refused process did not touch the lock')
   // Heartbeat refresh belongs to the owner only.
   assert.equal(K.refreshLock({ dir, pid: 200, now: NOW + 2000 }), false)

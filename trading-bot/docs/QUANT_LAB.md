@@ -7,12 +7,12 @@ one lives, what it runs on, and what it does not do. None of them changes a
 strategy. Research reads the record and writes proposals; a proposal still
 needs a human; nothing here reaches the engine.
 
-| Project as pitched | In Mr. Cash | Runs on | Route |
+| Project as pitched | In Trading Bot | Runs on | Route |
 |---|---|---|---|
 | Backtest overfitting detector: deflated Sharpe over the number of trials | Research → **Overfitting**. The trial registry counts every variant tried (sandbox runs, factory grids, hand-registered trials); the deflated Sharpe is computed against that count, the track length, skew and kurtosis. | trial registry, backtests | `/api/research/overfitting` |
 | AI strategy search lab: generate variants, backtest them, map survivors by regime | Research → **Sandbox** (variants: filter, session, regime, parameter; each registered as a trial before it runs) and Research → **Regime atlas** (strategy family by volatility band and regime, PAPER and BACKTEST in separate tables). The Factory tab does the generate-and-breed step with out-of-sample survival and a deflated-Sharpe bar. | backtests, trial registry, the paper record | `/api/research/sandbox`, `/api/research/atlas`, `/api/factory/*` |
 | News-to-price diffusion: a Hawkes fit of headlines exciting price | Research → **News diffusion**. Scheduled releases from the calendar memory against price events from stored candles; exogenous (news → price) and endogenous (price → price) kernels with half-lives. Labelled HISTORICAL. | calendar memory, candles | `/api/research/diffusion` |
-| Prediction-market arbitrage: YES + NO under a dollar, cross-venue divergence, Kelly | School → **Other markets**. The arithmetic, taught with SIMULATED numbers you can change. Mr. Cash is **not connected** to Polymarket or Kalshi and does not trade them; a live order-book feed would be a new data source and is listed below as a candidate, not a feature. | worked examples | `/api/school/prediction-market` |
+| Prediction-market arbitrage: YES + NO under a dollar, cross-venue divergence, Kelly | School → **Other markets**. The arithmetic, taught with SIMULATED numbers you can change. Trading Bot is **not connected** to Polymarket or Kalshi and does not trade them; a live order-book feed would be a new data source and is listed below as a candidate, not a feature. | worked examples | `/api/school/prediction-market` |
 
 The Research overview now carries a "Quant lab" card that names the four and
 opens each view.

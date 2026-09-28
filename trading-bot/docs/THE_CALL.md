@@ -3,7 +3,7 @@
 The owner showed a "Polymarket-Trading-Bots" terminal, where an agent called
 JEV answers the short Bitcoin "Up or Down" markets. It gives a probability,
 stays flat below a confidence line, and settles each window as right or
-wrong. Mr. Cash now has the same kind of desk. It makes a call every window
+wrong. Trading Bot now has the same kind of desk. It makes a call every window
 and shows its working, with two differences: it keeps an honest score, and
 it places nothing.
 
@@ -38,7 +38,7 @@ it places nothing.
 - **The call** tab (Markets group): the live call with its gauge, readings and
   countdown, the settled log, the scoreboard, calibration and the backtest.
 - **Home**: a compact terminal under the markets strip.
-- **Ask → The Call**: Mr. Cash explains his own call and record from the desk's data.
+- **Ask → The Call**: Trading Bot explains its own call and record from the desk's data.
 - **API**: `GET /api/forecast` (`?refresh=1` runs a pass now).
 - **Code and data**:
   - model: `src/forecast/model.ts`

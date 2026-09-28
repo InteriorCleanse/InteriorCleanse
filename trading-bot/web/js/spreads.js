@@ -58,7 +58,7 @@ function shell() {
     <div id="sp-out" class="pl-out"></div>
   </div>
 
-  <p class="muted pl-foot">This page only does the maths. It sends nothing and places nothing, and Mr. Cash does not trade options. You place the spread yourself, as one multi-leg order in your broker's app.</p>`
+  <p class="muted pl-foot">This page only does the maths. It sends nothing and places nothing, and Trading Bot does not trade options. You place the spread yourself, as one multi-leg order in your broker's app.</p>`
 }
 
 /** Pick an underlying: fills the symbol and contract size, and says what matters about it for a spread. */

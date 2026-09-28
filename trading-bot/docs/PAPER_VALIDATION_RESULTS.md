@@ -1,4 +1,4 @@
-# PAPER VALIDATION RESULTS — Mr. Cash (TITAN)
+# PAPER VALIDATION RESULTS — Trading Bot (TITAN)
 
 The living record of the extended paper-validation run. It is **data, not
 opinion**: every number here comes from `GET /api/validation` over the real

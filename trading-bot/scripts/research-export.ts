@@ -1,7 +1,7 @@
 /**
  * `npm run research:export -- --symbol BTCUSDT --interval 5m`
  *
- * Copies the candles Mr. Cash has already stored into a CSV for the Python
+ * Copies the candles Trading Bot has already stored into a CSV for the Python
  * research tools in research/ (vectorbt, hftbacktest). The database is opened
  * READ-ONLY, so it is safe to run while the bot is running, and it never
  * fetches anything: what is exported is exactly what the bot recorded.

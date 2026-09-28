@@ -1,10 +1,10 @@
 /**
- * Mr. Cash as an MCP server — so Claude Desktop or Claude Code can ask
+ * Trading Bot as an MCP server — so Claude Desktop or Claude Code can ask
  * "what's the plan today?" from any chat.
  *
  * MCP is JSON-RPC over stdin/stdout, one message per line. Nothing else
  * may be printed to stdout, so all logging goes to stderr. Implemented
- * by hand to keep Mr. Cash dependency-free.
+ * by hand to keep Trading Bot dependency-free.
  *
  *   Claude Code:     claude mcp add mr-cash -- node <this folder>/src/mcp.ts
  *   Claude Desktop:  run `npm run mcp:config` and paste the JSON it prints
@@ -48,7 +48,7 @@ const noInput = { type: 'object', properties: {}, additionalProperties: false }
 const TOOLS: Tool[] = [
   {
     name: 'brief',
-    description: "Mr. Cash's daily brief: session ranges, levels, what has been swept, market state, order flow, bias with reasons, timing, news, and the proposed plan. Paper trading only.",
+    description: "Trading Bot's daily brief: session ranges, levels, what has been swept, market state, order flow, bias with reasons, timing, news, and the proposed plan. Paper trading only.",
     inputSchema: noInput,
     run: async () => {
       const s = await analyzeNow()
@@ -192,7 +192,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'strategies',
-    description: "Every strategy in Mr. Cash's panel: id, name, family, what it looks for, whether it is switched on, and whether it can be backtested (order-flow strategies need the live tape and cannot). Use the id with the backtest tool.",
+    description: "Every strategy in Trading Bot's panel: id, name, family, what it looks for, whether it is switched on, and whether it can be backtested (order-flow strategies need the live tape and cannot). Use the id with the backtest tool.",
     inputSchema: noInput,
     run: async () => {
       const metas = metaById(), on = new Set(enabledStrategyIds())
@@ -222,7 +222,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'learn',
-    description: "Mr. Cash's School, for teaching the user to trade. With no concept: the course outline in order, starting with the basics (orders, spread, sizing, options, leverage, psychology). With a concept id: the lesson — what it is, what Mr. Cash checks for it, common misreads, and quiz questions with an answer key for the tutor. Teach one concept at a time, ask the quiz before revealing answers, and keep to what the lesson says: no promises of profit.",
+    description: "Trading Bot's School, for teaching the user to trade. With no concept: the course outline in order, starting with the basics (orders, spread, sizing, options, leverage, psychology). With a concept id: the lesson — what it is, what Trading Bot checks for it, common misreads, and quiz questions with an answer key for the tutor. Teach one concept at a time, ask the quiz before revealing answers, and keep to what the lesson says: no promises of profit.",
     inputSchema: { type: 'object', properties: { concept: { type: 'string', description: 'Concept id from the outline, e.g. "order-types". Omit for the outline.' } }, additionalProperties: false },
     run: async (args) => {
       const id = typeof args.concept === 'string' ? args.concept.trim() : ''
@@ -239,7 +239,7 @@ const TOOLS: Tool[] = [
       if (!c) return `No concept "${id}". Call learn with no arguments for the outline.`
       return [
         `${c.title} (${c.level}, ${c.track})`, '', c.summary, '',
-        'What Mr. Cash checks or offers for it:', ...c.engineChecks.map((x) => `- ${x}`), '',
+        'What Trading Bot checks or offers for it:', ...c.engineChecks.map((x) => `- ${x}`), '',
         'Common misreads:', ...c.misreads.map((x) => `- ${x}`), '',
         'Quiz (ask first, then reveal):', ...c.quiz.map((qq, i) => `${i + 1}. ${qq.prompt}\n   ${qq.choices.map((ch, j) => `${String.fromCharCode(97 + j)}) ${ch}`).join('  ')}`), '',
         'Answer key (for the tutor):', ...c.quiz.map((qq, i) => `${i + 1}. ${String.fromCharCode(97 + qq.answer)} — ${qq.why}`), '',
@@ -250,7 +250,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'doctor',
-    description: 'Checks every connection Mr. Cash depends on (prices, order book, news feeds, AI key, TradingView, phone access) and says what to fix.',
+    description: 'Checks every connection Trading Bot depends on (prices, order book, news feeds, AI key, TradingView, phone access) and says what to fix.',
     inputSchema: noInput,
     run: async () => (await runDoctor()).map((c) => `${c.ok === true ? '[ok]' : c.ok === false ? '[FAIL]' : '[--]'} ${c.name}: ${c.detail}${c.ok !== true && c.fix ? ` → ${c.fix}` : ''}`).join('\n'),
   },
@@ -270,7 +270,7 @@ if (process.argv.includes('--config')) {
   console.log('Claude Desktop — Settings → Developer → Edit Config, add:')
   console.log(JSON.stringify(cfg, null, 2))
   console.log('')
-  console.log('Then ask Claude: "What is Mr. Cash\'s plan today?" or "Show me the checklist."')
+  console.log('Then ask Claude: "What is Trading Bot\'s plan today?" or "Show me the checklist."')
   console.log('')
   process.exit(0)
 }

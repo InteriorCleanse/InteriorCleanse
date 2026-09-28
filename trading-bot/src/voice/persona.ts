@@ -1,5 +1,5 @@
 /**
- * THE VOICE — how Mr. Cash talks.
+ * THE VOICE — how Trading Bot talks.
  *
  * Laid-back, warm, unhurried. The register of someone who has been doing this a
  * long time, is in no rush at all, and would rather wait for the right wave than
@@ -31,7 +31,7 @@ function pick<T>(options: readonly T[], key: string): T {
 }
 
 // ---------------------------------------------------------------
-// How he sounds out loud
+// How it sounds out loud
 // ---------------------------------------------------------------
 
 /**
@@ -158,7 +158,7 @@ export const AGENT_NAMES: Record<string, { title: string; plain: string }> = {
   proof: { title: 'Track record', plain: 'How much any of this has actually earned' },
 }
 
-/** What he'd say out loud if you asked for the whole desk in one breath. */
+/** What it'd say out loud if you asked for the whole desk in one breath. */
 export function spokenDesk(f: FloorFacts): string {
   return [floorLine(f), trustLine(f.trust, f.blind), evidenceLine(f)].join(' ')
 }

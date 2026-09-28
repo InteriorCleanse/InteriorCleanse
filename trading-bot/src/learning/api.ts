@@ -421,7 +421,7 @@ const NY_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York',
 export function knowledgeNote(body: { title?: unknown; body?: unknown; market?: unknown; source?: unknown; watchAt?: unknown; tags?: unknown }, now = Date.now()): KnowledgeItem {
   const title = str(body.title, 160).trim()
   const text = str(body.body, 4000).trim()
-  if (!title || !text) throw new ApiError(400, 'a note needs a title and what you want him to remember')
+  if (!title || !text) throw new ApiError(400, 'a note needs a title and what you want it to remember')
   for (const [field, value] of [['title', title], ['note', text]] as const) {
     const m = value.match(BANNED_WORDS)
     if (m) throw new ApiError(400, `"${m[0]}" is not a word a note may use (in ${field}). Say what you heard, not how sure it is.`)
@@ -439,10 +439,10 @@ export function knowledgeNote(body: { title?: unknown; body?: unknown; market?: 
   const tags = ['owner-note', ...(market ? [market.toLowerCase()] : []), ...extra]
   const fullBody = [
     text,
-    source ? `Source: ${source} (not verified by Mr. Cash).` : 'Source: the owner (not verified by Mr. Cash).',
+    source ? `Source: ${source} (not verified by Trading Bot).` : 'Source: the owner (not verified by Trading Bot).',
     market ? `Market: ${market}.` : '',
     watchAt ? `Bring this back for review on ${NY_DATE.format(new Date(watchAt))} (New York).` : '',
-    'UNTESTED. He remembers this and brings it back for review. It does not move a trade.',
+    'UNTESTED. It remembers this and brings it back for review. It does not move a trade.',
   ].filter(Boolean).join('\n\n')
   const item = makeItem({
     kind: 'hypothesis', title, body: fullBody, evidenceLabel: 'HYPOTHESIS',

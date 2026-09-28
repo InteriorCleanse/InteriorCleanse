@@ -55,7 +55,7 @@ export type DeskAgent = {
   title: string
   /** One line a beginner can understand, explaining what this panel is for. */
   plain: string
-  /** How he'd describe this panel's state out loud. Never adds confidence. */
+  /** How it'd describe this panel's state out loud. Never adds confidence. */
   line: string
   /** One line: what this agent owns. Fixed, not generated. */
   role: string
@@ -71,7 +71,7 @@ export type DeskAgent = {
   rows: DeskRow[]
 }
 
-/** What an agent builder produces. `buildDesk` adds the friendly name and his line. */
+/** What an agent builder produces. `buildDesk` adds the friendly name and its line. */
 export type AgentCore = Omit<DeskAgent, 'title' | 'plain' | 'line'>
 
 export type DeskReport = {
@@ -105,7 +105,7 @@ export type DeskReport = {
      */
     gates: { met: number; total: number }
   }
-  /** The same state, said the way he'd say it. Phrasing only — never new facts. */
+  /** The same state, said the way it'd say it. Phrasing only — never new facts. */
   voice: { floor: string; trust: string; evidence: string }
   /** The signal core: the same state again, shaped for a picture. Every number carries its provenance. */
   core: DeskCore
@@ -482,7 +482,7 @@ export function buildCore(input: DeskInput): DeskCore {
 }
 
 /** The whole desk. Pure over its input; the server assembles the input. */
-/** Give an agent its plain-English name and the line he'd say about it. */
+/** Give an agent its plain-English name and the line it'd say about it. */
 function dress(a: AgentCore): DeskAgent {
   const n = AGENT_NAMES[a.id] ?? { title: a.name, plain: a.role }
   return { ...a, title: n.title, plain: n.plain, line: agentLine(a) }

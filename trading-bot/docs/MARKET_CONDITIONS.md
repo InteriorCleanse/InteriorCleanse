@@ -94,7 +94,7 @@ every five minutes. The Conditions page then offers the existing kill switch
 resume.
 
 **Pressing it is your decision.** The software does not press it for you.
-Stopping entries automatically would change how Mr. Cash decides to trade, and
+Stopping entries automatically would change how Trading Bot decides to trade, and
 the standing rules in `CLAUDE.md` allow that only after research, an
 out-of-sample test, human review and a paper test. If the owner wants the stop
 to be automatic, the change is small: call `stop()` when the verdict is POOR,
