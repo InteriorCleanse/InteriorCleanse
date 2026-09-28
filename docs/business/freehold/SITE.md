@@ -14,6 +14,8 @@ below for why it does not yet.
 | `/private/` | Freehold Private: the entry review, what it can become, conduct, FAQ, call request form |
 | `/about/` | Why it exists, who runs it, stated plainly as one person |
 | `/contact/` | Email and a general form |
+| `/private/review/` | The review, check by check across five areas: domains, mail, the public web, people, and the admin accounts. What we need from the client, and what the review is not |
+| `/discretion/` | The security and discretion policy the Private FAQ promised: NDA first, scoped and revoked access, where information lives, AI model use, people, incident notice within 24 hours, services relied on. Marked as a draft for adoption |
 | `/privacy/`, `/terms/` | Drafts, each carrying a line that says they need professional review |
 | `/api/inquiry/` | Form handler: requires a JSON same-origin request, validates, rate-limits per IP, drops honeypot hits. With `BREVO_API_KEY` set it emails the message to `INQUIRY_TO` through Brevo's transactional API (so the "one inbox" promise is true) and adds the address to list `BREVO_LIST_ID` without ever overwriting an existing contact. Without the key it returns 503 and the form tells the visitor to email instead |
 | `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/opengraph-image` | Search and AI discovery, and the rendered share image |
@@ -76,8 +78,12 @@ merges.
    the forms tell visitors to email, which works.
 5. Plausible: set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` if you want analytics. Nothing
    is tracked otherwise.
-6. Have the privacy and terms pages read by a professional before the domain
-   points at the site.
+6. Have the privacy, terms, and security and discretion pages read by a
+   professional before the domain points at the site. The discretion page is
+   a set of commitments: before it goes live, make each one true in practice
+   (an encrypted workspace per engagement, MFA everywhere, a 24-hour incident
+   notice you can actually meet), or edit the line. Then remove the draft
+   line at the top.
 7. Merge the branch to `main` for the production deployment.
 8. Decide the three things in `docs/sales/HIGH_VALUE_SERVICES.md` section 5
    (lead service, metro, minimum fee) and the Build monthly fee. The site
