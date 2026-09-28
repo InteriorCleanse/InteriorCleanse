@@ -20,7 +20,7 @@ Measured on this repository:
 | State | Skills | Always-on cost |
 | --- | --- | --- |
 | Before any of this | 48 | ~4,000 tokens |
-| Now | 101 | ~10,900 tokens |
+| Now | 108 | ~11,400 tokens |
 | If the full cybersecurity pack had been installed | 866 | ~112,000 tokens |
 | If the full scientific pack had been installed too | 1,032 | ~135,000 tokens |
 
@@ -316,3 +316,38 @@ sponsor/affiliate-laden README was not copied.
   minimalist, brutalist, stitch, output, and three image-generation skills.
   Real skills, but installing all thirteen would spend the always-on budget
   on directions this project has not chosen. Any can be added on request.
+
+## Added later: two skills from the owner's guides
+
+Written in this repository from two guides the owner supplied, rather than
+vendored from upstream:
+
+- **`public-api-feature`**, from the "PUB" guide (Public APIs + Claude
+  Code). It checks the provider's docs, pricing and terms first, then builds
+  one small feature with keys on the server and never presents invented
+  data as live. Failure paths are tested with labelled mocks, and the result
+  is reported as passed, failed or not tested. The guide's Open-Meteo
+  weather request is included as the worked example.
+- **`model-compare`**, from the G0DM0D3 guide ("one HTML file that runs
+  ChatGPT, Claude, Gemini and Grok side by side"). Only the comparison is
+  kept: one prompt, up to six models in parallel, answers side by side with
+  time and tokens. The prompts are yours, and no preset prompt strategies are
+  bundled. It uses OpenRouter or a local model server. The script was
+  tested against a labelled local mock for these cases: an answer, 429, 404,
+  timeout, a missing key and too many models. It was not run against a live
+  provider: this container cannot reach them, and the calls would be billed.
+
+### Declined from the same guides
+
+- **G0DM0D3's `index.html` itself** (`elder-plinius/G0DM0D3`, AGPL-3.0).
+  - The guide says the author is a jailbreak researcher, and that the tool
+    describes itself as "liberated AI chat". Its Classic Mode pairs each
+    model with a jailbreak-style prompt by design.
+  - It is a single 774 KB file with no review gate.
+  - It is a browser app, not a Claude skill, so there is nothing to put in
+    `.claude/`.
+  - The comparison it is shared for is what `model-compare` does, without
+    the presets.
+- **The Public APIs directory** (`public-apis/public-apis`) is a list of
+  links, not a skill. The skill points at it; nothing was cloned.
+
