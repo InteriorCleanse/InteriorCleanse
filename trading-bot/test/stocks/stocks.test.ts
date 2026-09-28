@@ -120,6 +120,7 @@ test('sector-catalyst day: first-order gappers found, second-order names ranked 
   assert.equal(cat.theme, 'ai-chips')
   assert.ok(cat.gappers.length >= 3)
   assert.equal(cat.secondOrder[0].symbol, 'ANET', 'own fresh news ranks first')
+  assert.ok(cat.secondOrder.every((s) => s.gapPct > -1 && s.gapPct < 3), 'no gap-downs and no chased gaps among second-order names')
   const rest = cat.secondOrder.filter((s) => !s.ownNews).map((s) => s.gapPct)
   assert.deepEqual(rest, [...rest].sort((a, b) => a - b), 'then the smallest gap')
 })

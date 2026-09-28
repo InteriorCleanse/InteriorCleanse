@@ -7,7 +7,7 @@
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
-<meta name="theme-color" content="#0B1220" />
+<meta name="theme-color" content="#E8E2D7" />
 <meta name="color-scheme" content="dark" />
 <meta name="description" content="Trading Bot — a paper-trading desk that explains every decision. Live market data, simulated execution, no real money." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -252,7 +252,9 @@
     <div id="replay-out"><div class="plain">The replay player steps through the last stored candles and shows, for each one, exactly what every strategy voted and why — its evidence, tick by tick — and the fused decision at that moment. Press <b>Play</b> to watch the market unfold; drag the slider to jump. Nothing here trades; it is the engine's reasoning, replayed.</div></div>
   </section>
 
+  <section id="tab-stocks" class="hidden"><div id="stocks-out"></div></section>
   <section id="tab-desk" class="hidden">
+    <div id="home-overview" class="home-ov"></div>
     <div id="home-go" class="home-go"></div>
     <div id="desk-out"><div class="plain">Loading the desk: six panels side by side, one each for the order book, chart structure, the strategies' combined vote, the safety checks, the market mood and the track record. Each panel says where its number came from and how old it is. The desk only reports; it cannot place an order.</div></div>
   </section>
@@ -367,8 +369,8 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['conditions','Conditions','🚦'],['rdesk','Research desk','🗞'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['road','Road to live','🛣'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['predict','Prediction desk','🔮'],['builder','Strategy builder','🛠'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
-const PRIMARY = ['desk','today','chart','ask']
+const TABS = [['desk','Home','🛰'],['stocks','Stock desk','📈'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['conditions','Conditions','🚦'],['rdesk','Research desk','🗞'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['road','Road to live','🛣'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['predict','Prediction desk','🔮'],['builder','Strategy builder','🛠'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
+const PRIMARY = ['desk','stocks','today','chart','ask']
 const GROUPS = [
   ['Markets', 'prices, conditions and news for every market it watches', ['markets','conditions','rdesk','scanner','bigmoney','tickers','flow','news','intel','tv']],
   ['Calls and plans', 'forecasts, strategy tools and planning your own trades', ['forecast','predict','builder','scalp','planner','spreads']],
@@ -378,7 +380,7 @@ const GROUPS = [
 ]
 // One plain line per page: what you get there. Shown in the More panel and the Home launcher.
 const PAGE_DESC = {
-  desk:'The live desk: what every model sees and decides', today:'Today\'s plan, the checklist and the paper account',
+  desk:'The live desk: what every model sees and decides', stocks:'Long US tech leaders on its own clock, paper account', today:'Today\'s plan, the checklist and the paper account',
   chart:'The price chart with sessions, levels and gaps', ask:'Ask in plain English, or paste a chart',
   journal:'Your trades and notes, and the habits they show', markets:'Every market it watches, and what changed',
   conditions:'Is the market fit to trade right now?', rdesk:'Six research roles, at most three idea cards a day',
@@ -411,6 +413,7 @@ const TICON_PATHS = {
   markets:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.4 3.8 9s-1.3 6.6-3.8 9c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3z"/>',
   desk:'<path d="M12 5.5A3 3 0 0 0 6.2 4.8 3 3 0 0 0 4 8.9a3.2 3.2 0 0 0 .7 5.6A3.3 3.3 0 0 0 8.5 19a3 3 0 0 0 3.5 1V5.5z"/><path d="M12 5.5a3 3 0 0 1 5.8-.7A3 3 0 0 1 20 8.9a3.2 3.2 0 0 1-.7 5.6 3.3 3.3 0 0 1-3.8 4.5 3 3 0 0 1-3.5 1"/><path d="M8 10.5c1.2 0 2 .8 2 2M16 10.5c-1.2 0-2 .8-2 2M12 12v3"/>',
   today:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  stocks:'<path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/><path d="M3 21h18" opacity=".5"/>',
   chart:'<path d="M7 3v4M7 17v4M17 3v6M17 15v6"/><rect x="5" y="7" width="4" height="10" rx="1"/><rect x="15" y="9" width="4" height="6" rx="1"/>',
   journal:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/>',
   ask:'<path d="M4 5h16v11H10l-6 4z"/><path d="M8 10h8"/>',
@@ -467,7 +470,7 @@ const navBtn = (id, i) => `<button data-tab="${id}">${TAB[id].label}${i < 9 ? `<
 $('tabs').innerHTML = PRIMARY.map(navBtn).join('') + `<button id="btn-more" class="more">More<kbd>M</kbd></button>`
 $('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')
   + `<button id="btn-more-b" class="more"><span><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></span>More</button>`
-const THEME_NAMES = { daylight: 'Daylight', midnight: 'Midnight', plum: 'Plum', slate: 'Slate', onyx: 'Onyx' }
+const THEME_NAMES = { linen: 'Linen', daylight: 'Daylight', midnight: 'Midnight', plum: 'Plum', slate: 'Slate', onyx: 'Onyx' }
 $('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search" placeholder="Find a page…" aria-label="Find a page" autocomplete="off"><div class="mp-recent" id="mp-recent"></div><div class="mp-theme" role="radiogroup" aria-label="Background colour"><span>Look</span>${Object.entries(THEME_NAMES).map(([id, name]) => `<button class="th-sw th-${id}" data-theme-pick="${id}" role="radio" aria-label="${name}" title="${name}"></button>`).join('')}</div></div>`
   + GROUPS.map(([title, blurb, ids]) => `
   <div class="mp-group" data-hue="${AREA_HUE[title]}" data-title="${title.toLowerCase()}">
@@ -477,8 +480,9 @@ $('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search
 
 // Home launcher: one colourful card per area, so the first screen answers "where do I go".
 const GO = [
+  ['stocks', 'Stock desk', 'sky', 'Long US tech leaders, on its own clock', ['stocks']],
   ['today', 'Today\'s plan', 'gold', 'The brief, the checklist and what it would do today', ['today','chart','journal']],
-  ...GROUPS.slice(0, 4).map(([title, blurb, ids]) => [ids[0], title, AREA_HUE[title], blurb.charAt(0).toUpperCase() + blurb.slice(1), ids.slice(0, 4)]),
+  ...GROUPS.slice(0, 3).map(([title, blurb, ids]) => [ids[0], title, AREA_HUE[title], blurb.charAt(0).toUpperCase() + blurb.slice(1), ids.slice(0, 4)]),
   ['ask', 'Ask Trading Bot', 'gold', 'Questions in plain English, a pasted chart, or your voice', ['ask']],
 ]
 $('home-go').innerHTML = `<h2 class="hg-title">Where to?</h2><div class="hg-grid">${GO.map(([first, title, hue, line, ids]) => `
@@ -1745,6 +1749,8 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/replay.js"></script>
 <script type="module" src="/js/core.js"></script>
 <script type="module" src="/js/desk.js"></script>
+<script type="module" src="/js/stocks.js"></script>
+<script type="module" src="/js/overview.js"></script>
 <script type="module" src="/js/accounts.js"></script>
 <script type="module" src="/js/markets.js"></script>
 <script type="module" src="/js/vault.js"></script>

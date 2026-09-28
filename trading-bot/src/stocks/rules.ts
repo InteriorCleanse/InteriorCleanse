@@ -206,7 +206,7 @@ export function catalystDay(q: Record<string, Quote>, headlines: Headline[], now
     const secondOrder = SECOND_ORDER[theme].flatMap((t) => UNIVERSE.filter((u) => u.theme === t)).map((u) => {
       const own = newsFor(u, headlines, now, 18).find((n) => n.tone === 'positive')
       return { symbol: u.symbol, theme: u.theme, gapPct: moveOf(u.symbol) ?? 0, ownNews: own ? own.title : null }
-    }).filter((x) => x.gapPct < 3).sort((a, b) => Number(!!b.ownNews) - Number(!!a.ownNews) || a.gapPct - b.gapPct)
+    }).filter((x) => x.gapPct < 3 && x.gapPct > -1).sort((a, b) => Number(!!b.ownNews) - Number(!!a.ownNews) || a.gapPct - b.gapPct) // a name gapping down is not riding the catalyst
     best = { theme, label: THEME_LABEL[theme], gappers, headline: hit ? hit.title : null, secondOrder }
   }
   return best

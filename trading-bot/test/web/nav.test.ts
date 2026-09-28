@@ -125,10 +125,12 @@ test('tab code loaded as a module never misses its first open (the empty-Home bu
   assert.match(html, /if \(id === 'desk'\) whenReady\(/)
 })
 
-test('the bright Daylight look is the default, and the dark rooms stay one tap away', () => {
+test('the warm Linen look is the default; bright Daylight and the dark rooms stay one tap away', () => {
   const theme = readFileSync(join(ROOT, 'web', 'js', 'theme.js'), 'utf8')
-  assert.match(theme, /return THEMES\[t\] \? t : 'daylight'/)
-  for (const t of ['daylight', 'midnight', 'plum', 'slate', 'onyx']) assert.match(theme, new RegExp(`${t}: '#`), `theme ${t} is offered`)
+  assert.match(theme, /return THEMES\[t\] \? t : 'linen'/)
+  for (const t of ['linen', 'daylight', 'midnight', 'plum', 'slate', 'onyx']) assert.match(theme, new RegExp(`${t}: '#`), `theme ${t} is offered`)
+  assert.match(theme, /data-tone/, 'light and dark rooms share their rules through data-tone')
   const css = readFileSync(join(ROOT, 'web', 'css', 'app.css'), 'utf8')
+  assert.match(css, /html\[data-theme="linen"\] \{[^}]*color-scheme:light/)
   assert.match(css, /html\[data-theme="daylight"\] \{[^}]*color-scheme:light/)
 })
