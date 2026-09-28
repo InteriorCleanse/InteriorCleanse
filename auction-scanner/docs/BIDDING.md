@@ -33,9 +33,22 @@ resale target      what you believe it sells for after fixes (defaults to the co
 − transport        miles × a typical open-carrier rate (config.plan.transportPerMileUsd)
 − repairs          what the photos and the inspection say
 − cushion          config.plan.surpriseReserveUsd, for what you find after it arrives
-− your margin      config.plan.targetMargin × resale
+− your margin      config.plan.targetMarginByGoal × resale (15% for a flip; 5% under
+                   market value for a rental or a car you keep)
 = never bid above  rounded down to the nearest $100
 ```
+
+When the member has told Gavel their cash for one car (setup asks, Settings
+can change it), the number is also capped so everything fits inside it:
+
+```
+cash − buyer fee − transport − repairs − cushion ≥ the bid
+```
+
+The lower of the two wins, and the plan says which. Under the number it shows
+the cash needed on the day (bid + fee + transport + repairs + cushion); sales
+tax, title and registration come on top and vary by state and county, so the
+plan names them without inventing a figure.
 
 `headroom` is that number minus the price now. Negative means it is already
 not your car. When the house uses a sliding scale and no override is set, the
