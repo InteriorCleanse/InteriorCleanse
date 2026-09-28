@@ -1,5 +1,10 @@
 # Email launch sequence
 
+> **Update 2026-09-28.** The three printable downloads, including the free
+> Room Reset Checklist, left this repository on `main` (#60) and now live in
+> a separate project. Where this file says `assets/downloads/`, use that
+> project's copy. The steps are otherwise unchanged.
+
 Internal working document for the owner. Everything below is written to be
 pasted into Brevo. Email 1 is the existing welcome ("The next edit, quietly
 delivered", in `docs/LAUNCH_WEEK.md`) and is not rewritten here.
@@ -138,7 +143,7 @@ If a page is missing something your room needs, reply and say which room. The ne
 
 **Primary CTA:** "Download the checklist" → [HOLD-UNTIL-LIVE: Gumroad URL for
 The Room Reset Checklist]. Until that link exists, use option [A]: attach
-`assets/downloads/room-reset-checklist.pdf` directly to the Brevo template
+the Room Reset Checklist PDF from the separate downloads project directly to the Brevo template
 (the file is in the repository today) and make the CTA a plain sentence with
 no link. If the Brevo plan in use does not allow attachments on automation
 emails, hold the email rather than linking anywhere else.

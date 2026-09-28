@@ -1,5 +1,10 @@
 # Revenue today — the honest runbook
 
+> **Update 2026-09-28.** The three printable downloads, including the free
+> Room Reset Checklist, left this repository on `main` (#60) and now live in
+> a separate project. Where this file says `assets/downloads/`, use that
+> project's copy. The steps are otherwise unchanged.
+
 Written 2026-09-26 against the catalog as it stands. This is the shortest
 path from the current repository to real money, and what was built in this
 pass to make the demand side ready the moment the supply side unblocks.
@@ -14,7 +19,7 @@ by dollars unlocked per minute of the owner's time.
 | # | Owner action | Minutes | What it unlocks |
 | --- | --- | --- | --- |
 | 1 | Stripe to live mode, live keys into Vercel, webhook at `https://interiorcleanse.com/api/webhook/` (trailing slash), one real purchase refunded | 30 | Candle $34, mug $26, tote $28, hoodie $58, print $42 become buyable |
-| 2 | Upload `assets/downloads/room-reset-checklist.pdf` to Gumroad as a free product, paste the URL into the record, Publish | 15 | The lead magnet every video and email points at |
+| 2 | Upload the Room Reset Checklist PDF (now in the separate downloads project) to Gumroad as a free product, paste the URL into the record, Publish | 15 | The lead magnet every video and email points at |
 | 3 | Paste the five Amazon URLs into `content/books.json` and each book record, set price, Publish | 20 | Five founder books sellable through `/library/` |
 | 4 | Send the three affiliate follow-ups (templates in `content/marketing/email-launch-sequence.md`) | 20 | Sweaty Yeti, Sauna Kit Co, Select Saunas links; the highest ticket on the site |
 

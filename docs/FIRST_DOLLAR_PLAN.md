@@ -1,5 +1,10 @@
 # First-dollar plan
 
+> **Update 2026-09-28.** The three printable downloads, including the free
+> Room Reset Checklist, left this repository on `main` (#60) and now live in
+> a separate project. Where this file says `assets/downloads/`, use that
+> project's copy. The steps are otherwise unchanged.
+
 Written 2026-09-26. One goal: the first real dollars, then a loop that
 repeats every week without a plan being rewritten.
 
@@ -28,8 +33,8 @@ Assets this plan refers to, with paths where they are confirmed to exist:
 
 | Asset | Where |
 | --- | --- |
-| The free checklist PDF | `assets/downloads/room-reset-checklist.pdf` (12 pages) |
-| The paid downloads | `assets/downloads/the-considered-pantry.pdf`, `assets/downloads/the-calm-room-workbook.pdf` |
+| The free checklist PDF | The separate downloads project (moved out of this repo in #60), 12 pages |
+| The paid downloads | The separate downloads project: The Considered Pantry, The Calm Room Workbook |
 | Welcome email, launch email, five launch captions | `docs/LAUNCH_WEEK.md`, Day 5 |
 | Affiliate follow-up email and phone script | `docs/FINISH_PLAN.md`, Step 5 |
 | Partner records | `content/partners.json`; public page `interiorcleanse.com/partners/` |
@@ -126,7 +131,7 @@ arm, or seven days, whichever is later.
 | # | Week | Hypothesis | Channel | Asset from this repo | Cost | Measure | Kill / keep |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 1 | A candle video that treats it as an object first ("earns the shelf before it is lit") sends more people to the candle page than a generic shop link | TikTok and Instagram Reels | Faceless script for the candle; caption 1 from `docs/LAUNCH_WEEK.md` Day 5; link to `/shop/ic-signature-candle/` with `utm_campaign=candle-object` | Zero; your own footage | Plausible: visitors to the candle page by `utm_campaign`. Stripe: paid candle orders in the 48 hours after each post | Keep if the candle-page visits per post beat the homepage-link posts (experiment 3). Kill after three posts if it sends fewer visitors than the homepage arm. |
-| 2 | 1 (HOLD-UNTIL-LIVE) | A "room reset in 15 minutes" video with the free checklist as the only CTA collects more email addresses than any product video | TikTok and Instagram Reels | Faceless room-reset script; `assets/downloads/room-reset-checklist.pdf` on camera, printed; caption 4 from `docs/LAUNCH_WEEK.md`; link to `/` with `utm_campaign=checklist` | Zero | Brevo: new contacts on the days the video runs. Plausible: visitors to `/` by campaign | Keep if it produces more Brevo contacts per post than experiment 1 produces candle-page visits per post. Kill if three posts produce zero contacts; the CTA is not landing. |
+| 2 | 1 (HOLD-UNTIL-LIVE) | A "room reset in 15 minutes" video with the free checklist as the only CTA collects more email addresses than any product video | TikTok and Instagram Reels | Faceless room-reset script; the Room Reset Checklist on camera, printed; caption 4 from `docs/LAUNCH_WEEK.md`; link to `/` with `utm_campaign=checklist` | Zero | Brevo: new contacts on the days the video runs. Plausible: visitors to `/` by campaign | Keep if it produces more Brevo contacts per post than experiment 1 produces candle-page visits per post. Kill if three posts produce zero contacts; the CTA is not landing. |
 | 3 | 1 to 2 | Where the bio link points matters more than what the video says | TikTok and Instagram bio | Bio link alternates weekly: week 1 `/` with `utm_medium=bio`, week 2 `/shop/ic-signature-candle/` with `utm_medium=bio` | Zero | Plausible: visitors by `utm_medium=bio`, split by landing page. Stripe: paid orders in each week. Brevo: contacts in each week | Keep whichever week produced more paid orders. If neither week produced an order, keep the homepage: it collects an email, which the candle page does not. |
 | 4 | 1 to 2 | The same script posted in the evening outperforms the morning for this audience (people resetting a home after work) | TikTok | Two "one rule" scripts from the faceless set, each posted once in the morning and once in the evening on different days | Zero | Plausible: visitors within 24 hours of each post by `utm_campaign`, with the campaign tag carrying `-am` or `-pm` | Keep the slot that sent more visitors across four posts. If the difference is under a handful of visitors, it is noise; kill the experiment and post whenever is convenient. |
 | 5 | 2 | On Instagram, a carousel of stills from the same footage reaches the profile link as well as a Reel does, at a fraction of the editing time | Instagram | Instagram pack: carousel captions and Reel captions for the same three subjects (candle, tote on a hook, checklist on a phone) | Zero | Plausible: visitors by `utm_source=instagram` and `utm_content=carousel` versus `utm_content=reel` | Keep carousels if they send at least as many visitors per post as Reels; they cost less time. Kill carousels if Reels send more than twice the visitors per post. |
