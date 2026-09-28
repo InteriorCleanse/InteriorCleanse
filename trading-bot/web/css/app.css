@@ -2648,3 +2648,8 @@ canvas.chart { background:var(--bg); }
 @media (max-width:860px) { .bd-two, .bd-cols { grid-template-columns:minmax(0,1fr); } .bd-saved li { grid-template-columns:minmax(0,1fr) auto; } .bd-saved li .muted { grid-column:1 / -1; } }
 .card > h2.bd-title { font-size:clamp(24px, 3.2vw, 34px); font-weight:400; margin:8px 0 6px; }
 .card > h2.bd-title::before, .card > h2.bd-verdict::before { display:none; }
+.bd-rephrase { margin-top:14px; padding:14px 16px; border-radius:14px; border:1px solid rgba(91,140,255,.4); background:rgba(91,140,255,.06); }
+.bd-rephrase h3 { margin:0 0 8px; }
+.bd-rephrase blockquote { margin:0 0 8px; padding:10px 12px; border-left:2px solid #5B8CFF; background:rgba(0,0,0,.2); border-radius:0 10px 10px 0; font-size:14px; line-height:1.5; }
+.bd-read #bd-rephrase { margin-top:12px; }
+.bd-thirds { margin:6px 0 10px; } .bd-thirds > h3 { margin:0 0 4px; font-size:13px; } .bd-thirds > p { margin:0 0 4px; font-size:12.5px; }

@@ -115,3 +115,24 @@ test('a run counts as a trial, and saved strategies persist, replace by name and
   assert.equal(list.length, 1, 'same name replaces'); assert.equal(list[0].text, 'Buy when RSI(14) is below 30.')
   assert.equal(deleteStrategy(list[0].id).length, 0)
 })
+
+test('the stability check cuts history into three periods and says NOT ENOUGH DATA when a period is thin', async () => {
+  const { backtestSpec: bt, parseStrategy: ps, REPHRASE_SYSTEM, GRAMMAR } = await import('../../src/research/builder.ts')
+  const c = series(3000)
+  const r = bt(ps('Buy when RSI(14) is below 35. Sell when RSI is above 60. Stop 1%, take profit 1.5%. Exit after 30 candles.').spec!, c)
+  assert.equal(r.thirds.length, 3)
+  assert.equal(r.thirds.reduce((a, t) => a + t.trades, 0), r.all.trades, 'every trade falls in exactly one period')
+  assert.ok(r.thirds[0].from < r.thirds[1].from && r.thirds[1].from < r.thirds[2].from)
+  if (r.thirds.some((t) => t.trades < 10)) assert.equal(r.stable, 'NOT ENOUGH DATA')
+  else assert.ok(r.stable === 'CONSISTENT' || r.stable === 'MIXED')
+  // The rephrase instructions carry the grammar and forbid invented rules, numbers and performance claims.
+  for (const g of GRAMMAR) assert.ok(REPHRASE_SYSTEM.includes(g))
+  assert.match(REPHRASE_SYSTEM, /do not invent numbers/i)
+  assert.match(REPHRASE_SYSTEM, /no claims about how it will perform/i)
+})
+
+test('a vague phrase joined with "and" to a real rule is reported, not silently swallowed', () => {
+  const p = parseStrategy('Buy when RSI(14) is below 35 and it feels oversold. Stop 1%.')
+  assert.deepEqual(p.spec!.entry, [{ kind: 'rsi', period: 14, op: '<', value: 35 }])
+  assert.ok(p.ignored.some((i) => /feels oversold/.test(i)), p.ignored.join(' | '))
+})

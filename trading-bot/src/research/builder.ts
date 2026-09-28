@@ -142,7 +142,7 @@ export function parseStrategy(raw: string): Parsed {
   let stop: Spec['stop'] | null = null, target: Spec['target'] = null, maxBars: number | null = null, noTarget = false
   const entry: Cond[] = [], exit: Cond[] = []
   // Split into clauses; a clause that starts an exit ("sell when", "exit if", "cover when") feeds the exit side.
-  const clauses = text.split(/(?:\.(?!\d)|[;!?\n]|,?\s+then\s+|,\s*(?=(?:and\s+)?(?:sell|exit|close|cover|buy|go|enter|short|stop|take|target|tp|hold)\b))/).map((s) => s.trim()).filter(Boolean)
+  const clauses = text.split(/(?:\.(?!\d)|[;!?\n]|\s+and\s+(?!(?:above|below|over|under)\b)|,?\s+then\s+|,\s*(?=(?:and\s+)?(?:sell|exit|close|cover|buy|go|enter|short|stop|take|target|tp|hold)\b))/).map((s) => s.trim()).filter(Boolean)
   let side: 'entry' | 'exit' = 'entry'
   for (const c of clauses) {
     let hit = false
@@ -331,6 +331,9 @@ export type BuilderReport = {
   line: string
   missedEntries: number
   curve: Array<{ time: number; r: number }>
+  /** The whole history cut into three equal periods: a rule that only worked in one of them is fragile. */
+  thirds: Array<{ from: number; to: number; trades: number; expectancyR: number | null; winRate: number | null }>
+  stable: 'NOT ENOUGH DATA' | 'CONSISTENT' | 'MIXED'
   note: string
 }
 
@@ -384,6 +387,14 @@ export function backtestSpec(spec: Spec, candles: Candle[], opts: { a?: Executio
   const holdOosPct = splitIdx < candles.length - 1 ? Math.round(((candles[candles.length - 1].close / candles[splitIdx].open - 1) * 100) * 100) / 100 : null
   let cum = 0
   const curve = trades.map((t) => ({ time: t.exitTime, r: Math.round((cum += t.rMultiple) * 1000) / 1000 }))
+  const thirds = [0, 1, 2].map((k) => {
+    const a0 = candles[Math.floor((candles.length * k) / 3)]?.openTime ?? 0
+    const a1 = k === 2 ? Infinity : candles[Math.floor((candles.length * (k + 1)) / 3)]?.openTime ?? Infinity
+    const m = computeMetrics(trades.filter((t) => t.time >= a0 && t.time < a1).map(like))
+    return { from: a0, to: a1 === Infinity ? (candles[candles.length - 1]?.closeTime ?? a0) : a1, trades: m.trades, expectancyR: m.expectancyR, winRate: m.winRate }
+  })
+  const signs = thirds.map((t) => (t.expectancyR === null ? 0 : Math.sign(t.expectancyR)))
+  const stable: BuilderReport['stable'] = thirds.some((t) => t.trades < 10) ? 'NOT ENOUGH DATA' : signs.every((x) => x === signs[0]) ? 'CONSISTENT' : 'MIXED'
   const exp = outOfSample.expectancyR
   const verdict: BuilderReport['verdict'] = oos.length < MIN_OOS_TRADES ? 'NOT ENOUGH DATA' : exp === null || exp <= 0 ? 'FAILED OUT-OF-SAMPLE' : deflated && deflated.verdict === 'SURVIVES DEFLATION' ? 'SURVIVED OUT-OF-SAMPLE' : 'NO EDGE SHOWN'
   const r = (v: number | null) => (v === null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}R`)
@@ -394,7 +405,7 @@ export function backtestSpec(spec: Spec, candles: Candle[], opts: { a?: Executio
     : `Out-of-sample expectancy ${r(exp)} over ${oos.length} trades, and it clears the deflated-Sharpe bar after ${trials} tries. A backtest pass, not a promise: the next step is a paper test.`
   return {
     label: 'BACKTEST', market: config.symbol, interval: config.interval, candles: candles.length, from: candles[0]?.openTime ?? null, to: candles[candles.length - 1]?.closeTime ?? null, splitAt,
-    trades, all, inSample, outOfSample, holdOosPct, deflated, trials, verdict, line, missedEntries: missed, curve,
+    trades, all, inSample, outOfSample, holdOosPct, deflated, trials, verdict, line, missedEntries: missed, curve, thirds, stable,
     note: `BACKTEST on stored ${config.interval} candles. Signals read closed candles and fill on a later one with the paper engine's spread, slippage, latency and fees; a candle that touches both the stop and the target counts as the stop. The first ${Math.round((1 - OOS_SHARE) * 100)}% is in-sample, the last ${Math.round(OOS_SHARE * 100)}% out-of-sample. Research only: nothing here reaches the engine.`,
   }
 }
@@ -467,3 +478,6 @@ export function saveFromText(name: string, text: string, candles: Candle[] = sto
 
 /** How many builder runs the trial registry has counted. */
 export function trialCount(): number { return trialsFor(TRIAL_ID) }
+
+/** The instructions a language model gets when asked to rephrase a description into the builder's grammar. It rewrites; it never backtests or judges. */
+export const REPHRASE_SYSTEM = `You rewrite trading-strategy descriptions into the exact phrases a rule parser understands. Use only these phrase families:\n${GRAMMAR.map((g) => '- ' + g).join('\n')}\nKeep the user's intent. Do not add rules they did not ask for; do not invent numbers they did not give (leave stops, targets and time limits out if they gave none). If part of the idea cannot be expressed with these phrases (news events, fundamentals, other markets), leave it out and say so in one short line after the rewrite, starting "Left out:". Answer with the rewritten strategy first, as plain sentences, no markdown, no advice, no claims about how it will perform.`
