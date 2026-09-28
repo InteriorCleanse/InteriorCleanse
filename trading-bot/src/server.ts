@@ -74,6 +74,7 @@ import { renderSessionScript } from './tv/sessionScript.ts'
 import { lastStoredCandle, getCandles as storedCandles } from './data/candleStore.ts'
 import { CallDesk } from './forecast/service.ts'
 import { PredictionDesk } from './predict/desk.ts'
+import * as builder from './research/builder.ts'
 import { keywords as pmKeywords } from './predict/minds.ts'
 import type { Council, OracleRead } from './predict/minds.ts'
 import type { PmMarket } from './predict/sources.ts'
@@ -580,6 +581,17 @@ const server = createServer(async (req, res) => {
       const desk = url.searchParams.get('window') === '5' ? callDesk5 : callDesk
       json(res, 200, { ok: true, data: fresh || desk.snapshot().status === 'STARTING' ? await desk.tick() : desk.snapshot() })
       return
+    }
+    // The strategy builder: plain English → rules → code → a BACKTEST on stored candles. Research only; the engine never sees it.
+    if (path.startsWith('/api/builder')) {
+      const body = async () => JSON.parse((await readBody(req, 16 * 1024)) || '{}') as { text?: unknown; name?: unknown; id?: unknown }
+      try {
+        if (path === '/api/builder' && req.method === 'GET') { json(res, 200, { ok: true, data: { examples: builder.EXAMPLES, grammar: builder.GRAMMAR, saved: builder.savedStrategies(), market: config.symbol, interval: config.interval, candles: store().candleCount(config.symbol, config.interval), trials: builder.trialCount() } }); return }
+        if (path === '/api/builder/run' && req.method === 'POST') { const b = await body(); json(res, 200, { ok: true, data: builder.runBuilder(String(b.text ?? '').slice(0, 2000), builder.storedCandles(), b.name ? String(b.name).slice(0, 80) : undefined) }); return }
+        if (path === '/api/builder/save' && req.method === 'POST') { const b = await body(); json(res, 200, { ok: true, data: builder.saveFromText(String(b.name ?? ''), String(b.text ?? '').slice(0, 2000)) }); return }
+        if (path === '/api/builder/delete' && req.method === 'POST') { const b = await body(); json(res, 200, { ok: true, data: builder.deleteStrategy(String(b.id ?? '')) }); return }
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 200) }); return }
+      json(res, 404, { ok: false, error: 'not found' }); return
     }
     // The prediction desk: ten minds over public Polymarket and Kalshi prices, PAPER positions, settled by the venue. No orders.
     if (path === '/api/predict') {
