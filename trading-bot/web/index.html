@@ -253,7 +253,8 @@
   </section>
 
   <section id="tab-desk" class="hidden">
-    <div id="desk-out"><div class="plain">Six agents on one surface. <b>BOOK</b> reads the order book and the tape, <b>TAPE</b> organises structure, <b>SIGNAL</b> runs the strategy panel and fuses the votes, <b>RISK</b> holds the veto, <b>REGIME</b> classifies the market and re-weights the panel — and <b>PROOF</b> watches the other five and reports how much they have earned. Every panel carries where its number came from, how old it is, and what it is waiting on when it cannot speak. A blind agent looks blind rather than showing a zero. Read-only: the desk reports state and can never place, size or shape an order.</div></div>
+    <div id="home-go" class="home-go"></div>
+    <div id="desk-out"><div class="plain">Loading the desk: six panels side by side, one each for the order book, chart structure, the strategies' combined vote, the safety checks, the market mood and the track record. Each panel says where its number came from and how old it is. The desk only reports; it cannot place an order.</div></div>
   </section>
 
   <section id="tab-intel" class="hidden">
@@ -342,27 +343,14 @@
 <div class="tip" id="tip"></div>
 <div class="overlay hidden" id="palette-wrap"><div class="palette"><input id="palette-q" placeholder="Type to jump anywhere or do anything…  (Esc to close)"><div class="items" id="palette-items"></div></div></div>
 <div class="overlay hidden" id="tour-wrap"><div class="tour">
-  <h2>Welcome. This is Trading Bot.</h2>
-  <div class="muted">A paper-trading partner that explains everything, prompts you when something matters, and learns as it trades. No real money, ever.</div>
-  <div class="map">
-    <div><b>Today</b> — the brief, the checklist, your plan, the paper account</div>
-    <div><b>Home</b> — the core: every model it runs, what each one sees, and what it decides</div>
-    <div><b>Chart</b> — what it sees: sessions, levels, gaps, sweeps</div>
-    <div><b>Flow</b> — where the big orders are</div>
-    <div><b>News</b> — what could move price, and when it'll stand aside</div>
-    <div><b>Journal</b> — your habits, your leaks, your growth</div>
-    <div><b>TradingView</b> — the live chart and your alerts</div>
-    <div><b>Test</b> — the honest look-back over 30 days</div>
-    <div><b>Validation</b> — the gates the paper run must clear before shadow</div>
-    <div><b>Road to live</b> — every step left before real money, read live, and who moves each one</div>
-    <div><b>Research desk</b> — six roles watch your markets and argue, then send you at most three decision cards a day</div>
-    <div><b>Strategy builder</b> — describe a strategy in plain English, read the rules and the code, and see how it did on data it never saw</div>
-    <div><b>Prediction desk</b> — ten minds read Polymarket and Kalshi on paper, with the score the viral bot never showed</div>
-    <div><b>Conditions</b> — is the market fit to trade? Every market, its hours, and the header chip</div>
-    <div><b>Memory</b> — what it's learned, the track record</div>
-    <div><b>Ask</b> — talk to it; pick a hat; paste a chart; use your voice</div>
-  </div>
-  <div class="muted" style="font-size:13.5px">Three shortcuts worth knowing: <b>⌘K</b> (or Ctrl K) jumps anywhere and runs anything · <b>1–9</b> switch tabs · the <b>🔔</b> is where it taps you on the shoulder.</div>
+  <h2>Welcome to Trading Bot</h2>
+  <div class="muted">It trades on paper, explains each decision, and tells you when something needs a look. It never uses real money.</div>
+  <ol class="tour-steps">
+    <li><b>Start on Home.</b> The coloured cards at the top take you to every part of the app.</li>
+    <li><b>Today</b> has the plan and the checklist. <b>Chart</b> shows what it sees. <b>Ask</b> answers questions in plain English.</li>
+    <li><b>More</b> lists every page with one line on what it is for. Type in its search box to find one.</li>
+  </ol>
+  <div class="muted" style="font-size:13.5px">Shortcuts: <b>⌘K</b> (or Ctrl K) jumps anywhere, <b>1–9</b> switch tabs, and the <b>🔔</b> shows what happened while you were away. The colour dots in More switch between the bright look and the dark ones.</div>
   <div class="row" style="margin:16px 0 0"><button class="btn ok" id="tour-ok">Got it</button><button class="btn ghost" id="tour-voice">Turn on its voice</button></div>
 </div></div>
 
@@ -382,17 +370,38 @@ const $ = (id) => document.getElementById(id)
 const TABS = [['desk','Home','🛰'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['conditions','Conditions','🚦'],['rdesk','Research desk','🗞'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['road','Road to live','🛣'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['predict','Prediction desk','🔮'],['builder','Strategy builder','🛠'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
 const PRIMARY = ['desk','today','chart','ask']
 const GROUPS = [
-  ['Markets', 'every market it watches, what price is doing, the research desk, and whether conditions are fit to trade', ['markets','conditions','rdesk','scanner','bigmoney','tickers','flow','news','intel','tv']],
-  ['Calls and plans', 'the up-or-down call, the prediction desk, the strategy builder, the scalp desk, and planning your own trades', ['forecast','predict','builder','scalp','planner','spreads']],
-  ['Is it working?', 'the honest scoreboard, and how far live trading is', ['road','evidence','validation','ops','test','replay']],
-  ['You and learning', 'your vault, your journal, the school, the lab, and what it remembers', ['portfolio','journal','school','research','knowledge','observer']],
-  ['Under the hood', 'the machinery, if you want it', ['playbook','factory','vault','memory']],
+  ['Markets', 'prices, conditions and news for every market it watches', ['markets','conditions','rdesk','scanner','bigmoney','tickers','flow','news','intel','tv']],
+  ['Calls and plans', 'forecasts, strategy tools and planning your own trades', ['forecast','predict','builder','scalp','planner','spreads']],
+  ['Is it working?', 'the scoreboard, and how far it is from real money', ['road','evidence','validation','ops','test','replay']],
+  ['You and learning', 'your accounts, your journal and what the bot has learned', ['portfolio','journal','school','research','knowledge','observer']],
+  ['Under the hood', 'the strategy machinery, for when you want the detail', ['playbook','factory','vault','memory']],
 ]
+// One plain line per page: what you get there. Shown in the More panel and the Home launcher.
+const PAGE_DESC = {
+  desk:'The live desk: what every model sees and decides', today:'Today\'s plan, the checklist and the paper account',
+  chart:'The price chart with sessions, levels and gaps', ask:'Ask in plain English, or paste a chart',
+  journal:'Your trades and notes, and the habits they show', markets:'Every market it watches, and what changed',
+  conditions:'Is the market fit to trade right now?', rdesk:'Six research roles, at most three idea cards a day',
+  portfolio:'Your real balances, read-only, behind a passcode', flow:'Big orders, buying against selling, the order book',
+  news:'Headlines and the economic calendar, ranked', evidence:'What actually happened, trade by trade',
+  school:'Lessons built from its own trades', research:'Open questions and the tests behind them',
+  knowledge:'What it remembers, including what failed', observer:'What it noticed while watching',
+  validation:'The checks the paper run has to pass', road:'What stands between paper and real money',
+  ops:'Is it running, and is the record intact?', intel:'The chart markings it drew, and why',
+  tv:'TradingView chart and your alerts', planner:'Size your own trade from your stop',
+  spreads:'Plan an option spread you place yourself', tickers:'One stock or future, in detail',
+  bigmoney:'What insiders and Congress disclosed', scanner:'Every watched market, graded setup by setup',
+  forecast:'Up or down in the next 15 minutes, scored', predict:'Ten minds on Polymarket and Kalshi, on paper',
+  builder:'Describe a strategy, get its rules and a backtest', scalp:'Are conditions good enough to scalp?',
+  test:'The look-back test over the last 30 days', replay:'Step through past candles one at a time',
+  playbook:'Every strategy and how it voted', factory:'Where new strategies are bred and tested',
+  vault:'Strategies that survived, with their records', memory:'The track record and what it has learned',
+}
 const TAB = Object.fromEntries(TABS.map(([id,label,icon]) => [id, {label, icon}]))
 // Each area of the app has its own colour, so you always know where you are:
 // the accent on the page, the breadcrumb, the active tab and the More panel all
 // carry it. None of them is emerald or rose — those two mean up and down only.
-const HOME_AREA = ['Home', 'the desk, today, the chart and Trading Bot itself', PRIMARY]
+const HOME_AREA = ['Home', 'the live desk, today\'s plan, the chart and Ask', PRIMARY]
 const AREA_HUE = { 'Home':'gold', 'Markets':'cyan', 'Calls and plans':'violet', 'Is it working?':'sky', 'You and learning':'coral', 'Under the hood':'lilac' }
 const AREA_OF = Object.fromEntries([HOME_AREA, ...GROUPS].flatMap(([title, blurb, ids]) => ids.map(id => [id, { title, blurb, ids, hue: AREA_HUE[title] }])))
 
@@ -458,13 +467,25 @@ const navBtn = (id, i) => `<button data-tab="${id}">${TAB[id].label}${i < 9 ? `<
 $('tabs').innerHTML = PRIMARY.map(navBtn).join('') + `<button id="btn-more" class="more">More<kbd>M</kbd></button>`
 $('bottomnav').innerHTML = PRIMARY.map(id => `<button data-tab="${id}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')
   + `<button id="btn-more-b" class="more"><span><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></span>More</button>`
-const THEME_NAMES = { midnight: 'Midnight', plum: 'Plum', slate: 'Slate', onyx: 'Onyx' }
-$('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search" placeholder="Find a page…" aria-label="Find a page" autocomplete="off"><div class="mp-recent" id="mp-recent"></div><div class="mp-theme" role="radiogroup" aria-label="Background colour"><span>Colour</span>${Object.entries(THEME_NAMES).map(([id, name]) => `<button class="th-sw th-${id}" data-theme-pick="${id}" role="radio" aria-label="${name}" title="${name}"></button>`).join('')}</div></div>`
+const THEME_NAMES = { daylight: 'Daylight', midnight: 'Midnight', plum: 'Plum', slate: 'Slate', onyx: 'Onyx' }
+$('morepanel').innerHTML = `<div class="mp-top"><input id="mp-find" type="search" placeholder="Find a page…" aria-label="Find a page" autocomplete="off"><div class="mp-recent" id="mp-recent"></div><div class="mp-theme" role="radiogroup" aria-label="Background colour"><span>Look</span>${Object.entries(THEME_NAMES).map(([id, name]) => `<button class="th-sw th-${id}" data-theme-pick="${id}" role="radio" aria-label="${name}" title="${name}"></button>`).join('')}</div></div>`
   + GROUPS.map(([title, blurb, ids]) => `
   <div class="mp-group" data-hue="${AREA_HUE[title]}" data-title="${title.toLowerCase()}">
     <h4><i class="mp-dot"></i>${title}<span>${blurb}</span></h4>
-    <div class="mp-items">${ids.map(id => `<button data-tab="${id}" data-hue="${AREA_HUE[title]}"><span>${ticon(id)}</span>${TAB[id].label}</button>`).join('')}</div>
+    <div class="mp-items">${ids.map(id => `<button data-tab="${id}" data-hue="${AREA_HUE[title]}"><span>${ticon(id)}</span><em><b>${TAB[id].label}</b><small>${PAGE_DESC[id] || ''}</small></em></button>`).join('')}</div>
   </div>`).join('')
+
+// Home launcher: one colourful card per area, so the first screen answers "where do I go".
+const GO = [
+  ['today', 'Today\'s plan', 'gold', 'The brief, the checklist and what it would do today', ['today','chart','journal']],
+  ...GROUPS.slice(0, 4).map(([title, blurb, ids]) => [ids[0], title, AREA_HUE[title], blurb.charAt(0).toUpperCase() + blurb.slice(1), ids.slice(0, 4)]),
+  ['ask', 'Ask Trading Bot', 'gold', 'Questions in plain English, a pasted chart, or your voice', ['ask']],
+]
+$('home-go').innerHTML = `<h2 class="hg-title">Where to?</h2><div class="hg-grid">${GO.map(([first, title, hue, line, ids]) => `
+  <div class="hg-card" data-hue="${hue}">
+    <button class="hg-main" data-tab="${first}"><span class="hg-ico">${ticon(first)}</span><b>${title}</b><small>${line}</small></button>
+    ${ids.length > 1 ? `<div class="hg-links">${ids.map(id => `<button data-tab="${id}">${TAB[id].label}</button>`).join('')}</div>` : ''}
+  </div>`).join('')}</div>`
 function markTheme() { const t = document.documentElement.dataset.theme; document.querySelectorAll('[data-theme-pick]').forEach(b => { b.setAttribute('aria-checked', String(b.dataset.themePick === t)); b.classList.toggle('on', b.dataset.themePick === t) }) }
 document.querySelectorAll('[data-theme-pick]').forEach(b => b.onclick = (e) => { e.stopPropagation(); if (window.setTheme) window.setTheme(b.dataset.themePick); markTheme() })
 markTheme()
@@ -505,6 +526,7 @@ function toggleMore(open) {
 // not thirty loose tabs.
 function renderCrumb(id) {
   const a = AREA_OF[id]; if (!a) return
+  $('crumb').classList.toggle('hidden', id === 'desk')
   document.documentElement.dataset.hue = a.hue
   $('crumb').innerHTML = `<div class="cr-path"><span class="cr-area">${a.title}</span><span class="cr-sep" aria-hidden="true">›</span><span class="cr-here">${ticon(id)}${TAB[id].label}</span><span class="cr-blurb">${a.blurb}</span></div>`
     // Home's pages are already the main tabs, so repeating them as pills would only add noise.
@@ -517,6 +539,12 @@ function renderCrumb(id) {
 $('btn-more').onclick = (e) => { e.stopPropagation(); toggleMore() }
 $('btn-more-b').onclick = (e) => { e.stopPropagation(); toggleMore() }
 document.addEventListener('click', (e) => { if (!$('morepanel').contains(e.target)) toggleMore(false) })
+// Tab code in js/*.js loads as modules, which run only after the page is parsed.
+// The first tab can open before that (settings often arrive first), so a
+// loader that is not there yet runs as soon as the modules have run.
+let domReady = document.readyState === 'complete'
+document.addEventListener('DOMContentLoaded', () => { domReady = true }, { once: true })
+function whenReady(fn) { if (domReady) fn(); else document.addEventListener('DOMContentLoaded', fn, { once: true }) }
 function showTab(id, push=true) {
   document.querySelectorAll('nav button, .bottomnav button, #morepanel button').forEach(x => x.classList.toggle('active', x.dataset.tab === id))
   // The More button stays lit while you are on one of the tabs it holds, so the
@@ -543,24 +571,24 @@ function showTab(id, push=true) {
   if (id === 'factory' && !$('factory-strategy').options.length) loadFactory()
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
-  if (id === 'desk' && window.loadDesk) window.loadDesk()
-  if (id === 'markets' && window.loadMarkets) window.loadMarkets()
-  if (id === 'portfolio' && window.loadVaultRoom) window.loadVaultRoom()
-  if (id === 'evidence' && window.loadEvidence) window.loadEvidence()
-  if (id === 'school' && window.loadSchool) window.loadSchool()
-  if (id === 'research' && window.loadResearch) window.loadResearch()
-  if (id === 'knowledge' && window.loadKnowledge) window.loadKnowledge()
-  if (id === 'observer' && window.loadObserver) window.loadObserver()
-  if (id === 'ops' && window.loadOps) window.loadOps()
-  if (id === 'intel' && window.loadIntel) window.loadIntel()
-  if (id === 'replay' && window.loadReplay) window.loadReplay()
+  if (id === 'desk') whenReady(() => window.loadDesk && window.loadDesk())
+  if (id === 'markets') whenReady(() => window.loadMarkets && window.loadMarkets())
+  if (id === 'portfolio') whenReady(() => window.loadVaultRoom && window.loadVaultRoom())
+  if (id === 'evidence') whenReady(() => window.loadEvidence && window.loadEvidence())
+  if (id === 'school') whenReady(() => window.loadSchool && window.loadSchool())
+  if (id === 'research') whenReady(() => window.loadResearch && window.loadResearch())
+  if (id === 'knowledge') whenReady(() => window.loadKnowledge && window.loadKnowledge())
+  if (id === 'observer') whenReady(() => window.loadObserver && window.loadObserver())
+  if (id === 'ops') whenReady(() => window.loadOps && window.loadOps())
+  if (id === 'intel') whenReady(() => window.loadIntel && window.loadIntel())
+  if (id === 'replay') whenReady(() => window.loadReplay && window.loadReplay())
   if (id === 'memory' && !$('memory-out').innerHTML) loadMemory()
   window.scrollTo({top:0})
 }
 // Only buttons that name a tab navigate. The More button carries no data-tab —
 // wiring it here would call showTab(undefined), which hides every section and
 // leaves a blank page. (It did exactly that until this guard was added.)
-document.querySelectorAll('nav button[data-tab], .bottomnav button[data-tab], #morepanel button[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab))
+document.querySelectorAll('nav button[data-tab], .bottomnav button[data-tab], #morepanel button[data-tab], #home-go button[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab))
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, textarea, select')) return
   const i = Number(e.key) - 1

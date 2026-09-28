@@ -28,12 +28,22 @@ try {
     // orbit. PRISM palette: champagne gold, electric cyan, violet and coral —
     // vivid, but none of them emerald or rose, so no field can be read as up
     // or down.
-    const ORBS = [
+    const DARK = [
       { x: 0.14, y: 0.06, c: '242,198,109', r: 0.70, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.10 },
       { x: 0.90, y: 0.12, c: '56,217,232',  r: 0.58, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.075 },
       { x: 0.80, y: 0.88, c: '167,139,250', r: 0.64, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.08 },
       { x: 0.18, y: 0.92, c: '255,138,101', r: 0.54, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.06 },
     ]
+    // Daylight: the same four fields, brighter and more saturated, so a white
+    // page still has colour moving behind it. Still no emerald or rose.
+    const LIGHT = [
+      { x: 0.10, y: 0.04, c: '251,191,36',  r: 0.62, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.22 },
+      { x: 0.92, y: 0.10, c: '34,211,238',  r: 0.56, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.20 },
+      { x: 0.82, y: 0.90, c: '139,92,246',  r: 0.62, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.18 },
+      { x: 0.16, y: 0.94, c: '249,115,22',  r: 0.52, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.14 },
+    ]
+    const light = () => document.documentElement.getAttribute('data-theme') === 'daylight'
+    let ORBS = light() ? LIGHT : DARK
 
     // Smoothness: the fields are soft blurs, so they are drawn at a fraction of
     // screen resolution and stretched by CSS — a full-viewport redraw at device
@@ -58,7 +68,7 @@ try {
       last = t
       const sec = t / 1000
       ctx.clearRect(0, 0, w, h)
-      ctx.globalCompositeOperation = 'lighter'
+      ctx.globalCompositeOperation = light() ? 'source-over' : 'lighter'
       for (const o of ORBS) {
         const cx = (o.x + (reduce ? 0 : o.ax * Math.sin(sec * o.sx * 6.283 + o.ph))) * w
         const cy = (o.y + (reduce ? 0 : o.ay * Math.cos(sec * o.sy * 6.283 + o.ph))) * h
@@ -84,6 +94,7 @@ try {
 
     let rz = null
     window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { fit(); if (off) return; reduce ? frame(0) : start() }, 150) })
+    document.addEventListener('theme:change', () => { ORBS = light() ? LIGHT : DARK; if (off) return; reduce ? frame(0) : start() })
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !reduce) start(); else stop() })
   }
 } catch { /* no ambient backdrop; the CSS base gradient stands in */ }
@@ -111,7 +122,8 @@ try {
       if (m.film && !reduce) {
         v.src = '/media/hero.mp4'
         v.addEventListener('canplay', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}) }, { once: true })
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}); else v.pause() })
+        document.addEventListener('theme:change', () => { ORBS = light() ? LIGHT : DARK; if (off) return; reduce ? frame(0) : start() })
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}); else v.pause() })
       }
     }).catch(() => {})
   }

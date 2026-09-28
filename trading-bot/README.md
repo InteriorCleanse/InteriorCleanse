@@ -52,10 +52,18 @@ Mac users can double-click `start-mac.command`; Windows users `start-windows.bat
 
 ## What you're looking at
 
-Twenty-two tabs, in five groups. The first five are on the bottom bar of a
-phone; the rest are under **More**. Every screen says which kind of data it is
+Thirty-six pages, in five groups. **Home**, **Today**, **Chart** and **Ask**
+sit in the bar (the bottom bar on a phone). Everything else is under **More**,
+where each page has one line saying what it is for and a search box finds it.
+Home opens with a **Where to?** row of coloured cards, one per area. Every screen says which kind of data it is
 showing — PAPER (live prices, simulated fills), BACKTEST, REPLAY, MOCK — and
 says NOT ENOUGH DATA rather than estimating when the record is thin.
+
+The app opens in **Daylight**, a bright look with one colour per area. The live
+instruments (the brain, the price chart, the 3-D graphs and the vault) stay on
+dark screens so they read the same in any light. Midnight, Plum, Slate and Onyx
+are the dark looks; switch with the colour dots at the top of **More**. The
+choice is remembered on that device.
 
 | Group | Tabs | What they are for |
 |---|---|---|
