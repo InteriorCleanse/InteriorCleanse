@@ -99,3 +99,11 @@ test('getSettings merges a saved file over the defaults and ignores a corrupt va
   writeJson('settings.json', 'garbage')
   assert.deepEqual(getSettings(), defaultSettings(), 'a file that is not an object is ignored')
 })
+
+test('cash for one car: a dollar amount from $500, cleared with null', () => {
+  assert.equal(updateSettings({ cashUsd: 15_000 }).cashUsd, 15_000)
+  assert.equal(getSettings().cashUsd, 15_000)
+  assert.throws(() => updateSettings({ cashUsd: 20 }), /cashUsd/)
+  assert.throws(() => updateSettings({ cashUsd: '15000' }), /cashUsd/)
+  assert.equal(updateSettings({ cashUsd: null }).cashUsd, undefined)
+})

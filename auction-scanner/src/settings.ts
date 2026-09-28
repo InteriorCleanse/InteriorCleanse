@@ -45,6 +45,8 @@ export type Settings = {
   onboarded: boolean
   /** What the member is buying for. Shapes the Home screen's next steps. */
   goal?: 'rental' | 'flip' | 'keep'
+  /** All the cash the member has for one car: bid, fee, transport, fixes and cushion must fit inside it. */
+  cashUsd?: number
 }
 
 const DAMAGE = new Set(['none', 'minor', 'moderate', 'severe'])
@@ -132,10 +134,10 @@ function validateFeeOverrides(v: unknown): Record<string, number> {
  * dropped; a bad value throws a plain-English Error. `homeState` and `homeZip`
  * may be set to '' or null to clear them.
  */
-function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest: Partial<Omit<Settings, 'starter'>>; clear: Array<'homeState' | 'homeZip' | 'goal'> } {
+function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest: Partial<Omit<Settings, 'starter'>>; clear: Array<'homeState' | 'homeZip' | 'goal' | 'cashUsd'> } {
   if (!isRecord(patch)) throw new Error('Settings must be sent as an object.')
   const rest: Partial<Omit<Settings, 'starter'>> = {}
-  const clear: Array<'homeState' | 'homeZip' | 'goal'> = []
+  const clear: Array<'homeState' | 'homeZip' | 'goal' | 'cashUsd'> = []
   let starter: Partial<StarterRules> | undefined
 
   if ('starter' in patch) starter = validateStarter(patch.starter)
@@ -148,6 +150,13 @@ function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest:
     if (v === '' || v === null || v === undefined) clear.push('goal')
     else if (v === 'rental' || v === 'flip' || v === 'keep') rest.goal = v
     else throw new Error('goal must be rental, flip or keep.')
+  }
+
+  if ('cashUsd' in patch) {
+    const v = patch.cashUsd
+    if (v === '' || v === null || v === undefined) clear.push('cashUsd')
+    else if (typeof v === 'number' && Number.isFinite(v) && v >= 500 && v <= 5_000_000) rest.cashUsd = Math.round(v)
+    else throw new Error('cashUsd must be a dollar amount between $500 and $5,000,000.')
   }
 
   if ('homeState' in patch) {
@@ -181,7 +190,7 @@ function merge(base: Settings, saved: unknown): Settings {
       apply(() => Object.assign(out.starter, validateStarter({ [k]: v })))
     }
   }
-  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal'] as const) {
+  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal', 'cashUsd'] as const) {
     if (!(key in saved)) continue
     apply(() => {
       const { rest, clear } = validatePatch({ [key]: saved[key] })

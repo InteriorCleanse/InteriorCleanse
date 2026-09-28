@@ -3,6 +3,10 @@
  *
  *   resale − buyer fee − transport − repairs − cushion − your margin = max bid
  *
+ * and, when the member has told Gavel their cash, never more than
+ *
+ *   cash − buyer fee − transport − repairs − cushion
+ *
  * Every number is a default the member can override on the page. The plan is
  * written as plain rows so a beginner can read it top to bottom. When a fee is
  * unknown (a sliding-scale house with no fee typed in) the plan says so out
@@ -23,10 +27,14 @@ export type PlanInputs = {
   distanceMiles?: number
   /** Buyer fee as a percent (5 means 5%). Overrides the house schedule. */
   feePct?: number
-  /** Margin you want left over, as a fraction of resale (0.15 = 15%). */
+  /** Margin you want left over, as a fraction of resale (0.15 = 15%). Defaults by goal. */
   margin?: number
   /** Which auction house's fee to use. Defaults to the listing's source. */
   houseId?: string
+  /** All the cash the member has for one car. When set, the max bid is also capped so everything fits inside it. */
+  cashUsd?: number
+  /** What the car is for. A flip keeps a margin to sell at; a rental or a keeper is bought under market value. */
+  goal?: 'rental' | 'flip' | 'keep'
 }
 
 function pct(fraction: number): string {
@@ -37,29 +45,49 @@ function nonNeg(n: number | undefined, fallback: number): number {
   return n !== undefined && Number.isFinite(n) && n >= 0 ? n : fallback
 }
 
+/**
+ * The highest bid whose buyer fee still fits in `room` (bid + fee <= room). A
+ * percent fee grows with the bid, so the two are found together: start with
+ * all the room, take the fee off, repeat until the number stops moving.
+ */
+function bidWithin(room: number, houseId: string, feePct: number | undefined): number {
+  const top = Math.max(0, room)
+  let bid = top
+  for (let i = 0; i < 12; i++) {
+    const next = Math.max(0, top - buyerFee(houseId, bid, feePct).usd)
+    const settled = Math.abs(next - bid) < 0.5
+    bid = next
+    if (settled) break
+  }
+  return bid
+}
+
 /** Build the bid plan for one listing from its estimate and the member's inputs. */
 export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): BidPlan {
   const lines: string[] = []
   const houseId = inputs.houseId ?? l.source
+  const goal = inputs.goal ?? 'flip'
+  const flip = goal === 'flip'
+  const valueWord = flip ? 'Resale target' : 'Market value'
 
-  // Resale.
+  // Resale, or for a car you keep, what it is worth.
   let resaleUsd: number
   if (inputs.resaleUsd !== undefined && Number.isFinite(inputs.resaleUsd) && inputs.resaleUsd >= 0) {
     resaleUsd = inputs.resaleUsd
-    lines.push(`Resale target: ${money(resaleUsd)} (the number you typed in).`)
+    lines.push(`${valueWord}: ${money(resaleUsd)} (the number you typed in).`)
   } else if (est.ok) {
     resaleUsd = est.valueUsd
-    lines.push(`Resale target: ${money(resaleUsd)} (from ${est.comps} comparable listings, mileage-adjusted; range ${money(est.low)} to ${money(est.high)}).`)
+    lines.push(`${valueWord}: ${money(resaleUsd)} (${est.method}; range ${money(est.low)} to ${money(est.high)}).`)
   } else {
     resaleUsd = 0
-    lines.push('Resale target: not known. NOT ENOUGH COMPS, so a resale price must be typed in. Look up recent sold prices for this exact year, make and model and enter what you truly believe it will sell for.')
+    lines.push(`${valueWord}: not known. NOT ENOUGH COMPS, so it must be typed in. Look up recent sold prices for this exact year, make and model and enter what it truly sells for.`)
   }
 
   // Transport.
+  const distanceAssumed = inputs.distanceMiles === undefined
   const distance = nonNeg(inputs.distanceMiles, config.plan.defaultDistanceMiles)
   const transportUsd = Math.round(distance * config.plan.transportPerMileUsd)
-  const distanceNote = inputs.distanceMiles !== undefined ? 'your distance' : 'an assumed distance because the exact one is not set'
-  lines.push(`Transport: ${money(transportUsd)} (${distance.toLocaleString('en-US')} miles at $${config.plan.transportPerMileUsd.toFixed(2)} a mile, ${distanceNote}; a typical open-carrier rate, so get a real quote).`)
+  lines.push(`Transport: ${money(transportUsd)} (${distance.toLocaleString('en-US')} miles at $${config.plan.transportPerMileUsd.toFixed(2)} a mile, ${distanceAssumed ? 'an assumed distance because the exact one is not set' : 'your distance'}; a typical open-carrier rate, so get a real quote).`)
 
   // Repairs.
   const repairsUsd = nonNeg(inputs.repairsUsd, 0)
@@ -73,26 +101,21 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
   const reserveUsd = config.plan.surpriseReserveUsd
   lines.push(`Cushion for surprises: ${money(reserveUsd)} (for the things you only find after the car arrives).`)
 
-  // Margin.
-  const marginFraction = nonNeg(inputs.margin, config.plan.targetMargin)
+  // Margin: for a flip, what you want left after selling; otherwise how far under market you buy.
+  const marginFraction = nonNeg(inputs.margin, config.plan.targetMarginByGoal[goal] ?? config.plan.targetMargin)
   const marginUsd = Math.round(marginFraction * resaleUsd)
-  lines.push(`Your margin: ${money(marginUsd)} (${pct(marginFraction)} of the resale target, the amount you want left over).`)
+  lines.push(flip
+    ? `Your margin: ${money(marginUsd)} (${pct(marginFraction)} of the resale target, the amount you want left over).`
+    : `Under market by: ${money(marginUsd)} (${pct(marginFraction)} of market value, so you never pay retail for a car you are keeping).`)
 
-  // Fee, solved against the bid it depends on.
-  // A percent fee grows with the hammer price, so the max bid and the fee are
-  // found together: start with the bid before fees, take the fee off, repeat
-  // until the number stops moving. It settles within a handful of rounds.
-  const fixedCosts = transportUsd + repairsUsd + reserveUsd + marginUsd
-  const beforeFee = Math.max(0, resaleUsd - fixedCosts)
-  let bid = beforeFee
-  for (let i = 0; i < 12; i++) {
-    const fee = buyerFee(houseId, bid, inputs.feePct).usd
-    const next = Math.max(0, beforeFee - fee)
-    const settled = Math.abs(next - bid) < 0.5
-    bid = next
-    if (settled) break
-  }
-  const maxBidUsd = Math.floor(Math.max(0, bid) / 100) * 100
+  // Two limits. The car's value: value minus every cost and the margin.
+  const costs = transportUsd + repairsUsd + reserveUsd
+  const valueMax = bidWithin(resaleUsd - costs - marginUsd, houseId, inputs.feePct)
+  // Your cash: the bid, its fee and every cost must fit inside it.
+  const cashUsd = inputs.cashUsd !== undefined && Number.isFinite(inputs.cashUsd) && inputs.cashUsd > 0 ? inputs.cashUsd : undefined
+  const cashMax = cashUsd === undefined ? Infinity : bidWithin(cashUsd - costs, houseId, inputs.feePct)
+  const limitedBy: 'value' | 'cash' = cashMax < valueMax ? 'cash' : 'value'
+  const maxBidUsd = Math.floor(Math.max(0, Math.min(valueMax, cashMax)) / 100) * 100
   const fee = buyerFee(houseId, maxBidUsd, inputs.feePct)
   const buyerFeeUsd = fee.usd
   const feeUnknown = fee.basis.startsWith('unknown')
@@ -104,9 +127,18 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
   }
 
   // The answer.
-  lines.push(`Never bid above: ${money(maxBidUsd)} (resale minus fee, transport, repairs, cushion and margin, rounded down to the nearest $100).`)
+  lines.push(`Never bid above: ${money(maxBidUsd)} (${valueWord.toLowerCase()} minus fee, transport, repairs, cushion and ${flip ? 'margin' : 'the discount'}${limitedBy === 'cash' ? ', then lowered to fit your cash' : ''}, rounded down to the nearest $100).`)
   if (resaleUsd <= 0) {
-    lines.push('The max bid is $0 because there is no resale target yet. Type one in and the plan will update.')
+    lines.push(`The max bid is $0 because there is no ${valueWord.toLowerCase()} yet. Type one in and the plan will update.`)
+  }
+
+  // The cash it takes.
+  const cashNeededUsd = maxBidUsd + buyerFeeUsd + costs
+  lines.push(`Cash you need on the day: ${money(cashNeededUsd)} (the bid, the buyer fee, transport, repairs and the cushion). Sales tax, title and registration come on top; they depend on your state and county.`)
+  if (cashUsd !== undefined) {
+    lines.push(limitedBy === 'cash'
+      ? `Your cash is ${money(cashUsd)}, so the max bid is lowered to fit it. The car may be worth more, but you would run out of money for the fee and the rest.`
+      : `Your cash is ${money(cashUsd)}: this plan fits, with ${money(Math.max(0, cashUsd - cashNeededUsd))} to spare before tax and title.`)
   }
 
   // Headroom.
@@ -127,5 +159,5 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
 
   if (l.kind === 'SAMPLE') lines.push('SAMPLE — not a real car. These numbers show the method, nothing more.')
 
-  return { resaleUsd, buyerFeeUsd, transportUsd, repairsUsd, reserveUsd, marginUsd, maxBidUsd, headroomUsd, lines }
+  return { resaleUsd, buyerFeeUsd, transportUsd, repairsUsd, reserveUsd, marginUsd, maxBidUsd, headroomUsd, cashNeededUsd, cashUsd, limitedBy, feeUnknown, distanceMiles: distance, distanceAssumed, marginFraction, goal, lines }
 }

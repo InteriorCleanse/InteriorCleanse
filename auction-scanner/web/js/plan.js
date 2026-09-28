@@ -5,20 +5,26 @@ import { stub, badges, stamp, toast, loading, errorStrip, sourceName } from './u
 let current = null
 
 function ledgerHtml(plan, inputs, listing) {
-  const feeUnknown = /unknown|sliding/i.test(plan.lines.join(' ')) && !inputs.feePct
+  const feeUnknown = plan.feeUnknown && !inputs.feePct
+  const flip = plan.goal === 'flip'
+  // Every field shows the number the plan is using, typed or assumed; only what you change is sent back.
+  const shown = (k, v) => esc(inputs[k] ?? v ?? '')
   const feeHelp = listing.kind === 'SAMPLE'
     ? `<span class="nocomps">SAMPLE car: there is no real auction house behind it. Type a fee percent to practise (eBay charges none; Cars &amp; Bids charges 5%).</span>`
     : feeUnknown ? `<span class="nocomps">This house uses a sliding scale. Look up the fee on its calculator and type the percent here.</span>` : `What the auction charges the winner on top of the hammer price. Leave blank to use the published rate.`
   const row = (k, v, input, help) => `<div class="line"><span>${k}</span>${input ? input : `<span class="v">${esc(v)}</span>`}${help ? `<span class="h">${help}</span>` : ''}</div>`
   return `<div class="ledger">
-    ${row('Resale target', money(plan.resaleUsd), `<input type="number" id="p-resale" min="0" step="any" value="${esc(inputs.resaleUsd ?? plan.resaleUsd)}" aria-label="Resale target in dollars" />`, 'What you believe it sells for after fixes. Starts from the comps estimate.')}
+    ${row(flip ? 'Resale target' : 'Market value', money(plan.resaleUsd), `<input type="number" id="p-resale" min="0" step="any" value="${shown('resaleUsd', plan.resaleUsd)}" aria-label="${flip ? 'Resale target' : 'Market value'} in dollars" />`, flip ? 'What you believe it sells for after fixes. Starts from the comps estimate.' : 'What cars like it sell for. Starts from the comps estimate.')}
     ${row('− Buyer fee', money(plan.buyerFeeUsd), `<input type="number" id="p-fee" min="0" max="30" step="any" placeholder="%" value="${esc(inputs.feePct ?? '')}" aria-label="Buyer fee percent" />`, feeHelp)}
-    ${row('− Transport', money(plan.transportUsd), `<input type="number" id="p-dist" min="0" step="any" value="${esc(inputs.distanceMiles ?? '')}" placeholder="miles" aria-label="Distance in miles" />`, 'Miles from the car to you, at a typical open-carrier rate. Get a real quote before you bid.')}
+    ${row('− Transport', money(plan.transportUsd), `<input type="number" id="p-dist" min="0" step="any" value="${shown('distanceMiles', plan.distanceMiles)}" placeholder="miles" aria-label="Distance in miles" />`, `<b>${esc(money(plan.transportUsd))}.</b> ${plan.distanceAssumed && inputs.distanceMiles === undefined ? 'Assumed ' + esc(plan.distanceMiles) + ' miles: type the real distance. ' : 'Miles from the car to you. '}A typical open-carrier rate; get a real quote before you bid.`)}
     ${row('− Repairs', money(plan.repairsUsd), `<input type="number" id="p-rep" min="0" step="any" value="${esc(inputs.repairsUsd ?? '')}" placeholder="$" aria-label="Repairs in dollars" />`, 'Tyres, brakes, detail, whatever the photos and the inspection say.')}
     ${row('− Cushion for surprises', money(plan.reserveUsd))}
-    ${row('− Your margin', money(plan.marginUsd), `<input type="number" id="p-margin" min="0" max="90" step="any" value="${esc(inputs.marginPct ?? '')}" placeholder="%" aria-label="Margin percent" />`, 'What you want left over, as a share of the resale price.')}
+    ${row(flip ? '− Your margin' : '− Under market by', money(plan.marginUsd), `<input type="number" id="p-margin" min="0" max="90" step="any" value="${shown('marginPct', Math.round(plan.marginFraction * 100))}" placeholder="%" aria-label="${flip ? 'Margin' : 'Discount to market'} percent" />`, `<b>${esc(money(plan.marginUsd))}.</b> ${flip ? 'Percent of the resale price you want left over.' : 'Percent under market value you insist on, so you never pay retail.'}`)}
   </div>
   <div class="never"><span class="k mono">Never bid above</span><div class="n">${esc(money(plan.maxBidUsd))}</div>
+    ${feeUnknown ? '<div class="nocomps" style="font-weight:600">Buyer fee not set: this number is too high. Look up the fee and type the percent above.</div>' : ''}
+    <div class="mono ${typeof plan.cashUsd === 'number' && plan.cashNeededUsd > plan.cashUsd ? 'nocomps' : 'dim'}">Cash you need on the day: about ${esc(money(plan.cashNeededUsd))}${typeof plan.cashUsd === 'number' ? ` of your ${esc(money(plan.cashUsd))}` : ''}, plus tax and title.</div>
+    ${plan.limitedBy === 'cash' ? '<div class="mono dim">Lowered to fit your cash.</div>' : ''}
     ${typeof plan.headroomUsd === 'number' ? `<div class="mono ${plan.headroomUsd < 0 ? 'nocomps' : 'dim'}">${plan.headroomUsd < 0 ? `The price is already ${esc(money(-plan.headroomUsd))} over your number. Not your car.` : `${esc(money(plan.headroomUsd))} of room above the price now.`}</div>` : ''}
   </div>
   <details style="margin-top:10px"><summary>Every line, in words</summary><ul class="why">${plan.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`
@@ -64,9 +70,14 @@ export async function render(el, ctx, [id]) {
       </div>
     </div>`
 
+  const FIELDS = { '#p-resale': 'resaleUsd', '#p-fee': 'feePct', '#p-dist': 'distanceMiles', '#p-rep': 'repairsUsd', '#p-margin': 'marginPct' }
+  const edited = new Set()
   const replan = debounce(async () => {
-    const g = (sel) => { const v = el.querySelector(sel).value; return v === '' ? undefined : Number(v) }
-    inputs.resaleUsd = g('#p-resale'); inputs.feePct = g('#p-fee'); inputs.distanceMiles = g('#p-dist'); inputs.repairsUsd = g('#p-rep'); inputs.marginPct = g('#p-margin')
+    for (const [sel, key] of Object.entries(FIELDS)) {
+      if (!edited.has(key)) continue
+      const v = el.querySelector(sel).value
+      inputs[key] = v === '' ? undefined : Number(v)
+    }
     try {
       const plan = await postJson('/api/plan', { listingId: l.id, ...inputs })
       current.plan = plan
@@ -77,7 +88,7 @@ export async function render(el, ctx, [id]) {
       el.querySelector('#p-max').value = plan.maxBidUsd || ''
     } catch (e) { toast(e.message, 'hot') }
   }, 400)
-  const wireLedger = () => el.querySelectorAll('#p-ledger input').forEach((i) => i.addEventListener('input', replan))
+  const wireLedger = () => el.querySelectorAll('#p-ledger input').forEach((i) => i.addEventListener('input', () => { const key = FIELDS['#' + i.id]; if (key) edited.add(key); replan() }))
   wireLedger()
 
   el.querySelector('#p-print').addEventListener('click', () => window.print())

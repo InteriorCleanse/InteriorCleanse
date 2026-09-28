@@ -16,8 +16,8 @@ export async function render(el) {
        <div class="choices">${GOALS.map(([k, t, d]) => `<button type="button" class="choice ${state.goal === k ? 'on' : ''}" data-goal="${k}" aria-pressed="${state.goal === k}"><b>${t}</b><span>${d}</span></button>`).join('')}</div>`,
       `<h1>Which state are you in?</h1><p class="lead">Auction rules, taxes and the dealer licence all depend on your state. Two letters.</p>
        <label class="f" style="max-width:220px">Your state <input type="text" id="s-state" maxlength="2" placeholder="TX" value="${esc(state.homeState)}" autocomplete="address-level1" /></label>`,
-      `<h1>What is the most you will spend?</h1><p class="lead">On the car itself. Fees, transport and fixes come out of each bid plan, so this is your ceiling, not your target.</p>
-       <label class="f" style="max-width:260px">Budget in dollars <input type="number" id="s-budget" min="500" step="any" placeholder="15000" value="${esc(state.budgetUsd)}" inputmode="numeric" /></label>
+      `<h1>How much cash do you have for one car?</h1><p class="lead">All in: the bid, the auction's fee, transport and fixes. Every bid plan keeps the total inside this number.</p>
+       <label class="f" style="max-width:260px">Cash in dollars <input type="number" id="s-budget" min="500" step="any" placeholder="15000" value="${esc(state.budgetUsd)}" inputmode="numeric" /></label>
        <div class="chips" style="margin-top:10px">${[8000, 15000, 25000, 40000, 75000].map((b) => `<button type="button" class="chip" data-budget="${b}">$${b.toLocaleString('en-US')}</button>`).join('')}</div>`,
       `<h1>Which makes do you like?</h1><p class="lead">Tap any. Leave it empty and the Sniper watches every make.${state.goal && SUGGEST[state.goal].length ? ' We picked a few that suit your goal.' : ''}</p>
        <div class="chips wrap">${catalog.makes.map((m) => `<button type="button" class="chip" data-make="${esc(m.make)}" aria-pressed="${state.makes.has(m.make)}">${esc(m.make)}</button>`).join('')}</div>`,
@@ -35,7 +35,7 @@ export async function render(el) {
     el.querySelector('#s-next').addEventListener('click', async (e) => {
       if (state.step === 0 && !state.goal) { toast('Pick one to continue.', 'hot'); return }
       if (state.step === 1) { const v = el.querySelector('#s-state').value.trim().toUpperCase(); if (v && !/^[A-Z]{2}$/.test(v)) { toast('Two letters, for example TX.', 'hot'); return } state.homeState = v }
-      if (state.step === 2) { const v = Number(el.querySelector('#s-budget').value); if (!Number.isFinite(v) || v < 500) { toast('Type a budget of at least $500.', 'hot'); return } state.budgetUsd = String(v) }
+      if (state.step === 2) { const v = Number(el.querySelector('#s-budget').value); if (!Number.isFinite(v) || v < 500) { toast('Type an amount of at least $500.', 'hot'); return } state.budgetUsd = String(v) }
       if (!last) { state.step++; draw(); const f = el.querySelector('input'); if (f) f.focus(); return }
       e.target.disabled = true
       try {

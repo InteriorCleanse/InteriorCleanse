@@ -45,7 +45,10 @@ test('max bid = resale − fee − transport − repairs − cushion − margin,
   // 20,000 − 0 − 90 − 500 − 750 − 3,000 = 15,660 → 15,600
   assert.equal(plan.maxBidUsd, 15_600)
   assert.ok(plan.lines.some((s) => s.includes('Never bid above: $15,600')), plan.lines.join('\n'))
-  assert.ok(plan.lines.some((s) => s.startsWith('Resale target: $20,000 (from 3 comparable listings')), plan.lines.join('\n'))
+  assert.ok(plan.lines.some((s) => s.startsWith('Resale target: $20,000 (median of 3 comparable listings')), plan.lines.join('\n'))
+  // Cash on the day: 15,600 bid + 0 fee + 90 + 500 + 750.
+  assert.equal(plan.cashNeededUsd, 16_940)
+  assert.equal(plan.limitedBy, 'value')
 })
 
 test('the max bid is always a whole multiple of $100', () => {
@@ -156,4 +159,42 @@ test('the max bid never goes below zero', () => {
 test('a SAMPLE listing is labelled in the plan', () => {
   const plan = buildPlan(fx({ kind: 'SAMPLE', source: 'sample', url: '#sample' }), EST_OK)
   assert.ok(plan.lines.some((s) => s.startsWith('SAMPLE — not a real car')), plan.lines.join('\n'))
+})
+
+test('your cash caps the bid so the fee, transport, repairs and cushion still fit', () => {
+  // Value allows 15,600 (see above). With $12,000 cash: 12,000 − 90 − 500 − 750 = 10,660 → 10,600.
+  const plan = buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 12_000 })
+  assert.equal(plan.limitedBy, 'cash')
+  assert.equal(plan.maxBidUsd, 10_600)
+  assert.ok(plan.cashNeededUsd <= 12_000)
+  assert.ok(plan.lines.some((s) => s.includes('lowered to fit it')), plan.lines.join('\n'))
+  // Plenty of cash: value decides, and the plan says what is left.
+  const rich = buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 50_000 })
+  assert.equal(rich.limitedBy, 'value')
+  assert.equal(rich.maxBidUsd, 15_600)
+  assert.ok(rich.lines.some((s) => s.includes('to spare')))
+})
+
+test('a percent fee is paid out of your cash too', () => {
+  // 10% fee: bid + 10% of bid + 1,340 of costs must fit in 12,000 → bid ≤ 9,690 → 9,600.
+  const plan = buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 12_000, feePct: 10 })
+  assert.equal(plan.maxBidUsd, 9_600)
+  assert.ok(plan.cashNeededUsd <= 12_000, String(plan.cashNeededUsd))
+})
+
+test('a rental or a keeper is bought a little under market, not at a flip margin', () => {
+  const rental = buildPlan(fx(), EST_OK, { distanceMiles: 0, repairsUsd: 0, goal: 'rental' })
+  assert.equal(rental.marginFraction, config.plan.targetMarginByGoal.rental)
+  assert.equal(rental.marginUsd, Math.round(20_000 * config.plan.targetMarginByGoal.rental))
+  assert.ok(rental.lines.some((s) => s.startsWith('Market value: $20,000')))
+  assert.ok(rental.lines.some((s) => s.startsWith('Under market by:')))
+  const flip = buildPlan(fx(), EST_OK, { distanceMiles: 0, repairsUsd: 0 })
+  assert.ok(rental.maxBidUsd > flip.maxBidUsd)
+})
+
+test('the plan says when the fee is unknown and when the distance is assumed', () => {
+  const plan = buildPlan(fx({ source: 'copart' }), EST_OK)
+  assert.equal(plan.feeUnknown, true)
+  assert.equal(plan.distanceAssumed, true)
+  assert.equal(plan.distanceMiles, config.plan.defaultDistanceMiles)
 })

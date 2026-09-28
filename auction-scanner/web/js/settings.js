@@ -10,6 +10,11 @@ export async function render(el, ctx) {
   const src = (me.sources || [])
   el.innerHTML = `<div class="head"><div><h1>Settings</h1><p>The rules Starter mode uses, the data you allow, and what is connected.</p></div></div>
     <form id="s-form">
+    <div class="panel"><h2>Your goal and your cash</h2>
+      <div class="grid2">
+        <label class="f">What the car is for <select name="goal"><option value="">Not set</option>${[['rental', 'Rent it out'], ['flip', 'Flip it for profit'], ['keep', 'Keep it for me']].map(([v, t]) => `<option value="${v}" ${s.goal === v ? 'selected' : ''}>${t}</option>`).join('')}</select><small>A flip keeps a margin to sell at; a rental or a keeper is bought a little under market value.</small></label>
+        <label class="f">Cash for one car ($) <input type="number" name="cashUsd" min="500" step="any" value="${esc(s.cashUsd ?? '')}" placeholder="15000" /><small>All in. Every plan keeps the bid, fee, transport, fixes and cushion inside it.</small></label>
+      </div></div>
     <div class="panel"><h2>Starter mode rules</h2><p class="dim">Starter mode is on by default in the Feed. These are the rules it applies; every hidden car says which one hid it.</p>
       <div class="grid2">
         <label class="switch"><input type="checkbox" name="cleanTitleOnly" ${s.starter.cleanTitleOnly ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Clean titles only <small class="dim" style="display:block;font-weight:400">Hides salvage, rebuilt, flood, lemon and "not stated".</small></span></label>
@@ -52,6 +57,8 @@ export async function render(el, ctx) {
     const patch = {
       starter: { cleanTitleOnly: f.get('cleanTitleOnly') === 'on', mustRunAndDrive: f.get('mustRunAndDrive') === 'on', maxDamage: f.get('maxDamage'), maxPriceUsd: num('maxPriceUsd'), maxMileage: num('maxMileage'), minYear: num('minYear') },
       allowSample: f.get('allowSample') === 'on',
+      goal: String(f.get('goal') || '') || null,
+      cashUsd: num('cashUsd') ?? null,
       homeState: String(f.get('homeState') || '').toUpperCase() || null,
       homeZip: String(f.get('homeZip') || '') || null,
       feeOverrides,

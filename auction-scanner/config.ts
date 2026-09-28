@@ -45,6 +45,13 @@ export const config = {
   plan: {
     /** Margin you want left over after fees, transport and repairs, as a fraction of the resale price. */
     targetMargin: 0.15,
+    /**
+     * The default by goal. A flip needs a margin to sell at; a car kept or
+     * rented out only needs to be bought under the market, so its "margin" is
+     * a small discount to market value. Gavel's working choices; the member
+     * can type their own on every plan.
+     */
+    targetMarginByGoal: { flip: 0.15, rental: 0.05, keep: 0.05 },
     /** A cushion for surprises found after the car arrives. */
     surpriseReserveUsd: 750,
     /** Typical transport cost per mile for an open carrier. Verify with a quote. */

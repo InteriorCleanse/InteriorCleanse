@@ -444,7 +444,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   function planFor(l: Listing, estimate: Estimate, inputs: PlanInputs, settings: Settings): BidPlan {
     const houseId = inputs.houseId ?? l.source
     const feePct = inputs.feePct ?? settings.feeOverrides[houseId]
-    return buildPlan(l, estimate, { ...inputs, houseId, feePct })
+    return buildPlan(l, estimate, { cashUsd: settings.cashUsd, goal: settings.goal, ...inputs, houseId, feePct })
   }
 
   function planInputs(body: Record<string, unknown>): PlanInputs {
@@ -898,7 +898,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const makes = Array.isArray(body.makes) ? (body.makes as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 12) : []
       const models = Array.isArray(body.models) ? (body.models as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 20) : []
       try {
-        const settings = updateSettings({ onboarded: true, goal, homeState: homeState || null, starter: { maxPriceUsd: Math.max(budget, 1000) } })
+        const settings = updateSettings({ onboarded: true, goal, homeState: homeState || null, cashUsd: budget, starter: { maxPriceUsd: Math.max(budget, 1000) } })
         const target = saveTarget({ name: goal === 'rental' ? 'My first rental car' : goal === 'flip' ? 'My first flip' : 'My next car', makes, models, maxBudgetUsd: budget, minScore: 60, starterOnly: true, armed: false, active: true })
         scanCache.clear()
         runSniper().catch(() => {})

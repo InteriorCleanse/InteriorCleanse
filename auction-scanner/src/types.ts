@@ -109,6 +109,20 @@ export type BidPlan = {
   maxBidUsd: number
   /** Where the current price sits against the max bid. */
   headroomUsd?: number
+  /** All the cash the car takes at the max bid: bid + buyer fee + transport + repairs + cushion. Tax and title come on top. */
+  cashNeededUsd: number
+  /** The member's cash for one car, when they have told Gavel. */
+  cashUsd?: number
+  /** Which limit set the max bid: the car's value, or the member's cash. */
+  limitedBy: 'value' | 'cash'
+  /** The buyer fee is not known (a sliding scale with no percent typed in), so it counted as $0 and the max bid is too high. */
+  feeUnknown: boolean
+  /** The distance used, and whether it was assumed rather than typed. */
+  distanceMiles: number
+  distanceAssumed: boolean
+  /** The margin used, as a fraction (0.15 = 15%). */
+  marginFraction: number
+  goal: 'rental' | 'flip' | 'keep'
   lines: string[]
 }
 

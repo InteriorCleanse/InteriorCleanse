@@ -44,6 +44,13 @@ function live(over: Partial<Listing> = {}): Listing {
 const ESTIMATE_OK: Estimate = { ok: true, valueUsd: 66_000, low: 61_000, high: 74_900, comps: 4, method: 'median of 4 comparable listings, mileage-adjusted' }
 const SCORE: Score = { total: 82, grade: 'steal', discount: 0.3, reasons: ['Priced 30% under 4 comparables.'], redFlags: [], starterOk: true, starterBlocks: [] }
 const PLAN: BidPlan = {
+  cashNeededUsd: 47_020,
+  limitedBy: 'value',
+  feeUnknown: false,
+  distanceMiles: 300,
+  distanceAssumed: true,
+  marginFraction: 0.15,
+  goal: 'flip',
   resaleUsd: 66_000,
   buyerFeeUsd: 0,
   transportUsd: 270,
