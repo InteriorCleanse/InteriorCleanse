@@ -34,6 +34,8 @@ state, your budget, the makes you like) and starts your first Sniper target.
 - **Import.** Bring in any lot from any auction: drag the Send to Gavel
   button to your bookmarks once, then click it on a Copart, IAA, Bring a
   Trailer or Cars & Bids page. Or paste the lot, or upload a CSV export.
+  Click it on a **sold** result too: Gavel keeps sold prices apart and uses
+  them first in every estimate for that car.
 - **Connect.** The go-live guide with a live tick next to every source, the
   AI, hosting and payments.
 - **Garage.** The business ledger: every car you actually bought, every cost

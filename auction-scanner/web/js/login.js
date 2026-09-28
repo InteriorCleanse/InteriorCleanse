@@ -3,6 +3,16 @@ const tabs = { member: document.getElementById('tab-member'), owner: document.ge
 const forms = { member: document.getElementById('form-member'), owner: document.getElementById('form-owner') }
 const err = document.getElementById('err')
 
+// Where to go after signing in. The Send to Gavel button arrives as /#import/…;
+// the redirect to /login keeps that hash, and this carries it on.
+const back = '/' + (location.hash.startsWith('#') ? location.hash : '')
+
+// Opened from an auction's site, the browser holds back the session cookie on
+// that first page load (it is SameSite=Strict), so a signed-in member lands
+// here. A request from this page does carry it: when it says we are signed
+// in, go straight on.
+fetch('/api/me', { credentials: 'same-origin' }).then((r) => { if (r.ok) location.replace(back) }).catch(() => {})
+
 function show(which) {
   for (const k of Object.keys(tabs)) {
     tabs[k].setAttribute('aria-selected', String(k === which))
@@ -23,7 +33,7 @@ async function submit(form, body) {
     const res = await fetch('/api/login', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const j = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(j.error || `The server answered ${res.status}.`)
-    location.href = '/'
+    location.href = back
   } catch (e) {
     err.textContent = e.message
   } finally {

@@ -34,6 +34,11 @@ export const config = {
     noDealDiscount: 0.05,
     /** How many comparable listings the estimate needs before it is shown as a number at all. */
     minComps: 3,
+    /**
+     * Sold prices older than this many days are left out of estimates: the
+     * market moves. Gavel's working choice, not a market statistic.
+     */
+    soldMaxAgeDays: 730,
   },
 
   /** The bid plan. Everything is a default the person can override on the page. */

@@ -158,3 +158,23 @@ test('a listing with no make, model or year cannot be priced', () => {
     if (!est.ok) assert.ok(est.reason.startsWith('NOT ENOUGH COMPS'), est.reason)
   }
 })
+
+test('a sold price counts ahead of an ask or a bid, and the method says how many were sales', () => {
+  const target = fx({ mileage: 50_000 })
+  // Same mileage as the target, so no adjustment: the median is plain to read.
+  const sold = fx({ buyNowUsd: 90_000, currentBidUsd: 40_000, soldUsd: 70_000, soldAt: 1 })
+  const asks = [fx({ buyNowUsd: 60_000 }), fx({ buyNowUsd: 62_000 })]
+  const mixed = estimateValue(target, [sold, ...asks])
+  assert.ok(mixed.ok)
+  assert.equal(mixed.valueUsd, 62_000, 'the sold car counts at 70,000, not its 90,000 ask')
+  assert.match(mixed.method, /3 comparables \(1 of them sold prices\)/)
+  const allSold = estimateValue(target, [fx({ soldUsd: 60_000, soldAt: 1 }), fx({ soldUsd: 61_000, soldAt: 1 }), fx({ soldUsd: 64_000, soldAt: 1 })])
+  assert.ok(allSold.ok)
+  assert.match(allSold.method, /median of 3 sold prices/)
+})
+
+test('a car is never its own comparable, even under another id', () => {
+  const target = fx({ vin: 'WP0AB2A99KS123456' })
+  assert.equal(isComparable(target, fx({ vin: 'WP0AB2A99KS123456' })), false)
+  assert.equal(isComparable(target, fx({ vin: 'WP0AB2A99KS654321' })), true)
+})

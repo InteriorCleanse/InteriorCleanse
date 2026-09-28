@@ -56,3 +56,9 @@ Gavel reads the lot you open yourself: the **Send to Gavel** bookmark button
 passes the visible page text to Gavel, or you paste it, or you upload a CSV
 exported from your own auction account. Nothing is scraped. See
 `src/sources/importer.ts` for the labels it reads.
+
+The same button works on a **finished** sale (a Bring a Trailer or Cars &
+Bids result, a lot you won, an auction's sold report as a CSV). Gavel keeps it
+as a sold price: real money paid, the strongest comparable there is. Sold
+prices never appear in the feed; they sharpen the estimate for the same make
+and model within a model year, for two years after the sale date.

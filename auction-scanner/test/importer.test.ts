@@ -1,7 +1,7 @@
 /** The importer reads what the member hands it and guesses nothing. TEST FIXTURE pages only. */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { houseFromUrl, listingFromImport, parseCsvImport, parseLotText, readCsv } from '../src/sources/importer.ts'
+import { houseFromUrl, importFieldsOf, listingFromImport, parseCsvImport, parseLotText, readCsv } from '../src/sources/importer.ts'
 import { listImports, removeImport, saveImports } from '../src/imports.ts'
 import { withUser } from '../src/store.ts'
 
@@ -141,4 +141,68 @@ test('imports are per member, replace by id, and remove', () => {
   assert.equal(withUser('imp-b@example.com', () => listImports()).length, 0)
   assert.equal(withUser('imp-a@example.com', () => removeImport(a.id)), true)
   assert.equal(withUser('imp-a@example.com', () => removeImport(a.id)), false)
+})
+
+/** TEST FIXTURE: a sold result page in the style of an enthusiast auction. Not a real listing. */
+const SOLD_PAGE = `TEST FIXTURE
+2019 Porsche 911 Carrera S
+Lot #TF1234
+Chassis: WP0AB2A99KS123456
+Mileage: 18,400
+Title Status: Clean (TX)
+Sold for USD $118,500 on 9/12/26`
+
+test('a sold result is read as a sold price with its date, and the for-sale fields step aside', () => {
+  const now = Date.UTC(2026, 8, 28)
+  const r = parseLotText(SOLD_PAGE, 'https://bringatrailer.com/listing/test-fixture/', now)
+  assert.equal(r.fields.source, 'bat')
+  assert.equal(r.fields.soldUsd, 118_500)
+  assert.equal(new Date(r.fields.soldAt!).getFullYear(), 2026)
+  assert.equal(r.fields.currentBidUsd, undefined)
+  assert.ok(r.missing.every((k) => k !== 'currentBidUsd'), 'a sold page is not asked for a current bid')
+  const l = listingFromImport(r.fields, now)
+  assert.equal(l.id, 'sold:bat:TF1234')
+  assert.equal(l.soldUsd, 118_500)
+  assert.equal(l.endsAt, undefined)
+})
+
+test('a live auction that mentions other cars sold prices stays a car for sale', () => {
+  const now = Date.UTC(2026, 8, 28)
+  const live = `TEST FIXTURE\n2019 Porsche 911 Carrera S\nCurrent Bid: $90,000\nAuction Ends: Oct 5, 2026 12:00 PM\nSold for $101,000 on 8/1/26`
+  const r = parseLotText(live, undefined, now)
+  assert.equal(r.fields.soldUsd, undefined)
+  assert.equal(r.fields.currentBidUsd, 90_000)
+})
+
+test('sold prices need a past date', () => {
+  const now = Date.UTC(2026, 8, 28)
+  assert.throws(() => listingFromImport({ title: '2019 Porsche 911', soldUsd: 100_000 }, now), /date it sold/)
+  assert.throws(() => listingFromImport({ title: '2019 Porsche 911', soldUsd: 100_000, soldAt: now + 5 * 86_400_000 }, now), /future/)
+  const ok = listingFromImport({ title: '2019 Porsche 911', soldUsd: 100_000, soldAt: '2026-09-01', currentBidUsd: 5 }, now)
+  assert.equal(ok.currentBidUsd, undefined, 'a sold car has no current bid')
+})
+
+test('CSV: a sold-price column makes sold rows; the sold switch reads the high bid as the sale', () => {
+  const withCol = parseCsvImport('Year,Make,Model,Sold Price,Sold Date\n2019,Porsche,911,112000,2026-08-01\n2020,Porsche,911,,\n', 'bat')
+  assert.equal(withCol.rows[0].soldUsd, 112_000)
+  assert.ok(withCol.rows[0].soldAt)
+  assert.equal(withCol.rows[1].soldUsd, undefined, 'a row with no sold price stays a lot')
+  const won = parseCsvImport('Lot number,Year,Make,Model,High Bid,Sale Date\n1,2018,Lexus,GX,21000,2026-07-15\n', 'copart', { sold: true })
+  assert.equal(won.rows[0].soldUsd, 21_000)
+  assert.equal(won.rows[0].currentBidUsd, undefined)
+})
+
+test('reading a page of blank lines takes milliseconds, not minutes', () => {
+  const t0 = Date.now()
+  parseLotText('\n'.repeat(60_000))
+  parseLotText(' \n\t'.repeat(20_000))
+  assert.ok(Date.now() - t0 < 1000, `took ${Date.now() - t0} ms`)
+})
+
+test('importFieldsOf round-trips a stored listing through the same checks', () => {
+  const l = listingFromImport({ title: '2016 Lexus GX 460', source: 'copart', lotNumber: '9', mileage: 80000, state: 'TX', url: 'https://www.copart.com/lot/9' })
+  const again = listingFromImport(importFieldsOf(l))
+  assert.equal(again.id, l.id)
+  assert.equal(again.location?.state, 'TX')
+  assert.equal(again.url, l.url)
 })

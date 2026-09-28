@@ -53,7 +53,8 @@ import { DATA_DIR, PERSONAL_FILES, adoptLegacyFiles, currentUser, ensureDataDir,
 import { addCar, addCost, addIncome, garageSummary, listGarage, removeCar, removeEntry, totalsFor, updateCar, validateGarageFile } from './garage.ts'
 import { validateTarget } from './sniper/targets.ts'
 import { listImports, removeImport, saveImports } from './imports.ts'
-import { listingFromImport, parseCsvImport, parseLotText } from './sources/importer.ts'
+import { listSold, recentSold, removeSold, saveSold } from './sold.ts'
+import { importFieldsOf, listingFromImport, parseCsvImport, parseLotText } from './sources/importer.ts'
 import { aiExtractLot } from './research/extract.ts'
 import { marketcheckComps, marketcheckConfigured } from './sources/marketcheck.ts'
 import { createHash } from 'node:crypto'
@@ -204,11 +205,35 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   const gate = new MemberGate({ pin, envCodes: env('GAVEL_MEMBER_CODES').split(',').map((s) => s.trim()).filter(Boolean), throttle: new Throttle(8, 15 * 60_000, now), now })
   const stripeSeen = new Set<string>(readJson<string[]>('stripe-events.json', []))
 
-  /** Every listing seen in any scan this run, so /api/listing and the watchlist can find it. */
+  /**
+   * Public listings seen in any scan this run (API and SAMPLE data), so
+   * /api/listing can find them. A member's imports, sold prices and watch
+   * snapshots never go in here: they are read from that member's own files on
+   * each request, so nothing one member typed reaches another.
+   */
   const known = new Map<string, Listing>()
-  /** The comparable pool per data kind from the latest scan of that kind. */
-  const pools = new Map<Listing['kind'], Listing[]>()
+  /**
+   * Comparables per data kind: every public comp from recent scans, newest
+   * price per id, so the feed and the plan page price a car from the same
+   * pool. Entries older than POOL_MAX_AGE_MS or past POOL_MAX drop off.
+   */
+  const pools = new Map<Listing['kind'], Map<string, Listing>>()
+  const POOL_MAX = 5000
+  const POOL_MAX_AGE_MS = 6 * 3600_000
   const scanCache = new Map<string, { at: number; result: ScanResult }>()
+
+  /** The lot reader can call Claude, so each member gets READER_MAX reads per ten minutes. */
+  const READER_MAX = 40
+  const readerLog = new Map<string, number[]>()
+  function readerAllows(email: string): boolean {
+    const since = now() - 10 * 60_000
+    const recent = (readerLog.get(email) ?? []).filter((t) => t > since)
+    if (recent.length >= READER_MAX) { readerLog.set(email, recent); return false }
+    recent.push(now())
+    readerLog.set(email, recent)
+    if (readerLog.size > 10_000) readerLog.delete(readerLog.keys().next().value as string)
+    return true
+  }
 
   /** A short fingerprint of a member's imports, so the scan cache never hands one member's lots to another. */
   function importsSignature(extra: Listing[]): string {
@@ -223,13 +248,35 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   }
 
   function remember(result: ScanResult): void {
-    for (const l of result.listings) known.set(l.id, l)
-    if (result.kind !== 'EMPTY') pools.set(result.kind, result.comps)
-    for (const w of listWatch()) if (!known.has(w.listingId)) known.set(w.listingId, w.snapshot)
+    for (const l of result.listings) if (l.origin !== 'import') known.set(l.id, l)
+    if (result.kind === 'EMPTY') return
+    let pool = pools.get(result.kind)
+    if (!pool) { pool = new Map(); pools.set(result.kind, pool) }
+    for (const c of result.comps) if (c.origin !== 'import') { pool.delete(c.id); pool.set(c.id, c) }
+    const oldest = now() - POOL_MAX_AGE_MS
+    for (const [id, c] of pool) if (pool.size > POOL_MAX || c.fetchedAt < oldest) pool.delete(id)
   }
 
-  function cardFor(l: Listing, settings: Settings, extraPool: Listing[] = []): Card {
-    const pool = extraPool.length ? [...(pools.get(l.kind) ?? []), ...extraPool] : pools.get(l.kind) ?? []
+  /** A listing by id, for the member making the request: their own imports and watch snapshots, or the public scan. */
+  function findListing(id: string): Listing | undefined {
+    const snapshot = () => listWatch().find((w) => w.listingId === id)?.snapshot
+    if (id.startsWith('import:')) return listImports().find((x) => x.id === id) ?? snapshot()
+    return known.get(id) ?? snapshot()
+  }
+
+  /** The member's own comparables: their imported lots and their recent sold prices. Never shared. */
+  function myComps(): Listing[] {
+    return [...listImports(), ...recentSold(listSold(), now())]
+  }
+
+  /**
+   * Score one car. The pool is the public comps from recent scans, plus any
+   * extra (MarketCheck dealer prices for this car), plus the member's own
+   * imports and sold prices. Pass `mine` when scoring many cards at once, so
+   * the member's files are read once.
+   */
+  function cardFor(l: Listing, settings: Settings, opts: { extra?: Listing[]; mine?: Listing[] } = {}): Card {
+    const pool = [...(pools.get(l.kind)?.values() ?? []), ...(opts.extra ?? []), ...(opts.mine ?? myComps())]
     const estimate = estimateValue(l, pool)
     const demand = demandFor(l.make, l.model, settings.demandExtra)
     const score = scoreListing(l, estimate, demand, settings.starter, now())
@@ -263,7 +310,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       remember(result)
     }
 
-    let cards = result.listings.map((l) => cardFor(l, settings))
+    const mine = myComps()
+    let cards = result.listings.map((l) => cardFor(l, settings, { mine }))
     if (make) cards = cards.filter((c) => (c.listing.make ?? '').toLowerCase() === make.toLowerCase())
     if (state) cards = cards.filter((c) => (c.listing.location?.state ?? '').toUpperCase() === state)
     if (maxPrice !== undefined) cards = cards.filter((c) => (askingPrice(c.listing) ?? 0) <= maxPrice)
@@ -301,7 +349,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       scanCache.set(key, { at: now(), result })
       remember(result)
     }
-    return { cards: result.listings.map((l) => cardFor(l, settings)), kind: result.kind, errors: result.errors }
+    const mine = myComps()
+    return { cards: result.listings.map((l) => cardFor(l, settings, { mine })), kind: result.kind, errors: result.errors }
   }
 
   type SniperState = { lastRun: number; picks: Pick[]; running: Promise<{ picks: Pick[]; fired: number }> | null }
@@ -382,13 +431,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   }
 
   async function ensureKnown(id: string): Promise<Listing> {
-    let l = known.get(id)
-    if (!l) {
-      // A fresh process: repopulate from the watchlist and a default scan.
+    let l = findListing(id)
+    if (!l && !id.startsWith('import:')) {
+      // A fresh process: repopulate from a default scan.
       remember(await scanAll({ limit: 100 }, { allowSample: getSettings().allowSample, fetchImpl }))
-      l = known.get(id)
+      l = findListing(id)
     }
-    if (!l) l = listImports().find((x) => x.id === id)
     if (!l) throw new HttpError(404, 'That car is not in the current scan any more. Go back to the Feed and open it again.')
     return l
   }
@@ -544,7 +592,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const id = decodeURIComponent(parts[2])
       const l = await ensureKnown(id)
       const settings = getSettings()
-      const card = cardFor(l, settings, await extraComps(l))
+      const card = cardFor(l, settings, { extra: await extraComps(l) })
       const plan = planFor(l, card.estimate, {}, settings)
       const wt = walkthrough({ ...card, plan }, houseById(l.source))
       return json(res, 200, { ...card, plan, walkthrough: wt })
@@ -554,7 +602,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const body = await readJsonBody(req)
       const l = await ensureKnown(str(body.listingId, 200))
       const settings = getSettings()
-      const card = cardFor(l, settings, await extraComps(l))
+      const card = cardFor(l, settings, { extra: await extraComps(l) })
       return json(res, 200, planFor(l, card.estimate, planInputs(body), settings))
     }
 
@@ -674,8 +722,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       if (!question) throw new HttpError(400, 'Ask a question first.')
       let context = ''
       const listingId = str(body.listingId, 200)
-      if (listingId && known.has(listingId)) {
-        const l = known.get(listingId)!
+      const l = listingId ? findListing(listingId) : undefined
+      if (l) {
         context = `Listing: ${l.title}, ${l.year ?? ''} ${l.make ?? ''} ${l.model ?? ''}, ${l.mileage ?? 'unknown'} miles, title ${l.titleStatus}, damage ${l.damage}, source ${l.source}, kind ${l.kind}.`
       }
       const hits = searchKnowledge(question, 6)
@@ -717,13 +765,15 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     }
 
     if (path === '/api/import/parse' && method === 'POST') {
+      if (!readerAllows(session.email)) throw new HttpError(429, `That is ${READER_MAX} lots read in ten minutes. Wait a few minutes, then carry on.`)
       const body = await readJsonBody(req)
       const text = typeof body.text === 'string' ? body.text.slice(0, 60_000) : ''
       const pageUrl = str(body.url, 500)
       if (!text.trim()) throw new HttpError(400, 'Paste the lot page text first.')
-      const parsed = parseLotText(text, pageUrl || undefined)
+      const parsed = parseLotText(text, pageUrl || undefined, now())
       let usedAi = false
-      if ((!parsed.fields.title || (parsed.fields.currentBidUsd === undefined && parsed.fields.buyNowUsd === undefined)) && body.useAi !== false) {
+      const priced = parsed.fields.currentBidUsd !== undefined || parsed.fields.buyNowUsd !== undefined || parsed.fields.soldUsd !== undefined
+      if ((!parsed.fields.title || !priced) && body.useAi !== false) {
         const ai = await aiExtractLot(text, pageUrl || undefined)
         if (ai) {
           usedAi = true
@@ -738,27 +788,43 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const body = await readJsonBody(req)
       let listing: Listing
       try { listing = listingFromImport(body, now()) } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : 'That lot was not saved.') }
+      if (listing.soldUsd !== undefined) {
+        saveSold([listing])
+        return json(res, 200, { sold: true, listing })
+      }
       saveImports([listing])
-      known.set(listing.id, listing)
       const settings = getSettings()
-      return json(res, 200, cardFor(listing, settings, await extraComps(listing)))
+      return json(res, 200, cardFor(listing, settings, { extra: await extraComps(listing) }))
     }
     if (path === '/api/import/csv' && method === 'POST') {
       const body = await readJsonBody(req)
       const csv = typeof body.csv === 'string' ? body.csv : ''
       if (!csv.trim()) throw new HttpError(400, 'Choose a CSV file first.')
       const src = str(body.source, 20) || 'other'
-      const parsed = parseCsvImport(csv, src)
-      const listings: Listing[] = []
+      const parsed = parseCsvImport(csv, src, { sold: body.sold === true })
+      const lots: Listing[] = []
+      const sold: Listing[] = []
       let bad = 0
+      let undated = 0
       for (const row of parsed.rows) {
-        try { listings.push(listingFromImport({ ...row, source: row.source === 'other' ? src : row.source }, now())) } catch { bad++ }
+        try {
+          const l = listingFromImport({ ...row, source: row.source === 'other' ? src : row.source }, now())
+          ;(l.soldUsd !== undefined ? sold : lots).push(l)
+        } catch {
+          if (row.soldUsd !== undefined && row.soldAt === undefined) undated++
+          else bad++
+        }
       }
-      if (listings.length) saveImports(listings)
-      for (const l of listings) known.set(l.id, l)
-      return json(res, 200, { added: listings.length, skipped: parsed.skipped + bad, used: parsed.used })
+      if (lots.length) saveImports(lots)
+      if (sold.length) saveSold(sold)
+      return json(res, 200, { added: lots.length, sold: sold.length, skipped: parsed.skipped + bad, undated, used: parsed.used })
     }
     if (path === '/api/imports' && method === 'GET') return json(res, 200, listImports())
+    if (path === '/api/sold' && method === 'GET') return json(res, 200, listSold())
+    if (parts[1] === 'sold' && parts.length === 3 && method === 'DELETE') {
+      if (!removeSold(decodeURIComponent(parts[2]))) throw new HttpError(404, 'No sold price with that id.')
+      return json(res, 200, { ok: true })
+    }
     if (parts[1] === 'imports' && parts.length === 3 && method === 'DELETE') {
       if (!removeImport(decodeURIComponent(parts[2]))) throw new HttpError(404, 'No imported lot with that id.')
       return json(res, 200, { ok: true })
@@ -884,12 +950,24 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         const garage = f['garage.json'] === null || f['garage.json'] === undefined ? undefined : validateGarageFile(f['garage.json'])
         for (const [i, w] of (watch ?? []).entries()) if (!w || typeof (w as { listingId?: unknown }).listingId !== 'string') throw new Error(`watchlist[${i}] is missing its listing id.`)
         for (const [i, b] of (paper ?? []).entries()) if (!b || (b as { mode?: unknown }).mode !== 'PAPER' || typeof (b as { maxBidUsd?: unknown }).maxBidUsd !== 'number') throw new Error(`paper-bids[${i}] is not a paper bid.`)
+        // Imports and sold prices are checked exactly like new input, so a hand-edited backup cannot slip anything past.
+        const recheck = (name: string, wantSold: boolean) => list(name)?.map((x, i) => {
+          try {
+            const l = listingFromImport(importFieldsOf(x as Listing), now())
+            if ((l.soldUsd !== undefined) !== wantSold) throw new Error(wantSold ? 'it has no sold price' : 'it has a sold price')
+            return l
+          } catch (e) { throw new Error(`${name.replace('.json', '')}[${i}]: ${e instanceof Error ? e.message : 'did not check out'}`) }
+        })
+        const imports = recheck('imports.json', false)
+        const soldPrices = recheck('sold.json', true)
         if (f['settings.json'] && typeof f['settings.json'] === 'object') { updateSettings(f['settings.json']); restored.push('settings.json') }
         if (watch) { writeJson(userFile('watchlist.json'), watch); restored.push('watchlist.json') }
         if (paper) { writeJson(userFile('paper-bids.json'), paper); restored.push('paper-bids.json') }
         if (targets) { writeJson(userFile('targets.json'), targets); restored.push('targets.json') }
         if (alerts) { writeJson(userFile('alerts.json'), alerts.slice(0, 200)); restored.push('alerts.json') }
         if (garage) { writeJson(userFile('garage.json'), garage); restored.push('garage.json') }
+        if (imports) { writeJson(userFile('imports.json'), imports.slice(0, 500)); restored.push('imports.json') }
+        if (soldPrices) { writeJson(userFile('sold.json'), soldPrices.slice(0, 1000)); restored.push('sold.json') }
       } catch (e) {
         throw new HttpError(400, `Nothing was restored: ${e instanceof Error ? e.message : 'the file did not check out.'}`)
       }

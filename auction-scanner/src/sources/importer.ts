@@ -62,12 +62,20 @@ export type ImportFields = {
   state?: string
   url?: string
   source?: string
+  /** A finished sale: its price and date. Saved as a sold price (a comparable), not a car for sale. */
+  soldUsd?: number
+  soldAt?: number
 }
 
-/** The value printed after a label, on the same line or the next one. */
+/**
+ * The value printed after a label, on the same line or the next one. Only
+ * spaces and tabs are skipped around a label, never newlines: `\s*` there
+ * made a page of blank lines take minutes to read and froze the server.
+ */
 function field(text: string, labels: string[]): string | undefined {
-  for (const label of labels) {
-    const re = new RegExp(`(?:^|\\n)\\s*${label}\\s*[:#]?[ \\t]*(?:\\n[ \\t]*)?([^\\n]{1,160})`, 'i')
+  for (const raw of labels) {
+    const label = raw.replaceAll('\\s', '[ \\t]')
+    const re = new RegExp(`(?:^|\\n)[ \\t]*${label}[ \\t]*[:#]?[ \\t]*(?:\\n[ \\t]*)?([^\\n]{1,160})`, 'i')
     const m = re.exec(text)
     if (m && m[1].trim() && !/^[:#]$/.test(m[1].trim())) return m[1].trim()
   }
@@ -98,8 +106,18 @@ function dateFrom(v: string | undefined): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
-/** Read a pasted or button-sent lot page. Returns the fields found; nothing is guessed. */
-export function parseLotText(text: string, url?: string): { fields: ImportFields; found: string[]; missing: string[] } {
+/** "Sold for USD $52,000 on 9/12/26" → the date after "on", when there is one. */
+function dateAfterOn(v: string): number | undefined {
+  const m = /\bon\s+(\d{1,2}\/\d{1,2}\/\d{2,4}|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|\d{4}-\d{2}-\d{2})/i.exec(v)
+  return m ? dateFrom(m[1]) : undefined
+}
+
+/**
+ * Read a pasted or button-sent lot page. Returns the fields found; nothing is
+ * guessed. A page that says what the car sold for, and has not got a future
+ * end time, is read as a sold result.
+ */
+export function parseLotText(text: string, url?: string, now = Date.now()): { fields: ImportFields; found: string[]; missing: string[] } {
   const t = text.replace(/\r/g, '').slice(0, 60_000)
   const f: ImportFields = { url: url && /^https?:\/\//i.test(url) ? url : undefined, source: houseFromUrl(url) }
   const heading = t.split('\n').map((l) => l.trim()).find((l) => /^(19[5-9]\d|20[0-4]\d)\s+[A-Za-z]/.test(l) && l.length < 120)
@@ -140,8 +158,21 @@ export function parseLotText(text: string, url?: string): { fields: ImportFields
     const city = /^([A-Za-z .'-]{2,40})\s*[,-]/.exec(loc.replace(/^[A-Z]{2}\s*-\s*/, ''))?.[1]
     if (city) f.city = city.trim()
   }
+  const soldText = field(t, ['Sold\\s+(?:for|price)', 'Sale Price', 'Final (?:Price|Bid)', 'Winning Bid', 'Hammer Price'])
+  const soldUsd = soldText ? parseMoney(soldText) : undefined
+  // A live auction page can mention other cars' sale prices; a future end time means this one is still for sale.
+  if (soldUsd !== undefined && soldUsd > 0 && !(f.endsAt !== undefined && f.endsAt > now)) {
+    f.soldUsd = soldUsd
+    const on = (soldText ? dateAfterOn(soldText) : undefined) ?? dateFrom(field(t, ['Sold on', 'Date Sold', 'Sold Date', 'Ended', 'Auction Ended']))
+    f.soldAt = on ?? (f.endsAt !== undefined && f.endsAt <= now ? f.endsAt : undefined)
+    delete f.currentBidUsd
+    delete f.buyNowUsd
+    delete f.endsAt
+  }
   const found = Object.entries(f).filter(([k, v]) => v !== undefined && k !== 'source').map(([k]) => k)
-  const wanted: Array<keyof ImportFields> = ['title', 'vin', 'mileage', 'titleStatus', 'damage', 'runsAndDrives', 'currentBidUsd', 'endsAt']
+  const wanted: Array<keyof ImportFields> = f.soldUsd !== undefined
+    ? ['title', 'vin', 'mileage', 'titleStatus', 'soldUsd', 'soldAt']
+    : ['title', 'vin', 'mileage', 'titleStatus', 'damage', 'runsAndDrives', 'currentBidUsd', 'endsAt']
   const missing = wanted.filter((k) => f[k] === undefined)
   return { fields: f, found, missing }
 }
@@ -191,14 +222,21 @@ const COLUMNS: Record<keyof Omit<ImportFields, 'source'>, string[]> = {
   city: ['location city', 'city', 'yard name'],
   state: ['location state', 'state'],
   url: ['url', 'link', 'lot url'],
+  soldUsd: ['sold price', 'sale price', 'final price', 'final bid', 'winning bid', 'hammer price', 'sold for', 'price sold', 'sold amount'],
+  soldAt: ['sold date', 'date sold', 'sold on', 'sale end date', 'end date sold'],
 }
 
 function norm(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
-/** Read an exported CSV. Unknown columns are ignored; the result names the columns it used. */
-export function parseCsvImport(text: string, fallbackSource = 'other'): { rows: ImportFields[]; used: Record<string, string>; skipped: number } {
+/**
+ * Read an exported CSV. Unknown columns are ignored; the result names the
+ * columns it used. With `sold`, every row is a finished sale: its price is the
+ * sold-price column, else the high bid or buy-now, and its date the sold-date
+ * column, else the sale date.
+ */
+export function parseCsvImport(text: string, fallbackSource = 'other', opts: { sold?: boolean } = {}): { rows: ImportFields[]; used: Record<string, string>; skipped: number } {
   const table = readCsv(text)
   if (table.length < 2) return { rows: [], used: {}, skipped: 0 }
   const header = table[0].map(norm)
@@ -236,6 +274,15 @@ export function parseCsvImport(text: string, fallbackSource = 'other'): { rows: 
     if (get('city')) f.city = get('city')
     if (get('state') && /^[A-Za-z]{2}$/.test(get('state'))) f.state = get('state').toUpperCase()
     if (/^https?:\/\//i.test(get('url'))) f.url = get('url')
+    const sold = parseMoney(get('soldUsd'))
+    if (sold !== undefined && sold > 0) f.soldUsd = sold
+    else if (opts.sold) f.soldUsd = f.currentBidUsd ?? f.buyNowUsd
+    if (f.soldUsd !== undefined) {
+      f.soldAt = dateFrom(get('soldAt')) ?? f.endsAt
+      delete f.currentBidUsd
+      delete f.buyNowUsd
+      delete f.endsAt
+    }
     if (!f.title) { skipped++; continue }
     rows.push(f)
   }
@@ -244,13 +291,13 @@ export function parseCsvImport(text: string, fallbackSource = 'other'): { rows: 
 
 const SOURCES = new Set(['copart', 'iaa', 'ebay', 'carsandbids', 'bat', 'manheim', 'adesa', 'acv', 'govdeals', 'gsa', 'collector', 'local', 'other'])
 
-/** Validate member-edited fields and build the listing. Title is required; everything else may be blank. */
 /** Lot pages shout (PORSCHE); keep the catalog's spelling so filters and the demand list match. */
 function catalogMake(m: string | undefined): string | undefined {
   if (!m) return undefined
   return CATALOG.find((c) => c.make.toLowerCase() === m.toLowerCase())?.make ?? m
 }
 
+/** Validate member-edited fields and build the listing. Title is required; everything else may be blank. */
 export function listingFromImport(input: unknown, now = Date.now()): Listing {
   const p = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>
   const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined)
@@ -279,15 +326,23 @@ export function listingFromImport(input: unknown, now = Date.now()): Listing {
   const source = SOURCES.has(src) ? src : 'other'
   const endsRaw = p.endsAt
   const endsAt = typeof endsRaw === 'number' ? endsRaw : typeof endsRaw === 'string' && endsRaw ? Date.parse(endsRaw) : undefined
-  const bid = money(p.currentBidUsd, 'The current bid')
-  const bin = money(p.buyNowUsd, 'The buy-now price')
+  const sold = money(p.soldUsd, 'The sold price')
+  const soldRaw = p.soldAt
+  const soldAt = sold === undefined ? undefined : typeof soldRaw === 'number' ? soldRaw : typeof soldRaw === 'string' && soldRaw ? Date.parse(soldRaw) : undefined
+  if (sold !== undefined) {
+    if (soldAt === undefined || !Number.isFinite(soldAt)) throw new Error('Add the date it sold. Gavel only uses sold prices from the last two years, so it needs the date.')
+    if (soldAt > now + 86_400_000) throw new Error('The sold date is in the future. A car that has not sold yet belongs in Current bid or Buy now.')
+    if (soldAt < Date.UTC(1990, 0, 1)) throw new Error('The sold date must be after 1990.')
+  }
+  const bid = sold === undefined ? money(p.currentBidUsd, 'The current bid') : undefined
+  const bin = sold === undefined ? money(p.buyNowUsd, 'The buy-now price') : undefined
   const st = text(p.state, 2)?.toUpperCase()
   const lot = text(p.lotNumber, 40)
   const ext = lot ?? vin ?? createHash('sha256').update(`${title}|${url ?? ''}`).digest('hex').slice(0, 12)
   const t = splitTitle(title)
   const saleType: SaleType = bid !== undefined && bin !== undefined ? 'auction-or-buy-now' : bin !== undefined && bid === undefined ? 'buy-now' : 'auction'
   return {
-    id: `import:${source}:${ext}`,
+    id: `${sold === undefined ? 'import' : 'sold'}:${source}:${ext}`,
     source,
     externalId: ext,
     lotNumber: lot,
@@ -306,12 +361,25 @@ export function listingFromImport(input: unknown, now = Date.now()): Listing {
     saleType,
     currentBidUsd: bid,
     buyNowUsd: bin,
-    endsAt: endsAt !== undefined && Number.isFinite(endsAt) ? endsAt : undefined,
+    endsAt: sold === undefined && endsAt !== undefined && Number.isFinite(endsAt) ? endsAt : undefined,
+    soldUsd: sold,
+    soldAt: sold === undefined ? undefined : soldAt,
     sellerType: source === 'copart' || source === 'iaa' ? 'insurance' : 'unknown',
     photos: [],
     description: text(p.notes, 2000),
     kind: 'LIVE',
     origin: 'import',
     fetchedAt: now,
+  }
+}
+
+/** A stored import or sold price back to the fields a member typed, so a restored backup is checked like new input. */
+export function importFieldsOf(l: Listing): Record<string, unknown> {
+  return {
+    title: l.title, year: l.year, make: l.make, model: l.model, vin: l.vin, mileage: l.mileage,
+    titleStatus: l.titleStatus, damage: l.damage, runsAndDrives: l.runsAndDrives, hasKeys: l.hasKeys,
+    currentBidUsd: l.currentBidUsd, buyNowUsd: l.buyNowUsd, endsAt: l.endsAt, lotNumber: l.lotNumber,
+    city: l.location?.city, state: l.location?.state, url: l.url === '#imported' ? undefined : l.url,
+    source: l.source, notes: l.description, soldUsd: l.soldUsd, soldAt: l.soldAt,
   }
 }

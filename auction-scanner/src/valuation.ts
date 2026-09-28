@@ -33,9 +33,14 @@ export function askingPrice(l: Listing): number | undefined {
   return l.currentBidUsd ?? l.buyNowUsd
 }
 
-/** A comp's price: the buy-now price first (it is a real ask), else the current bid. */
+/**
+ * A comp's price: a sold price first (money actually changed hands), then the
+ * buy-now price (a real ask), else the current bid. A bid on an auction that
+ * has not ended is usually below where it will finish, which is why sold
+ * prices a member adds are worth so much.
+ */
 function compPrice(l: Listing): number | undefined {
-  return l.buyNowUsd ?? l.currentBidUsd
+  return l.soldUsd ?? l.buyNowUsd ?? l.currentBidUsd
 }
 
 function norm(s: string | undefined): string {
@@ -49,6 +54,7 @@ function firstWord(s: string | undefined): string {
 /** True when `c` may be used as a comparable for `target`. */
 export function isComparable(target: Listing, c: Listing): boolean {
   if (c.id === target.id) return false
+  if (target.vin && c.vin === target.vin) return false
   if (c.kind !== target.kind) return false
   if (BAD_TITLES.has(c.titleStatus)) return false
   if (norm(c.make) !== norm(target.make)) return false
@@ -97,7 +103,7 @@ export function estimateValue(target: Listing, pool: Listing[], minComps = confi
     return {
       ok: false,
       comps: comps.length,
-      reason: `NOT ENOUGH COMPS — found ${found}; Gavel needs ${minComps} before it shows a value. A comparable is the same make and model, a model year within one year, with a price and a clean-type title. Look up recent sold prices for this exact car yourself before you bid.`,
+      reason: `NOT ENOUGH COMPS — found ${found}; Gavel needs ${minComps} before it shows a value. A comparable is the same make and model, a model year within one year, with a price and a clean-type title. Look up recent sold prices for this exact car before you bid, and add them on the Import screen: Gavel uses them from then on.`,
     }
   }
 
@@ -105,12 +111,14 @@ export function estimateValue(target: Listing, pool: Listing[], minComps = confi
     .map((c) => adjustForMileage(compPrice(c) as number, c.mileage, target.mileage))
     .sort((a, b) => a - b)
 
+  const sold = comps.filter((c) => c.soldUsd !== undefined).length
+  const what = sold === 0 ? `${comps.length} comparable listings` : sold === comps.length ? `${comps.length} sold prices` : `${comps.length} comparables (${sold} of them sold prices)`
   return {
     ok: true,
     valueUsd: Math.round(median(adjusted)),
     low: Math.round(adjusted[0]),
     high: Math.round(adjusted[adjusted.length - 1]),
     comps: comps.length,
-    method: `median of ${comps.length} comparable listings, mileage-adjusted`,
+    method: `median of ${what}, mileage-adjusted`,
   }
 }

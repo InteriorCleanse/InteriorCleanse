@@ -157,9 +157,9 @@ async function dealerComps(listings: Listing[], fetchImpl: typeof fetch, errors:
 
 /**
  * Read every connected source at once. Failures are collected, not thrown.
- * LIVE listings, plus MarketCheck dealer prices when connected, are the
- * comparables pool. `extra` is the member's own imported lots, which count
- * as LIVE. With nothing live: SAMPLE data when `allowSample` is on (clearly
+ * LIVE listings from the sources, plus MarketCheck dealer prices when
+ * connected, are the comparables pool. `extra` is the member's own imported
+ * lots: they join the listings (as LIVE) but never the shared comps. With nothing live: SAMPLE data when `allowSample` is on (clearly
  * labelled), otherwise EMPTY with the errors that explain why.
  */
 export async function scanAll(q: SearchQuery, opts: { allowSample: boolean; fetchImpl?: typeof fetch; extra?: Listing[] }): Promise<ScanResult> {
@@ -181,7 +181,8 @@ export async function scanAll(q: SearchQuery, opts: { allowSample: boolean; fetc
   const extra = applyQuery(opts.extra ?? [], { ...q, limit: undefined }, true)
   const merged = dedupeByVin([...extra, ...live])
   if (merged.length > 0) {
-    const comps = dedupeByVin([...merged, ...(await dealerComps(merged, fetchImpl, errors))])
+    // Public data only: a member's imports are their own comparables (the server adds them per member), never everyone's.
+    const comps = dedupeByVin([...live, ...(await dealerComps(merged, fetchImpl, errors))])
     return { listings: applyQuery(merged, { ...q, text: undefined }, false), comps, kind: 'LIVE', errors }
   }
 

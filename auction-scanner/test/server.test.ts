@@ -402,3 +402,85 @@ test('import: parse a pasted lot, save it, plan it, see it in the feed; CSV; con
   assert.equal(connect.body.items.find((i: any) => i.id === 'stripe').done, true)
   assert.equal(connect.body.items.find((i: any) => i.id === 'import').done, true)
 })
+
+test('one member\'s imports never price, or show up for, another member', async () => {
+  const owner = await api('/api/login', { method: 'POST', json: { pin: PIN }, noCsrf: true })
+  cookie = (owner.headers.get('set-cookie') ?? '').split(';')[0]
+  csrf = owner.body.csrf
+  const signIn = async (email: string) => {
+    const made = await api('/api/admin/members', { method: 'POST', json: { email } })
+    const r = await api('/api/login', { method: 'POST', json: { email, code: made.body.code }, noCsrf: true })
+    const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+    return (path: string, init: any = {}) => api(path, { ...init, asMember: c, headers: { ...(init.headers ?? {}), 'x-gavel-csrf': r.body.csrf } })
+  }
+  const bea = await signIn('bea@example.com')
+  const ann = await signIn('ann@example.com')
+  // TEST FIXTURE: Bea types three absurd prices for the car Ann is about to look at.
+  const csv = 'Lot number,Year,Make,Model,Buy Now\n' + [1, 2, 3].map((i) => `TF90${i},2019,Porsche,911,400000`).join('\n') + '\n'
+  assert.equal((await bea('/api/import/csv', { method: 'POST', json: { source: 'copart', csv } })).body.added, 3)
+  await bea('/api/feed?starter=0')
+  const annCar = await ann('/api/import', { method: 'POST', json: { title: '2019 Porsche 911 Carrera', source: 'copart', lotNumber: 'TF777', buyNowUsd: 90000, titleStatus: 'clean' } })
+  assert.equal(annCar.status, 200)
+  assert.equal(annCar.body.estimate.ok, false, 'Bea\'s prices are not Ann\'s comparables')
+  const annFeed = await ann('/api/feed?starter=0')
+  const card = annFeed.body.cards.find((c: any) => c.listing.id === 'import:copart:TF777')
+  assert.ok(card)
+  assert.equal(card.estimate.ok, false)
+  assert.ok(!annFeed.body.cards.some((c: any) => /TF90/.test(c.listing.id)), 'none of Bea\'s lots in Ann\'s feed')
+  const peek = await ann('/api/listing/' + encodeURIComponent('import:copart:TF901'))
+  assert.equal(peek.status, 404, 'Ann cannot open Bea\'s imported lot by guessing its lot number')
+  // Bea still sees and prices her own.
+  assert.equal((await bea('/api/listing/' + encodeURIComponent('import:copart:TF901'))).status, 200)
+})
+
+test('sold prices: saved apart from the feed, they price a car once there are enough', async () => {
+  const signIn = async (email: string) => {
+    const made = await api('/api/admin/members', { method: 'POST', json: { email } })
+    const r = await api('/api/login', { method: 'POST', json: { email, code: made.body.code }, noCsrf: true })
+    const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+    return (path: string, init: any = {}) => api(path, { ...init, asMember: c, headers: { ...(init.headers ?? {}), 'x-gavel-csrf': r.body.csrf } })
+  }
+  const cy = await signIn('cy@example.com')
+  const day = 86_400_000
+  for (const [i, price] of [60000, 64000, 70000].entries()) {
+    const r = await cy('/api/import', { method: 'POST', json: { title: '2018 Lexus GX 460', source: 'bat', lotNumber: `TFS${i}`, soldUsd: price, soldAt: Date.now() - (i + 1) * 30 * day, titleStatus: 'clean' } })
+    assert.equal(r.status, 200, JSON.stringify(r.body))
+    assert.equal(r.body.sold, true)
+  }
+  assert.equal((await cy('/api/sold')).body.length, 3)
+  const undated = await cy('/api/import', { method: 'POST', json: { title: '2018 Lexus GX 460', soldUsd: 50000 } })
+  assert.equal(undated.status, 400)
+  const car = await cy('/api/import', { method: 'POST', json: { title: '2018 Lexus GX 460', source: 'copart', lotNumber: 'TFC1', currentBidUsd: 30000, titleStatus: 'clean' } })
+  assert.equal(car.body.estimate.ok, true, JSON.stringify(car.body.estimate))
+  assert.equal(car.body.estimate.valueUsd, 64000)
+  assert.match(car.body.estimate.method, /3 sold prices/)
+  const feed = await cy('/api/feed?starter=0')
+  assert.ok(!feed.body.cards.some((c: any) => c.listing.id.startsWith('sold:')), 'a sold car is never in the feed')
+  const csv = await cy('/api/import/csv', { method: 'POST', json: { source: 'copart', sold: true, csv: 'Lot number,Year,Make,Model,High Bid,Sale Date\nTFW1,2017,Toyota,Tacoma,21000,2026-07-15\nTFW2,2017,Toyota,Tacoma,22000,\n' } })
+  assert.equal(csv.body.sold, 1)
+  assert.equal(csv.body.undated, 1)
+  // Backup and restore carry imports and sold prices, checked like new input.
+  const backup = await cy('/api/backup')
+  assert.equal(backup.body.files['sold.json'].length, 4)
+  const dan = await signIn('dan@example.com')
+  const restored = await dan('/api/backup', { method: 'POST', json: backup.body })
+  assert.equal(restored.status, 200, JSON.stringify(restored.body))
+  assert.ok(restored.body.restored.includes('sold.json') && restored.body.restored.includes('imports.json'))
+  assert.equal((await dan('/api/sold')).body.length, 4)
+  const forged = structuredClone(backup.body)
+  forged.files['sold.json'][0].soldAt = Date.now() + 90 * day
+  const bad = await dan('/api/backup', { method: 'POST', json: forged })
+  assert.equal(bad.status, 400)
+  assert.match(bad.body.error, /sold\[0\]/)
+  const rm = await cy('/api/sold/' + encodeURIComponent('sold:bat:TFS0'), { method: 'DELETE' })
+  assert.equal(rm.status, 200)
+})
+
+test('the lot reader has a per-member limit', async () => {
+  const made = await api('/api/admin/members', { method: 'POST', json: { email: 'eve@example.com' } })
+  const r = await api('/api/login', { method: 'POST', json: { email: 'eve@example.com', code: made.body.code }, noCsrf: true })
+  const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+  let last = 0
+  for (let i = 0; i < 41; i++) last = (await api('/api/import/parse', { method: 'POST', asMember: c, headers: { 'x-gavel-csrf': r.body.csrf }, json: { text: '2019 Toyota Camry\nCurrent Bid: $1', useAi: false } })).status
+  assert.equal(last, 429)
+})

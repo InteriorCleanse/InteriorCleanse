@@ -52,6 +52,9 @@ export type Listing = {
   origin?: 'api' | 'import'
   /** The auction's own lot or stock number, when it has one. */
   lotNumber?: string
+  /** A finished sale: what it sold for and when. A sold car is a comparable only, never a car for sale. */
+  soldUsd?: number
+  soldAt?: number
 }
 
 export type SourceCapabilities = {

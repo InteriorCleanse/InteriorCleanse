@@ -44,4 +44,6 @@ watchlist and settings.
   locking everyone out together. Never set it without a proxy in front:
   anyone could then write that header and dodge the lock-out.
 - Paste secrets into the host's environment, never into the repository.
+- The lot reader (which may call Claude) allows 40 reads per member per ten
+  minutes; the login lock-out allows 8 wrong tries per visitor per 15 minutes.
 - Keep `data/` out of git (it is), and back it up: members and codes live there.

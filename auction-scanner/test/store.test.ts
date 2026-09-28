@@ -44,3 +44,21 @@ test('legacy top-level files move into the owner folder once, never over existin
   assert.deepEqual(JSON.parse(readFileSync(join(DATA_DIR, 'targets.json'), 'utf8')), [{ id: 'second' }])
   writeJson('targets.json', [])
 })
+
+test('sold prices: per member, most recent first, and only recent ones count', async () => {
+  const { listSold, recentSold, removeSold, saveSold } = await import('../src/sold.ts')
+  const { listingFromImport } = await import('../src/sources/importer.ts')
+  const now = Date.UTC(2026, 8, 28)
+  const recent = listingFromImport({ title: '2019 Porsche 911', soldUsd: 100_000, soldAt: '2026-06-01', lotNumber: 'A1' }, now)
+  const old = listingFromImport({ title: '2019 Porsche 911', soldUsd: 80_000, soldAt: '2022-01-01', lotNumber: 'A2' }, now)
+  await withUser('sold-a@example.com', async () => {
+    saveSold([old, recent])
+    assert.deepEqual(listSold().map((l) => l.id), [recent.id, old.id])
+    assert.deepEqual(recentSold(listSold(), now).map((l) => l.id), [recent.id], 'a sale over two years old is kept but not counted')
+  })
+  await withUser('sold-b@example.com', async () => { assert.equal(listSold().length, 0) })
+  await withUser('sold-a@example.com', async () => {
+    assert.equal(removeSold(old.id), true)
+    assert.equal(removeSold(old.id), false)
+  })
+})

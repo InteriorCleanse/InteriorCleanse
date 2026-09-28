@@ -190,8 +190,11 @@ GET  /api/backup               → {app, version, exportedAt, email, files:{watc
 POST /api/backup               that same shape → {restored:[names]}; validated first, nothing written on a bad file
 POST /api/import/parse         {text, url?, useAi?} → {fields, found[], missing[], usedAi}
 POST /api/import               {fields} → Card (the lot is saved to the member's imports)
-POST /api/import/csv           {csv, source?} → {added, skipped, used:{field:column}}
+                               or, with soldUsd + soldAt, {sold:true, listing} (saved as a sold price, never in the feed)
+POST /api/import/csv           {csv, source?, sold?} → {added, sold, skipped, undated, used:{field:column}}
 GET  /api/imports              → Listing[]          DELETE /api/imports/:id
+GET  /api/sold                 → Listing[]          DELETE /api/sold/:id
+GET  /healthz                  → "ok" (no session; for the host's health check)
 GET  /api/connect              → {items:[{id, group, name, done, unlocks, cost, steps[], env[], link?}], done, total} (booleans only, never a secret)
 Every route after sign-in reads and writes only the signed-in member's files.
 GET  /api/admin/members        owner only → Member[] (codes never echoed in full; show last 4)

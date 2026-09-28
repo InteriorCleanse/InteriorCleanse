@@ -62,6 +62,12 @@ member owns must be read and written through `userFile(name)`, never a bare
 file name, or it leaks between members. Shared files (members, Stripe
 events) use bare names on purpose. The Sniper runs once per member scope.
 
+The server's in-memory maps (`known`, the comps `pools`, the scan cache) hold
+public scan data only. A member's imports, sold prices and watch snapshots are
+read from their own files per request (`findListing()`, `myComps()`), never
+put in a shared map: once there, one member's typed numbers would price
+another member's cars.
+
 ## Verify before you push
 
 ```
@@ -83,5 +89,7 @@ screenshots. Data for a test run goes in a temp `GAVEL_DATA_DIR`, never `data/`.
   and the collector houses have no public API; members bring their lots in
   through the importer (button, paste, CSV). Never add a scraper.
 - No email sending: the owner sends access codes.
-- No paid value guide: estimates are medians of the comparables in the scan.
+- No paid value guide: estimates are medians of the comparables in the scan,
+  plus MarketCheck dealer prices when connected and the sold prices each
+  member adds (`src/sold.ts`; a sold price counts ahead of an ask or a bid).
 - No two-factor login; no rate limit on the feed beyond the scan cache.
