@@ -1,0 +1,8 @@
+# HTTPS in front of Gavel. Caddy fetches and renews the certificate by itself
+# once your domain's DNS points at this server.
+#   GAVEL_DOMAIN   your domain, e.g. gavel.example.com (required)
+#   GAVEL_UPSTREAM where Gavel listens; compose.yaml sets gavel:8790
+{$GAVEL_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy {$GAVEL_UPSTREAM:127.0.0.1:8790}
+}

@@ -39,5 +39,9 @@ watchlist and settings.
 - Set `GAVEL_PIN` and `GAVEL_SESSION_SECRET` (32+ random characters).
 - Run behind HTTPS before opening a port to the internet; set
   `GAVEL_SECURE_COOKIES=1` or forward `X-Forwarded-Proto`.
+- Behind a reverse proxy you run, set `GAVEL_TRUST_PROXY=1` so the login
+  lock-out counts per visitor (the last `X-Forwarded-For` hop) instead of
+  locking everyone out together. Never set it without a proxy in front:
+  anyone could then write that header and dodge the lock-out.
 - Paste secrets into the host's environment, never into the repository.
 - Keep `data/` out of git (it is), and back it up: members and codes live there.

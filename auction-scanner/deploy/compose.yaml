@@ -1,0 +1,45 @@
+# Gavel and Caddy (automatic HTTPS) on one server, both restarting on their own.
+#
+#   cd auction-scanner
+#   cp .env.example .env          # fill in your PIN, session secret and keys
+#   GAVEL_DOMAIN=gavel.example.com docker compose -f deploy/compose.yaml up -d --build
+#
+# Members' data lives in the gavel-data volume. Back it up (see docs/GO_LIVE.md).
+name: gavel
+
+services:
+  gavel:
+    build: ..
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      GAVEL_HOST: 0.0.0.0
+      GAVEL_PORT: "8790"
+      GAVEL_DATA_DIR: /data
+      GAVEL_TRUST_PROXY: "1"
+    volumes:
+      - gavel-data:/data
+    expose:
+      - "8790"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - gavel
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      GAVEL_DOMAIN: ${GAVEL_DOMAIN:?Set GAVEL_DOMAIN to your domain, e.g. GAVEL_DOMAIN=gavel.example.com}
+      GAVEL_UPSTREAM: gavel:8790
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  gavel-data:
+  caddy-data:
+  caddy-config:

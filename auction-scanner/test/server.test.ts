@@ -5,7 +5,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHmac } from 'node:crypto'
-import { startServer } from '../src/server.ts'
+import { clientKey, startServer } from '../src/server.ts'
 
 const PIN = '424242'
 const NEVER_FETCH: typeof fetch = async () => { throw new Error('TEST FIXTURE: the network is off') }
@@ -42,6 +42,26 @@ test('the front door redirects to /login and the API refuses strangers', async (
   const feed = await api('/api/feed')
   assert.equal(feed.status, 401)
   assert.match(feed.body.error, /Sign in/)
+})
+
+test('/healthz answers ok without a session and says nothing else', async () => {
+  const r = await api('/healthz', { asMember: '' })
+  assert.equal(r.status, 200)
+  assert.equal(r.body, 'ok')
+})
+
+test('the login throttle keys on the proxy-supplied address only when GAVEL_TRUST_PROXY=1', () => {
+  const req = { headers: { 'x-forwarded-for': '198.51.100.7, 203.0.113.9' }, socket: { remoteAddress: '127.0.0.1' } } as unknown as Parameters<typeof clientKey>[0]
+  process.env.GAVEL_TRUST_PROXY = ''
+  assert.equal(clientKey(req), '127.0.0.1', 'without the flag a forged header is ignored')
+  process.env.GAVEL_TRUST_PROXY = '1'
+  try {
+    assert.equal(clientKey(req), '203.0.113.9', 'the hop our proxy appended, not one the client wrote')
+    const bare = { headers: {}, socket: { remoteAddress: '10.0.0.5' } } as unknown as Parameters<typeof clientKey>[0]
+    assert.equal(clientKey(bare), '10.0.0.5')
+  } finally {
+    process.env.GAVEL_TRUST_PROXY = ''
+  }
 })
 
 test('a wrong PIN fails; the right PIN issues a cookie and a CSRF token', async () => {

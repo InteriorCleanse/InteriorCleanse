@@ -1,0 +1,45 @@
+# Gavel as a system service on a plain Linux server (no Docker).
+#
+#   sudo useradd --system --home /opt/gavel --shell /usr/sbin/nologin gavel
+#   sudo cp -r auction-scanner /opt/gavel && cd /opt/gavel && sudo npm ci --omit=dev
+#   sudo cp .env.example .env && sudo nano .env        # PIN, session secret, keys
+#   sudo mkdir -p data && sudo chown -R gavel:gavel data && sudo chmod 600 .env && sudo chown gavel .env
+#   sudo cp deploy/gavel.service /etc/systemd/system/ && sudo systemctl enable --now gavel
+#   journalctl -u gavel -f                              # the log, including the start banner
+#
+# Then put Caddy in front with deploy/Caddyfile (GAVEL_DOMAIN=your domain).
+[Unit]
+Description=Gavel car-auction scanner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gavel
+Group=gavel
+WorkingDirectory=/opt/gavel
+# Only Caddy on this machine talks to Gavel; these win over anything in .env.
+Environment=NODE_ENV=production
+Environment=GAVEL_HOST=127.0.0.1
+Environment=GAVEL_TRUST_PROXY=1
+# If `which node` prints another path, use that here.
+ExecStart=/usr/bin/node src/server.ts
+Restart=always
+RestartSec=3
+TimeoutStopSec=10
+
+# Hardening: Gavel only needs to write its data folder.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/opt/gavel/data
+
+[Install]
+WantedBy=multi-user.target

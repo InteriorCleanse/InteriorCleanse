@@ -45,25 +45,53 @@ for lot pages the rule reader cannot parse.
 Gavel is one Node process that keeps files in `data/` and runs the Sniper on
 a clock. It needs a host that **stays running** and **keeps its disk**:
 
-- **A small VPS** (any provider): install Node 22, copy the folder, fill in
-  `.env`, run `npm start` as a system service, put Caddy in front for HTTPS.
-- **A platform with a persistent disk** that runs a long-lived Node service.
-
 Serverless hosts that stop the process between requests and wipe the disk are
 the wrong fit: the Sniper would never run and members' data would vanish.
 
-On the server set:
+The `deploy/` folder has three ready ways. Whichever you pick, first point
+your domain's DNS (an A record) at the server, and in `.env` set:
 
 ```
-GAVEL_HOST=0.0.0.0
 GAVEL_PIN=<six digits you choose>
 GAVEL_SESSION_SECRET=<32+ random characters>
-GAVEL_SECURE_COOKIES=1
 ```
 
-Point your domain at the server, let Caddy (or the platform) issue the HTTPS
-certificate, and open `https://your-domain`. Back up `data/` daily; each
-member can also download their own backup in Settings.
+**A. One server with Docker (simplest).** On any small VPS with Docker:
+
+```
+cd auction-scanner
+cp .env.example .env            # then fill it in
+GAVEL_DOMAIN=gavel.example.com docker compose -f deploy/compose.yaml up -d --build
+```
+
+This runs Gavel and Caddy, which gets and renews the HTTPS certificate on its
+own. Both restart by themselves after a crash or a reboot. Members' data lives
+in the `gavel-data` volume. Update later with `git pull` and the same command.
+
+**B. A plain Linux server, no Docker.** Install Node 22.18+ and Caddy, then
+follow the steps at the top of `deploy/gavel.service` (it runs Gavel as its
+own locked-down user) and start Caddy with `deploy/Caddyfile`:
+`GAVEL_DOMAIN=gavel.example.com caddy run --config deploy/Caddyfile`, or
+put the same two lines in `/etc/caddy/Caddyfile` with your domain.
+
+**C. A platform that runs containers with a persistent disk.** Point it at
+the `Dockerfile`, mount the disk at `/data`, add your `.env` values in its
+settings, set `GAVEL_TRUST_PROXY=1` (the platform is the proxy) and use
+`/healthz` as the health check. It must keep one instance running, not scale
+to zero.
+
+Behind any proxy, `GAVEL_TRUST_PROXY=1` makes the login lock-out count wrong
+PINs per visitor. Without it, one person guessing would lock everybody out
+for 15 minutes. The compose file and the service file set it for you.
+
+**Backups.** Back up the data folder every day. With Docker:
+
+```
+docker run --rm -v gavel_gavel-data:/data -v "$PWD":/out alpine tar czf /out/gavel-$(date +%F).tgz -C /data .
+```
+
+(`docker volume ls` shows the exact volume name.) Copy the file off the
+server. Each member can also download their own backup in Settings.
 
 ## 5. Get paid
 

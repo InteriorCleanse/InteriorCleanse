@@ -165,7 +165,19 @@ function str(v: unknown, max = 200): string {
   return typeof v === 'string' ? v.trim().slice(0, max) : ''
 }
 
-function clientKey(req: IncomingMessage): string {
+/**
+ * Who is signing in, for the login throttle. Behind a reverse proxy every
+ * request arrives from the proxy's own address, so one guesser would lock
+ * every member out. With GAVEL_TRUST_PROXY=1 the address the proxy added last
+ * to X-Forwarded-For is used instead. Set it only when a proxy you run sits
+ * in front: without one, anybody can write that header.
+ */
+export function clientKey(req: { headers: IncomingMessage['headers']; socket: { remoteAddress?: string } }): string {
+  if (flag('GAVEL_TRUST_PROXY')) {
+    const hops = String(req.headers['x-forwarded-for'] ?? '').split(',').map((h) => h.trim()).filter(Boolean)
+    const last = hops.at(-1)
+    if (last && last.length <= 64) return last
+  }
   return req.socket.remoteAddress ?? 'unknown'
 }
 
@@ -767,7 +779,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         items.push(
           { id: 'pin', group: 'Running it', name: 'A fixed owner PIN', done: !!env('GAVEL_PIN'), unlocks: 'The same PIN every start.', cost: 'Free.', env: ['GAVEL_PIN'], steps: ['Pick six digits nobody would guess and put them in GAVEL_PIN.'], ownerOnly: true },
           { id: 'session', group: 'Running it', name: 'Members stay signed in across restarts', done: env('GAVEL_SESSION_SECRET').length >= 32, unlocks: 'Nobody is signed out when you restart or update Gavel.', cost: 'Free.', env: ['GAVEL_SESSION_SECRET'], steps: ['Put 32 or more random characters in GAVEL_SESSION_SECRET (a password manager can generate them).', 'Never share it and never put it in the code.'], ownerOnly: true },
-          { id: 'hosting', group: 'Running it', name: 'On the internet, behind HTTPS', done: flag('GAVEL_SECURE_COOKIES'), unlocks: 'Subscribers can sign in from anywhere.', cost: 'A small always-on server with a disk; see docs/GO_LIVE.md for options.', env: ['GAVEL_HOST=0.0.0.0', 'GAVEL_SECURE_COOKIES=1'], steps: ['Rent a small server that keeps running and keeps its files (a VPS, or a platform with a persistent disk).', 'Install Node 22, copy the Gavel folder, fill in the environment, and run npm start as a service.', 'Put HTTPS in front with Caddy or your platform, point your domain at it, and set GAVEL_SECURE_COOKIES=1.'], ownerOnly: true },
+          { id: 'hosting', group: 'Running it', name: 'On the internet, behind HTTPS', done: flag('GAVEL_SECURE_COOKIES') || flag('GAVEL_TRUST_PROXY'), unlocks: 'Subscribers can sign in from anywhere.', cost: 'A small always-on server with a disk; see docs/GO_LIVE.md for options.', env: ['GAVEL_TRUST_PROXY=1'], steps: ['Rent a small server that keeps running and keeps its files (a VPS, or a platform with a persistent disk).', 'Point your domain at it (an A record).', 'With Docker: GAVEL_DOMAIN=your-domain docker compose -f deploy/compose.yaml up -d --build. That runs Gavel and Caddy, which handles HTTPS by itself. Without Docker, follow deploy/gavel.service.', 'Back up the data folder every day; docs/GO_LIVE.md has the one-line command.'], ownerOnly: true },
           { id: 'stripe', group: 'Getting paid', name: 'Stripe subscriptions', done: !!env('GAVEL_STRIPE_WEBHOOK_SECRET'), unlocks: 'A paid checkout creates the member automatically; a cancelled one switches them off.', cost: 'Stripe takes a fee per payment; see their pricing.', link: 'https://dashboard.stripe.com', env: ['GAVEL_STRIPE_WEBHOOK_SECRET'], steps: ['In Stripe, create a product with a monthly price and a Payment Link for it.', 'Add a webhook endpoint at https://your-domain/api/stripe/webhook with checkout.session.completed, customer.subscription.updated and customer.subscription.deleted.', 'Copy the endpoint signing secret into GAVEL_STRIPE_WEBHOOK_SECRET on the server.', 'When someone pays, issue their code on the Members page and send it to them.'], ownerOnly: true },
         )
       }
@@ -924,6 +936,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     const nonce = newNonce()
     try {
       const url = new URL(req.url ?? '/', 'http://local')
+      if (url.pathname === '/healthz') {
+        // For the host's health check: says the process answers, nothing more.
+        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' })
+        res.end('ok')
+        return
+      }
       if (url.pathname.startsWith('/api/')) {
         for (const [k, v] of Object.entries(securityHeaders(nonce))) res.setHeader(k, v)
         await api(req, res, url)
@@ -982,7 +1000,16 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 if (isMain) {
-  startServer().catch((e) => {
+  startServer().then((started) => {
+    // Hosts stop a service with SIGTERM. Finish open requests, then exit; files are written atomically either way.
+    const stop = (signal: string) => {
+      console.log(`  ${signal}: stopping.`)
+      setTimeout(() => process.exit(0), 5000).unref()
+      started.close().then(() => process.exit(0))
+    }
+    process.once('SIGTERM', () => stop('SIGTERM'))
+    process.once('SIGINT', () => stop('SIGINT'))
+  }).catch((e) => {
     console.error(e instanceof Error ? e.message : e)
     process.exit(1)
   })
