@@ -2712,6 +2712,73 @@ p {
   animation: rise 0.7s var(--ease) both;
 }
 
+/* ── Photo evidence ──────────────────────────────────────────────────── */
+
+.evidence-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.evidence-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.evidence-btn {
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  border: 1px dashed var(--line-2);
+  background: var(--bg-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--muted);
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.evidence-btn:hover:not(:disabled) {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+.evidence-slot[data-done='true'] .evidence-btn {
+  border-style: solid;
+  border-color: rgba(212, 255, 58, 0.5);
+}
+
+.evidence-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.evidence-slot[data-done='true'] .evidence-label svg {
+  color: var(--lime);
+}
+
+.evidence-hash {
+  font-size: 0.72rem;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

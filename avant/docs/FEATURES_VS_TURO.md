@@ -12,7 +12,7 @@ this codebase does today unless marked *planned*.
 | Young drivers | 18+, fee reported at $50/day at 18 and $30/day from 21 ([Ridester](https://www.ridester.com/turo-young-driver-fee/)) | 18+ for everyday cars; $29/day capped at $199/trip (18–20) and $19/day capped at $129 (21–24); halved with a clean record |
 | Verification | Licence approval per account | Driver Pass: licence + live selfie once, reused everywhere; images redacted after the check |
 | Support | Human queues; users report weeks-long escalations ([Elliott Report](https://www.elliott.org/the-troubleshooter/turo-charged-me-2338-for-damage-i-didnt-cause-can-i-get-a-refund/)) | 24/7 AI concierge that searches real inventory, prices trips and explains policy; humans for disputes |
-| Damage disputes | Frequent complaints about unitemised or unproven claims ([ComplaintsBoard](https://www.complaintsboard.com/turo-false-damage-claim-c1936307)) | Timestamped photo checklist for both sides; 72-hour response window; charges never exceed the plan cap |
+| Damage disputes | Frequent complaints about unitemised or unproven claims ([ComplaintsBoard](https://www.complaintsboard.com/turo-false-damage-claim-c1936307)) | Six guided photos at pickup and six at return, each SHA-256 fingerprinted and timestamped, location data stripped, plus a tamper-evident evidence receipt; 72-hour response window; charges never exceed the plan cap |
 | Map | Price pins | Price pins that show the all-in price, linked to the list (hover one, the other lights up), with a drawn fallback when maps can't load |
 | Navigation | Tabs | Five tabs on phones with the concierge at the centre; ⌘K palette and `g`-key shortcuts on desktop |
 | Availability | Calendar on request | Five-week availability calendar on every car page |
@@ -27,8 +27,10 @@ this codebase does today unless marked *planned*.
 1. **Price-drop alerts** on saved cars (the save toast already promises it;
    needs email or push).
 2. **Continuous MVR** for repeat guests, feeding the clean-record discount.
-3. **In-app photo check-in** with device timestamps and hashes, stored in R2
-   behind the vault.
+3. **Photo sync for check-in evidence**: capture, fingerprinting and the
+   tamper-evident receipt are built (`components/EvidenceCapture.tsx`);
+   next is an opt-in upload to R2 behind the vault so hosts and claims
+   staff can see the same photos.
 4. **Host dashboard**: listing is built (`/host/new`); still to build are
    the availability calendar, trip requests and payouts, plus a server-side
    listings store once accounts exist.

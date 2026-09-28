@@ -10,6 +10,7 @@ import { moneyExact, shortId } from '@/lib/format'
 import { actions, useLocal } from '@/lib/store'
 import type { Trip } from '@/lib/types'
 import { CarImage } from './CarImage'
+import { EvidenceCapture } from './EvidenceCapture'
 import { useConcierge } from './Concierge'
 import { Icon } from './Icons'
 import { PriceBreakdown } from './PriceBreakdown'
@@ -105,6 +106,16 @@ export function TripDetail({ id }: { id: string }) {
           <p className="muted small" style={{ marginTop: 4 }}>
             {trip.delivery ? `Delivered to ${trip.deliveryAddress}` : `Pickup in ${car.neighborhood}, ${cityName(car.city)}`} · {getPlan(trip.plan).name} coverage
           </p>
+
+          {trip.status !== 'cancelled' ? (
+            <section className="car-section" aria-labelledby="evidence">
+              <h2 id="evidence">Photo evidence</h2>
+              <p className="small muted" style={{ marginBottom: 14 }}>
+                Six photos at pickup and six at return. If a host ever reports damage, these settle it in minutes instead of weeks.
+              </p>
+              <EvidenceCapture tripId={trip.id} defaultPhase={trip.end <= today ? 'check-out' : 'check-in'} />
+            </section>
+          ) : null}
 
           {active ? (
             <section className="car-section" aria-labelledby="checkin">
