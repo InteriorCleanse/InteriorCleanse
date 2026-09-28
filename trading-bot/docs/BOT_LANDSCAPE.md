@@ -19,6 +19,7 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 | Cryptohopper | Strategy designer, backtesting, trailing features, copy trading and a marketplace. |
 | Polymarket "Up or Down" bots (the JEV terminal) | An agent that calls whether Bitcoin ends each short window higher, stays flat below a confidence line, and settles each window as right or wrong. |
 | The viral "Grok bot" experiment | A creator-reported claim (not verified) that one model with one instruction turned $50 into $5,273 in 48 hours on prediction markets: scan markets, read public information, estimate probabilities, compare with the price, apply risk rules, log, repeat. |
+| Astral (heyastral.ai) | An AI strategy builder: describe a strategy in plain language, get a rule-based strategy with the code visible, backtest it, then optionally connect a broker. Also event-driven ideas ("short airlines after a crash") and an MCP endpoint for chat assistants. |
 | Multi-model desks (ATS Matrix and the like) | Several AI models reading the same market side by side, with a record that keeps learning which of them knows something. |
 | TradingPilotAI | A TradingView "6-in-1" indicator that folds six readings into one −6 to +6 bias score (look long, short or sit), plus volume confirmation. Simple to read. |
 | Composer, Tickeron, ChartingLens | No-code strategy builders, libraries of AI signals, chat assistants. |
@@ -45,6 +46,7 @@ publish marketing, not audited live records, and 2026 saw regulators pursue
 | Market making | HftBacktest, Kalshi bots | **Study only**: `/market-making-study`. |
 | Short-window up/down calls | Polymarket bots (JEV) | **Added as a scored paper forecast**: The call tab, Home terminal and `/api/forecast` (docs/THE_CALL.md). No orders, no Polymarket keys. |
 | Prediction-market research agent | The viral Grok bot | **Added on paper, with the score**: the Prediction desk reads Polymarket and Kalshi every ten minutes with ten minds, opens PAPER positions at the creator's 8-point line and 6% cap, settles only on resolution, and fills in the seven-day sheet (docs/PREDICTION_DESK.md). No wallet, no key, no order. |
+| Plain-English strategy builder with visible code | Astral | **Added as a research tool**: the Strategy builder tab parses plain English with a visible grammar, shows the rules and the code, and backtests on stored candles with an in-sample / out-of-sample split, the paper engine's costs and a deflated Sharpe that tightens with every run (docs/STRATEGY_BUILDER.md). News-event rules and broker connection are left out: no headline history to test on, and no execution path. |
 | Several models on one market, a brain that learns | ATS Matrix | **Added as the ten minds and the brain**: each mind is scored on its own after every resolution (Brier), so the record shows which angles know something. The council's weights stay fixed until research says otherwise. |
 
 ## The "4 AI × Quant projects" and NautilusTrader
