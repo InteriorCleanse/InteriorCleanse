@@ -22,7 +22,7 @@ interface BabylonViewerProps {
 export function BabylonViewer({
   productColor = '#C4A8E8',
   accentColor = '#D4AF6A',
-  label = '◇ DRAG TO ROTATE · SCROLL TO ZOOM',
+  label = 'DRAG TO ROTATE · SCROLL TO ZOOM',
   height = 460,
 }: BabylonViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)

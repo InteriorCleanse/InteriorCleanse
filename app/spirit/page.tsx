@@ -53,7 +53,7 @@ export default function Spirit() {
                 nightstand, carried to church, and worked through together.
               </p>
             </div>
-            <BabylonViewerLoader height={440} label="◇ DRAG TO ROTATE" />
+            <BabylonViewerLoader height={440} label="DRAG TO ROTATE" />
           </div>
         </div>
       </section>

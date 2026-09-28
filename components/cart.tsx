@@ -160,7 +160,7 @@ export function AddToCartButton({
   if (disabled) {
     return (
       <button className="add-to-cart-btn" disabled tabIndex={tabIndex}>
-        COMING SOON <span>◇</span>
+        COMING SOON
       </button>
     )
   }

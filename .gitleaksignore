@@ -1,0 +1,5 @@
+# Known false positives (placeholders, not real keys):
+# - a Stripe-style placeholder key string in a test file that has since been deleted
+dd74aba0d925e7f677d9eb7c8957e051abdf9b45:tests/readiness.test.ts:stripe-access-token:124
+# - the first version of this file quoted that placeholder in its comment
+da54c66c7180f5b0b23adaf7c2fcf1169d16ecf3:.gitleaksignore:stripe-access-token:1

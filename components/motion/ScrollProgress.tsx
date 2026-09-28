@@ -18,10 +18,19 @@ export function ScrollProgress() {
     const bar = document.getElementById('scroll-progress')
     if (!bar) return
     let ticking = false
+    // Read the page height only when it can change, never per scroll frame:
+    // scrollHeight forces a synchronous layout, which is what made scrolling stutter.
+    let max = 0
+    const measure = () => {
+      max = document.documentElement.scrollHeight - window.innerHeight
+    }
+    const ro = new ResizeObserver(() => {
+      measure()
+      onScroll()
+    })
 
     const update = () => {
       ticking = false
-      const max = document.documentElement.scrollHeight - window.innerHeight
       const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0
       bar.style.transform = `scaleX(${p.toFixed(4)})`
     }
@@ -31,12 +40,13 @@ export function ScrollProgress() {
       requestAnimationFrame(update)
     }
 
+    measure()
     update()
+    ro.observe(document.body)
     window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll, { passive: true })
     return () => {
+      ro.disconnect()
       window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
     }
   }, [])
 
