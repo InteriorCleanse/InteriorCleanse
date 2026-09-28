@@ -1,0 +1,14 @@
+{
+  "name": "avant-vault",
+  "private": true,
+  "description": "AVANT privacy vault: ciphertext-only, signed-request record store. Runs on Cloudflare Workers or self-hosted open-compute.",
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "db:init": "wrangler d1 execute avant-vault --file=schema.sql",
+    "deploy": "wrangler deploy",
+    "deploy:self-hosted": "ocd wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.38.0"
+  }
+}

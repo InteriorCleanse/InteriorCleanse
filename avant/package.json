@@ -1,0 +1,39 @@
+{
+  "name": "avant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AVANT \u2014 peer-to-peer car sharing, ahead of you.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test \"lib/**/*.test.ts\"",
+    "seed": "node scripts/seed-fleet.mjs",
+    "assets:pull": "node scripts/pull-assets.mjs",
+    "postinstall": "node scripts/copy-map-worker.mjs",
+    "predev": "node scripts/copy-map-worker.mjs",
+    "prebuild": "node scripts/copy-map-worker.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "maplibre-gl": "^6.11.2",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.5.0",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.28"
+  }
+}

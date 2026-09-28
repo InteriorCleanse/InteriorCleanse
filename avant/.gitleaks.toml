@@ -1,0 +1,8 @@
+# gitleaks configuration. Extends the default rules; the allowlist covers
+# only the documented placeholders in .env.example.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders"
+paths = ['''\.env\.example$''']

@@ -1,0 +1,53 @@
+/**
+ * Policy answers in plain English. One source for the concierge (online and
+ * offline), the help page and the checkout copy, so they never disagree.
+ */
+
+import { COVERAGE_PLANS, COVERAGE_TERMS_FINAL, FREE_CANCEL_HOURS, TRIP_FEE_PCT, YOUNG_DRIVER_FEES, CLEAN_RECORD_DISCOUNT_PCT } from '../catalog'
+
+const dollars = (c: number) => `$${Math.round(c / 100).toLocaleString('en-US')}`
+
+export const POLICY_TOPICS = [
+  'cancellation',
+  'young_drivers',
+  'verification',
+  'deposit',
+  'fees',
+  'damage_claims',
+  'privacy',
+  'delivery',
+  'mileage',
+  'fuel_and_charging',
+  'tolls_and_tickets',
+  'accident',
+] as const
+
+export type PolicyTopic = (typeof POLICY_TOPICS)[number]
+
+const youngLines = YOUNG_DRIVER_FEES.map(
+  (b) => `ages ${b.minAge}–${b.maxAge}: ${dollars(b.perDayCents)}/day, never more than ${dollars(b.capCents)} a trip`,
+).join('; ')
+
+export const POLICIES: Record<PolicyTopic, string> = {
+  cancellation: `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup, from the trip page. Inside that window the first day is kept and the rest is refunded.`,
+  young_drivers: `Drivers 18 and up can book everyday cars; 21+ adds premium cars; 25+ adds luxury and exotic. Under-25 drivers pay a young driver fee (${youngLines}). A verified clean driving record cuts it by ${CLEAN_RECORD_DISCOUNT_PCT}%.`,
+  verification: `Verify once, book forever: a photo of your licence and a quick selfie on our verification partner's secure page, about two minutes. AVANT keeps only your age in years, how long you've been licensed, when the licence expires and whether it's valid. Never your name, date of birth, licence number or photos, and we ask the partner to delete the images once the check is done.`,
+  deposit: `A refundable hold is placed on your card at pickup: ${COVERAGE_PLANS.map((p) => `${p.name} ${p.depositCents ? dollars(p.depositCents) : 'none'}`).join(', ')}. It is released within 48 hours after the trip if nothing needs sorting out.`,
+  fees: `What you see on the card is the all-in daily price: rate, the flat ${TRIP_FEE_PCT}% trip fee and default coverage. At checkout only things you chose are added (delivery, extras), plus local tax and, for under-25 drivers, the young driver fee. No dynamic surcharges.`,
+  damage_claims: `Take the timestamped check-in and check-out photos in the app; they are the evidence for both sides. If a host reports damage, you see their photos, an itemised estimate and have 72 hours to respond before anything is charged, and you never pay more than your coverage plan's maximum.`,
+  privacy: `No account is needed to browse or book. Your verification record is encrypted before it is stored and can be exported or deleted from the Account page at any time. AVANT does not sell personal data or use it for advertising.`,
+  delivery: `Many hosts deliver to your address, hotel or airport for a flat fee shown on the car page. Choose it at checkout and add the address.`,
+  mileage: `Each car includes a daily mileage allowance shown on its page. Add Unlimited miles at checkout if you're not sure, otherwise the host may charge per extra mile after the trip.`,
+  fuel_and_charging: `Return with the same fuel or charge level you picked it up with, or add Prepaid refuel at checkout and return it at any level.`,
+  tolls_and_tickets: `Tolls, parking tickets and camera fines during your trip are yours. The host submits them with evidence and you're charged the actual amount plus nothing else.`,
+  accident: `If anyone is hurt, call 911 first. Then make sure everyone is safe, take photos, swap details with the other driver, and use Report an incident on your trip page. Roadside assistance is included on Zero and Plus.`,
+}
+
+export const COVERAGE_SUMMARY = [
+  COVERAGE_TERMS_FINAL ? '' : 'Coverage terms are illustrative until AVANT’s insurance partner finalises them.',
+  ...COVERAGE_PLANS.map(
+    (p) => `${p.name}: ${p.oneLiner} Costs ${p.pctOfTrip}% of the trip price (at least ${dollars(p.minPerDayCents)}/day). ${p.liability}. Best for: ${p.recommendedFor}`,
+  ),
+]
+  .filter(Boolean)
+  .join('\n')

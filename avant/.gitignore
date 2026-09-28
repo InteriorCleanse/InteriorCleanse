@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+.wrangler
+.dev.vars
+
+# Copied from node_modules at install/build time
+public/maplibre

@@ -1,0 +1,18 @@
+{
+  "_note": "AI-generated imagery for AVANT (Higgsfield, gpt_image_2_5). Unbadged, no logos, no real people's faces. `npm run assets:pull` (or the 'AVANT: land assets' workflow) downloads each to public/img and records it in content/assets-landed.json, after which the app serves the local copy.",
+  "cdn": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl",
+  "assets": {
+    "hero": { "file": "hf_20260928_055615_8f461a74-bbd4-44f8-b590-c74b0ab3951b.png", "local": "/img/hero.jpg", "alt": "An unbadged graphite grand tourer on a wet street at night, lime neon reflected in the asphalt" },
+    "sedan": { "file": "hf_20260928_055615_ba92c377-e370-4227-8131-636b158d9b9b.png", "local": "/img/cars/sedan.jpg", "alt": "Illustrative sedan" },
+    "suv": { "file": "hf_20260928_055615_ea599841-b4a0-454b-9ba9-5f1c8b2126be.png", "local": "/img/cars/suv.jpg", "alt": "Illustrative SUV" },
+    "truck": { "file": "hf_20260928_055615_a76a9e80-3b0a-4dba-b731-b2dbec4e512b.png", "local": "/img/cars/truck.jpg", "alt": "Illustrative pickup truck" },
+    "van": { "file": "hf_20260928_055616_78704ff9-3584-4b68-a1eb-de41776a2ff4.png", "local": "/img/cars/van.jpg", "alt": "Illustrative minivan" },
+    "convertible": { "file": "hf_20260928_055615_068626de-860b-40a8-a956-d9338438531a.png", "local": "/img/cars/convertible.jpg", "alt": "Illustrative convertible" },
+    "coupe": { "file": "hf_20260928_055616_2167f10b-ac46-4216-8296-d5b65f1e5eef.png", "local": "/img/cars/coupe.jpg", "alt": "Illustrative sports coupe" },
+    "hatchback": { "file": "hf_20260928_055615_7eac2cdf-59b1-4986-bbfe-65dae1d1b770.png", "local": "/img/cars/hatchback.jpg", "alt": "Illustrative hatchback" },
+    "wagon": { "file": "hf_20260928_055616_ea34703a-ac13-433c-b4ef-5e293d75ce62.png", "local": "/img/cars/wagon.jpg", "alt": "Illustrative estate wagon" },
+    "keys": { "file": "hf_20260928_055615_1789e975-e48d-4e61-9a84-47c23f5a2aa3.png", "local": "/img/keys.jpg", "alt": "Two hands exchanging a car key at golden hour" },
+    "coast": { "file": "hf_20260928_055615_bfaa6cc0-31ae-4730-904c-795331d86c43.png", "local": "/img/coast.jpg", "alt": "A coastal highway at night with a single lime light trail" },
+    "driver": { "file": "hf_20260928_055616_bc93e1ae-bfa6-4134-8d29-d61440d29df8.png", "local": "/img/driver.jpg", "alt": "Hands on a steering wheel at dusk, city lights beyond the windshield" }
+  }
+}

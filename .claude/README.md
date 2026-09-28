@@ -12,6 +12,7 @@ nothing under `.claude/` is built, served, or linted.
 | motion-design | github.com/lottiefiles/motion-design-skill | f9a8a04 | MIT |
 | cast, paint, genjutsu/_jutsu/* | github.com/AThevon/genjutsu | 94a260a | MIT |
 | watch | github.com/bradautomates/claude-video (`skills/watch`) | 83da59f | MIT |
+| open-compute | written here; documents github.com/elliothux/open-compute (Apache-2.0) and the app security baseline | n/a | project-authored |
 | caveman | github.com/JuliusBrussee/caveman (`skills/caveman`) | 15581d1 | MIT (the skill; that repo's engine and Go binaries are BSL-1.1 and are not included) |
 | ui-ux-pro-max, design, design-system, brand, banner-design, slides | github.com/nextlevelbuilder/ui-ux-pro-max-skill (`.claude/skills/*`) | 7f69fed | MIT |
 | last30days | github.com/mvanhorn/last30days-skill (`skills/last30days`) | ac0ed3b | MIT |
