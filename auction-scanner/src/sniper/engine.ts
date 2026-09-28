@@ -135,9 +135,9 @@ export function pickFor(target: Target, card: Card, plan: BidPlan, now = Date.no
   if (!m.ok) return null
   const fire = firePlan(card.listing, plan, target, now)
   if (fire.maxBidUsd <= 0) return null
-  // Already past your number: not your car, and not a pick.
+  // At or past your number: no room to bid, so not your car and not a pick.
   const price = askingPrice(card.listing)
-  if (price !== undefined && price > fire.maxBidUsd && card.listing.saleType !== 'buy-now') return null
+  if (price !== undefined && price >= fire.maxBidUsd && card.listing.saleType !== 'buy-now') return null
   const fit = fitScore(card, plan, target, now)
   const reasons = [...m.why, `Never bid above $${fire.maxBidUsd.toLocaleString('en-US')} (${fire.method === 'snipe' ? 'snipe in the last seconds' : fire.method === 'proxy' ? 'proxy bid early' : fire.method === 'live-lane' ? 'pre-bid before the lane' : fire.method === 'buy-now' ? 'fixed price' : 'see the plan'}).`]
   return { targetId: target.id, targetName: target.name, card, plan, fire, fit, reasons }

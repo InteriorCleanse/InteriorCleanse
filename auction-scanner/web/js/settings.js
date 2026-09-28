@@ -1,5 +1,6 @@
 // Settings: starter rules, sample cars, home, fee overrides, your demand list, sources, VIN decode, account.
 import { getJson, postJson, esc, safeUrl } from './api.js'
+import { STATES } from './states.js'
 import { toast, loading, errorStrip } from './ui.js'
 
 export async function render(el, ctx) {
@@ -13,7 +14,8 @@ export async function render(el, ctx) {
     <div class="panel"><h2>Your goal and your cash</h2>
       <div class="grid2">
         <label class="f">What the car is for <select name="goal"><option value="">Not set</option>${[['rental', 'Rent it out'], ['flip', 'Flip it for profit'], ['keep', 'Keep it for me']].map(([v, t]) => `<option value="${v}" ${s.goal === v ? 'selected' : ''}>${t}</option>`).join('')}</select><small>A flip keeps a margin to sell at; a rental or a keeper is bought a little under market value.</small></label>
-        <label class="f">Cash for one car ($) <input type="number" name="cashUsd" min="500" step="any" value="${esc(s.cashUsd ?? '')}" placeholder="15000" /><small>All in. Every plan keeps the bid, fee, transport, fixes and cushion inside it.</small></label>
+        <label class="f">Cash for one car ($) <input type="number" name="cashUsd" min="500" step="any" value="${esc(s.cashUsd ?? '')}" placeholder="15000" /><small>All in. Every plan keeps the bid, fee, tax, transport, fixes and cushion inside it.</small></label>
+        <label class="f">Tax and title (%) <input type="number" name="taxTitlePct" min="0" max="20" step="any" value="${esc(s.taxTitlePct ?? '')}" placeholder="%" /><small>Sales tax on a car plus the title fee in your state and county. Look it up once; every plan counts it.</small></label>
       </div></div>
     <div class="panel"><h2>Starter mode rules</h2><p class="dim">Starter mode is on by default in the Feed. These are the rules it applies; every hidden car says which one hid it.</p>
       <div class="grid2">
@@ -26,7 +28,7 @@ export async function render(el, ctx) {
       </div></div>
     <div class="panel"><h2>Data</h2>
       <label class="switch"><input type="checkbox" name="allowSample" ${s.allowSample ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Show SAMPLE cars when no source is connected <small class="dim" style="display:block;font-weight:400">Sample cars are not real and are labelled on every card. They never mix with live data.</small></span></label>
-      <div class="grid2" style="margin-top:12px"><label class="f">Home state (two letters) <input type="text" name="homeState" maxlength="2" value="${esc(s.homeState || '')}" placeholder="TX" /></label><label class="f">Home ZIP <input type="text" name="homeZip" maxlength="10" value="${esc(s.homeZip || '')}" /></label></div></div>
+      <div class="grid2" style="margin-top:12px"><label class="f">Home state <select name="homeState"><option value="">Not set</option>${Object.entries(STATES).sort((a, b) => a[1].replace(/^the /, '').localeCompare(b[1].replace(/^the /, ''))).map(([code, name]) => `<option value="${code}" ${s.homeState === code ? 'selected' : ''}>${esc(name.replace(/^the /, ''))}</option>`).join('')}</select></label><label class="f">Home ZIP <input type="text" name="homeZip" maxlength="10" value="${esc(s.homeZip || '')}" /></label></div></div>
     <div class="panel"><h2>Buyer fee overrides</h2><p class="dim">Some houses use a sliding scale, so Gavel does not guess. When you have looked the fee up, type the percent here and every plan for that house uses it.</p>
       <div class="grid2">${['ebay', 'carsandbids', 'bat', 'copart', 'iaa', 'manheim', 'adesa', 'acv', 'govdeals', 'local', 'collector'].map((h) => `<label class="f">${esc(h)} (%) <input type="number" name="fee:${h}" min="0" max="30" step="0.5" value="${s.feeOverrides && s.feeOverrides[h] !== undefined ? s.feeOverrides[h] : ''}" placeholder="published" /></label>`).join('')}</div></div>
     <div class="panel"><h2>Your demand list additions</h2><p class="dim">Cars you want a small score bonus for, with the reason. One per line: <code>Make | Model, Model | tier | why</code>. Tier is supercar, enthusiast, holds-value or rental.</p>
@@ -59,6 +61,7 @@ export async function render(el, ctx) {
       allowSample: f.get('allowSample') === 'on',
       goal: String(f.get('goal') || '') || null,
       cashUsd: num('cashUsd') ?? null,
+      taxTitlePct: num('taxTitlePct') ?? null,
       homeState: String(f.get('homeState') || '').toUpperCase() || null,
       homeZip: String(f.get('homeZip') || '') || null,
       feeOverrides,

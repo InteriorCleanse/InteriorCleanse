@@ -16,7 +16,7 @@ function chipsHtml() {
     <div class="chips" role="toolbar" aria-label="Filters">
       <label class="switch" title="Hides salvage titles, damage beyond minor, cars that do not run, and cars over your price, mileage or age caps (Settings)."><input type="checkbox" id="f-starter" ${state.starter ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Starter mode</span></label>
       <input type="search" id="f-q" placeholder="Search a car" aria-label="Search" value="${esc(state.q)}" />
-      <input type="number" id="f-max" placeholder="Max $" aria-label="Maximum price in dollars" min="0" step="any" value="${esc(state.maxPrice)}" />
+      <label class="inl mono">Max $<input type="number" id="f-max" placeholder="any" aria-label="Maximum price in dollars" min="0" step="any" value="${esc(state.maxPrice)}" /></label>
       <input type="search" id="f-state" placeholder="State" aria-label="US state, two letters" maxlength="2" style="width:80px" value="${esc(state.state)}" />
       <select id="f-sort" aria-label="Sort"><option value="score" ${state.sort === 'score' ? 'selected' : ''}>Best score</option><option value="ending" ${state.sort === 'ending' ? 'selected' : ''}>Ending soonest</option><option value="price" ${state.sort === 'price' ? 'selected' : ''}>Price low to high</option></select>
       <label class="switch" id="f-sample-wrap" hidden title="Sample cars are not real. They show what the app does until a source is connected."><input type="checkbox" id="f-sample" ${state.sample ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Show sample cars</span></label>

@@ -64,8 +64,9 @@ test('updateSettings rejects bad values with a plain reason and saves nothing', 
     [{ starter: { mustRunAndDrive: 1 } }, /mustRunAndDrive/],
     [{ starter: 'loose' }, /starter/],
     [{ allowSample: 'yes' }, /allowSample/],
-    [{ homeState: 'Texas' }, /two-letter/],
-    [{ homeState: 'T1' }, /two-letter/],
+    [{ homeState: 'Texas' }, /state code/],
+    [{ homeState: 'T1' }, /state code/],
+    [{ homeState: 'ZZ' }, /state code/],
     [{ homeZip: '7520' }, /ZIP/],
     [{ homeZip: 75201 }, /ZIP/],
     [{ feeOverrides: { copart: 31 } }, /feeOverrides\.copart/],
@@ -106,4 +107,13 @@ test('cash for one car: a dollar amount from $500, cleared with null', () => {
   assert.throws(() => updateSettings({ cashUsd: 20 }), /cashUsd/)
   assert.throws(() => updateSettings({ cashUsd: '15000' }), /cashUsd/)
   assert.equal(updateSettings({ cashUsd: null }).cashUsd, undefined)
+})
+
+test('the browser and the server know the same fifty states and DC', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { STATE_CODES } = await import('../src/states.ts')
+  const web = readFileSync(new URL('../web/js/states.js', import.meta.url), 'utf8')
+  const codes = [...web.matchAll(/\b([A-Z]{2}):/g)].map((m) => m[1]).sort()
+  assert.deepEqual(codes, [...STATE_CODES].sort())
+  assert.equal(codes.length, 51)
 })

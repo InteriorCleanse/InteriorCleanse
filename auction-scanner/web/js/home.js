@@ -22,7 +22,7 @@ function bestHtml(p) {
   return `<a class="tag nextup best" href="#plan/${encodeURIComponent(l.id)}"><div class="body" style="padding:16px 18px">
       <div class="mono dim">Your best pick${l.kind === 'SAMPLE' ? ' · sample, for practice' : ''}${l.endsAt ? ' · ' + countdown(l.endsAt) : ''}</div>
       <h2 class="nt">${esc(l.title)}</h2>
-      <div class="row" style="gap:18px;margin:6px 0 2px"><div><span class="k mono">Price now</span><div class="bn">${esc(money(now))}</div></div><div><span class="k mono">Never bid above</span><div class="bn" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div></div></div>
+      <div class="row" style="gap:18px;margin:6px 0 2px"><div><span class="k mono">Price now</span><div class="bn">${esc(money(now))}</div></div><div><span class="k mono">Never bid above</span><div class="bn" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div>${p.plan.feeUnknown ? '<span class="feenote">before the buyer fee</span>' : ''}</div></div>
       ${why ? `<p style="margin:4px 0 0">${esc(why)}</p>` : ''}
     </div><span class="go-arrow" aria-hidden="true">→</span></a>`
 }
@@ -35,8 +35,8 @@ export async function render(el, ctx) {
   if (!h.onboarded && !sessionStorage.getItem('gavel-setup-skipped')) { location.hash = '#setup'; return }
   const best = h.sniper.best
   const nextUp = h.next.find((n) => !n.done)
-  // The best pick has its own card; the next step would only repeat it.
-  const showNext = nextUp && !(best && nextUp.id === 'pick')
+  // With a best pick, that card is the next thing to do; the rest of the path waits in "Your path" below.
+  const showNext = nextUp && !best
   const done = h.next.filter((n) => n.done).length
   const netTone = h.garage.netUsd > 0 ? 'go' : h.garage.netUsd < 0 ? 'hot' : ''
   el.innerHTML = `<div class="head"><div><h1>Home</h1><p>${esc(h.goal ? GOAL[h.goal] : 'Your auction desk')}. ${h.liveSource ? 'Reading live auctions.' : 'No live source yet, so the feed shows SAMPLE cars.'}</p></div>

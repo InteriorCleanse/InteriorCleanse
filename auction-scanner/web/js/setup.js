@@ -1,11 +1,13 @@
 // First-run setup: four questions, then a Sniper target is hunting for you.
 import { getJson, postJson, esc } from './api.js'
+import { STATES } from './states.js'
+import { applyGoal } from './app.js'
 import { toast, loading, errorStrip } from './ui.js'
 
 const GOALS = [['rental', 'Start a rental business', 'Find a reliable first car to rent out, and grow from there.'], ['flip', 'Flip cars for profit', 'Buy under the market, fix the small things, sell.'], ['keep', 'Buy a car for me', 'A nice car, well under what it is worth.']]
 const SUGGEST = { rental: ['Toyota', 'Honda', 'Tesla'], flip: ['Toyota', 'Lexus', 'Porsche', 'Chevrolet'], keep: [] }
 
-export async function render(el) {
+export async function render(el, ctx) {
   el.innerHTML = loading('Loading…')
   let catalog
   try { catalog = await getJson('/api/catalog') } catch (e) { el.innerHTML = errorStrip(e.message); return }
@@ -15,7 +17,7 @@ export async function render(el) {
       `<h1>What are you here to do?</h1><p class="lead">This shapes your Home screen and your first Sniper target. You can change it later.</p>
        <div class="choices">${GOALS.map(([k, t, d]) => `<button type="button" class="choice ${state.goal === k ? 'on' : ''}" data-goal="${k}" aria-pressed="${state.goal === k}"><b>${t}</b><span>${d}</span></button>`).join('')}</div>`,
       `<h1>Which state are you in?</h1><p class="lead">Auction rules, taxes and the dealer licence all depend on your state. Two letters.</p>
-       <label class="f" style="max-width:220px">Your state (two letters, like TX or GA) <input type="text" id="s-state" maxlength="2" value="${esc(state.homeState)}" autocomplete="address-level1" /></label>`,
+       <label class="f" style="max-width:320px">Your state <select id="s-state"><option value="">Choose your state</option>${Object.entries(STATES).sort((a, b) => a[1].replace(/^the /, '').localeCompare(b[1].replace(/^the /, ''))).map(([code, name]) => `<option value="${code}" ${state.homeState === code ? 'selected' : ''}>${esc(name.replace(/^the /, ''))}</option>`).join('')}</select></label>`,
       `<h1>How much cash do you have for one car?</h1><p class="lead">All in: the bid, the auction's fee, transport and fixes. Every bid plan keeps the total inside this number.</p>
        <label class="f" style="max-width:260px">Cash in dollars <input type="number" id="s-budget" min="500" step="any" placeholder="15000" value="${esc(state.budgetUsd)}" inputmode="numeric" /></label>
        <div class="chips" style="margin-top:10px">${[8000, 15000, 25000, 40000, 75000].map((b) => `<button type="button" class="chip" data-budget="${b}">$${b.toLocaleString('en-US')}</button>`).join('')}</div>`,
@@ -34,12 +36,14 @@ export async function render(el) {
     el.querySelector('#s-skip').addEventListener('click', () => { try { sessionStorage.setItem('gavel-setup-skipped', '1') } catch { /* fine */ } location.hash = '#home' })
     el.querySelector('#s-next').addEventListener('click', async (e) => {
       if (state.step === 0 && !state.goal) { toast('Pick one to continue.', 'hot'); return }
-      if (state.step === 1) { const v = el.querySelector('#s-state').value.trim().toUpperCase(); if (!/^[A-Z]{2}$/.test(v)) { toast('Type your state: two letters, for example TX.', 'hot'); return } state.homeState = v }
+      if (state.step === 1) { const v = el.querySelector('#s-state').value.trim().toUpperCase(); if (!STATES[v]) { toast('Choose your state from the list.', 'hot'); return } state.homeState = v }
       if (state.step === 2) { const v = Number(el.querySelector('#s-budget').value); if (!Number.isFinite(v) || v < 500) { toast('Type an amount of at least $500.', 'hot'); return } state.budgetUsd = String(v) }
       if (!last) { state.step++; draw(); const f = el.querySelector('input'); if (f) f.focus(); return }
       e.target.disabled = true
       try {
         await postJson('/api/onboard', { goal: state.goal, homeState: state.homeState, budgetUsd: Number(state.budgetUsd), makes: [...state.makes], models: [] })
+        // The menus follow the goal: refresh who we are before Home draws.
+        try { Object.assign(ctx.me, await getJson('/api/me')); applyGoal(ctx.me) } catch { /* the next load catches up */ }
         toast('Set. Your first Sniper target is hunting.')
         location.hash = '#home'
       } catch (err) { toast(err.message, 'hot'); e.target.disabled = false }

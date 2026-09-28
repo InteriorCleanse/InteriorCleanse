@@ -9,6 +9,7 @@
  * 400 with the exact reason instead of quietly dropping what the person typed.
  * Unknown keys are ignored.
  */
+import { isStateCode } from './states.ts'
 import { config } from '../config.ts'
 import { readJson, userFile, writeJson } from './store.ts'
 
@@ -49,6 +50,8 @@ export type Settings = {
   cashUsd?: number
   /** Playbook guides the member has opened, by id, so Home can tick them off. */
   readGuides?: string[]
+  /** Sales tax plus title, as a percent of the price, as the member looked it up for their state and county. */
+  taxTitlePct?: number
 }
 
 const DAMAGE = new Set(['none', 'minor', 'moderate', 'severe'])
@@ -136,10 +139,10 @@ function validateFeeOverrides(v: unknown): Record<string, number> {
  * dropped; a bad value throws a plain-English Error. `homeState` and `homeZip`
  * may be set to '' or null to clear them.
  */
-function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest: Partial<Omit<Settings, 'starter'>>; clear: Array<'homeState' | 'homeZip' | 'goal' | 'cashUsd'> } {
+function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest: Partial<Omit<Settings, 'starter'>>; clear: Array<'homeState' | 'homeZip' | 'goal' | 'cashUsd' | 'taxTitlePct'> } {
   if (!isRecord(patch)) throw new Error('Settings must be sent as an object.')
   const rest: Partial<Omit<Settings, 'starter'>> = {}
-  const clear: Array<'homeState' | 'homeZip' | 'goal' | 'cashUsd'> = []
+  const clear: Array<'homeState' | 'homeZip' | 'goal' | 'cashUsd' | 'taxTitlePct'> = []
   let starter: Partial<StarterRules> | undefined
 
   if ('starter' in patch) starter = validateStarter(patch.starter)
@@ -159,6 +162,12 @@ function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest:
     if (!Array.isArray(v) || v.length > 100 || !v.every((x) => typeof x === 'string' && /^[a-z0-9-]{1,60}$/.test(x))) throw new Error('readGuides must be a list of guide ids.')
     rest.readGuides = [...new Set(v as string[])]
   }
+  if ('taxTitlePct' in patch) {
+    const v = patch.taxTitlePct
+    if (v === '' || v === null || v === undefined) clear.push('taxTitlePct')
+    else if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 20) rest.taxTitlePct = v
+    else throw new Error('taxTitlePct must be a percent from 0 to 20.')
+  }
   if ('cashUsd' in patch) {
     const v = patch.cashUsd
     if (v === '' || v === null || v === undefined) clear.push('cashUsd')
@@ -169,8 +178,8 @@ function validatePatch(patch: unknown): { starter?: Partial<StarterRules>; rest:
   if ('homeState' in patch) {
     const v = patch.homeState
     if (v === '' || v === null || v === undefined) clear.push('homeState')
-    else if (typeof v === 'string' && /^[A-Za-z]{2}$/.test(v.trim())) rest.homeState = v.trim().toUpperCase()
-    else throw new Error('homeState must be a two-letter state code, for example TX.')
+    else if (typeof v === 'string' && isStateCode(v.trim())) rest.homeState = v.trim().toUpperCase()
+    else throw new Error('homeState must be a US state code, for example TX or GA.')
   }
   if ('homeZip' in patch) {
     const v = patch.homeZip
@@ -197,7 +206,7 @@ function merge(base: Settings, saved: unknown): Settings {
       apply(() => Object.assign(out.starter, validateStarter({ [k]: v })))
     }
   }
-  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal', 'cashUsd', 'readGuides'] as const) {
+  for (const key of ['allowSample', 'demandExtra', 'feeOverrides', 'homeState', 'homeZip', 'onboarded', 'goal', 'cashUsd', 'readGuides', 'taxTitlePct'] as const) {
     if (!(key in saved)) continue
     apply(() => {
       const { rest, clear } = validatePatch({ [key]: saved[key] })

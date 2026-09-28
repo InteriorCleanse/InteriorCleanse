@@ -540,3 +540,24 @@ test('a member\'s Home: no step they cannot finish, one best pick, one pick and 
   // The owner still sees the connect step.
   assert.ok((await api('/api/home')).body.next.some((n: any) => n.id === 'source'))
 })
+
+test('a fee or tax rate typed on one plan is remembered for every plan', async () => {
+  const made = await api('/api/admin/members', { method: 'POST', json: { email: 'gus@example.com' } })
+  const r = await api('/api/login', { method: 'POST', json: { email: 'gus@example.com', code: made.body.code }, noCsrf: true })
+  const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+  const gus = (path: string, init: any = {}) => api(path, { ...init, asMember: c, headers: { ...(init.headers ?? {}), 'x-gavel-csrf': r.body.csrf } })
+  await gus('/api/onboard', { method: 'POST', json: { goal: 'rental', homeState: 'GA', budgetUsd: 15000, makes: ['Toyota'] } })
+  const feed = await gus('/api/feed?starter=0')
+  const id = feed.body.cards[0].listing.id
+  const before = await gus('/api/plan', { method: 'POST', json: { listingId: id } })
+  const typed = await gus('/api/plan', { method: 'POST', json: { listingId: id, feePct: 10, taxTitlePct: 7, remember: true } })
+  assert.ok(typed.body.maxBidUsd < before.body.maxBidUsd)
+  const s = (await gus('/api/settings')).body
+  assert.equal(s.feeOverrides.sample, 10)
+  assert.equal(s.taxTitlePct, 7)
+  const later = await gus('/api/listing/' + encodeURIComponent(id))
+  assert.equal(later.body.plan.maxBidUsd, typed.body.maxBidUsd, 'the plan page opened later uses the remembered numbers')
+  const probe = await gus('/api/plan', { method: 'POST', json: { listingId: id, feePct: 2 } })
+  assert.equal((await gus('/api/settings')).body.feeOverrides.sample, 10, 'without remember, nothing is saved')
+  assert.ok(probe.body.maxBidUsd > typed.body.maxBidUsd)
+})

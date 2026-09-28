@@ -109,8 +109,11 @@ export type BidPlan = {
   maxBidUsd: number
   /** Where the current price sits against the max bid. */
   headroomUsd?: number
-  /** All the cash the car takes at the max bid: bid + buyer fee + transport + repairs + cushion. Tax and title come on top. */
+  /** All the cash the car takes at the max bid: bid + buyer fee + tax and title (when known) + transport + repairs + cushion. */
   cashNeededUsd: number
+  /** Tax and title at the max bid, from the member's percent; undefined when they have not set one. */
+  taxTitleUsd?: number
+  taxTitlePct?: number
   /** The member's cash for one car, when they have told Gavel. */
   cashUsd?: number
   /** Which limit set the max bid: the car's value, or the member's cash. */

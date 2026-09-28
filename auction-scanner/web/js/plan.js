@@ -11,19 +11,21 @@ function ledgerHtml(plan, inputs, listing) {
   const shown = (k, v) => esc(inputs[k] ?? v ?? '')
   const feeHelp = listing.kind === 'SAMPLE'
     ? `<span class="nocomps">SAMPLE car: there is no real auction house behind it. Type a fee percent to practise (eBay charges none; Cars &amp; Bids charges 5%).</span>`
-    : feeUnknown ? `<span class="nocomps">This house uses a sliding scale. Look up the fee on its calculator and type the percent here.</span>` : `What the auction charges the winner on top of the hammer price. Leave blank to use the published rate.`
+    : feeUnknown ? `<span class="nocomps">This house uses a sliding scale. Look up the fee on its calculator and type the percent here.</span>` : inputs.feePct !== undefined ? `Remembered for every ${esc(sourceName(listing.source))} plan.` : `What the auction charges the winner on top of the hammer price. Leave blank to use the published rate.`
   const row = (k, v, input, help) => `<div class="line"><span>${k}</span>${input ? input : `<span class="v">${esc(v)}</span>`}${help ? `<span class="h">${help}</span>` : ''}</div>`
   return `<div class="ledger">
     ${row(flip ? 'Resale target' : 'Market value', money(plan.resaleUsd), `<input type="number" id="p-resale" min="0" step="any" value="${shown('resaleUsd', plan.resaleUsd)}" aria-label="${flip ? 'Resale target' : 'Market value'} in dollars" />`, flip ? 'What you believe it sells for after fixes. Starts from the comps estimate.' : 'What cars like it sell for. Starts from the comps estimate.')}
     ${row('− Buyer fee', money(plan.buyerFeeUsd), `<input type="number" id="p-fee" min="0" max="30" step="any" placeholder="%" value="${esc(inputs.feePct ?? '')}" aria-label="Buyer fee percent" />`, feeHelp)}
+    ${plan.cashUsd !== undefined ? row('− Tax and title', plan.taxTitleUsd !== undefined ? money(plan.taxTitleUsd) : 'not set', `<input type="number" id="p-tax" min="0" max="20" step="any" placeholder="%" value="${shown('taxTitlePct', plan.taxTitlePct)}" aria-label="Tax and title percent" />`, plan.taxTitleUsd !== undefined ? `<b>${esc(money(plan.taxTitleUsd))}.</b> Sales tax plus title in your state and county. Remembered for every plan.` : 'Sales tax on a car plus the title fee in your state and county, as a percent. Look it up once; Gavel remembers it.') : ''}
     ${row('− Transport', money(plan.transportUsd), `<input type="number" id="p-dist" min="0" step="any" value="${shown('distanceMiles', plan.distanceMiles)}" placeholder="miles" aria-label="Distance in miles" />`, `<b>${esc(money(plan.transportUsd))}.</b> ${plan.distanceAssumed && inputs.distanceMiles === undefined ? 'Assumed ' + esc(plan.distanceMiles) + ' miles: type the real distance. ' : 'Miles from the car to you. '}A typical open-carrier rate; get a real quote before you bid.`)}
     ${row('− Repairs', money(plan.repairsUsd), `<input type="number" id="p-rep" min="0" step="any" value="${esc(inputs.repairsUsd ?? '')}" placeholder="$" aria-label="Repairs in dollars" />`, 'Tyres, brakes, detail, whatever the photos and the inspection say.')}
     ${row('− Cushion for surprises', money(plan.reserveUsd))}
     ${row(flip ? '− Your margin' : '− Under market by', money(plan.marginUsd), `<input type="number" id="p-margin" min="0" max="90" step="any" value="${shown('marginPct', Math.round(plan.marginFraction * 100))}" placeholder="%" aria-label="${flip ? 'Margin' : 'Discount to market'} percent" />`, `<b>${esc(money(plan.marginUsd))}.</b> ${flip ? 'Percent of the resale price you want left over.' : 'Percent under market value you insist on, so you never pay retail.'}`)}
   </div>
   <div class="never"><span class="k mono">Never bid above</span><div class="n">${esc(money(plan.maxBidUsd))}</div>
-    ${feeUnknown ? '<div class="nocomps" style="font-weight:600">Buyer fee not set: this number is too high. Look up the fee and type the percent above.</div>' : ''}
-    <div class="mono ${typeof plan.cashUsd === 'number' && plan.cashNeededUsd > plan.cashUsd ? 'nocomps' : 'dim'}">Cash you need on the day: about ${esc(money(plan.cashNeededUsd))}${typeof plan.cashUsd === 'number' ? ` of your ${esc(money(plan.cashUsd))}` : ''}, plus tax and title.</div>
+    ${feeUnknown ? '<div class="warn-line">Buyer fee not set: this number is too high. Look up the fee and type the percent above.</div>' : ''}
+    ${plan.limitedBy === 'cash' && plan.taxTitleUsd === undefined ? '<div class="warn-line">Tax and title not set: they come out of the same cash. Type your percent above.</div>' : ''}
+    <div class="mono ${typeof plan.cashUsd === 'number' && plan.cashNeededUsd > plan.cashUsd ? 'nocomps' : 'dim'}">Cash you need on the day: about ${esc(money(plan.cashNeededUsd))}${typeof plan.cashUsd === 'number' ? ` of your ${esc(money(plan.cashUsd))}` : ''}${plan.taxTitleUsd === undefined ? ', plus tax and title' : ', tax and title included'}.</div>
     ${plan.limitedBy === 'cash' ? '<div class="mono dim">Lowered to fit your cash.</div>' : ''}
     ${typeof plan.headroomUsd === 'number' ? `<div class="mono ${plan.headroomUsd < 0 ? 'nocomps' : 'dim'}">${plan.headroomUsd < 0 ? `The price is already ${esc(money(-plan.headroomUsd))} over your number. Not your car.` : `${esc(money(plan.headroomUsd))} of room above the price now.`}</div>` : ''}
   </div>
@@ -76,16 +78,18 @@ export async function render(el, ctx, [id]) {
       </div>
     </div>`
 
-  const FIELDS = { '#p-resale': 'resaleUsd', '#p-fee': 'feePct', '#p-dist': 'distanceMiles', '#p-rep': 'repairsUsd', '#p-margin': 'marginPct' }
+  const FIELDS = { '#p-resale': 'resaleUsd', '#p-fee': 'feePct', '#p-tax': 'taxTitlePct', '#p-dist': 'distanceMiles', '#p-rep': 'repairsUsd', '#p-margin': 'marginPct' }
   const edited = new Set()
   const replan = debounce(async () => {
     for (const [sel, key] of Object.entries(FIELDS)) {
-      if (!edited.has(key)) continue
+      if (!edited.has(key) || !el.querySelector(sel)) continue
       const v = el.querySelector(sel).value
       inputs[key] = v === '' ? undefined : Number(v)
     }
     try {
-      const plan = await postJson('/api/plan', { listingId: l.id, ...inputs })
+      // A fee or tax rate is a fact about the house or your state: remember it for every plan.
+      const remember = (edited.has('feePct') && inputs.feePct !== undefined) || (edited.has('taxTitlePct') && inputs.taxTitlePct !== undefined)
+      const plan = await postJson('/api/plan', { listingId: l.id, ...inputs, remember })
       current.plan = plan
       const active = document.activeElement && document.activeElement.id
       el.querySelector('#p-ledger').innerHTML = ledgerHtml(plan, inputs, l)

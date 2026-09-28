@@ -198,3 +198,18 @@ test('the plan says when the fee is unknown and when the distance is assumed', (
   assert.equal(plan.distanceAssumed, true)
   assert.equal(plan.distanceMiles, config.plan.defaultDistanceMiles)
 })
+
+test('tax and title come out of your cash too, when you have set your rate', () => {
+  // 12,000 cash, 1,340 of costs, eBay (no fee), 7% tax: bid × 1.07 ≤ 10,660 → 9,962 → 9,900.
+  const plan = buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 12_000, taxTitlePct: 7 })
+  assert.equal(plan.maxBidUsd, 9_900)
+  assert.equal(plan.taxTitleUsd, Math.round(0.07 * 9_900))
+  assert.ok(plan.cashNeededUsd <= 12_000, String(plan.cashNeededUsd))
+  assert.ok(plan.lines.some((s) => s.startsWith('Tax and title: $693')), plan.lines.join('\n'))
+  // Unset: said out loud, never guessed.
+  const unset = buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 12_000 })
+  assert.equal(unset.taxTitleUsd, undefined)
+  assert.ok(unset.lines.some((s) => s.startsWith('Tax and title: not set')))
+  // Tax does not change what the car is worth, so with plenty of cash the value limit is untouched.
+  assert.equal(buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 90_000, taxTitlePct: 7 }).maxBidUsd, 15_600)
+})

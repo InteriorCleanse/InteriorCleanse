@@ -2,12 +2,12 @@
 import { getJson, esc, money, store } from './api.js'
 import { loading, errorStrip } from './ui.js'
 
-const FIT = { in: ['go', 'In budget'], under: ['', 'Under budget'], over: ['wait', 'Over budget'] }
+const FIT = { in: ['go', 'In budget'], under: ['', 'Under budget'], stretch: ['wait', 'Stretch'], over: ['hot', 'Over budget'] }
 
-export async function render(el) {
-  const saved = store('gavel-rental') || { budget: 15000, use: 'p2p' }
-  el.innerHTML = `<div class="head"><div><h1>Rental</h1><p>Your goal is a rental car company and a first car. Type a budget, pick a road, and Gavel ranks the sensible candidates and lays out the first ten steps.</p></div></div>
-    <div class="panel"><form id="r-form" class="row"><label class="f" style="min-width:180px">Budget for the car <input type="number" name="budget" min="0" step="any" value="${esc(saved.budget)}" /></label>
+export async function render(el, ctx) {
+  const saved = store('gavel-rental') || { budget: ctx.me.cashUsd || 15000, use: 'p2p' }
+  el.innerHTML = `<div class="head"><div><h1>Rental</h1><p>Your goal is a rental car company and a first car. Type your cash for one car, pick a road, and Gavel ranks the sensible candidates and lays out the first ten steps.</p></div></div>
+    <div class="panel"><form id="r-form" class="row"><label class="f" style="min-width:200px">Cash for one car, all in ($) <input type="number" name="budget" min="0" step="any" value="${esc(saved.budget)}" /></label>
       <label class="f" style="min-width:220px">The road <select name="use"><option value="p2p" ${saved.use === 'p2p' ? 'selected' : ''}>Peer-to-peer rental (Turo-style)</option><option value="fleet" ${saved.use === 'fleet' ? 'selected' : ''}>My own rental fleet</option><option value="flip" ${saved.use === 'flip' ? 'selected' : ''}>Flip it for the next one</option></select></label>
       <button class="btn" type="submit" style="align-self:end">Show me</button></form></div>
     <div id="r-out"></div>`

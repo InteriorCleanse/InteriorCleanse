@@ -68,6 +68,7 @@ import { pickFor } from './sniper/engine.ts'
 import type { Pick } from './sniper/engine.ts'
 import { addAlert, alreadyFired, firedOnCar, listAlerts, markAlertsRead } from './sniper/alerts.ts'
 import { money } from './ui.ts'
+import { isStateCode } from './states.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = resolve(HERE, '..', 'web')
@@ -456,7 +457,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   function planFor(l: Listing, estimate: Estimate, inputs: PlanInputs, settings: Settings): BidPlan {
     const houseId = inputs.houseId ?? l.source
     const feePct = inputs.feePct ?? settings.feeOverrides[houseId]
-    return buildPlan(l, estimate, { cashUsd: settings.cashUsd, goal: settings.goal, ...inputs, houseId, feePct })
+    return buildPlan(l, estimate, { cashUsd: settings.cashUsd, goal: settings.goal, taxTitlePct: settings.taxTitlePct, ...inputs, houseId, feePct })
   }
 
   function planInputs(body: Record<string, unknown>): PlanInputs {
@@ -468,6 +469,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       repairsUsd: num(body.repairsUsd, 'repairsUsd', { optional: true, min: 0, max: 1_000_000 }),
       distanceMiles: num(body.distanceMiles, 'distanceMiles', { optional: true, min: 0, max: 10_000 }),
       feePct: num(body.feePct, 'feePct', { optional: true, min: 0, max: 30 }),
+      taxTitlePct: num(body.taxTitlePct, 'taxTitlePct', { optional: true, min: 0, max: 20 }),
       margin: marginPct !== undefined ? marginPct / 100 : num(body.margin, 'margin', { optional: true, min: 0, max: 0.9 }),
       houseId,
     }
@@ -596,6 +598,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         sniper: { unread: listAlerts().filter((a) => !a.read).length, targets: listTargets().filter((t) => t.active).length },
         goal: getSettings().goal ?? null,
         homeState: getSettings().homeState ?? null,
+        cashUsd: getSettings().cashUsd ?? null,
         dataDir: session.role === 'owner' ? DATA_DIR : undefined,
       })
     }
@@ -615,9 +618,20 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     if (path === '/api/plan' && method === 'POST') {
       const body = await readJsonBody(req)
       const l = await ensureKnown(str(body.listingId, 200))
+      const inputs = planInputs(body)
+      // A fee or a tax rate typed on one plan is a fact about the house or the member's state: remember it,
+      // so Home, the Sniper and every other plan use the same number.
+      if (body.remember === true) {
+        const now0 = getSettings()
+        const house = inputs.houseId ?? l.source
+        const patch: Record<string, unknown> = {}
+        if (inputs.feePct !== undefined) patch.feeOverrides = { ...now0.feeOverrides, [house]: inputs.feePct }
+        if (inputs.taxTitlePct !== undefined) patch.taxTitlePct = inputs.taxTitlePct
+        if (Object.keys(patch).length) { updateSettings(patch); runSniper().catch(() => {}) }
+      }
       const settings = getSettings()
       const card = cardFor(l, settings, { extra: await extraComps(l) })
-      return json(res, 200, planFor(l, card.estimate, planInputs(body), settings))
+      return json(res, 200, planFor(l, card.estimate, inputs, settings))
     }
 
     if (path === '/api/explain' && method === 'POST') {
@@ -924,7 +938,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const goal = str(body.goal, 10)
       if (goal !== 'rental' && goal !== 'flip' && goal !== 'keep') throw new HttpError(400, 'Pick a goal: rental, flip or keep.')
       const homeState = str(body.homeState, 2).toUpperCase()
-      if (homeState && !/^[A-Z]{2}$/.test(homeState)) throw new HttpError(400, 'Your state is two letters, for example TX.')
+      if (homeState && !isStateCode(homeState)) throw new HttpError(400, 'Pick your state from the list, for example TX or GA.')
       const budget = num(body.budgetUsd, 'budgetUsd', { min: 500, max: 5_000_000 })!
       const makes = Array.isArray(body.makes) ? (body.makes as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 12) : []
       const models = Array.isArray(body.models) ? (body.models as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 20) : []

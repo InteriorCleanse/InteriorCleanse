@@ -35,6 +35,8 @@ export type PlanInputs = {
   cashUsd?: number
   /** What the car is for. A flip keeps a margin to sell at; a rental or a keeper is bought under market value. */
   goal?: 'rental' | 'flip' | 'keep'
+  /** Sales tax plus title as a percent of the price (7 means 7%). Paid from your cash, so it counts inside the cash cap. */
+  taxTitlePct?: number
 }
 
 function pct(fraction: number): string {
@@ -50,11 +52,11 @@ function nonNeg(n: number | undefined, fallback: number): number {
  * percent fee grows with the bid, so the two are found together: start with
  * all the room, take the fee off, repeat until the number stops moving.
  */
-function bidWithin(room: number, houseId: string, feePct: number | undefined): number {
+function bidWithin(room: number, houseId: string, feePct: number | undefined, taxFraction = 0): number {
   const top = Math.max(0, room)
   let bid = top
   for (let i = 0; i < 12; i++) {
-    const next = Math.max(0, top - buyerFee(houseId, bid, feePct).usd)
+    const next = Math.max(0, top - buyerFee(houseId, bid, feePct).usd - taxFraction * bid)
     const settled = Math.abs(next - bid) < 0.5
     bid = next
     if (settled) break
@@ -113,7 +115,9 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
   const valueMax = bidWithin(resaleUsd - costs - marginUsd, houseId, inputs.feePct)
   // Your cash: the bid, its fee and every cost must fit inside it.
   const cashUsd = inputs.cashUsd !== undefined && Number.isFinite(inputs.cashUsd) && inputs.cashUsd > 0 ? inputs.cashUsd : undefined
-  const cashMax = cashUsd === undefined ? Infinity : bidWithin(cashUsd - costs, houseId, inputs.feePct)
+  const taxPct = inputs.taxTitlePct !== undefined && Number.isFinite(inputs.taxTitlePct) && inputs.taxTitlePct >= 0 ? inputs.taxTitlePct : undefined
+  // Tax and title are paid from your cash, so they count against it; they do not change what the car is worth.
+  const cashMax = cashUsd === undefined ? Infinity : bidWithin(cashUsd - costs, houseId, inputs.feePct, (taxPct ?? 0) / 100)
   const limitedBy: 'value' | 'cash' = cashMax < valueMax ? 'cash' : 'value'
   const maxBidUsd = Math.floor(Math.max(0, Math.min(valueMax, cashMax)) / 100) * 100
   const fee = buyerFee(houseId, maxBidUsd, inputs.feePct)
@@ -132,13 +136,18 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
     lines.push(`The max bid is $0 because there is no ${valueWord.toLowerCase()} yet. Type one in and the plan will update.`)
   }
 
+  // Tax and title.
+  const taxTitleUsd = taxPct === undefined ? undefined : Math.round((taxPct / 100) * maxBidUsd)
+  if (taxTitleUsd !== undefined) lines.push(`Tax and title: ${money(taxTitleUsd)} (${taxPct}% of the bid, the rate you entered for your state and county).`)
+  else lines.push('Tax and title: not set. Your state and county decide them; look up the sales tax on a car plus the title fee, type it as a percent, and every plan counts it.')
+
   // The cash it takes.
-  const cashNeededUsd = maxBidUsd + buyerFeeUsd + costs
-  lines.push(`Cash you need on the day: ${money(cashNeededUsd)} (the bid, the buyer fee, transport, repairs and the cushion). Sales tax, title and registration come on top; they depend on your state and county.`)
+  const cashNeededUsd = maxBidUsd + buyerFeeUsd + (taxTitleUsd ?? 0) + costs
+  lines.push(`Cash you need on the day: ${money(cashNeededUsd)} (the bid, the buyer fee${taxTitleUsd !== undefined ? ', tax and title' : ''}, transport, repairs and the cushion).${taxTitleUsd === undefined ? ' Tax, title and registration come on top.' : ' Registration comes on top.'}`)
   if (cashUsd !== undefined) {
     lines.push(limitedBy === 'cash'
       ? `Your cash is ${money(cashUsd)}, so the max bid is lowered to fit it. The car may be worth more, but you would run out of money for the fee and the rest.`
-      : `Your cash is ${money(cashUsd)}: this plan fits, with ${money(Math.max(0, cashUsd - cashNeededUsd))} to spare before tax and title.`)
+      : `Your cash is ${money(cashUsd)}: this plan fits, with ${money(Math.max(0, cashUsd - cashNeededUsd))} to spare${taxTitleUsd === undefined ? ' before tax and title' : ''}.`)
   }
 
   // Headroom.
@@ -159,5 +168,5 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
 
   if (l.kind === 'SAMPLE') lines.push('SAMPLE — not a real car. These numbers show the method, nothing more.')
 
-  return { resaleUsd, buyerFeeUsd, transportUsd, repairsUsd, reserveUsd, marginUsd, maxBidUsd, headroomUsd, cashNeededUsd, cashUsd, limitedBy, feeUnknown, distanceMiles: distance, distanceAssumed, marginFraction, goal, lines }
+  return { resaleUsd, buyerFeeUsd, transportUsd, repairsUsd, reserveUsd, marginUsd, maxBidUsd, headroomUsd, cashNeededUsd, taxTitleUsd, taxTitlePct: taxPct, cashUsd, limitedBy, feeUnknown, distanceMiles: distance, distanceAssumed, marginFraction, goal, lines }
 }

@@ -61,6 +61,8 @@ function isDealerOnly(house: AuctionHouse | undefined): boolean {
 /* ── step 1 ─────────────────────────────────────────────────────────────── */
 function stepIdentity(l: Listing): string {
   const p: string[] = []
+  // The first sentence is the one that gets read: make it the thing to do.
+  p.push('Decode the VIN, then run a history report on it, before you think about a bid.')
   if (l.kind === 'SAMPLE') {
     p.push('This is a SAMPLE car, so there is no real VIN to check. On a real car, this is what you would do.')
   }
@@ -163,7 +165,10 @@ function stepRegister(l: Listing, house: AuctionHouse | undefined): string {
   const p: string[] = []
   if (!house) {
     p.push(
-      `Gavel does not have a directory entry for this auction (source: ${l.source}). Open the listing and read the site's "how to register" and "fees" pages before you bid. Write down the buyer fee, the deposit and the payment deadline.`,
+      'Register with the auction before the sale, and write down its buyer fee, deposit and payment deadline.',
+      l.kind === 'SAMPLE'
+        ? 'This SAMPLE car has no real auction behind it, so Gavel does not have a directory entry for it; on a real lot, the Auctions screen has each house\'s rules.'
+        : `Gavel does not have a directory entry for this auction (source: ${l.source}). Open the listing and read the site's "how to register" and "fees" pages.`,
     )
     return p.join(' ')
   }

@@ -235,9 +235,17 @@ textarea { min-height: 80px; }
 .rail .chips::-webkit-scrollbar { display: none; }
 .rail .chips > * { flex: none; }
 .rail .tiers { margin-bottom: 8px; overflow: visible; }
+/* On a phone the filters scroll away with the page and wrap, so nothing hides off the right edge. */
+@media (max-width: 959px) {
+  .rail { position: static; }
+  .rail .chips { flex-wrap: wrap; overflow: visible; }
+  .rail .chips > input[type="search"]#f-q { flex: 1 1 150px; }
+}
 .rail input[type="search"], .rail input[type="number"], .rail select { min-height: 36px; width: auto; background: transparent; color: var(--on-paper); border-color: var(--on-paper); font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
 .rail input[type="search"] { width: 160px; }
 .rail input[type="number"] { width: 130px; }
+.rail .inl { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--on-paper); }
+.rail .inl input[type="number"] { width: 110px; }
 .status { margin: 8px 0 0; color: var(--on-paper-2); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .status .lnk { background: none; border: 0; padding: 0; color: var(--on-paper); text-decoration: underline; cursor: pointer; font: inherit; }
 
@@ -409,6 +417,8 @@ a.tile.big:hover { transform: translateY(-2px); }
 .nextup .go-arrow { font-family: var(--display); font-weight: 800; font-size: 36px; padding: 0 20px; transition: transform var(--dur) var(--ease); }
 .nextup:hover .go-arrow { transform: translateX(4px); }
 .nextup.best { border-left-color: var(--go); }
+.warn-line { color: var(--hot); font-weight: 600; margin: 4px 0; }
+.feenote { display: block; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--hot); }
 .nextup .bn { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1.1; white-space: nowrap; }
 .nextup .k { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
 .homegrid { display: grid; gap: 16px; }

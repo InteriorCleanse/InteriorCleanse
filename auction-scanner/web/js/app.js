@@ -97,6 +97,13 @@ async function pollAlerts() {
   } catch { /* a missed poll is harmless; the next one catches up */ }
 }
 
+/** Building a rental business: Rental takes Garage's place in the phone bar, and Garage moves into More. */
+export function applyGoal(me) {
+  const rental = me.goal === 'rental'
+  document.querySelector('.tabs [data-tab="rental"]').classList.toggle('desk-only', !rental)
+  document.querySelector('.tabs [data-tab="garage"]').classList.toggle('desk-only', rental)
+}
+
 async function boot() {
   document.getElementById('mode-chip').addEventListener('click', () => { location.hash = '#settings' })
   document.getElementById('more-btn').addEventListener('click', moreSheet)
@@ -107,11 +114,7 @@ async function boot() {
     return
   }
   setCsrf(ctx.me.csrf)
-  // Building a rental business: Rental takes Garage's place in the phone bar, and Garage moves into More.
-  if (ctx.me.goal === 'rental') {
-    document.querySelector('.tabs [data-tab="rental"]').classList.remove('desk-only')
-    document.querySelector('.tabs [data-tab="garage"]').classList.add('desk-only')
-  }
+  applyGoal(ctx.me)
   document.title = ctx.me.brand || 'Gavel'
   const live = (ctx.me.sources || []).filter((s) => s.kind === 'api' && s.connected)
   setMode(live.length ? 'LIVE' : 'EMPTY', live.map((s) => s.name).join(', '))

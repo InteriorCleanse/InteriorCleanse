@@ -1,11 +1,11 @@
 // The Playbook: the guides, with a checklist that remembers your ticks on this device.
 import { getJson, postJson, esc, store } from './api.js'
 import { loading, errorStrip } from './ui.js'
+import { STATES } from './states.js'
 
 const LEVEL = { start: ['go', 'Start here'], next: ['', 'Next'], later: ['wait', 'Later'] }
 let cache = null
 const ORDER = { start: 0, next: 1, later: 2 }
-const STATES = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'the District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming' }
 
 /** The guide's level for this member: renting is the goal, so the rental guide is a start-here guide. */
 function levelFor(g, goal) {

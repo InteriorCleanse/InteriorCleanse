@@ -7,6 +7,8 @@
  * and marked as rough; the live comps in the Feed are the real check. Nothing
  * here promises a return.
  */
+import { config } from '../config.ts'
+import { money } from './ui.ts'
 
 export type RentalUse = 'p2p' | 'fleet' | 'flip'
 
@@ -16,12 +18,13 @@ export type RentalPick = {
   years: string
   whyPlain: string
   watchOut: string
-  budgetFit: 'under' | 'in' | 'over'
+  /** Against what you could bid once transport and a cushion come out of your cash: in, under, stretch (only just fits) or over. */
+  budgetFit: 'under' | 'in' | 'stretch' | 'over'
   /** Rough used-price band in dollars, wide on purpose. */
   roughBandUsd: [number, number]
 }
 
-export type RentalResult = { picks: RentalPick[]; steps: string[]; notes: string[] }
+export type RentalResult = { picks: RentalPick[]; steps: string[]; notes: string[]; /** What your cash leaves to bid after default transport and the cushion. */ bidCeilingUsd: number }
 
 type Candidate = Omit<RentalPick, 'budgetFit'> & { uses: RentalUse[]; rank: number }
 
@@ -84,18 +87,26 @@ export const RENTAL_STEPS: Record<RentalUse, string[]> = {
   ],
 }
 
-function fit(budget: number, band: [number, number]): RentalPick['budgetFit'] {
-  if (budget >= band[1]) return 'under'
-  if (budget >= band[0]) return 'in'
+function fit(ceiling: number, cash: number, band: [number, number]): RentalPick['budgetFit'] {
+  if (ceiling >= band[1]) return 'under'
+  if (ceiling >= band[0]) return 'in'
+  if (cash >= band[0]) return 'stretch'
   return 'over'
 }
 
-const FIT_ORDER: Record<RentalPick['budgetFit'], number> = { in: 0, under: 1, over: 2 }
+const FIT_ORDER: Record<RentalPick['budgetFit'], number> = { in: 0, under: 1, stretch: 2, over: 3 }
+
+/** Cash for one car, all in, minus the plan's default transport and cushion: roughly what is left to bid. */
+export function bidCeiling(cashUsd: number): number {
+  const costs = Math.round(config.plan.defaultDistanceMiles * config.plan.transportPerMileUsd) + config.plan.surpriseReserveUsd
+  return Math.max(0, cashUsd - costs)
+}
 
 export function rentalPicks(budgetUsd: number, use: RentalUse): RentalResult {
   const budget = Number.isFinite(budgetUsd) && budgetUsd > 0 ? budgetUsd : 0
+  const ceiling = bidCeiling(budget)
   const picks: RentalPick[] = CANDIDATES.filter((c) => c.uses.includes(use))
-    .map((c) => ({ make: c.make, model: c.model, years: c.years, whyPlain: c.whyPlain, watchOut: c.watchOut, roughBandUsd: c.roughBandUsd, budgetFit: fit(budget, c.roughBandUsd), rank: c.rank }))
+    .map((c) => ({ make: c.make, model: c.model, years: c.years, whyPlain: c.whyPlain, watchOut: c.watchOut, roughBandUsd: c.roughBandUsd, budgetFit: fit(ceiling, budget, c.roughBandUsd), rank: c.rank }))
     .sort((a, b) => FIT_ORDER[a.budgetFit] - FIT_ORDER[b.budgetFit] || a.rank - b.rank)
     .map(({ rank: _rank, ...p }) => p)
   const notes = [
@@ -104,6 +115,7 @@ export function rentalPicks(budgetUsd: number, use: RentalUse): RentalResult {
     use === 'p2p' ? 'Peer-to-peer eligibility pages change. Read the current one before you buy.' : use === 'fleet' ? 'A one-car fleet is hard to insure. Some insurers will not write it; ask several.' : 'A car that sits unsold costs money every week. Price to sell in two weeks.',
     'A car that sits is a cost, not an asset.',
   ]
-  if (budget === 0) notes.unshift('Type a budget to see which cars fit it.')
-  return { picks, steps: RENTAL_STEPS[use], notes }
+  if (budget === 0) notes.unshift('Type your cash for one car to see which cars fit it.')
+  else notes.unshift(`Your ${money(budget)} leaves about ${money(ceiling)} to bid once transport and a cushion come out; the auction fee and tax come out too, and each plan works them out exactly. Stretch means only the cheapest ones fit.`)
+  return { picks, steps: RENTAL_STEPS[use], notes, bidCeilingUsd: ceiling }
 }

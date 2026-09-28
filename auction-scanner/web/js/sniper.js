@@ -16,7 +16,7 @@ function targetForm(t = {}) {
     <p class="dim" style="font-size:14px">Pick what you want and the most you will spend. The Sniper does the watching.</p>
     <div class="grid2">
       <label class="f">Name (optional) <input type="text" name="name" maxlength="80" value="${esc(t.name || '')}" placeholder="Weekend Porsche" /></label>
-      <label class="f">The most you will spend ($) <input type="number" name="maxBudgetUsd" min="500" step="any" required value="${esc(t.maxBudgetUsd || '')}" /><small>The car itself. Fees, transport and fixes come out of the bid plan.</small></label>
+      <label class="f">Cash for one car, all in ($) <input type="number" name="maxBudgetUsd" min="500" step="any" required value="${esc(t.maxBudgetUsd || window.__gavelCash || '')}" /><small>Every pick's number keeps the bid, fee, tax, transport and fixes inside it.</small></label>
     </div>
     <label class="f" style="margin-top:12px">Makes <small>Tap to add. Leave empty for any make.</small></label>
     <div class="chips wrap" id="t-makes">${makes.map((m) => `<button type="button" class="chip" data-make="${esc(m.make)}" aria-pressed="${(t.makes || []).includes(m.make)}">${esc(m.make)}</button>`).join('')}</div>
@@ -78,7 +78,7 @@ function pickHtml(p) {
       <div class="mono dim">For ${esc((p.targetNames || [p.targetName]).join(' + '))} · ${p.fit}/100 match</div>
       <h3 class="title">${esc(l.title)}</h3>
       <div class="subline mono">${esc([l.mileage ? l.mileage.toLocaleString('en-US') + ' mi' : null, l.location && l.location.state, sourceName(l.source), t && t.text].filter(Boolean).join(' · '))}</div>
-      <div class="money"><div><span class="k mono">Price now</span><div class="now">${esc(money(l.currentBidUsd ?? l.buyNowUsd))}</div></div><div><span class="k mono">Never bid above</span><div class="now" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div></div></div>
+      <div class="money"><div><span class="k mono">Price now</span><div class="now">${esc(money(l.currentBidUsd ?? l.buyNowUsd))}</div></div><div><span class="k mono">Never bid above</span><div class="now" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div>${p.plan.feeUnknown ? '<span class="feenote">before the buyer fee: open the plan and type it</span>' : ''}</div></div>
       ${badges(l)}
       <div class="fire"><span class="pill ${tone}">${word}</span>${p.fire.fireAt ? `<span class="mono dim">fire at ${esc(when(p.fire.fireAt))}</span>` : ''}<p style="margin:8px 0 0">${esc(p.fire.why)}</p><ol class="fire-steps">${p.fire.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></div>
       <div class="actions"><a class="btn sm" href="#plan/${encodeURIComponent(l.id)}">Open the plan</a>${l.kind !== 'SAMPLE' && /^https?:/.test(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''}</div>
@@ -87,6 +87,7 @@ function pickHtml(p) {
 }
 
 export async function render(el, ctx) {
+  window.__gavelCash = ctx.me.cashUsd || ''
   el.innerHTML = `<div class="head"><div><h1>Sniper</h1><p>Tell it what you want and the most you will spend. It watches the auctions, ranks the picks, and writes the exact bid plan for each one. Armed targets fire on paper.</p></div><div class="row"><button class="btn" id="sn-new">New target</button><button class="btn outline" id="sn-run">Scan now</button></div></div>${loading('Loading…')}`
   let data
   try { [data, catalog] = await Promise.all([getJson('/api/sniper'), catalog ? Promise.resolve(catalog) : getJson('/api/catalog')]) } catch (e) { el.innerHTML += errorStrip(e.message); return }

@@ -7,7 +7,8 @@ export function toast(text, tone = '') {
   const t = document.createElement('div')
   t.className = 'toast ' + tone
   t.textContent = text
-  root.appendChild(t)
+  // One message at a time: a fixed mistake's warning never lingers next to what happened since.
+  root.replaceChildren(t)
   setTimeout(() => t.remove(), 6000)
 }
 
