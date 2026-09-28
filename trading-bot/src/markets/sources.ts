@@ -191,6 +191,48 @@ export async function fetchStocks(symbols: string[], now = Date.now(), fetchImpl
   return out
 }
 
+/**
+ * Bars for many symbols at one timeframe, following Alpaca's page tokens.
+ * `feed` is tried in order: the consolidated SIP feed first (real volume; the
+ * free plan serves it for bars older than 15 minutes), then IEX, which every
+ * plan has but which carries only a small slice of the day's volume. The result
+ * says which feed answered, so volume is never read as more than it is.
+ */
+export async function fetchStockBars(symbols: string[], timeframe: '1Day' | '15Min', start: number, now = Date.now(), fetchImpl: FetchLike = fetch as unknown as FetchLike, feeds: Array<'sip' | 'iex'> = ['sip', 'iex']): Promise<{ ok: true; feed: 'sip' | 'iex'; bars: Record<string, Candle[]> } | { ok: false; reason: string }> {
+  const cfg = alpacaConfig()
+  if (!cfg) return { ok: false, reason: 'not connected: add read-only Alpaca keys (MRCASH_ALPACA_KEY / _SECRET) for stock data' }
+  if (!symbols.length) return { ok: true, feed: feeds[0], bars: {} }
+  const intervalMs = timeframe === '1Day' ? 24 * HOUR : 15 * 60_000
+  let lastReason = 'no feed answered'
+  for (const feed of feeds) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 20_000)
+    try {
+      const all: Record<string, Candle[]> = {}
+      let token = ''
+      for (let page = 0; page < 12; page++) {
+        const end = feed === 'sip' ? `&end=${encodeURIComponent(new Date(now - 16 * 60_000).toISOString())}` : ''
+        const url = `${alpacaDataBase()}/v2/stocks/bars?symbols=${encodeURIComponent(symbols.join(','))}&timeframe=${timeframe}&start=${encodeURIComponent(new Date(start).toISOString())}${end}&limit=10000&feed=${feed}&adjustment=split${token ? `&page_token=${encodeURIComponent(token)}` : ''}`
+        const res = await fetchImpl(url, { headers: { 'APCA-API-KEY-ID': cfg.key, 'APCA-API-SECRET-KEY': cfg.secret, accept: 'application/json' }, signal: controller.signal })
+        if (res.status === 401 || res.status === 403) throw new Error(feed === 'sip' ? 'SIP feed not available on this plan' : 'Alpaca rejected the keys for market data')
+        if (!res.ok) throw new Error(`Alpaca returned HTTP ${res.status}`)
+        const body = await res.json() as { next_page_token?: string | null }
+        const got = parseAlpacaBars(body, now, intervalMs)
+        for (const [sym, list] of Object.entries(got)) all[sym] = [...(all[sym] ?? []), ...list]
+        token = body && typeof body.next_page_token === 'string' ? body.next_page_token : ''
+        if (!token) break
+      }
+      for (const k of Object.keys(all)) all[k].sort((a, b) => a.openTime - b.openTime)
+      return { ok: true, feed, bars: all }
+    } catch (e) {
+      lastReason = safeReason(e)
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  return { ok: false, reason: lastReason }
+}
+
 /** Which feeds are pointed somewhere other than the real venue (a mock or a proxy). */
 export function sourceOverrides(): Record<SourceId, boolean> {
   return {
