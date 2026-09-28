@@ -1,6 +1,6 @@
 # Connecting your broker (read-only portfolio)
 
-Custom code that lets Trading Bot **see** your real brokerage account — balance and
+Custom code that lets Kestrel **see** your real brokerage account — balance and
 open positions — without being able to trade it. The client (`src/broker/alpaca.ts`)
 has no function that can place, change or cancel an order, so connecting real
 keys shows your portfolio and nothing more. Live execution stays gated exactly
@@ -62,7 +62,7 @@ Kraken itself refuses anything else.
 
 1. Log in at kraken.com → **Settings → Connections & API → Create API key**
    (Kraken Pro: **Settings → API**).
-2. Name it `Trading Bot read-only`.
+2. Name it `Kestrel read-only`.
 3. Tick **Query Funds** and **nothing else**. Leave every Orders & Trades,
    Deposit, Withdraw and Earn permission **off**.
 4. Optional but good: under IP allowlist, enter your home IP so the key only
@@ -84,7 +84,7 @@ Kraken itself refuses anything else.
    has the holdings; `/api/brokers` lists which brokers are linked (yes/no only).
 
 If it says the key needs **Query Funds**, the permission box was not ticked.
-If it says the key was rejected, re-copy both values in full. Give Trading Bot its
+If it says the key was rejected, re-copy both values in full. Give Kestrel its
 **own** key: Kraken rejects a request whose nonce is lower than one another app
 already used with the same key.
 

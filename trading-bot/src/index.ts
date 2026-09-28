@@ -257,7 +257,7 @@ async function commandPaper(): Promise<void> {
     ui.table(['Closed', 'Side', 'Exit', 'Result', 'Setup'], p.closed.slice(0, 12).map((c) => [ui.formatTime(c.closedAt ?? 0), c.direction, c.exitReason ?? '', (c.rMultiple ?? 0) >= 0 ? ui.good(ui.r(c.rMultiple ?? 0)) : ui.bad(ui.r(c.rMultiple ?? 0)), c.setupKey.split('|').slice(3).join(' ')]))
   }
   ui.plainEnglish([
-    'Every trade here was opened and closed by Trading Bot on paper while',
+    'Every trade here was opened and closed by Kestrel on paper while',
     '`npm start` (or start-24-7) was running. Each close is written to',
     'memory, can become a lesson, and creates a journal entry for you.',
     'This is the track record. Let it get long before you trust it.',
@@ -619,7 +619,7 @@ async function commandVault(): Promise<void> {
 }
 
 function commandHelp(): void {
-  ui.heading('TRADING BOT — WHAT CAN I DO?')
+  ui.heading('KESTREL — WHAT CAN I DO?')
   ui.safetyBanner()
   ui.blank()
   ui.table(['Type this', 'And it will'], [
@@ -635,7 +635,7 @@ function commandHelp(): void {
     ['npm run flow', 'where the big orders are and what is trading'],
     ['npm run watch', 'stay on, raise alerts, and paper-trade every candle'],
     ['npm run paper', 'the paper account: equity, open and closed trades'],
-    ['npm run mcp:config', 'connect Trading Bot to Claude Desktop / Claude Code'],
+    ['npm run mcp:config', 'connect Kestrel to Claude Desktop / Claude Code'],
     ['npm run doctor', 'check every connection'],
     ['npm run picture -- chart.png', 'analyze a chart screenshot (needs the AI key)'],
     ['npm run scan', 'check the market right now and explain its decision'],

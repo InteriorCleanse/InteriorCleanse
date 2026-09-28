@@ -26,7 +26,7 @@ const PATTERNS: Array<{ kind: string; re: RegExp }> = [
   { kind: 'Stripe live key', re: /\b[rs]k_live_[A-Za-z0-9]{16,}/ },
   { kind: 'GitHub token', re: /\b(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{50,})\b/ },
   { kind: 'Slack token', re: /\bxox[baprs]-[A-Za-z0-9-]{10,}/ },
-  // An env-style line that gives one of Trading Bot's own secrets a value.
+  // An env-style line that gives one of Kestrel's own secrets a value.
   { kind: 'secret assigned in a file', re: /^\s*(?:export\s+)?(?:MRCASH_(?:ALPACA_SECRET|ALPACA_KEY|KRAKEN_SECRET|KRAKEN_KEY|VAULT_TOTP|VAULT_PASSCODE|PIN)|EXCHANGE_API_SECRET|EXCHANGE_API_KEY|ANTHROPIC_API_KEY)\s*=\s*[^\s#<'"]{6,}/ },
 ]
 
@@ -123,7 +123,7 @@ export function assess(s: AuditState): Finding[] {
 
   add(s.runtimeDependencies === 0 ? 'PASS' : 'WARN', s.runtimeDependencies === 0 ? 'Zero runtime dependencies' : `${s.runtimeDependencies} runtime dependencies`, s.runtimeDependencies === 0 ? 'No third-party package runs inside the app, so none can be poisoned.' : 'Each one is code you did not write running with your keys. Review them.')
 
-  add(s.nodeMajor >= 22 ? 'PASS' : 'FAIL', `Node ${s.nodeMajor}`, s.nodeMajor >= 22 ? 'A supported release. Keep it updated for security fixes.' : 'Trading Bot needs Node 22 or newer.')
+  add(s.nodeMajor >= 22 ? 'PASS' : 'FAIL', `Node ${s.nodeMajor}`, s.nodeMajor >= 22 ? 'A supported release. Keep it updated for security fixes.' : 'Kestrel needs Node 22 or newer.')
 
   if (s.webhookSecretLength === 0) add('PASS', 'TradingView webhook secret is fresh every start', 'Random, and printed only in your terminal.')
   else if (s.webhookSecretLength < 16) add('WARN', 'TradingView webhook secret is short', 'Use 16 characters or more, or leave it blank for a fresh one each start.')

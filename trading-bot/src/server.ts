@@ -76,6 +76,8 @@ import { CallDesk } from './forecast/service.ts'
 import { PredictionDesk } from './predict/desk.ts'
 import * as builder from './research/builder.ts'
 import { ResearchDesk } from './researchdesk/service.ts'
+import { StockDesk } from './stocks/desk.ts'
+import { fetchStockBars } from './markets/sources.ts'
 import type { MarketInput as DeskMarket } from './researchdesk/roles.ts'
 import { keywords as pmKeywords } from './predict/minds.ts'
 import type { Council, OracleRead } from './predict/minds.ts'
@@ -203,13 +205,13 @@ function authed(req: IncomingMessage): boolean {
   return isLocal(req) || hasSession(req)
 }
 
-const LOGIN_PAGE = (msg = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trading Bot</title>
+const LOGIN_PAGE = (msg = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kestrel</title>
 <link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/icon-180.png"><meta name="theme-color" content="#0d1117">
 <style>body{margin:0;background:#0d1117;color:#e6edf3;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
 form{background:#161b22;border:1px solid #26303d;border-radius:14px;padding:28px;width:min(92vw,360px);text-align:center}h1{font-size:22px;margin:0 0 6px}p{color:#8b98a5;margin:0 0 18px;font-size:14px}
 input{width:100%;box-sizing:border-box;font-size:28px;letter-spacing:.3em;text-align:center;padding:12px;border-radius:10px;border:1px solid #26303d;background:#0d1117;color:#e6edf3}
 .code{margin-top:10px;font-size:22px}button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:#58a6ff;color:#04111f;font-weight:700;font-size:16px}.err{color:#f85149;font-size:14px;margin-top:10px}</style></head>
-<body><form method="post" action="/login"><h1>Trading Bot</h1><p>${loginGate.needsCode() ? 'Enter the PIN shown in the terminal on your computer, then the 6-digit code from your authenticator app.' : 'Enter the PIN shown in the terminal on your computer.'}</p><input name="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" autofocus maxlength="32">${loginGate.needsCode() ? '<input name="code" inputmode="numeric" autocomplete="one-time-code" aria-label="Authenticator code" placeholder="code" maxlength="6" pattern="[0-9]{6}" class="code">' : ''}<button>Open</button>${msg ? `<div class="err">${msg}</div>` : ''}</form></body></html>`
+<body><form method="post" action="/login"><h1>Kestrel</h1><p>${loginGate.needsCode() ? 'Enter the PIN shown in the terminal on your computer, then the 6-digit code from your authenticator app.' : 'Enter the PIN shown in the terminal on your computer.'}</p><input name="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" autofocus maxlength="32">${loginGate.needsCode() ? '<input name="code" inputmode="numeric" autocomplete="one-time-code" aria-label="Authenticator code" placeholder="code" maxlength="6" pattern="[0-9]{6}" class="code">' : ''}<button>Open</button>${msg ? `<div class="err">${msg}</div>` : ''}</form></body></html>`
 
 // ---------------------------------------------------------------
 // The market snapshot the app reads from
@@ -336,7 +338,7 @@ async function streamAnswer(res: ServerResponse, question: string, context: stri
   const status = await aiStatus()
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   try {
-    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()) + predictContext() + researchDeskContext(), history, (t) => res.write(t), image, skillById(skillId))
+    const answer = await askAI(question, context + (await skillContext(skillId)) + (await conditionsContext()) + predictContext() + researchDeskContext() + stockDeskContext(), history, (t) => res.write(t), image, skillById(skillId))
     res.end(`\n[[META:${JSON.stringify({ costUsd: answer.costUsd, refused: answer.refused, usage: answer.usage, model: status.model })}]]`)
   } catch (err) {
     res.end(`\n[[ERROR:${await explainAiError(err)}]]`)
@@ -420,7 +422,7 @@ const server = createServer(async (req, res) => {
       const symbol = String(body.symbol ?? '').slice(0, 30)
       const price = Number(body.price)
       mirrorAppend(TV_LOG, `${new Date().toISOString()},${JSON.stringify(event)},${symbol},${Number.isFinite(price) ? price : ''}\n`, { header: 'timestamp,event,symbol,price\n', maxBytes: 5_000_000 })
-      eventLog.push('tradingview', `TradingView: ${event}${symbol ? ` on ${symbol}` : ''}`, Number.isFinite(price) ? `Price $${price.toFixed(2)}. Check the chart tab — Trading Bot will confirm or disagree on the next candle.` : 'Check the chart tab.', 'warn')
+      eventLog.push('tradingview', `TradingView: ${event}${symbol ? ` on ${symbol}` : ''}`, Number.isFinite(price) ? `Price $${price.toFixed(2)}. Check the chart tab — Kestrel will confirm or disagree on the next candle.` : 'Check the chart tab.', 'warn')
       json(res, 200, { ok: true })
       return
     }
@@ -617,6 +619,22 @@ const server = createServer(async (req, res) => {
         if (path === '/api/rdesk/drill' && req.method === 'POST') { json(res, 200, { ok: true, data: await researchDesk.fireDrill() }); return }
       } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 200) }); return }
       json(res, 404, { ok: false, error: 'not found' }); return
+    }
+    // The stock desk: the owner's momentum / relative-strength strategy on its own clock, PAPER only. No broker, no orders.
+    if (path.startsWith('/api/stocks')) {
+      const body = async () => JSON.parse((await readBody(req, 4 * 1024)) || '{}') as Record<string, unknown>
+      try {
+        if (path === '/api/stocks' && req.method === 'GET') { json(res, 200, { ok: true, data: stockDesk.snapshot() }); return }
+        if (path === '/api/stocks/run' && req.method === 'POST') { await stockDesk.cycle(true); json(res, 200, { ok: true, data: stockDesk.snapshot() }); return }
+        if (path === '/api/stocks/pause' && req.method === 'POST') { const b = await body(); stockDesk.setPaused(b.on === true); json(res, 200, { ok: true, data: stockDesk.snapshot() }); return }
+        if (path === '/api/stocks/flatten' && req.method === 'POST') { stockDesk.flatten(); json(res, 200, { ok: true, data: stockDesk.snapshot() }); return }
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 200) }); return }
+      json(res, 404, { ok: false, error: 'not found' }); return
+    }
+    // Every paper book on one page, and what runs on its own. PAPER throughout; each book keeps its own starting size.
+    if (path === '/api/overview') {
+      try { json(res, 200, { ok: true, data: overview() }) } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 200) }) }
+      return
     }
     // The prediction desk: ten minds over public Polymarket and Kalshi prices, PAPER positions, settled by the venue. No orders.
     if (path === '/api/predict') {
@@ -1427,7 +1445,7 @@ const server = createServer(async (req, res) => {
     }
 
     // ---------------------------------------------------------------
-    // Trading Bot intelligence layer (Phase 22). READ-ONLY, every route GET.
+    // Kestrel intelligence layer (Phase 22). READ-ONLY, every route GET.
     // It projects engine state onto annotations and explanations; it cannot
     // produce a signal, size a position, veto a trade or place an order.
     // ---------------------------------------------------------------
@@ -1623,7 +1641,7 @@ const server = createServer(async (req, res) => {
       try {
         const out = await askAIJson(PICTURE_INSTRUCTIONS + (note ? `\n\nThe user adds: ${note}` : ''), context, { mediaType: m[1] as AiImage['mediaType'], data: m[2] }, PICTURE_SCHEMA)
         if (!out.json) { json(res, 200, { ok: false, error: out.reason ?? 'No answer.', costUsd: out.costUsd }); return }
-        json(res, 200, { ok: true, data: { ...cleanPictureRead(out.json), model: out.model, costUsd: Math.round(out.costUsd * 10000) / 10000, note: 'A read of a picture by the AI. Prices are as it read them from the image, not checked against market data. Not advice, and Trading Bot does not trade on it.' } })
+        json(res, 200, { ok: true, data: { ...cleanPictureRead(out.json), model: out.model, costUsd: Math.round(out.costUsd * 10000) / 10000, note: 'A read of a picture by the AI. Prices are as it read them from the image, not checked against market data. Not advice, and Kestrel does not trade on it.' } })
       } catch (err) { json(res, 200, { ok: false, error: await explainAiError(err) }) }
       return
     }
@@ -1765,6 +1783,41 @@ function researchDeskContext(): string {
     return `\n\nRESEARCH DESK (research only, the owner decides; cards today ${s.cardsToday.length} of max ${s.config.limits.maxCardsPerDay}): ${s.cardsToday.map((c) => `${c.label}: ${c.whatHappened}; why ${c.why}; ${c.fit}; against: ${c.against}`).join(' | ') || 'no cards today'}. Held today: ${s.heldToday.slice(0, 5).map((h) => `${h.label} (${h.why})`).join('; ') || 'none'}.`
   } catch { return '' }
 }
+// The stock desk: tech and tech-adjacent leaders, long only, the owner's DSC and catalyst-day rules, a research report
+// before every buy, stops enforced every 15 minutes. PAPER only. MRCASH_STOCK_DESK=0 turns it off.
+const stockDesk = new StockDesk({
+  fetchBars: (symbols, tf, start) => fetchStockBars(symbols, tf, start),
+  headlines: async () => { try { return (await getNews()).headlines } catch { return null } },
+  alert: (title, body) => { eventLog.push('info', title, body, 'info') },
+  bankroll: Number(process.env.MRCASH_STOCK_BANKROLL) || 10_000,
+})
+function stockDeskContext(): string {
+  try { return `\n\nSTOCK DESK (PAPER, no orders, long stocks only): ${stockDesk.summary()}` } catch { return '' }
+}
+/** Every paper book, its own start and now, and the loops that run without being asked. */
+function overview() {
+  const st = stockDesk.snapshot()
+  const pd = predictionDesk.snapshot()
+  const openEngine = readPositions().open.filter((p) => p.status === 'open').length
+  const books = [
+    { id: 'stocks', label: 'Stock desk', market: 'US tech leaders, long only', start: st.account.startEquity, now: st.account.equity, open: st.positions.length, status: st.paused ? 'PAUSED' : st.phase === 'regular' ? 'TRADING HOURS' : st.phase === 'premarket' ? 'PREMARKET' : 'MARKET CLOSED', tab: 'stocks' },
+    { id: 'engine', label: 'Bitcoin engine', market: `${config.symbol}, around the clock`, start: config.accountSizeUsd, now: equity(), open: openEngine, status: 'RUNNING', tab: 'today' },
+    { id: 'predict', label: 'Prediction desk', market: 'Polymarket and Kalshi', start: pd.sheet.startingBalance, now: pd.sheet.endingBalance, open: pd.open.length, status: pd.status, tab: 'predict' },
+  ].map((b) => ({ ...b, changePct: b.start > 0 ? (b.now / b.start - 1) * 100 : 0 }))
+  return {
+    mode: 'PAPER' as const,
+    books,
+    equityCurve: st.equity,
+    autopilot: [
+      { name: 'Stock desk', schedule: 'premarket scan 8:15 CT, every 15 minutes 8:30-3:00 CT', next: st.nextWake, paused: st.paused },
+      { name: 'Bitcoin engine', schedule: 'every closed 5-minute candle, 24/7', next: null, paused: false },
+      { name: 'Prediction desk', schedule: 'every 10 minutes, 24/7', next: null, paused: false },
+      { name: 'Market watch', schedule: 'crypto, stocks, forex and indexes, rescanned every few minutes', next: null, paused: false },
+      { name: 'Research desk', schedule: 'New York schedule, at most 3 cards a day', next: null, paused: false },
+    ],
+    latest: st.cycles[0] ?? null,
+  }
+}
 const predictionDesk = new PredictionDesk({
   news: async () => { try { const r = await getNews(); return { headlines: r.headlines, calendar: r.calendar } } catch { return null } },
   oracle: process.env.MRCASH_PREDICT_AI === '1' ? predictOracle : undefined,
@@ -1811,7 +1864,7 @@ async function checkConditions(): Promise<void> {
   if (r.verdict === lastConditionsVerdict) return
   const was = lastConditionsVerdict
   lastConditionsVerdict = r.verdict
-  if (r.verdict === 'POOR') eventLog.push('info', 'Market conditions: POOR', `${r.reasons.join(' ')} Trading Bot has not stopped anything; the kill switch is on the Conditions page if you want no new entries.`, 'warn')
+  if (r.verdict === 'POOR') eventLog.push('info', 'Market conditions: POOR', `${r.reasons.join(' ')} Kestrel has not stopped anything; the kill switch is on the Conditions page if you want no new entries.`, 'warn')
   else if (was === 'POOR' && r.verdict !== 'NOT ENOUGH DATA') eventLog.push('info', `Market conditions back to ${r.verdict}`, r.reasons.join(' '), 'info')
 }
 
@@ -1832,9 +1885,10 @@ server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
   if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_PREDICT !== '0') predictionDesk.start()
   if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_RESEARCH_DESK !== '0') researchDesk.start()
+  if (process.env.MRCASH_STOCK_DESK !== '0') stockDesk.start()
   if (process.env.MRCASH_CALLS !== '0') { callDesk.start(); callDesk5.start() }
   if (process.env.MRCASH_MARKETS !== '0') { const t = setInterval(() => { void checkConditions() }, 5 * 60_000); t.unref?.(); setTimeout(() => { void checkConditions() }, 90_000).unref?.() }
-  ui.heading('TRADING BOT IS RUNNING')
+  ui.heading('KESTREL IS RUNNING')
   console.log('')
   console.log(ui.good(`  ● ${describeMode()}`))
   const st = stopState()

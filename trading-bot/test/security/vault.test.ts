@@ -23,7 +23,7 @@ test('TOTP matches the RFC 6238 test vectors', () => {
 test('base32 round-trips and a generated secret is 160 bits', () => {
   assert.deepEqual(base32Decode(base32Encode(RFC_KEY)), RFC_KEY)
   assert.equal(base32Decode(generateSecret()).length, 20)
-  assert.match(otpauthUri('ABCDEFGH'), /^otpauth:\/\/totp\/Trading%20Bot:vault\?secret=ABCDEFGH&issuer=Trading%20Bot&algorithm=SHA1&digits=6&period=30$/)
+  assert.match(otpauthUri('ABCDEFGH'), /^otpauth:\/\/totp\/Kestrel:vault\?secret=ABCDEFGH&issuer=Kestrel&algorithm=SHA1&digits=6&period=30$/)
 })
 
 test('a code is accepted one step either side of now, and never twice', () => {

@@ -1,18 +1,18 @@
 """
-BACKTEST research with vectorbt on candles Trading Bot recorded.
+BACKTEST research with vectorbt on candles Kestrel recorded.
 
     npm run research:export -- --symbol BTCUSDT --interval 5m
     research/.venv-vbt/bin/python research/vbt_sweep.py --csv research/data/BTCUSDT_5m.csv
 
 A moving-average crossover sweep, used as a TEXTBOOK example to show the
-method; it is not Trading Bot's strategy. The method is what matters:
+method; it is not Kestrel's strategy. The method is what matters:
   1. split the history: the first part (in-sample) is where parameters are
      chosen, the rest (out-of-sample) is never looked at until the end;
   2. try a grid of parameters in-sample, with fees and slippage charged;
   3. carry only the top few to out-of-sample and report both, side by side,
      with how many combinations were tried (more tries, more luck).
 
-Everything written is labelled BACKTEST. Nothing here changes how Trading Bot
+Everything written is labelled BACKTEST. Nothing here changes how Kestrel
 trades: a result becomes a strategy change only through the repository's
 research -> out-of-sample -> walk-forward -> robustness -> human review ->
 paper test pipeline (see trading-bot/CLAUDE.md).
@@ -106,7 +106,7 @@ def main() -> int:
 
     report = {
         "label": "BACKTEST",
-        "method": "moving-average crossover sweep (textbook example, not Trading Bot's strategy)",
+        "method": "moving-average crossover sweep (textbook example, not Kestrel's strategy)",
         "data": {"source": source, "candles": len(close), "from": str(close.index[0]), "to": str(close.index[-1]), "freq": freq},
         "costs": {"fee_per_side": a.fees, "slippage_per_side": a.slippage},
         "split": {"in_sample_candles": cut, "out_of_sample_candles": len(close) - cut},

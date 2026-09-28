@@ -1,4 +1,4 @@
-# TRADING BOT CHART MARKUP (Phase 22C/22D/22I)
+# KESTREL CHART MARKUP (Phase 22C/22D/22I)
 
 What automatically appears on the chart, where each mark comes from, and how to
 read the workspace. Companion to `docs/CHART_ANNOTATION_SCHEMA.md` (the data

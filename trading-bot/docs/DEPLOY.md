@@ -1,6 +1,6 @@
-# Deploying Trading Bot 24/7 (paper)
+# Deploying Kestrel 24/7 (paper)
 
-Trading Bot is meant to run unattended for weeks so the paper (and later shadow)
+Kestrel is meant to run unattended for weeks so the paper (and later shadow)
 sample grows to something you can trust. This is the deployment path. It ships
 with **no exchange keys** and cannot place a real order — the live gate chain is
 closed (see the "Real money" chapter in the README).

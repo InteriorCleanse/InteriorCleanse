@@ -4,7 +4,7 @@
  * For YOUR OWN spreads, placed by you in your broker's app. Every structure
  * here is DEFINED RISK: a bought option caps each sold one, so the most you can
  * lose is known before you enter. Nothing here places, sends or simulates an
- * order; Trading Bot does not trade options.
+ * order; Kestrel does not trade options.
  *
  * All values are AT EXPIRATION, from prices you type. Time value, implied
  * volatility, early assignment and the odds of any price being reached are not

@@ -1,7 +1,7 @@
 # research/ — the Python research bench
 
 Two backtesting libraries, kept **outside** the bot. Nothing in `src/` imports
-anything here, Trading Bot keeps zero runtime dependencies, and every result is
+anything here, Kestrel keeps zero runtime dependencies, and every result is
 labelled **BACKTEST**. Full guide: `docs/RESEARCH_TOOLS.md`.
 
 | File | What it does |

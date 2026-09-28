@@ -8,7 +8,7 @@
  * is then not enough on its own. Set MRCASH_LOGIN_2FA=0 to go back to the PIN
  * alone (not recommended).
  *
- * The computer running Trading Bot is recognised from the socket, not from a
+ * The computer running Kestrel is recognised from the socket, not from a
  * header, and does not meet this page; the vault still asks it for both.
  *
  * SECURITY

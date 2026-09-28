@@ -2,7 +2,7 @@
 
 The **Strategy builder** tab (More → Calls and plans) takes a strategy
 described in plain English, turns it into rules and code you can read, and
-backtests it on Trading Bot's own stored candles. It is the idea behind the AI
+backtests it on Kestrel's own stored candles. It is the idea behind the AI
 strategy builders such as Astral ("describe the setup, inspect the code,
 backtest it"), done without a language model and without ever trading.
 

@@ -1,5 +1,5 @@
 /**
- * Set up the vault's two-factor lock. Run on the computer that runs Trading Bot:
+ * Set up the vault's two-factor lock. Run on the computer that runs Kestrel:
  *
  *   npm run vault:setup
  *
@@ -29,7 +29,7 @@ console.log('')
 console.log(`       MRCASH_VAULT_TOTP=${secret}`)
 console.log('       MRCASH_VAULT_PASSCODE=<a passcode you choose, 6 characters or more>')
 console.log('')
-console.log('  3. Restart Trading Bot. The Portfolio vault now asks for both.')
+console.log('  3. Restart Kestrel. The Portfolio vault now asks for both.')
 console.log('')
 console.log(ui.dim(`  Check: your app should show ${totpAt(base32Decode(secret), counterAt(Date.now()))} right now (it changes every 30 seconds).`))
 console.log(ui.dim('  Running this again makes a NEW secret; the old one stops working once you swap it in .env.'))

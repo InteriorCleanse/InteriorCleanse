@@ -19,7 +19,7 @@ SYNTHETIC order book to prove the install works.
 
 ## Data
 
-Trading Bot stores candles, not full depth, so real hftbacktest data has to come
+Kestrel stores candles, not full depth, so real hftbacktest data has to come
 from elsewhere: hftbacktest's converters turn exchange market-data archives or
 its own Rust collector's output into `.npz` event files. Use
 `--data day1.npz [day2.npz …] --snapshot eod.npz --tick <tick> --lot <lot>`.
@@ -39,5 +39,5 @@ market; say so rather than presenting a SYNTHETIC run as a finding.
 - hftbacktest can connect to a live exchange through its Rust connector. Never
   set that up, never add exchange keys, never add a second execution path.
   The bot's live-execution gate stays untouched.
-- Do not change Trading Bot's execution assumptions, fill model or `config.ts`
+- Do not change Kestrel's execution assumptions, fill model or `config.ts`
   because of a result here; propose it through the research pipeline instead.

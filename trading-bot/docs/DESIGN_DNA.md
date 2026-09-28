@@ -1,4 +1,4 @@
-# Trading Bot — design DNA
+# Kestrel — design DNA
 
 The app's design identity, written down in the three dimensions of the
 `design-dna` skill so every new screen starts from the same rules. Tokens

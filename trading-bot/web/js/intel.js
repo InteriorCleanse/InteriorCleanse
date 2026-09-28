@@ -1,4 +1,4 @@
-// The Trading Bot intelligence workspace (Phase 22I/22P).
+// The Kestrel intelligence workspace (Phase 22I/22P).
 //
 // A professional charting surface over the READ-ONLY intelligence API: the
 // engine's own annotations drawn on candles, with zoom, pan, a crosshair,
@@ -381,14 +381,14 @@ function alertPanel() {
 function exportPanel() {
   return `<div class="card"><h2>TradingView export</h2>
     <div class="row"><a class="btn ghost" href="/api/intel/export/pine?format=text" target="_blank" rel="noopener">Download Pine snapshot</a><span class="muted" id="intel-pine-note"></span></div>
-    <div class="plain"><b>An honest limitation:</b> TradingView provides no supported API for external software to draw on, or stream data into, your logged-in chart, and Pine cannot fetch a URL. So this export is a <b>point-in-time snapshot</b>: real Trading Bot annotations baked in as constants that you paste into the Pine Editor. The native chart above stays the real-time source of truth.</div>
+    <div class="plain"><b>An honest limitation:</b> TradingView provides no supported API for external software to draw on, or stream data into, your logged-in chart, and Pine cannot fetch a URL. So this export is a <b>point-in-time snapshot</b>: real Kestrel annotations baked in as constants that you paste into the Pine Editor. The native chart above stays the real-time source of truth.</div>
   </div>`
 }
 
 function askPanel() {
   const qs = [
-    ['why-this-trade', 'Why did Trading Bot take this trade?'],
-    ['why-not-this-setup', "Why didn't Trading Bot take this setup?"],
+    ['why-this-trade', 'Why did Kestrel take this trade?'],
+    ['why-not-this-setup', "Why didn't Kestrel take this setup?"],
     ['current-structure', 'What is the current market structure?'],
     ['who-agrees', 'Which strategies agree?'],
     ['who-disagrees', 'Which strategies disagree?'],

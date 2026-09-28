@@ -1,6 +1,6 @@
 # Paper Soak Runbook — Phase 25
 
-How to run Trading Bot continuously in PAPER mode on real market data, prove it
+How to run Kestrel continuously in PAPER mode on real market data, prove it
 is operating with no silent failures, and read the record honestly.
 
 PAPER means: LIVE MARKET DATA with SIMULATED EXECUTION. Every fill is made
@@ -46,7 +46,7 @@ A second `npm start` (or `npm run watch`) on the same data directory must
 refuse:
 
 ```
-  <data dir> is already owned by Trading Bot pid 12345 on <host> (started …, heartbeat 3s ago).
+  <data dir> is already owned by Kestrel pid 12345 on <host> (started …, heartbeat 3s ago).
   One process per data directory: stop it first, or start this one with a different MRCASH_DATA_DIR.
 ```
 

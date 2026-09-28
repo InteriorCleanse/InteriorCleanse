@@ -92,7 +92,7 @@ export function buildRoad({ validation, firstFill, checkpoints, live }) {
   steps.push({
     id: 'arm', title: 'Sign-off and arming (four keys)', who: 'you',
     status: live && live.armed ? 'done' : 'owner', progress: arm.length ? arm.filter((g) => g.ok).length / arm.length : 0,
-    summary: live && live.armed ? 'Armed.' : `${arm.filter((g) => g.ok).length} of ${arm.length || 4} arming keys set. Trading Bot never arms itself.`,
+    summary: live && live.armed ? 'Armed.' : `${arm.filter((g) => g.ok).length} of ${arm.length || 4} arming keys set. Kestrel never arms itself.`,
     detail: arm.map((g) => ({ label: g.name, met: !!g.ok, value: null, threshold: null, unit: g.reason, fill: g.ok ? 1 : 0 })),
     how: `Only after every step above: set the hard flag and config by hand, the MRCASH_LIVE phrase, and type the confirmation. Caps start at their floor${live && live.caps ? ` ($${live.caps.maxNotionalUsd} a trade, ${live.caps.maxTradesPerDay} trades a day, ${live.caps.maxOpenPositions} open)` : ''}.`,
   })

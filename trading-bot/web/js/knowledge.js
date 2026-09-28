@@ -1,5 +1,5 @@
 /**
- * KNOWLEDGE VAULT — what Trading Bot remembers, including what did not work; the
+ * KNOWLEDGE VAULT — what Kestrel remembers, including what did not work; the
  * living strategy passport; the daily brief, end-of-day and weekly reviews;
  * the concept graph. Draws /api/knowledge/* and nothing else.
  */
@@ -130,7 +130,7 @@ async function renderGraph() {
   for (const n of g.nodes) (byTrack[n.track] = byTrack[n.track] || []).push(n)
   const edgesOf = (id) => g.edges.filter((e) => e.from === id)
   return `<div class="ev-note">${g.nodes.length} concepts, ${g.edges.length} edges: related concepts, the strategies that use them, and the case-study kinds that illustrate them.${g.dangling.length ? ` Dangling: ${esc(g.dangling.join(', '))}` : ''}</div>
-    ${holoGraph(graphData(g), { height: 520, caption: 'Everything Trading Bot knows, and how it connects' })}
+    ${holoGraph(graphData(g), { height: 520, caption: 'Everything Kestrel knows, and how it connects' })}
     <details class="vz-raw"><summary>Every concept, as a list</summary>${Object.entries(byTrack).map(([t, ns]) => `<div class="card"><h2>${esc(t)}</h2>${ns.map((n) => `<div class="kn-node"><b>${esc(n.title)}</b> <span class="muted">${esc(n.level)}</span><div class="muted">${edgesOf(n.id).map((e) => `<span class="badge">${esc(e.kind)}: ${esc(e.to)}</span>`).join(' ')}</div></div>`).join('')}</div>`).join('')}</details>`
 }
 

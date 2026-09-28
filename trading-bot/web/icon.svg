@@ -1,107 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Trading Bot">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Kestrel">
   <defs>
-    <linearGradient id="mc-badge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#15110C"/><stop offset="1" stop-color="#0B0906"/>
+    <linearGradient id="k-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#26716A"/><stop offset="0.55" stop-color="#1B524E"/><stop offset="1" stop-color="#11302E"/>
     </linearGradient>
-    <linearGradient id="mc-rim" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#D8B56E"/><stop offset="0.5" stop-color="#F1DCA6"/><stop offset="1" stop-color="#C9A15A"/>
+    <linearGradient id="k-bird" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF7EF"/><stop offset="1" stop-color="#E6DCC8"/>
     </linearGradient>
-    <linearGradient id="mc-hat" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#262015"/><stop offset="1" stop-color="#130F0B"/>
-    </linearGradient>
-    <linearGradient id="mc-face" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FBF3DF"/><stop offset="1" stop-color="#E6D3AC"/>
-    </linearGradient>
-    <linearGradient id="mc-suit" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#231D14"/><stop offset="1" stop-color="#110E0A"/>
-    </linearGradient>
-    <linearGradient id="mc-visor" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#F1DCA6"/><stop offset="1" stop-color="#D8B56E"/>
-    </linearGradient>
-    <radialGradient id="mc-halo" cx="0.5" cy="0.42" r="0.5">
-      <stop offset="0" stop-color="#F1DCA6" stop-opacity="0.5"/><stop offset="1" stop-color="#F1DCA6" stop-opacity="0"/>
+    <radialGradient id="k-glow" cx="0.5" cy="0.38" r="0.55">
+      <stop offset="0" stop-color="#F7F3EC" stop-opacity="0.16"/><stop offset="1" stop-color="#F7F3EC" stop-opacity="0"/>
     </radialGradient>
-    <filter id="mc-glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <!-- the visor scan is clipped to the eye band so the light never spills -->
-    <clipPath id="mc-visor-clip"><rect x="204" y="219" width="104" height="16" rx="8"/></clipPath>
   </defs>
-
-  <!-- badge -->
-  <rect x="8" y="8" width="496" height="496" rx="120" fill="url(#mc-badge)"/>
-  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="url(#mc-rim)" stroke-width="6">
-    <animate attributeName="opacity" values="0.9;0.55;0.9" dur="4.5s" repeatCount="indefinite"/>
-  </rect>
-  <!-- faint holographic grid -->
-  <g opacity="0.10" stroke="#F6E4B4" stroke-width="1.5">
-    <path d="M8 160 H504 M8 256 H504 M8 352 H504 M160 8 V504 M256 8 V504 M352 8 V504"/>
+  <rect width="512" height="512" rx="116" fill="url(#k-bg)"/>
+  <rect width="512" height="512" rx="116" fill="url(#k-glow)"/>
+  <rect x="6" y="6" width="500" height="500" rx="110" fill="none" stroke="#F7F3EC" stroke-opacity="0.12" stroke-width="4"/>
+  <g fill="url(#k-bird)">
+    <path d="M242 232 C 190 196 120 158 58 138 C 94 176 128 204 166 222 C 156 226 146 228 134 229 C 172 250 208 264 240 276 Z"/>
+    <path d="M270 232 C 322 196 392 158 454 138 C 418 176 384 204 346 222 C 356 226 366 228 378 229 C 340 250 304 264 272 276 Z"/>
+    <path d="M256 166 C 281 166 291 191 286 224 L 277 300 L 308 368 Q 256 388 204 368 L 235 300 L 226 224 C 221 191 231 166 256 166 Z"/>
   </g>
-  <!-- glow behind character, gently breathing -->
-  <circle cx="256" cy="228" r="150" fill="url(#mc-halo)">
-    <animate attributeName="r" values="150;162;150" dur="4s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;0.75;1" dur="4s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- shoulders / suit (the body stays put; only the figure above breathes) -->
-  <path d="M96 470 C112 372 176 340 256 340 C336 340 400 372 416 470 Z" fill="url(#mc-suit)"/>
-  <!-- neck -->
-  <rect x="234" y="300" width="44" height="54" rx="18" fill="#F0E2C4"/>
-  <!-- shirt V under the chin -->
-  <path d="M232 346 L256 402 L280 346 Z" fill="#110E09"/>
-  <!-- lapels: short, from the collar to the shoulders -->
-  <path d="M232 346 L200 452 L182 446 L224 350 Z" fill="#1E1911" stroke="#D8B56E" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M280 346 L312 452 L330 446 L288 350 Z" fill="#1E1911" stroke="#F1DCA6" stroke-width="4" stroke-linejoin="round"/>
-  <!-- glowing tie -->
-  <path d="M256 356 l14 16 -14 18 -14 -18 Z" fill="url(#mc-visor)" opacity="0.95" filter="url(#mc-glow)"/>
-  <path d="M248 392 h16 l6 66 -14 16 -14 -16 Z" fill="url(#mc-visor)" opacity="0.9" filter="url(#mc-glow)"/>
-
-  <!-- THE FIGURE: head, hat, visor and smile breathe together with a soft bob -->
-  <g id="mc-figure">
-    <animateTransform attributeName="transform" type="translate" values="0 0; 0 -5; 0 0" dur="4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"/>
-
-    <!-- head -->
-    <rect x="176" y="150" width="160" height="176" rx="70" fill="url(#mc-face)"/>
-    <!-- jaw shading -->
-    <path d="M188 250 C196 300 224 322 256 322 C288 322 316 300 324 250" fill="none" stroke="#D6BE8C" stroke-width="4" opacity="0.5"/>
-
-    <!-- top hat (banker nod, futuristic) -->
-    <g>
-      <rect x="150" y="150" width="212" height="26" rx="13" fill="url(#mc-hat)"/>
-      <rect x="182" y="60" width="148" height="104" rx="26" fill="url(#mc-hat)"/>
-      <rect x="182" y="120" width="148" height="20" fill="none" stroke="url(#mc-rim)" stroke-width="7"/>
-      <!-- hat coin badge -->
-      <circle cx="256" cy="98" r="20" fill="#17130D" stroke="url(#mc-rim)" stroke-width="4"/>
-      <text x="256" y="107" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="26" fill="#B8914A">$</text>
-    </g>
-
-    <!-- visor eyes (glowing HUD band) with a light that sweeps across it -->
-    <g id="mc-eyes" filter="url(#mc-glow)">
-      <rect x="196" y="212" width="120" height="30" rx="15" fill="#120F0A"/>
-      <rect x="204" y="219" width="104" height="16" rx="8" fill="url(#mc-visor)" opacity="0.35"/>
-      <g clip-path="url(#mc-visor-clip)">
-        <rect x="196" y="219" width="26" height="16" fill="#ffffff" opacity="0.55">
-          <animate attributeName="x" values="196;300;196" dur="3.4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1"/>
-        </rect>
-      </g>
-      <circle cx="224" cy="227" r="8" fill="#FFF1C6"/>
-      <circle cx="288" cy="227" r="8" fill="#FFF1C6"/>
-      <animate attributeName="opacity" values="1;0.55;1;1" dur="3.2s" repeatCount="indefinite"/>
-    </g>
-
-    <!-- confident smile -->
-    <path d="M222 280 Q256 306 290 280" fill="none" stroke="#A88A52" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#153F3C">
+    <circle cx="245" cy="192" r="5.5"/><circle cx="267" cy="192" r="5.5"/>
+    <path d="M241 200 C 237 210 238 219 243 226 C 245 217 245 208 241 200 Z"/>
+    <path d="M271 200 C 275 210 274 219 269 226 C 267 217 267 208 271 200 Z"/>
   </g>
-
-  <!-- floating coins -->
-  <g id="mc-coin1" filter="url(#mc-glow)">
-    <circle cx="392" cy="196" r="26" fill="#17130D" stroke="#B8914A" stroke-width="4"/>
-    <text x="392" y="207" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#B8914A">$</text>
-    <animateTransform attributeName="transform" type="translate" values="0 0;0 -9;0 0" dur="3.6s" repeatCount="indefinite"/>
-  </g>
-  <g id="mc-coin2" filter="url(#mc-glow)" opacity="0.9">
-    <circle cx="120" cy="250" r="19" fill="#17130D" stroke="#D8B56E" stroke-width="3.5"/>
-    <text x="120" y="259" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="22" fill="#D8B56E">$</text>
-    <animateTransform attributeName="transform" type="translate" values="0 0;0 7;0 0" dur="4.3s" repeatCount="indefinite"/>
-  </g>
+  <path d="M249 200 L 263 200 L 256 215 Z" fill="#D9A441"/>
+  <path d="M132 426 H 300 L 332 398 H 380" fill="none" stroke="#D9A441" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

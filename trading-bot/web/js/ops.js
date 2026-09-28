@@ -1,5 +1,5 @@
 /**
- * OPERATIONS — is Trading Bot running, on what data, and is the record whole?
+ * OPERATIONS — is Kestrel running, on what data, and is the record whole?
  *
  * One health document (/api/ops/health) drawn as: overall status, the data
  * source (PAPER = live data · SIMULATED EXECUTION, or MOCK), every heartbeat
@@ -37,7 +37,7 @@ const markRows = (marks) => `<table><tr><th>mark</th><th>status</th><th>last</th
 
 function renderOverview(h) {
   const alerts = h.alerts.length ? h.alerts.map((a) => `<div class="sc-frame"><div class="sc-frame-t">${pill(a.severity)} ${esc(a.title)}</div><div class="muted">${esc(a.body)}</div></div>`).join('') : '<div class="muted">No active alert.</div>'
-  return `${banner(h)}${card('TRADING BOT HEARTBEAT', markRows(h.heartbeat.marks), h.heartbeat.note)}
+  return `${banner(h)}${card('KESTREL HEARTBEAT', markRows(h.heartbeat.marks), h.heartbeat.note)}
     ${card(`ACTIVE ALERTS (${h.alerts.length})`, alerts, 'alerts also ring the bell once per hour per condition and are counted on the ops log')}
     ${card('PROCESS', kv([['pid', String(h.process.pid)], ['node', esc(h.process.node)], ['process uptime', dur(h.process.uptimeSec)], ['engine version', esc(h.version)], ['lock', h.lock.info ? `pid ${h.lock.info.pid} on ${esc(h.lock.info.host)} · ${h.lock.ours ? 'this process' : '<span class="loss">ANOTHER PROCESS</span>'} · heartbeat ${when(h.lock.info.heartbeatAt)}` : 'no lock file (CLI or test run)'], ['memory', `${h.performance.memory.rssMB} MB rss · ${h.performance.memory.heapMB} MB heap`], ['monitor tick', h.performance.tick.last === null ? 'not yet' : `${h.performance.tick.last} ms (p95 ${h.performance.tick.p95} ms over ${h.performance.tick.samples})`], ['close → cycle latency', h.performance.cycleLatency.last === null ? 'no cycle measured yet' : `${h.performance.cycleLatency.last} ms (p95 ${h.performance.cycleLatency.p95} ms over ${h.performance.cycleLatency.samples})`], ['database', `${(h.performance.db.sizeBytes / 1048576).toFixed(1)} MB${h.performance.db.growthBytesPerHour === null ? '' : ` · ${(h.performance.db.growthBytesPerHour / 1024).toFixed(0)} KB/h since ${when(h.performance.db.since)}`}`]]))}`
 }

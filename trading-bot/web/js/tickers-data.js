@@ -10,7 +10,7 @@
  *   says to confirm dates with the company or the exchange.
  * - Dates that follow a published RULE (third Friday, ES quarterly months,
  *   the roll eight days before expiry) are computed, not stored.
- * - Nothing here trades. Trading Bot does not trade these instruments.
+ * - Nothing here trades. Kestrel does not trade these instruments.
  */
 
 const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

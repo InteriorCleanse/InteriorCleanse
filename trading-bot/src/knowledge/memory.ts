@@ -1,5 +1,5 @@
 /**
- * TRADING BOT MEMORY — one index over everything remembered, in eight classes:
+ * KESTREL MEMORY — one index over everything remembered, in eight classes:
  *
  *   MARKET       what the market did (resolved observations, market-wide items)
  *   STRATEGY     what each strategy did (observations, post-mortems, passports)

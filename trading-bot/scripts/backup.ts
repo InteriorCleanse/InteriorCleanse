@@ -27,7 +27,7 @@ export function backupStore(): { file: string; bytes: number } | null {
 }
 
 if (process.argv[1] && import.meta.url === (await import('node:url')).pathToFileURL(process.argv[1]).href) {
-  ui.heading('TRADING BOT — BACKUP')
+  ui.heading('KESTREL — BACKUP')
   const r = backupStore()
   if (!r) console.log(ui.warn('  No store to back up yet.'))
   else console.log(ui.good(`  Backed up to ${r.file} (${(r.bytes / 1024).toFixed(0)} KB). Keeping the most recent ${KEEP}.`))

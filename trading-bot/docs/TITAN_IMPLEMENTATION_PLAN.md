@@ -1,6 +1,6 @@
-# TITAN Implementation Plan — from Trading Bot v2.3 to a production trading platform
+# TITAN Implementation Plan — from Kestrel v2.3 to a production trading platform
 
-**Baseline:** Trading Bot v2.3, commit `69b01f8` (`v0-rough-draft`), audited in `AUDIT.md`.
+**Baseline:** Kestrel v2.3, commit `69b01f8` (`v0-rough-draft`), audited in `AUDIT.md`.
 **Rule:** the baseline's behaviour is not changed unless a phase below says so, and every change lands behind a test.
 **Parked work:** the unverified v3 patch (`claude/wip-v3-playbook`, 7 files, +996/−220) is **not** merged. §B says which parts may be reused, and when.
 **Toolchain facts this plan relies on (verified on the machine):** Node 22.22 runs `.ts` directly; `node:test` is built in; a global `WebSocket` client is built in; `node:sqlite` (`DatabaseSync`) is built in but prints an experimental warning. None of these need a dependency, which keeps the zero-dependency install the audit said to preserve.

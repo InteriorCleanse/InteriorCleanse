@@ -13,7 +13,7 @@
  * the only one that matters, and the position is sized with a FRACTION of
  * Kelly because the probability estimate is never exactly right.
  *
- * This is arithmetic for the Market School. Trading Bot is not connected to any
+ * This is arithmetic for the Market School. Kestrel is not connected to any
  * prediction market and does not trade them; every example is SIMULATED.
  * Pure functions, no I/O.
  */

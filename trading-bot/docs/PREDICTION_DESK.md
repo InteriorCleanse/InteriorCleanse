@@ -5,7 +5,7 @@ yourself or you die", and reaching $5,273 after 48 hours trading prediction
 markets. **That is a creator-reported result, not independently verified.**
 No trade logs, account statements or third-party audit have been shown.
 
-Trading Bot now runs the general idea the honest way: on paper, with a $100
+Kestrel now runs the general idea the honest way: on paper, with a $100
 paper bankroll, the creator's reported parameters kept as written, and the
 score he did not publish. The **Prediction desk** tab (More → Calls and
 plans) and `GET /api/predict` show it.

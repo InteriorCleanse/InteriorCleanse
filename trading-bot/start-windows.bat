@@ -1,8 +1,8 @@
 @echo off
-REM Double-click this file to start Trading Bot.
+REM Double-click this file to start Kestrel.
 cd /d "%~dp0"
 echo.
-echo   Starting Trading Bot...
+echo   Starting Kestrel...
 echo   (PAPER MODE - no real money, no exchange account)
 echo.
 where node >nul 2>nul

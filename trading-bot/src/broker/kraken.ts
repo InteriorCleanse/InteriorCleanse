@@ -1,7 +1,7 @@
 /**
  * KRAKEN PORTFOLIO — read-only.
  *
- * Lets Trading Bot see your real Kraken account: what you hold and what it is
+ * Lets Kestrel see your real Kraken account: what you hold and what it is
  * worth in US dollars. It reads and NOTHING ELSE. The client can call exactly
  * two endpoints, both balance queries, and has no function that can place,
  * change or cancel an order, move funds, or withdraw.
@@ -100,7 +100,7 @@ async function readPrivate(cfg: { key: string; secret: string; base: string }, p
   if (errors.length) {
     if (errors.some((x) => /Permission denied/i.test(x))) throw new Error('Kraken refused: the key needs the "Query Funds" permission')
     if (errors.some((x) => /Invalid key|Invalid signature/i.test(x))) throw new Error('Kraken rejected the key or secret — check both were copied in full')
-    if (errors.some((x) => /Invalid nonce/i.test(x))) throw new Error('Kraken rejected the nonce — this key may be in use by another app; give Trading Bot its own key')
+    if (errors.some((x) => /Invalid nonce/i.test(x))) throw new Error('Kraken rejected the nonce — this key may be in use by another app; give Kestrel its own key')
     throw new Error(`Kraken said: ${errors.join('; ')}`)
   }
   return j.result ?? {}
@@ -129,7 +129,7 @@ export async function fetchKrakenPortfolio(now = Date.now()): Promise<KrakenPort
       ...base, connected: true,
       account: { totalUsd: num(tb.eb), equityUsd: num(tb.e) },
       holdings,
-      note: `Your real Kraken account, read-only. ${holdings.length} asset${holdings.length === 1 ? '' : 's'} held. Trading Bot can see this but cannot trade, move or withdraw it.`,
+      note: `Your real Kraken account, read-only. ${holdings.length} asset${holdings.length === 1 ? '' : 's'} held. Kestrel can see this but cannot trade, move or withdraw it.`,
     }
   } catch (e) {
     return { ...base, note: `Could not read Kraken: ${safeError(e)}` }

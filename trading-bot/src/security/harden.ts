@@ -91,7 +91,7 @@ export function contentSecurityPolicy(nonce: string): string {
  * kill switch and a settings form, so being framed is not cosmetic.
  *
  * The microphone is allowed for the app's own origin because talking to
- * Trading Bot is a feature; everything else in `Permissions-Policy` is refused
+ * Kestrel is a feature; everything else in `Permissions-Policy` is refused
  * outright rather than left to the default.
  */
 export function securityHeaders(nonce: string): Record<string, string> {

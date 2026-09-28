@@ -34,7 +34,7 @@ const ledgerRows = () => readFileSync(join(tmp.dir, 'ledger.csv'), 'utf8').trim(
 test('/ serves the dashboard and /login serves the PIN page', async () => {
   const home = await get('/')
   assert.equal(home.status, 200)
-  assert.match(await home.text(), /<title>Trading Bot<\/title>/)
+  assert.match(await home.text(), /<title>Kestrel<\/title>/)
   const login = await get('/login')
   assert.equal(login.status, 200)
   assert.match(await login.text(), /Enter the PIN/)

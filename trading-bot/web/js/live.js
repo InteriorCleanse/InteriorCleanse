@@ -1,5 +1,5 @@
 /**
- * LIVE OBSERVER & RESEARCH OPS — what Trading Bot is observing right now,
+ * LIVE OBSERVER & RESEARCH OPS — what Kestrel is observing right now,
  * today's learning, the research queue, active experiments, findings and
  * contradictions, knowledge requiring review, paper vs historical, champion /
  * challengers, failure memory, what to study next, and the system status.
@@ -35,7 +35,7 @@ async function renderObserver() {
   const { data } = await getJson('/api/observer')
   const heroes = `<div class="ev-heroes">${hero('observing', data.observing.length)}${hero('revealed', data.revealed.length)}${hero('observations', data.counts.total, `${data.counts.candidates} awaiting · ${data.counts.resolved} resolved · ${data.counts.unresolvable} unresolvable`)}</div>`
   return `${data.notes.map(note).join('')}${heroes}<div class="row"><button class="btn ghost" id="ob-resolve">Resolve due candidates</button><span class="muted" id="ob-action-out"></span></div>
-    ${card('TRADING BOT IS OBSERVING', data.observing.length ? data.observing.map(liveRow).join('') : '<div class="muted">Nothing is being observed right now. Selected events appear here as the engine finds them; the horizon is ' + data.horizon.candles + ' candles of ' + esc(data.horizon.interval) + '.</div>', 'observer — explained from what was knowable at the close; no outcome shown before the horizon is stored')}
+    ${card('KESTREL IS OBSERVING', data.observing.length ? data.observing.map(liveRow).join('') : '<div class="muted">Nothing is being observed right now. Selected events appear here as the engine finds them; the horizon is ' + data.horizon.candles + ' candles of ' + esc(data.horizon.interval) + '.</div>', 'observer — explained from what was knowable at the close; no outcome shown before the horizon is stored')}
     ${card('RESULTS REVEALED', data.revealed.length ? data.revealed.map(liveRow).join('') : '<div class="muted">No case has completed its horizon yet.</div>', 'case-study engine — AFTER from stored candles only')}
     ${card('RECENT OBSERVATIONS', data.recent.length ? `<table><tr><th>when</th><th>type</th><th class="num">score</th><th>status</th><th>detail</th></tr>${data.recent.slice(0, 25).map((o) => `<tr><td class="muted">${when(o.at)}</td><td>${esc(o.type)}</td><td class="num">${o.significance.score}</td><td>${pill(o.status)}</td><td class="muted">${esc(o.detail.slice(0, 120))}</td></tr>`).join('')}</table>` : '<div class="muted">No observations recorded yet. They arrive with each engine cycle once candles are flowing.</div>')}`
 }

@@ -1,5 +1,5 @@
 /**
- * TRADING BOT SYSTEM STATUS — one screen that says whether each layer is alive,
+ * KESTREL SYSTEM STATUS — one screen that says whether each layer is alive,
  * what it holds, when research last ran and when it runs next. Assembled on
  * request from the stores and the ops state; nothing here is a stored
  * conclusion, and nothing here is a performance figure.

@@ -42,8 +42,16 @@ try {
       { x: 0.82, y: 0.90, c: '139,92,246',  r: 0.62, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.18 },
       { x: 0.16, y: 0.94, c: '249,115,22',  r: 0.52, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.14 },
     ]
-    const light = () => document.documentElement.getAttribute('data-theme') === 'daylight'
-    let ORBS = light() ? LIGHT : DARK
+    // Linen: the same fields in brass, teal, plum and terracotta, quieter still.
+    const LINEN = [
+      { x: 0.08, y: 0.04, c: '179,138,62',  r: 0.62, ax: 0.05, ay: 0.04, sx: 0.019, sy: 0.015, ph: 0.0, a: 0.20 },
+      { x: 0.92, y: 0.10, c: '21,99,106',   r: 0.56, ax: 0.06, ay: 0.05, sx: 0.015, sy: 0.021, ph: 1.7, a: 0.12 },
+      { x: 0.82, y: 0.90, c: '106,63,158',  r: 0.62, ax: 0.05, ay: 0.06, sx: 0.017, sy: 0.013, ph: 3.1, a: 0.09 },
+      { x: 0.16, y: 0.94, c: '156,63,27',   r: 0.52, ax: 0.05, ay: 0.05, sx: 0.013, sy: 0.019, ph: 4.6, a: 0.08 },
+    ]
+    const light = () => document.documentElement.getAttribute('data-tone') === 'light'
+    const pick = () => document.documentElement.getAttribute('data-theme') === 'linen' ? LINEN : light() ? LIGHT : DARK
+    let ORBS = pick()
 
     // Smoothness: the fields are soft blurs, so they are drawn at a fraction of
     // screen resolution and stretched by CSS — a full-viewport redraw at device
@@ -94,7 +102,7 @@ try {
 
     let rz = null
     window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { fit(); if (off) return; reduce ? frame(0) : start() }, 150) })
-    document.addEventListener('theme:change', () => { ORBS = light() ? LIGHT : DARK; if (off) return; reduce ? frame(0) : start() })
+    document.addEventListener('theme:change', () => { ORBS = pick(); if (off) return; reduce ? frame(0) : start() })
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !reduce) start(); else stop() })
   }
 } catch { /* no ambient backdrop; the CSS base gradient stands in */ }
@@ -122,7 +130,7 @@ try {
       if (m.film && !reduce) {
         v.src = '/media/hero.mp4'
         v.addEventListener('canplay', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}) }, { once: true })
-        document.addEventListener('theme:change', () => { ORBS = light() ? LIGHT : DARK; if (off) return; reduce ? frame(0) : start() })
+        document.addEventListener('theme:change', () => { ORBS = pick(); if (off) return; reduce ? frame(0) : start() })
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') v.play().catch(() => {}); else v.pause() })
       }
     }).catch(() => {})

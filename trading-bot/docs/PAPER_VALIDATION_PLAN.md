@@ -1,4 +1,4 @@
-# PAPER VALIDATION PLAN — Trading Bot (TITAN)
+# PAPER VALIDATION PLAN — Kestrel (TITAN)
 
 The next validation stage after the pre-production audit: **extended paper
 trading**. The goal is *not* to maximise P&L. It is to prove the system behaves

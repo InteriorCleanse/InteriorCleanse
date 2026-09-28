@@ -1,5 +1,5 @@
 /**
- * THE VOICE — how Trading Bot talks.
+ * THE VOICE — how Kestrel talks.
  *
  * Laid-back, warm, unhurried. The register of someone who has been doing this a
  * long time, is in no rush at all, and would rather wait for the right wave than

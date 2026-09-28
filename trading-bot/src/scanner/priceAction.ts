@@ -19,7 +19,7 @@
  *     records what price did over the next few candles against the baseline of
  *     every candle. Labelled BACKTEST, with INSUFFICIENT SAMPLE below 30 cases.
  *
- * Nothing here is a trading rule for Trading Bot, and nothing reaches the engine.
+ * Nothing here is a trading rule for Kestrel, and nothing reaches the engine.
  * Published studies of these patterns (for example Bulkowski's counts) find
  * direction calls only modestly better than a coin flip on their own, which is
  * why the method insists on context and why this file measures instead of
@@ -204,7 +204,7 @@ export function confluence(c: Candle[]): Confluence {
 export type BiasPart = { key: string; label: string; value: -1 | 0 | 1; detail: string }
 export type BiasScore = { score: number; lean: 'long' | 'short' | 'sit out'; parts: BiasPart[]; text: string; note: string }
 
-export const BIAS_NOTE = 'Six different readings added up: structure, averages, momentum, MACD, the last candle and volume. A summary of the chart, not a signal; Trading Bot has not tested it as a trading rule.'
+export const BIAS_NOTE = 'Six different readings added up: structure, averages, momentum, MACD, the last candle and volume. A summary of the chart, not a signal; Kestrel has not tested it as a trading rule.'
 
 /**
  * One number from −6 to +6. The inputs are deliberately different kinds of
