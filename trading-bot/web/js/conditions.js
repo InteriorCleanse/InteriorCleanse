@@ -37,7 +37,7 @@ function chip() {
 
 async function stopNow() {
   if (busy) return
-  if (!confirm('Engage the kill switch?\n\nTrading Bot will open NO new positions (paper included) until you resume. Open paper positions are still managed to their stop or target.')) return
+  if (!confirm('Engage the kill switch?\n\nKestrel will open NO new positions (paper included) until you resume. Open paper positions are still managed to their stop or target.')) return
   busy = true
   try {
     const cfg = await getJson('/api/config')
@@ -52,7 +52,7 @@ function hero(d) {
   const e = d.engine
   const stopBox = st.stopped
     ? `<div class="cd-stop on"><b>Kill switch is ON</b><span>since ${esc(st.since)} · ${esc(st.reason)}. No new positions. Resume from the Today page.</span></div>`
-    : `<div class="cd-stop"><span>${v === 'POOR' ? 'Trading Bot has not stopped anything by itself. If you want no new entries while this lasts:' : 'The kill switch is off. It is there if you want it:'}</span><button class="btn ${v === 'POOR' ? '' : 'ghost'}" id="cd-stop">Stop new entries</button></div>`
+    : `<div class="cd-stop"><span>${v === 'POOR' ? 'Kestrel has not stopped anything by itself. If you want no new entries while this lasts:' : 'The kill switch is off. It is there if you want it:'}</span><button class="btn ${v === 'POOR' ? '' : 'ghost'}" id="cd-stop">Stop new entries</button></div>`
   return `<div class="card cd-hero ${cls}">
     <div class="cd-kicker">Market conditions · every watched market · <span class="badge sc-prov">READING</span></div>
     <h2 class="cd-verdict">${esc(VERDICT[v] || v)}</h2>
@@ -65,7 +65,7 @@ function hero(d) {
 
 function timeline(d) {
   const h = d.history || []
-  if (h.length < 2) return `<div class="cd-tl"><span class="muted">Timeline: builds up one check every five minutes since Trading Bot started (${h.length} so far, kept in memory only).</span></div>`
+  if (h.length < 2) return `<div class="cd-tl"><span class="muted">Timeline: builds up one check every five minutes since Kestrel started (${h.length} so far, kept in memory only).</span></div>`
   const from = h[0].t, to = h[h.length - 1].t, span = Math.max(1, to - from)
   return `<div class="cd-tl"><span class="muted">Last ${Math.max(1, Math.round(span / 3_600_000))}h</span><div class="cd-tl-bar">${h.map((x, i) => {
     const end = i + 1 < h.length ? h[i + 1].t : to + 300_000

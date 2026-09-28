@@ -1,8 +1,8 @@
 #!/bin/bash
-# Double-click this file to start Trading Bot.
+# Double-click this file to start Kestrel.
 cd "$(dirname "$0")" || exit 1
 echo ""
-echo "  Starting Trading Bot..."
+echo "  Starting Kestrel..."
 echo "  (PAPER MODE - no real money, no exchange account)"
 echo ""
 if ! command -v node > /dev/null 2>&1; then

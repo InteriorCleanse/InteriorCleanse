@@ -1,7 +1,7 @@
 """
 BACKTEST the two bot styles the big retail platforms sell most (3Commas,
 Pionex, Cryptohopper, Bitsgap): the GRID bot and the DCA bot, on candles
-Trading Bot recorded. Research only; Trading Bot does not run either.
+Kestrel recorded. Research only; Kestrel does not run either.
 
     npm run research:export -- --symbol BTCUSDT --interval 1h
     research/.venv-vbt/bin/python research/bot_styles.py --csv research/data/BTCUSDT_1h.csv

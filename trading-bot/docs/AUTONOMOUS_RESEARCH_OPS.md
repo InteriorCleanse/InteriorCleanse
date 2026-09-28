@@ -1,6 +1,6 @@
 # Autonomous Market Observation and Continuous Research Operations (Phase 24)
 
-Trading Bot runs a continuous loop beside the paper engine:
+Kestrel runs a continuous loop beside the paper engine:
 
     OBSERVE → RECORD → CLASSIFY → EXPLAIN → RESEARCH → TEST → CHALLENGE → REMEMBER → TEACH → REASSESS
 
@@ -15,7 +15,7 @@ documented in `MARKET_SCHOOL.md`, `CASE_STUDY_ENGINE.md`, `RESEARCH_LAB.md`,
 `AI_TEACHER_AND_DEBATE.md`; the audit that preceded this phase is
 `PHASE24_SYSTEM_MAP.md`.
 
-## Run Trading Bot 24/7 in paper mode
+## Run Kestrel 24/7 in paper mode
 
 ```
 cd trading-bot
@@ -117,7 +117,7 @@ guaranteed or best.
 
 ## Reading the panels
 
-Observer tab → **Live observer**: "Trading Bot is observing…" with what was
+Observer tab → **Live observer**: "Kestrel is observing…" with what was
 knowable at the close; **RESULT REVEALED** after the horizon is stored.
 **Today's learning**: the digest assembled now, with the LESSON OF THE DAY.
 **Research queue**, **Experiments**, **Findings & contradictions**,

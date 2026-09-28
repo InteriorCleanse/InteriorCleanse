@@ -34,7 +34,7 @@ and neutral shapes. The count describes the chart; it is not a signal. Tap a
 market to see the latest 90 candles with every pattern drawn. Tap a pattern
 to zoom to it and see its measured move.
 
-No success rates are shown, because Trading Bot has not tested these patterns.
+No success rates are shown, because Kestrel has not tested these patterns.
 If there are fewer than 30 candles, it says **NOT ENOUGH DATA**.
 
 ## 2. Screenshot scan (AI)

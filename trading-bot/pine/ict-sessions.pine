@@ -1,6 +1,6 @@
 //@version=5
 // =====================================================================
-//  Trading Bot — ICT Sessions + Fair Value Gaps: what the bot sees, on a chart
+//  Kestrel — ICT Sessions + Fair Value Gaps: what the bot sees, on a chart
 //  Pine Script v5 · INDICATOR (draws only; places nothing)
 // =====================================================================
 //
@@ -15,7 +15,7 @@
 //  Keep the session times equal to config.ts. They are New York time.
 // =====================================================================
 
-indicator("Trading Bot — ICT Sessions + FVG", "Trading Bot Sessions", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 200)
+indicator("Kestrel — ICT Sessions + FVG", "Kestrel Sessions", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 200)
 
 // --- inputs ----------------------------------------------------------
 tz         = "America/New_York"
@@ -135,7 +135,7 @@ if array.size(fvgBox) > 0
                     label.new(bar_index, d == 1 ? top : bot, "IFVG", style = d == 1 ? label.style_label_down : label.style_label_up, color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny)
 
 // --- alerts ------------------------------------------------------------
-// The messages are JSON so Trading Bot's webhook can read them. When you
+// The messages are JSON so Kestrel's webhook can read them. When you
 // create the alert in TradingView, paste your webhook secret over
 // PASTE_SECRET_HERE (the app's TradingView tab shows it), and put the
 // webhook URL from the same tab in the alert's "Webhook URL" box.

@@ -18,7 +18,7 @@ How each source works:
 
 - **SEC EDGAR.** The SEC asks every automated client to identify itself, so
   set `MRCASH_SEC_CONTACT` to your name or email. Without it, the source
-  stays **NOT CONNECTED** and makes no requests. Trading Bot reads the raw
+  stays **NOT CONNECTED** and makes no requests. Kestrel reads the raw
   Form 4 XML and stays well under the SEC's ten-requests-a-second limit. It
   remembers each filing it has read, so each one is fetched only once.
 - **Quiver.** The key goes in `.env` only. It is sent as an

@@ -1,9 +1,9 @@
 ---
 name: mr-cash-trade-review
-description: Review a specific paper trade or setup against Trading Bot's checklist and risk rules. Use when the user pastes a trade, asks "was this a good trade", or wants a second opinion on a setup. Paper only, no financial advice.
+description: Review a specific paper trade or setup against Kestrel's checklist and risk rules. Use when the user pastes a trade, asks "was this a good trade", or wants a second opinion on a setup. Paper only, no financial advice.
 ---
 
-# Trading Bot — trade review
+# Kestrel — trade review
 
 Judge PROCESS before OUTCOME. For the trade or setup in question:
 

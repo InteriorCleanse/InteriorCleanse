@@ -216,7 +216,7 @@ export async function watchOnce(prev: WatchState | null): Promise<WatchState> {
           } else {
             const pos = openPosition(tradeSignal, toRiskDecision(verdict), a.session ? sessionLabel(a.session) : '', a.atr, obs)
             eventLog.push('setup', `Paper ${pos.direction} QUEUED near $${pos.intendedEntry.toFixed(0)}`,
-              `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Trading Bot will manage it candle by candle and tell you how it ends.`, 'action')
+              `It fills at the next candle's open plus spread and slippage — or is missed if price runs more than ${config.execution.maxEntryDriftAtr} ATR away first. Stop $${pos.stop.toFixed(0)}, target $${pos.target.toFixed(0)}. Kestrel will manage it candle by candle and tell you how it ends.`, 'action')
           }
         }
       }
@@ -332,7 +332,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1)
   }
   marketFeed.start()
-  ui.heading('TRADING BOT IS WATCHING')
+  ui.heading('KESTREL IS WATCHING')
   ui.safetyBanner()
   console.log('')
   // Startup recovery (Phase 21): re-adopt any positions that were live when we stopped.

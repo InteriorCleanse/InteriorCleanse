@@ -1,8 +1,8 @@
-// Trading Bot service worker: makes the app installable and lets the shell
+// Kestrel service worker: makes the app installable and lets the shell
 // open even when the server is briefly unreachable. Market data is NEVER
 // cached — every /api call goes to the network, so nothing stale is ever
 // shown as fresh.
-const CACHE = 'mr-cash-shell-v32'
+const CACHE = 'mr-cash-shell-v33'
 const SHELL = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-180.png', '/icon.svg', '/css/app.css', '/js/api.js', '/js/state.js', '/js/replay.js', '/js/theme.js', '/fonts/instrument-sans-400.woff2', '/fonts/instrument-sans-700.woff2', '/fonts/geist-mono-400.woff2', '/fonts/geist-mono-700.woff2', '/fonts/instrument-serif-400.woff2', '/fonts/instrument-serif-400-italic.woff2']
 
 self.addEventListener('install', (event) => {
@@ -26,6 +26,6 @@ self.addEventListener('fetch', (event) => {
         if (res.ok && SHELL.includes(url.pathname)) caches.open(CACHE).then((c) => c.put(event.request, res.clone()))
         return res
       })
-      .catch(() => caches.match(event.request).then((hit) => hit || new Response('Trading Bot is not running. Start it on your computer, then reload.', { status: 503, headers: { 'content-type': 'text/plain' } }))),
+      .catch(() => caches.match(event.request).then((hit) => hit || new Response('Kestrel is not running. Start it on your computer, then reload.', { status: 503, headers: { 'content-type': 'text/plain' } }))),
   )
 })

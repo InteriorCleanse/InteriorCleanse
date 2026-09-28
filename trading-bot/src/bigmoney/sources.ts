@@ -59,7 +59,7 @@ export const fetchOffExchange = (f: FetchLike = fetch as unknown as FetchLike) =
 export const secContact = () => (process.env.MRCASH_SEC_CONTACT || '').trim() || null
 export const secWww = () => trim(process.env.MRCASH_SEC_URL || 'https://www.sec.gov')
 export const secData = () => trim(process.env.MRCASH_SEC_DATA_URL || 'https://data.sec.gov')
-const secHeaders = () => ({ 'User-Agent': `Trading Bot paper-trading research tool (${secContact()})` })
+const secHeaders = () => ({ 'User-Agent': `Kestrel paper-trading research tool (${secContact()})` })
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 let tickerMap: { at: number; map: Map<string, number> } | null = null

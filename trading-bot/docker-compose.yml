@@ -1,4 +1,4 @@
-# Trading Bot — paper trading, 24/7. Data persists in a named volume; logs and the
+# Kestrel — paper trading, 24/7. Data persists in a named volume; logs and the
 # store survive restarts. No exchange keys, no real orders.
 services:
   mrcash:

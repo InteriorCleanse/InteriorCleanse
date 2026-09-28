@@ -1,6 +1,6 @@
 # The Knowledge Vault
 
-What Trading Bot remembers — including what did not work. Module:
+What Kestrel remembers — including what did not work. Module:
 `src/knowledge/vault.ts`; routes `/api/knowledge/*`; tab KNOWLEDGE. Tests:
 `test/knowledge/vault.test.ts`.
 
@@ -80,7 +80,7 @@ stores something you heard — a date, a headline, a reel — as a vault item:
 
 - `kind: hypothesis`, `evidenceLabel: HYPOTHESIS`, `provenance.source: USER`,
   `sampleSize: 0`, tagged `owner-note` (and the market, if you give one).
-- The source link is written into the body as **not verified by Trading Bot**.
+- The source link is written into the body as **not verified by Kestrel**.
 - An optional **watch date** becomes the item's `review_due`, so the note stays
   CURRENT until that day and then comes due for review — that is how it
   resurfaces when it matters. Without one it takes the normal 30-day cadence.

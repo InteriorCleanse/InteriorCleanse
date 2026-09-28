@@ -11,7 +11,7 @@ set MRCASH_DATA_DIR=data-fleet
 REM The BTC window already runs the all-markets scan.
 set MRCASH_MARKETS=0
 echo.
-echo   Trading Bot fleet - 24/7 paper trading on %MRCASH_SYMBOLS% (close this window to stop)
+echo   Kestrel fleet - 24/7 paper trading on %MRCASH_SYMBOLS% (close this window to stop)
 echo.
 :loop
 node scripts\fleet.mjs

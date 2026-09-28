@@ -52,7 +52,7 @@ fresh data directory, observed for 75 s and then stopped:
 - **ONE WATCH LOOP**: one cycle ran at start and failed honestly with `Could not download prices this cycle — will try again next candle`.
 - **ONE RESEARCH SCHEDULER**: first tick after 20 s, `10/10 steps ran; no experiment; 0 digests; Nothing in production changed`.
 - **ONE OPERATIONS MONITOR**: two ticks (4 and 7 ms), persistence probe HEALTHY, daily integrity written (ISSUES: no candle stored — true).
-- A second `node src/server.ts` on the same data directory exited 1 with `… is already owned by Trading Bot pid 5898 … One process per data directory …`.
+- A second `node src/server.ts` on the same data directory exited 1 with `… is already owned by Kestrel pid 5898 … One process per data directory …`.
 
 Initial `/api/ops/health` (abridged, verbatim values):
 

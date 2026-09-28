@@ -1,6 +1,6 @@
 # The Signal Core
 
-The moving picture on the Home tab: a reactor core with every model Trading Bot
+The moving picture on the Home tab: a reactor core with every model Kestrel
 runs. It exists because a live desk should look alive, and it is built so that
 it cannot look more alive than the feeds behind it. The core is drawn by
 `web/js/core.js`; the small charts and the stat strip sit in the fold below

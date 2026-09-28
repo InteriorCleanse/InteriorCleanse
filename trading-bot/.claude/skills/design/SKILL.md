@@ -1,6 +1,6 @@
 ---
 name: design
-description: Cinematic luxury design for Trading Bot or any web page, with Higgsfield media (Seedance 2.0 video, GPT Image stills). Premium typography, one gold accent, smooth motion, ambient video. Use when the user types /design, asks to make something look more luxury, premium, modern or cinematic, or asks for Higgsfield or Seedance visuals.
+description: Cinematic luxury design for Kestrel or any web page, with Higgsfield media (Seedance 2.0 video, GPT Image stills). Premium typography, one gold accent, smooth motion, ambient video. Use when the user types /design, asks to make something look more luxury, premium, modern or cinematic, or asks for Higgsfield or Seedance visuals.
 ---
 
 # /design — cinematic luxury, made to last
@@ -14,7 +14,7 @@ applied to the app itself; it does not build a separate website.
 
 Settle four things first and write them down:
 
-1. **Feeling.** For Trading Bot that is a private bank at night: calm, expensive and quiet.
+1. **Feeling.** For Kestrel that is a private bank at night: calm, expensive and quiet.
 2. **One accent.** Champagne gold `#D8B56E`, with the gradient `--gold-grad`.
 3. **Two faces.**
    - Instrument Serif for display headlines only.

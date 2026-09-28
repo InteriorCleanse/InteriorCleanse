@@ -1,9 +1,9 @@
 ---
 name: mr-cash-tune
-description: Change a Trading Bot setting in config.ts and test the change honestly with the look-back test. Use when the user wants to try a different symbol, timeframe, killzone, RR, or filter, or asks "what if I change X".
+description: Change a Kestrel setting in config.ts and test the change honestly with the look-back test. Use when the user wants to try a different symbol, timeframe, killzone, RR, or filter, or asks "what if I change X".
 ---
 
-# Trading Bot — tune a setting honestly
+# Kestrel — tune a setting honestly
 
 1. Every setting lives in `trading-bot/config.ts`. Change exactly the one the user asked about; explain what it does in one sentence.
 2. Run `npm run memory:reset` (lessons about one setup don't apply to another), then `npm run replay:raw`, and read the scoreboard: setups, win rate, expectancy in R, worst run, longest losing streak, and the breakdowns.

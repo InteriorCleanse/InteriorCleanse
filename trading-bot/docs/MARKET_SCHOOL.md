@@ -1,6 +1,6 @@
 # The Market School
 
-How Trading Bot teaches what its engine does, from its own record, without ever
+How Kestrel teaches what its engine does, from its own record, without ever
 telling you what to trade.
 
 ## What it is

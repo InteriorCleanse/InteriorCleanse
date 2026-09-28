@@ -9,7 +9,7 @@
  * heartbeat is older than `staleAfterMs` is taken over — a crash must not
  * lock the operator out forever.
  *
- * This is a cooperative lock over a file; it protects two copies of Trading Bot
+ * This is a cooperative lock over a file; it protects two copies of Kestrel
  * from each other, which is the case that actually happens (two terminals,
  * a stuck `npm start` and a fresh one). It is not a distributed lock.
  */
@@ -65,7 +65,7 @@ export function acquireLock(opts: { dir?: string; pid?: number; role?: LockInfo[
   let tookOver: LockInfo | null = null
   if (existing && existing.pid !== pid) {
     if (!opts.force && lockIsLive(existing, { now, isAlive: opts.isAlive, host })) {
-      return { ok: false, path, owner: existing, reason: `${dir} is already owned by Trading Bot pid ${existing.pid} on ${existing.host} (started ${new Date(existing.startedAt).toISOString()}, heartbeat ${Math.round((now - existing.heartbeatAt) / 1000)}s ago). One process per data directory: stop it first, or start this one with a different MRCASH_DATA_DIR.` }
+      return { ok: false, path, owner: existing, reason: `${dir} is already owned by Kestrel pid ${existing.pid} on ${existing.host} (started ${new Date(existing.startedAt).toISOString()}, heartbeat ${Math.round((now - existing.heartbeatAt) / 1000)}s ago). One process per data directory: stop it first, or start this one with a different MRCASH_DATA_DIR.` }
     }
     tookOver = existing
   }

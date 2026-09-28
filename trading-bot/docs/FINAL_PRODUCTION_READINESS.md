@@ -1,4 +1,4 @@
-# FINAL PRODUCTION READINESS — Trading Bot (TITAN)
+# FINAL PRODUCTION READINESS — Kestrel (TITAN)
 
 An independent pre-production / red-team audit of the whole system, treating the
 implementation as something to be *proven*, not assumed. Every verdict below has

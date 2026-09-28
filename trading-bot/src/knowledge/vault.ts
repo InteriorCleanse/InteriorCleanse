@@ -1,5 +1,5 @@
 /**
- * THE KNOWLEDGE VAULT — what Trading Bot remembers, including what did not work.
+ * THE KNOWLEDGE VAULT — what Kestrel remembers, including what did not work.
  *
  * A knowledge item is a durable, versioned record of something observed,
  * taught, hypothesised or refuted: a concept, a case study, a research result,

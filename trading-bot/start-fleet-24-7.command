@@ -11,7 +11,7 @@ export MRCASH_DATA_DIR="${MRCASH_DATA_DIR:-data-fleet}"
 # The BTC window already runs the all-markets scan.
 export MRCASH_MARKETS=0
 echo ""
-echo "  Trading Bot fleet — 24/7 paper trading on $MRCASH_SYMBOLS (Ctrl+C or close this window to stop)"
+echo "  Kestrel fleet — 24/7 paper trading on $MRCASH_SYMBOLS (Ctrl+C or close this window to stop)"
 echo ""
 while true; do
   node scripts/fleet.mjs

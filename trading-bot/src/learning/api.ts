@@ -439,7 +439,7 @@ export function knowledgeNote(body: { title?: unknown; body?: unknown; market?: 
   const tags = ['owner-note', ...(market ? [market.toLowerCase()] : []), ...extra]
   const fullBody = [
     text,
-    source ? `Source: ${source} (not verified by Trading Bot).` : 'Source: the owner (not verified by Trading Bot).',
+    source ? `Source: ${source} (not verified by Kestrel).` : 'Source: the owner (not verified by Kestrel).',
     market ? `Market: ${market}.` : '',
     watchAt ? `Bring this back for review on ${NY_DATE.format(new Date(watchAt))} (New York).` : '',
     'UNTESTED. It remembers this and brings it back for review. It does not move a trade.',

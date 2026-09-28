@@ -83,7 +83,7 @@ function printPlan(p: DayPlan | null, proposal: Omit<DayPlan, 'armedAt'>): void 
 }
 
 async function main(): Promise<void> {
-  ui.heading('TALK TO TRADING BOT')
+  ui.heading('TALK TO KESTREL')
   ui.safetyBanner()
   if (config.strategy !== 'ict') {
     console.log(ui.warn('  Talk mode is built around the ICT model. Set strategy: "ict" in config.ts.'))
@@ -210,8 +210,8 @@ async function main(): Promise<void> {
         break
       case 'skill': {
         const s = skillById(arg.toLowerCase())
-        if (!arg) { for (const k of SKILLS) console.log(`  ${k.icon} ${k.id.padEnd(10)} ${k.tagline}`); console.log(ui.dim(`  Current: ${skill ? skill.name : 'none (plain Trading Bot)'}. "skill off" removes the hat.`)); break }
-        if (arg.toLowerCase() === 'off') { skill = null; console.log('  Hat off. Plain Trading Bot.'); break }
+        if (!arg) { for (const k of SKILLS) console.log(`  ${k.icon} ${k.id.padEnd(10)} ${k.tagline}`); console.log(ui.dim(`  Current: ${skill ? skill.name : 'none (plain Kestrel)'}. "skill off" removes the hat.`)); break }
+        if (arg.toLowerCase() === 'off') { skill = null; console.log('  Hat off. Plain Kestrel.'); break }
         if (!s) { console.log(ui.warn(`  No skill called "${arg}". Try: ${SKILLS.map((k) => k.id).join(', ')}`)); break }
         skill = s
         console.log(`  ${s.icon} ${ui.bold(s.name)} — ${s.tagline}. Try: ${ui.dim(s.prompts[0])}`)
@@ -264,7 +264,7 @@ async function main(): Promise<void> {
           console.log(ui.dim('  Type "help" to see what I can do without it.'))
           break
         }
-        process.stdout.write(ui.accent(`Trading Bot${skill ? ` (${skill.name})` : ''} › `))
+        process.stdout.write(ui.accent(`Kestrel${skill ? ` (${skill.name})` : ''} › `))
         try {
           const answer = await askAI(line, contextFor(snap, plan), history, (t) => process.stdout.write(t), undefined, skill)
           process.stdout.write('\n')

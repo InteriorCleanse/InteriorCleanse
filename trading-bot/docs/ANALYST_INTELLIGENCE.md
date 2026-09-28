@@ -1,13 +1,13 @@
 # ANALYST INTELLIGENCE + ATTRIBUTION — the evidence pipeline
 
-**Purpose.** Make Trading Bot exceptionally good at answering six questions about
+**Purpose.** Make Kestrel exceptionally good at answering six questions about
 its own results — *where* did they come from, *under what conditions*, *which*
 strategies and setups, *what changed* between winning and losing conditions,
 *how much data* supports the conclusion, and *what would falsify* it — and make
 it impossible for the dashboard to hide uncertainty while doing so.
 
 **Not the purpose.** Predicting markets, manufacturing an edge, or making
-Trading Bot "smarter than Buffett". Nothing in this layer creates a trade.
+Kestrel "smarter than Buffett". Nothing in this layer creates a trade.
 
 ---
 

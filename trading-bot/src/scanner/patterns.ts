@@ -4,7 +4,7 @@
  *
  * Every pattern it reports carries the exact points it was built from, what
  * would confirm it and what would cancel it, so it can be drawn and checked
- * on the chart. It is a description of shape, not a forecast: Trading Bot has
+ * on the chart. It is a description of shape, not a forecast: Kestrel has
  * not tested any of these patterns as a trading rule, the page says so, and
  * nothing here reaches the engine.
  */
@@ -42,7 +42,7 @@ export type ScanResult = {
   summary: { bull: number; bear: number; neutral: number; text: string }
 }
 
-export const UNTESTED = 'Pattern names are textbook shapes found by fixed rules. Trading Bot has not tested any of them as a trading rule; treat each as something to check, not a signal.'
+export const UNTESTED = 'Pattern names are textbook shapes found by fixed rules. Kestrel has not tested any of them as a trading rule; treat each as something to check, not a signal.'
 
 const r = (n: number) => Math.round(n * 1e6) / 1e6
 const fmt = (n: number) => (Math.abs(n) >= 1000 ? n.toFixed(2) : Math.abs(n) >= 1 ? n.toFixed(2) : n.toPrecision(4))

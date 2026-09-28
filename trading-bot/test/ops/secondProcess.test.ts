@@ -39,7 +39,7 @@ test('a second server on the same data directory refuses to start, names the own
   second.stderr.on('data', (d) => { out += String(d) })
   const code = await new Promise<number | null>((resolve) => { const t = setTimeout(() => { second.kill('SIGKILL'); resolve(-1) }, 30_000); second.once('exit', (c) => { clearTimeout(t); resolve(c) }) })
   assert.equal(code, 1, `second process should exit 1; output:\n${out}`)
-  assert.match(out, new RegExp(`already owned by Trading Bot pid ${bot.child.pid}`))
+  assert.match(out, new RegExp(`already owned by Kestrel pid ${bot.child.pid}`))
   assert.match(out, /One process per data directory/)
   // The first is still the owner and still healthy.
   const lock = JSON.parse(readFileSync(join(tmp.dir, 'mrcash.lock'), 'utf8')) as { pid: number }

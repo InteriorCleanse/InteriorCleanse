@@ -75,7 +75,7 @@ function render() {
     </div>
   </div>
   ${d.readings.length ? `<div class="sd-grid">${d.readings.map((r) => `<div class="sd-read ${r.status}"><span class="sd-dot"></span><b>${esc(r.label)}</b><em>${esc(r.value)}</em><p>${esc(r.text)}</p></div>`).join('')}</div>` : ''}
-  ${d.playbook.length ? `<div class="card"><h2>Textbook playbook for this tape</h2><ul class="sd-play">${d.playbook.map((p) => `<li>${esc(p)}</li>`).join('')}</ul><p class="muted pl-note">Textbook, not advice, and not a rule Trading Bot trades. Test any of it on paper first.</p></div>` : ''}
+  ${d.playbook.length ? `<div class="card"><h2>Textbook playbook for this tape</h2><ul class="sd-play">${d.playbook.map((p) => `<li>${esc(p)}</li>`).join('')}</ul><p class="muted pl-note">Textbook, not advice, and not a rule Kestrel trades. Test any of it on paper first.</p></div>` : ''}
   <div class="card"><h2>The 5-minute call</h2><p class="muted" style="margin-top:0">Up or down over the next five minutes, scored against the real close. Short horizons are the hardest to call; watch the skill number before trusting any of it.</p>${fiveMinute() || '<p class="muted">The 5-minute desk is starting.</p>'}</div>
   ${calcCard()}
   <div class="card"><h2>At the configured costs</h2>${curveChart(d.curve, 'Win rate needed to break even, stop equal to target, at the paper engine’s costs')}</div>

@@ -390,7 +390,7 @@ function finalize(pos: PaperPosition, exit: number, reason: Exclude<PaperPositio
     followedPlan: null,
     emotions: [],
     tags: ['bot paper trade'],
-    notes: `Opened and closed by Trading Bot on paper (${reason}). Intended entry $${pos.intendedEntry.toFixed(2)}, filled at $${pos.entry.toFixed(2)}. Add how you felt when the alert came in, and whether you'd have taken it.`,
+    notes: `Opened and closed by Kestrel on paper (${reason}). Intended entry $${pos.intendedEntry.toFixed(2)}, filled at $${pos.entry.toFixed(2)}. Add how you felt when the alert came in, and whether you'd have taken it.`,
     botSnapshot: { decision: pos.direction === 'long' ? 'BUY' : 'SELL', firstFail: null, bias: '', state: pos.reason, quality: pos.quality },
   })
   return closed

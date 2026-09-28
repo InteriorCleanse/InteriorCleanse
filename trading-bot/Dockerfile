@@ -1,4 +1,4 @@
-# Trading Bot — paper-trading bot. Runs TypeScript directly on Node 22; zero
+# Kestrel — paper-trading bot. Runs TypeScript directly on Node 22; zero
 # runtime dependencies. This image runs the paper stack 24/7; it ships with no
 # exchange keys and cannot place a real order (see the live gate chain).
 FROM node:22-slim

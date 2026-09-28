@@ -1,6 +1,6 @@
-# Trading Bot
+# Kestrel
 
-Trading Bot is a paper-trading bot. It practises with **pretend money** using the ICT session
+Kestrel is a paper-trading bot. It practises with **pretend money** using the ICT session
 model — Asia / London / New York ranges, liquidity sweeps, and inversion fair
 value gaps — explains every decision in plain English, reads the news, proposes
 a plan each day and asks you to agree to it, and refuses to repeat setups that
@@ -69,6 +69,7 @@ choice is remembered on that device.
 |---|---|---|
 | The desk | **Home**, **Today**, **Chart**, **Ask**, and **Journal** under More | The brain (every model it runs, live), the daily brief and decision, the annotated chart, a conversation with the bot in any of its hats, and your journal. |
 | Markets | Markets, Conditions, Research desk, Scanner, Big money, Tickers, Flow, News, Intel, TradingView | Every market he watches around the clock — crypto, stocks, forex and indexes, read-only (docs/MULTI_MARKET.md) — the order book and tape, the calendar and headlines, the engine's own chart markup with provenance, and the Pine export. Tickers holds reference knowledge for SPY, NVDA, TSLA, AAPL, the ES and NQ index futures, oil and gas (CL, NG), gold and silver (GC, SI) and 10-year Treasuries (ZN), with the watch's read-only prices and labelled fund stand-ins for the futures (docs/TICKERS.md). Scanner finds textbook chart and candle patterns in every watched market by fixed rules and marks up any chart screenshot with AI (docs/CHART_SCANNER.md). For each market it also gives a bias score from −6 to +6 and a trend · level · signal grade, the Candlestick Trading Bible method, and measures what followed each candle pattern on that market's own history, labelled BACKTEST (docs/PRICE_ACTION.md). Big money shows disclosed congress and insider trades, off-exchange volume and the most-traded stocks (docs/BIG_MONEY.md). Conditions grades every watched market (crypto, the six forex majors, stocks, index and commodity funds) as good, caution, poor, closed or no data from shock candles, volatility against its own history, chop, volume, gaps, trading hours (crypto 24/7, forex Sun–Fri, options regular session only, CME futures) and the calendar. It also shows currency strength, stress breadth, risk tone and what moves together (a correlation grid), with a verdict chip in the header on every page, and every hat in Ask hears the reading. When the verdict turns POOR it rings the bell and offers the kill switch, and the choice stays yours (docs/MARKET_CONDITIONS.md). The Research desk runs the GROKBOT Guide's six research bots (Scout, Reporter, Whale, Hunter, Skeptic, Chief) on your watchlist, rules, checklist and limits, and sends at most three decision cards a day, or "Nothing needs you today". Research only, never an order (docs/RESEARCH_DESK.md). |
+| Stock desk | Stock desk | Runs the owner's momentum plan on paper: tech and tech-adjacent leaders only, long only. It checks the market at 8:15 CT, then every 15 minutes from 8:30 to 3:00 it enforces stops, manages positions and writes a research report before any buy. It never buys in the first 30 minutes, never chases a gap over 3%, puts at most 25% in one stock, and holds cash when nothing qualifies. There is no broker and no order path (docs/STOCK_DESK.md). |
 | Calls and plans | The call, Prediction desk, Strategy builder, Scalp desk, Planner, Spreads | The call makes an up-or-down forecast for the next 15 minutes, shows its working, stays flat below a confidence line, and settles and scores every window against a coin flip. It is a PAPER FORECAST with no orders (docs/THE_CALL.md), with a 5-minute horizon for scalpers. The Prediction desk runs the viral "$50 → $5,273" Grok-bot idea on paper: ten minds read Polymarket and Kalshi every ten minutes, paper positions open at the creator's 8-point line and 6% cap, settle only when the venue resolves, and fill in the seven-day sheet; every mind is scored on its own (docs/PREDICTION_DESK.md). The Strategy builder turns a plain-English strategy into rules and readable code and backtests it on stored candles, in-sample and out-of-sample, with the paper engine's costs (docs/STRATEGY_BUILDER.md). Scalp desk grades live scalping conditions (liquidity, typical move against costs, spread, tape, trend or chop, and the news clock) as good, thin or stand aside, and has a break-even calculator (docs/SCALPING.md). Planner sizes your own share and single-option trades; Spreads plans defined-risk option spreads (debit, credit, butterflies, iron condor) for you to place yourself (docs/OPTION_SPREADS.md). |
 | Is it working? | Evidence, Validation, Operations, Test, Replay | Attribution by session, regime and strategy; the frozen validation gates; heartbeat, feed, integrity, reconciliation, soak and the first-fill acceptance chain; look-back tests; the replay player. |
 | Learn | School, Research, Knowledge, Observer | Lessons from its own case studies; the quant lab (overfitting detector, regime atlas, news diffusion, sandbox); the versioned vault and daily digests; what it is observing right now. |
@@ -131,7 +132,7 @@ a loss.
 
 ### The Playbook tab (and `npm run strategies`)
 
-Trading Bot reads the market through several strategies at once, and this tab
+Kestrel reads the market through several strategies at once, and this tab
 shows every one of them side by side: what it looks for, whether it is turned
 on, and its vote right now with the reason. Each strategy is judged entirely
 on its own — nothing is combined into a single decision yet, and **only the
@@ -193,7 +194,7 @@ day. Honest caveat, printed every time: the book is intent and gets pulled;
 the tape already happened.
 
 **Live order flow** sits at the top of the tab and is a different thing from
-the REST snapshot below it. While the stream is up, Trading Bot counts every
+the REST snapshot below it. While the stream is up, Kestrel counts every
 trade as it prints and builds readings a candle chart cannot show:
 
 - **Delta** — buyer-initiated minus seller-initiated volume in one candle.
@@ -214,7 +215,7 @@ These come only from the stream. The exchange merges each taker order into
 one print, so a "large print" is one order, not necessarily one participant.
 The moment the stream drops or misses anything, CVD and the footprint are
 **hidden** and the block says "windowed snapshot only" — a running total that
-skipped trades is a lie, and Trading Bot will not show one. The book and tape
+skipped trades is a lie, and Kestrel will not show one. The book and tape
 below are always available over REST, but they are a window, not a count.
 
 ### Market state (and `npm run state`)
@@ -241,24 +242,24 @@ no trade is placed or blocked on the regime yet.
 A trading journal built to make *you* better. Each entry separates the
 **outcome** from your **execution score** (1–5, "did I do what I said I'd
 do?"), asks whether you followed the plan, and lets you tag emotions and
-habits with one tap. "From current setup" pre-fills what Trading Bot saw so you
+habits with one tap. "From current setup" pre-fills what Kestrel saw so you
 only add how you felt. R is computed for you from entry / stop / exit.
 
 The review finds your **leaks** — emotions, sessions, and habits that cost
 money — names **the one thing to fix**, tracks goals (journal daily, follow
 the plan 90%, zero revenge trades, execution ≥ 4) with progress, keeps a
-streak, and gives you a reflection prompt each day. "Ask Trading Bot about my
+streak, and gives you a reflection prompt each day. "Ask Kestrel about my
 journal" hands the stats to the assistant for a straight conversation.
 
 ### The TradingView tab
 
 A live TradingView chart inside the app, and the webhook that lets your
-TradingView alerts land in Trading Bot's bell. See *Connecting TradingView* below
+TradingView alerts land in Kestrel's bell. See *Connecting TradingView* below
 for exactly what is and isn't possible.
 
 ### Alerts (the bell)
 
-While the app is open, Trading Bot re-reads the market every candle and taps
+While the app is open, Kestrel re-reads the market every candle and taps
 you on the shoulder: an entry window opening in 15 minutes, a level swept, a
 full setup (with entry/stop/target), high-impact news about to land, the
 trend flipping, a very large trade. Click **Alerts** in the header to get them
@@ -266,7 +267,7 @@ as system notifications too. `npm run watch` does the same in a terminal.
 
 ### The picture analyzer (Ask tab)
 
-Paste or attach a screenshot of any chart. With the assistant on, Trading Bot
+Paste or attach a screenshot of any chart. With the assistant on, Kestrel
 breaks it down in a fixed order: what it can see, levels and liquidity, gaps,
 an entry zone / stop / target with the reasoning, what would invalidate it,
 and news to check. It says "I can't read this" rather than guess a price.
@@ -276,18 +277,18 @@ Also `npm run picture -- chart.png "your question"`.
 
 ## Install it as an app — Dell, Mac, iPhone
 
-Trading Bot is a **progressive web app**: one icon, opens full-screen, no browser
+Kestrel is a **progressive web app**: one icon, opens full-screen, no browser
 chrome. Nothing to buy and nothing to submit to an app store.
 
 | Device | How |
 | --- | --- |
-| **Windows (your Dell)** | Start Trading Bot, open it in Chrome or Edge, click **Install** in the header (or the install icon in the address bar). |
+| **Windows (your Dell)** | Start Kestrel, open it in Chrome or Edge, click **Install** in the header (or the install icon in the address bar). |
 | **Mac** | Same in Chrome/Edge; in Safari: File → *Add to Dock*. |
 | **iPhone** | Turn on phone access (below), open the address on the phone in Safari, enter the PIN once, tap Share → **Add to Home Screen**. |
 
 ### Phone access — just for you
 
-In `config.ts` set `app.allowPhone: true`. When Trading Bot starts it prints a
+In `config.ts` set `app.allowPhone: true`. When Kestrel starts it prints a
 wifi address and a **PIN**. Your phone (same wifi) opens that address, enters
 the PIN once, and it's in. Nobody else on your network gets past the PIN, and
 nothing is exposed to the internet.
@@ -297,7 +298,7 @@ Step by step:
 1. **Turn it on.** In `config.ts`, change `allowPhone: false` to `allowPhone: true`.
 2. **Pick a PIN that stays the same.** Add `MRCASH_PIN=` and eight or more
    digits to `.env` (create the file next to `package.json` if it is not there).
-   Without it, Trading Bot makes a new random PIN every start.
+   Without it, Kestrel makes a new random PIN every start.
 3. **Add the second lock (recommended).** Run `npm run vault:setup` and follow
    it. From then on the phone needs the PIN **and** the 6-digit code from your
    authenticator app.
@@ -310,7 +311,7 @@ Step by step:
    **Add to Home screen** or **Install app**.
 
 The fleet's other markets use the next ports (4174 and up) at the same address,
-with the same PIN. Each restart of Trading Bot signs the phone out, so after one
+with the same PIN. Each restart of Kestrel signs the phone out, so after one
 it asks for the PIN again. Set the computer never to sleep while plugged in, or
 the bot stops when it does. If the address stops working, the router gave the
 computer a new one: read the new one from the window.
@@ -323,7 +324,7 @@ it gives you a private https address without opening any ports.
 
 ### Connecting TradingView
 
-What's possible: TradingView **sends** to Trading Bot. The Pine indicator's
+What's possible: TradingView **sends** to Kestrel. The Pine indicator's
 alerts are written as JSON; create an alert on it with the webhook URL and
 secret from the TradingView tab, and it lands in the bell with the price. Two
 honest requirements: webhook alerts need a paid TradingView plan (Essential
@@ -338,7 +339,7 @@ TradingView's own free widget, live, with your symbol and timeframe.
 ### 24/7 paper trading that learns as it trades
 
 Double-click **`start-24-7.command`** (Mac) or **`start-24-7.bat`** (Windows)
-and leave it. Trading Bot re-reads the market every candle, and when the whole
+and leave it. Kestrel re-reads the market every candle, and when the whole
 checklist passes inside a killzone — and risk and memory agree — it opens a
 **paper** position, then babysits it candle by candle: stop, target, or time.
 When it closes:
@@ -351,24 +352,24 @@ When it closes:
 
 Equity, open positions with live R, and the full closed-trade history are on
 the Today and Memory tabs and in `npm run paper`. You can flatten any paper
-position by hand. If the computer sleeps, so does Trading Bot — set it not to
+position by hand. If the computer sleeps, so does Kestrel — set it not to
 sleep while plugged in, or run it on a Raspberry Pi or a $5 server. Turn the
 auto-trader off with `app.autoPaperTrade: false`; alerts still come.
 
 ### Where the prices come from
 
-While the app runs, Trading Bot holds one **live stream** open to the exchange's
+While the app runs, Kestrel holds one **live stream** open to the exchange's
 public market-data feed: every trade, the best bid and ask, the order book,
 and the candle as it forms. No account, no key — this is the same public feed
 everyone sees. The moment a 5-minute candle closes, the stream says so and
-Trading Bot re-reads the market **within a couple of seconds**, instead of
+Kestrel re-reads the market **within a couple of seconds**, instead of
 waiting for the next poll. The dot next to the price in the app's header
 tells you which path is in use; hover it for the words.
 
 - **Green — live stream.** Prices arrive as they change. The price in the
   header is the mid between the best bid and ask.
 - **Amber — polling over REST.** The stream is off (`data.stream: false` in
-  `config.ts`), connecting, or down. Trading Bot then does what it always did:
+  `config.ts`), connecting, or down. Kestrel then does what it always did:
   asks for closed candles every `app.watchEveryMinutes`. Nothing is missed,
   it is just slower. When the stream comes back, the dot turns green on its
   own — it reconnects by itself, waiting a little longer after each failed
@@ -376,7 +377,7 @@ tells you which path is in use; hover it for the words.
   `data.streamHosts`.
 - **Grey — no feed yet.** The app is still starting.
 
-While the stream is up, Trading Bot also folds every trade on the tape into
+While the stream is up, Kestrel also folds every trade on the tape into
 **exact** readings: the day's and the session's VWAP (the volume-weighted
 average price, the price where most money changed hands) and the day's
 **volume profile** (the price with the most volume, the "point of control",
@@ -397,7 +398,7 @@ it already has, and gaps the exchange itself cannot fill (maintenance
 windows) are remembered rather than re-requested forever. `npm run status`
 and `/api/system` show the mode, the host, reconnect count and the last gap.
 
-### Ask Claude about Trading Bot from anywhere (MCP)
+### Ask Claude about Kestrel from anywhere (MCP)
 
 ```bash
 npm run mcp:config
@@ -423,14 +424,14 @@ registry, so trying twenty strategies and quoting the best is visible.
 the School's course: first the basics in order (what you trade, candles, bid
 and ask, order types, position sizing, options, time decay and implied
 volatility, leverage, a plan and a journal, psychology), then the concepts the
-engine uses. Ask *"Teach me the next Trading Bot lesson and quiz me"*; Claude
+engine uses. Ask *"Teach me the next Kestrel lesson and quiz me"*; Claude
 gets the lesson, the common misreads and the quiz with an answer key, and
 teaches one concept at a time. The same lessons are in the app under
 **More → School**.
 
 ### Jarvis mode — its voice, and yours
 
-Click **Voice** in the header and Trading Bot speaks: alerts as they arrive
+Click **Voice** in the header and Kestrel speaks: alerts as they arrive
 ("London low swept — watching for displacement up"), answers in the Ask tab,
 and **Read it to me** on Today reads the whole brief aloud. Press the **🎙**
 in the Ask tab, ask out loud, and it answers out loud. Uses the browser's own
@@ -461,11 +462,11 @@ The repo also ships **Claude Code skills** in `trading-bot/.claude/skills/`
 — `/mr-cash-brief`, `/mr-cash-trade-review`, `/mr-cash-journal-coach`,
 `/mr-cash-tune`, `/mr-cash-chart-read`, `/mr-cash-morning-filings`, `/design` — so
 when you open this folder in Claude Code, Claude already knows how to run and
-reason about Trading Bot. Three research skills sit beside them:
+reason about Kestrel. Three research skills sit beside them:
 `/vectorbt-research` and `/hftbacktest-research` drive the Python research
 bench in `research/` (BACKTEST only, never imported by the bot), and
 `/market-making-study` explains market making with a runnable study instead of
-a live bot (docs/RESEARCH_TOOLS.md). `/design` holds the app's luxury look: champagne gold on onyx, serif headlines, and ambient Seedance 2.0 video from `web/media/`. What Trading Bot took from other trading bots, and what it deliberately left out, is in docs/BOT_LANDSCAPE.md.
+a live bot (docs/RESEARCH_TOOLS.md). `/design` holds the app's luxury look: champagne gold on onyx, serif headlines, and ambient Seedance 2.0 video from `web/media/`. What Kestrel took from other trading bots, and what it deliberately left out, is in docs/BOT_LANDSCAPE.md.
 
 ### Navigation — ⌘K
 
@@ -491,7 +492,7 @@ Checks Node, the data folder, prices, the order book, the tape, every news
 feed, the AI key (with a free ping), TradingView alerts received, phone
 access, today's plan and memory — and says exactly what to do about anything
 that's off. It also says, plainly, that the three external repos are not part
-of Trading Bot.
+of Kestrel.
 
 ---
 
@@ -550,7 +551,7 @@ explanation, and each behind its own toggle:
 - **Swing sweeps.** Hollow triangles mark a wick that ran the stops past a
   swing point and closed back; filled triangles are raids on session levels.
 
-None of this changes what Trading Bot trades yet. The session checklist is
+None of this changes what Kestrel trades yet. The session checklist is
 unchanged (a regression test pins the baseline day word for word), and
 these are readings the next strategies will consume.
 
@@ -727,7 +728,7 @@ Four things stand between you and an accident, and all four are tested
   filters (off by default, so today's sizes are unchanged).
 - **The kill switch.** `npm run stop` (or the ⏹ Stop button on the Today tab,
   or ⌘K → "KILL SWITCH") writes a file called `data/STOP`. While it exists,
-  Trading Bot opens **no new positions of any kind**, paper included. Open paper
+  Kestrel opens **no new positions of any kind**, paper included. Open paper
   positions are still managed to their stop or target, because abandoning one
   is worse than closing it properly. `npm run resume` or the ▶ Resume button
   releases it. It survives restarts, and you can create or delete the file by
@@ -784,7 +785,7 @@ paper stage has shown you the edge exists at all.
 - and a losing streak you've already lived through on paper without
   changing the rules.
 
-**How to go live when you do:** Trading Bot stays *advisory*. It alerts, you
+**How to go live when you do:** Kestrel stays *advisory*. It alerts, you
 place the order by hand on your exchange, you log it in the journal. There
 is deliberately no code path from this bot to an exchange, and I'd keep it
 that way until the paper record is boringly long. If you're in the US,
@@ -941,7 +942,7 @@ npm run state           # uptrend / downtrend / range, and what to watch for
 npm run flow            # where the big orders are and what is trading
 npm run watch           # stay on, raise alerts, and paper-trade every candle
 npm run paper           # the paper account: equity, open and closed trades
-npm run mcp:config      # connect Trading Bot to Claude Desktop / Claude Code
+npm run mcp:config      # connect Kestrel to Claude Desktop / Claude Code
 npm run doctor          # check every connection
 npm run picture -- chart.png "question"   # analyze a chart screenshot
 npm run scan            # one real decision, logged

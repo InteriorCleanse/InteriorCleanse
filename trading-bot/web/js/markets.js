@@ -1,5 +1,5 @@
 /**
- * MARKETS — every market Trading Bot watches, READ-ONLY.
+ * MARKETS — every market Kestrel watches, READ-ONLY.
  *
  * Two views of `/api/markets`:
  *   - the strip on Home (one card per kind of market: crypto, stocks, forex,

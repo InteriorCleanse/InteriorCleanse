@@ -9,7 +9,7 @@
  *    JSON shape and the page draws every box, level and candle marker on your
  *    picture. Sends POST /api/scanner/picture with the page's CSRF token.
  *
- * Neither is a signal. Trading Bot has not tested these patterns as a trading
+ * Neither is a signal. Kestrel has not tested these patterns as a trading
  * rule, and nothing here reaches the engine.
  */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))

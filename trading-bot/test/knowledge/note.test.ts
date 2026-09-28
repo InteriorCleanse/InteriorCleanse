@@ -30,7 +30,7 @@ test('a note is stored as an untested USER hypothesis with its source and market
   assert.equal(it.provenance.symbol, 'DIS')
   assert.equal(it.provenance.sampleSize, 0)
   assert.ok(it.tags.includes('owner-note') && it.tags.includes('dis'))
-  assert.match(it.body, /https:\/\/example\.com\/reel \(not verified by Trading Bot\)/)
+  assert.match(it.body, /https:\/\/example\.com\/reel \(not verified by Kestrel\)/)
   assert.match(it.body, /UNTESTED/)
   assert.match(it.body, /does not move a trade/)
   assert.equal(it.review_due, WATCH)

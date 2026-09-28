@@ -5,7 +5,7 @@
  * Every figure comes from a named public source with its delay spelled out:
  * congress trades (STOCK Act, up to 45 days late, dollar ranges), insider
  * Form 4 filings (about two business days), off-exchange volume (FINRA), and
- * Alpaca's most-active list. Nothing here is a signal, and Trading Bot does not
+ * Alpaca's most-active list. Nothing here is a signal, and Kestrel does not
  * trade on it.
  */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
@@ -103,7 +103,7 @@ function readCard() {
     <li><b>Insider sales are common; purchases are not.</b> Executives sell for taxes, diversification and planned schedules. An open-market purchase with their own cash is rarer.</li>
     <li><b>Off-exchange share</b> is how much of a stock's reported volume traded away from public exchanges, in dark pools and at wholesalers. A high share alone does not say which way money moved.</li>
     <li><b>Volume leaders</b> show where trading is heaviest today, not who is trading or why.</li>
-    <li>None of this has been tested as a trading rule here. Research before acting, and remember Trading Bot does not trade on it.</li>
+    <li>None of this has been tested as a trading rule here. Research before acting, and remember Kestrel does not trade on it.</li>
   </ul></div>`
 }
 

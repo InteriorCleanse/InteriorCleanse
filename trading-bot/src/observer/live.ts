@@ -1,5 +1,5 @@
 /**
- * THE LIVE SCHOOL — "Trading Bot is observing…" and, later, "RESULT REVEALED".
+ * THE LIVE SCHOOL — "Kestrel is observing…" and, later, "RESULT REVEALED".
  *
  * The live view explains a selected event using only what was knowable at
  * its candle close: the BEFORE summary the observer stored (structure,
@@ -70,7 +70,7 @@ export function liveView(now = Date.now(), opts: { recent?: number } = {}): Live
   return {
     at: now, observing, revealed, recent, counts: observationCounts(), horizon: { candles: HORIZON, interval: config.interval },
     notes: [
-      observing.length ? `Trading Bot is observing ${observing.length} event(s). Each is explained with what was knowable at its close; the result is revealed only after ${HORIZON} more candles are stored.` : 'Nothing is being observed right now. Selected events appear here as the engine finds them.',
+      observing.length ? `Kestrel is observing ${observing.length} event(s). Each is explained with what was knowable at its close; the result is revealed only after ${HORIZON} more candles are stored.` : 'Nothing is being observed right now. Selected events appear here as the engine finds them.',
       'Selection means an event is worth studying, not a forecast. The engine remains the only source of decisions.',
     ],
   }

@@ -2756,7 +2756,7 @@ html[data-tone="light"] .tag, html[data-tone="light"] .badge { background:var(--
 html[data-tone="light"] pre, html[data-tone="light"] code { background:#F2F5FB; color:#1E293B; border-color:var(--line); }
 html[data-tone="light"] .bd-code pre { background:var(--screen); color:#E6ECF8; }
 html[data-tone="light"] ::selection { background:rgba(79,70,229,.2); color:inherit; }
-html[data-tone="light"] .brand-mark { filter:drop-shadow(0 2px 8px rgba(79,70,229,.25)); }
+html[data-tone="light"] .brand-mark { filter:drop-shadow(0 2px 8px rgba(var(--brand-rgb),.28)); }
 /* live instruments keep a dark screen, with the dark tokens scoped inside them */
 html[data-tone="light"] .hm-brain,
 html[data-tone="light"] .ch-plot {
@@ -2777,17 +2777,17 @@ html[data-theme="linen"] {
   --bg:#E8E2D7; --page-top:#F0EBE2; --page-bot:#DDD5C8;
   --surf-hi:247,243,236; --surf-lo:238,232,222;
   --panel:#F7F3EC; --panel2:#EEE8DD; --line:#D6CCBC; --edge:rgba(70,50,25,.12); --glass:rgba(247,243,236,.92);
-  --text:#1B2230; --dim:#474F5E; --faint:#5E6573;
+  --text:#1B2230; --dim:#474F5E; --faint:#545B69;
   --brand:#1E5A55; --brand-rgb:30,90,85; --brand-hi:#26716A; --brand-lo:#153F3C; --ink:#F7F3EC;
   --gold-grad:linear-gradient(135deg, #B38A3E 0%, #8F6A22 50%, #6E5019 100%);
-  --green:#1D6B45; --green-rgb:29,107,69; --red:#A3283A; --red-rgb:163,40,58; --amber:#8A5A10; --amber-rgb:138,90,16;
+  --green:#1A6340; --green-rgb:26,99,64; --red:#A3283A; --red-rgb:163,40,58; --amber:#7C510E; --amber-rgb:124,81,14;
   --aqua:#15636A; --aqua-rgb:21,99,106; --blue:#2A4F95; --purple:#6A3F9E;
-  --accent:#8A5A10; --accent-rgb:138,90,16;
+  --accent:#7C510E; --accent-rgb:124,81,14;
   --shadow:0 18px 38px -24px rgba(60,40,18,.38), 0 2px 6px -2px rgba(60,40,18,.08);
   --screen:#11201E; --screen-hi:#1B3431;
   --btn-a:#26716A; --btn-b:#1E5A55; --btn-c:#153F3C;
 }
-html[data-theme="linen"][data-hue="gold"]   { --accent:#8A5A10; --accent-rgb:138,90,16; }
+html[data-theme="linen"][data-hue="gold"]   { --accent:#7C510E; --accent-rgb:124,81,14; }
 html[data-theme="linen"][data-hue="cyan"]   { --accent:#0F6663; --accent-rgb:15,102,99; }
 html[data-theme="linen"][data-hue="violet"] { --accent:#6A3F9E; --accent-rgb:106,63,158; }
 html[data-theme="linen"][data-hue="sky"]    { --accent:#2A4F95; --accent-rgb:42,79,149; }

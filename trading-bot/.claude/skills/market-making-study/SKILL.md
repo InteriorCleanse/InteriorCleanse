@@ -1,6 +1,6 @@
 ---
 name: market-making-study
-description: Explain and study how market making works (quoting both sides, inventory, adverse selection, fees and rebates, prediction-market books such as Kalshi) using the hftbacktest study in research/. Use when the user asks about market-making bots, Kalshi or Polymarket market makers, spreads and inventory risk, or types /market-making-study. Study only; Trading Bot does not market-make and this never places orders.
+description: Explain and study how market making works (quoting both sides, inventory, adverse selection, fees and rebates, prediction-market books such as Kalshi) using the hftbacktest study in research/. Use when the user asks about market-making bots, Kalshi or Polymarket market makers, spreads and inventory risk, or types /market-making-study. Study only; Kestrel does not market-make and this never places orders.
 ---
 
 # Market making: a study, not a bot

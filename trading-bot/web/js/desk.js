@@ -3,7 +3,7 @@
  *
  * Design brief, in order of priority:
  *   1. A person who has never traded should understand the top of this screen
- *      in about three seconds: what Trading Bot thinks right now, in one sentence,
+ *      in about three seconds: what Kestrel thinks right now, in one sentence,
  *      next to a core that shows every model it runs and which of them are
  *      talking. Everything else is detail and stays folded away.
  *   2. A model that cannot see must LOOK like it cannot see — grey, dashed,
@@ -129,7 +129,7 @@ function learningLine(l) {
   const when = (t, future) => { if (!t) return null; const m = mins(future ? t - Date.now() : Date.now() - t); return m < 1 ? (future ? 'any moment' : 'just now') : m < 60 ? (future ? `in ${m} min` : `${m} min ago`) : (future ? `in ${Math.round(m / 60)} h` : `${Math.round(m / 60)} h ago`) }
   const last = when(l.lastRun, false), next = when(l.nextRun, true)
   const state = l.lastError ? `<b class="warn">last run failed</b>: ${esc(l.lastError)}` : l.running ? 'studying now' : l.runs ? `${l.runs} research run${l.runs === 1 ? '' : 's'}${last ? `, last ${last}` : ''}${next ? `, next ${next}` : ''}` : 'first research run starts shortly'
-  return `<p class="hm-learn" title="Every 15 minutes Trading Bot re-reads its own paper record and what it has watched: failures, drift, the research queue, daily and weekly reviews. It writes lessons; it never changes how it trades."><i aria-hidden="true"></i><span><b>Self-learning</b> · ${state} · ${Number(l.candlesObserved || 0).toLocaleString()} candles observed</span></p>`
+  return `<p class="hm-learn" title="Every 15 minutes Kestrel re-reads its own paper record and what it has watched: failures, drift, the research queue, daily and weekly reviews. It writes lessons; it never changes how it trades."><i aria-hidden="true"></i><span><b>Self-learning</b> · ${state} · ${Number(l.candlesObserved || 0).toLocaleString()} candles observed</span></p>`
 }
 
 function homeHero(d) {
@@ -167,7 +167,7 @@ function homeHero(d) {
       <div class="hm-actions">
         <button class="btn" data-tab="today">Today's plan</button>
         <button class="btn ghost" data-tab="chart">Chart</button>
-        <button class="btn ghost" data-tab="ask">Ask Trading Bot</button>
+        <button class="btn ghost" data-tab="ask">Ask Kestrel</button>
       </div>
       ${learningLine(d.learning)}
       <p class="hm-stamp"><span id="desk-status"></span></p>
@@ -357,7 +357,7 @@ window.addEventListener('resize', () => { if (deskData && deskVisible()) { drawS
  * THE PIPELINE — the six steps every paper trade has to pass, left to right,
  * lit from the same /api/desk reading as everything else on this page. A step
  * is "done" only when the desk says so; the first step that is not done is
- * where Trading Bot is right now. Nothing here is estimated: a step with no
+ * where Kestrel is right now. Nothing here is estimated: a step with no
  * reading says so.
  */
 const ICON = {

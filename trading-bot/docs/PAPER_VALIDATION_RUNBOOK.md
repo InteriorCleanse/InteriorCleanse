@@ -1,4 +1,4 @@
-# PAPER VALIDATION RUNBOOK — Trading Bot (TITAN)
+# PAPER VALIDATION RUNBOOK — Kestrel (TITAN)
 
 Operational steps to run the extended paper-validation stage and read its
 output. Paper only — nothing here can place a real order. Pair with
