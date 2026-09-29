@@ -190,6 +190,40 @@ test('the desk runs a paper cycle end to end: buys on a clean setup, then sells 
   assert.ok(s2.account.equity < 10_000 && s2.account.equity > 9_800, 'a stopped trade costs about the planned risk, not more')
 })
 
+test('paused means no new buys, even on Scan now; stops are still enforced while paused', async () => {
+  const { store } = await import('../../src/store.ts')
+  store().setJson('stocks:state', {}) // a fresh paper book for this test
+  let now = ct(9, 46)
+  const src = (nvda: Array<[number, number, number, number]>) => {
+    const all: Record<string, { daily: Candle[]; bars: Candle[] }> = {
+      SPY: { daily: dailyUp(500, 0.002), bars: session(flat(500)) }, QQQ: { daily: dailyUp(400, 0.002), bars: session(flat(400)) },
+      XLK: { daily: dailyUp(200, 0.002), bars: session(flat(200)) }, SMH: { daily: dailyUp(250, 0.002), bars: session(flat(250)) },
+      IGV: { daily: dailyUp(90, 0.001), bars: session(flat(90)) }, VIXY: { daily: dailyUp(15, 0), bars: session(flat(15)) }, IEF: { daily: dailyUp(95, 0), bars: session(flat(95)) },
+      NVDA: { daily: dailyUp(100, 0.006), bars: session(nvda) },
+    }
+    return { daily: Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v.daily])), bars: Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v.bars])) }
+  }
+  let data = src(RETEST)
+  const desk = new StockDesk({
+    now: () => now,
+    headlines: async () => [H('Nvidia upgraded to buy, price target raised', now - 3_600_000)],
+    fetchBars: async (_s, tf) => ({ ok: true, feed: 'sip', bars: tf === '1Day' ? data.daily : data.bars }),
+  })
+  desk.setPaused(true)
+  const c1 = await desk.cycle(true)
+  assert.equal(desk.snapshot().positions.length, 0, 'a clean setup is not bought while paused')
+  assert.ok(c1.lines.some((l) => /Paused by you: no new buys/.test(l)), c1.lines.join(' | '))
+  desk.setPaused(false)
+  await desk.cycle(true)
+  assert.equal(desk.snapshot().positions.length, 1, 'resumed: the same setup is bought')
+  desk.setPaused(true)
+  now = ct(10, 1)
+  data = src([...RETEST, [101.5, 101.6, 100.0, 100.3]])
+  const c3 = await desk.cycle(false)
+  assert.ok(c3.lines.some((l) => /^Sold NVDA: stop/.test(l)), c3.lines.join(' | '))
+  assert.equal(desk.snapshot().positions.length, 0, 'the stop still sells while paused')
+})
+
 test('the stock desk never reaches the engine, a broker or an order path', async () => {
   const { readFileSync } = await import('node:fs')
   const { join } = await import('node:path')

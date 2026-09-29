@@ -66,7 +66,7 @@ function paint() {
         <div><span>Cash</span><b>${usd(a.cash)}</b></div>
         <div><span>Open</span><b>${open.length}</b></div>
         <div><span>Closed trades</span><b>${s.closedTrades}</b></div>
-        <div><span>Next wake</span><b>${s.paused ? '—' : ct(s.nextWake)}</b></div>
+        <div><span>Next wake</span><b>${ct(s.nextWake)}</b></div>
       </div>
       <div class="sk-actions">
         <button class="btn" data-sk="run" ${busy ? 'disabled' : ''}>${busy === 'run' ? 'Scanning…' : 'Scan now'}</button>
@@ -76,7 +76,7 @@ function paint() {
     </div>
     <div class="sk-hero-r">${curve(s.equity, a.startEquity)}<div class="sk-curve-cap">${s.closedTrades < 20 ? 'NOT ENOUGH DATA to judge the strategy yet: ' : ''}${s.closedTrades} closed trade${s.closedTrades === 1 ? '' : 's'} on paper.</div></div>
   </section>
-  ${s.paused && open.length ? `<div class="card sk-warn"><b>${open.length} position${open.length === 1 ? ' is' : 's are'} still open while the desk is paused.</b> Stops are not being enforced. Resume the desk, or flatten the positions.</div>` : ''}
+  ${s.paused ? `<div class="card sk-warn"><b>Paused: no new buys.</b> ${open.length ? `Stops and exits on the ${open.length} open position${open.length === 1 ? '' : 's'} are still enforced every 15 minutes.` : 'Nothing is open.'} Resume to allow new buys.</div>` : ''}
 
   <section class="sk-grid">
     <div class="card">

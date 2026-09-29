@@ -101,14 +101,16 @@ export class StockDesk {
     return { q, feed: daily.feed, note }
   }
 
-  /** One wake. `manual` runs even when paused and outside the schedule (the scan, never a trade outside hours). */
+  /**
+   * One wake. `manual` runs a scan outside the schedule, never a trade outside hours.
+   * Paused means no new buys; stops and exits are enforced whether paused or not.
+   */
   async cycle(manual = false): Promise<Cycle> {
     if (this.running) return { at: this.now(), phase: phase(this.now()), regime: '', lines: ['already running'] }
     this.running = true
     const now = this.now()
     const ph = phase(now)
     try {
-      if (this.state.paused && !manual) { this.log(ph, '', ['Paused by you. Stops are not being enforced while paused.']); return this.state.cycles[this.state.cycles.length - 1] }
       const got = await this.quotes(now)
       if ('error' in got) {
         this.log(ph, 'UNKNOWN', [`No stock data: ${got.error}. Nothing bought or sold.`])
@@ -147,14 +149,14 @@ export class StockDesk {
             lines.push(`Trimmed ${p.symbol}: ${a.why}.`)
           } else lines.push(`Holding ${p.symbol}: ${a.why}.`)
         }
-        // 2. then look for new buys, best first, never forced
+        // 2. then look for new buys, best first, never forced (not while paused)
         const acct = () => ({ equity: this.equityNow(), cash: this.state.cash, positions: this.state.positions.map((p) => ({ symbol: p.symbol, theme: p.theme })) })
         const ctx = { q, reg, board, cat, headlines, now, feed }
         evaluations = UNIVERSE.map((u) => evaluate(u, ctx, acct()))
         const buys = evaluations.filter((e) => e.verdict === 'BUY').sort((a, b) => (b.report?.confidence ?? 0) - (a.report?.confidence ?? 0))
         let bought = 0
         for (const b of buys) {
-          if (bought >= 2) break
+          if (bought >= 2 || this.state.paused) break
           const fresh = evaluate(STOCK_OF[b.symbol], ctx, acct()) // re-check against the account after any earlier buy
           if (fresh.verdict !== 'BUY' || !fresh.setup || !fresh.report || !fresh.dollars) continue
           const px = fresh.setup.entry * (1 + SLIP)
@@ -168,7 +170,8 @@ export class StockDesk {
           this.deps.alert?.(`Stock desk: bought ${b.symbol}`, `${fresh.report.setup} Stop ${fresh.setup.stop.toFixed(2)}. PAPER.`)
           bought++
         }
-        if (!bought) {
+        if (this.state.paused) lines.push('Paused by you: no new buys. Stops and exits are still enforced.')
+        else if (!bought) {
           const near = evaluations.filter((e) => e.report).sort((a, b) => (b.report?.confidence ?? 0) - (a.report?.confidence ?? 0))[0]
           lines.push(reg.aggression === 0 ? `No new buys: the market check is ${reg.state}. Cash is a position.` : near ? `No trade. Closest: ${near.symbol}, ${near.reason}` : 'No trade: nothing has a clean setup with support behind it. Cash is a position.')
         }
@@ -208,7 +211,7 @@ export class StockDesk {
 
   setPaused(on: boolean): void {
     this.state.paused = on
-    this.log(phase(this.now()), '', [on ? `Paused.${this.state.positions.length ? ` ${this.state.positions.length} position(s) are still open and their stops are NOT enforced while paused: flatten them, or resume.` : ''}` : 'Resumed.'])
+    this.log(phase(this.now()), '', [on ? `Paused: no new buys.${this.state.positions.length ? ` ${this.state.positions.length} open position(s) are still managed: stops and exits keep running.` : ''}` : 'Resumed: new buys allowed again.'])
     this.save()
   }
 
