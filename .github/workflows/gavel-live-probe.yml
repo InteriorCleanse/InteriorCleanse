@@ -1,0 +1,42 @@
+name: Gavel live probe
+
+# Calls Gavel's source adapters against the real auction APIs and reports what
+# came back: rows, field names, how many became listings, and a few of them.
+# The test suite uses recorded shapes; this is the check against the real
+# services. GSA runs with the shared DEMO_KEY, so it needs no setup. eBay and
+# MarketCheck join when their keys are added as repository secrets
+# (Settings → Secrets and variables → Actions) under the same names as .env.
+# Run it from the Actions tab (Run workflow); it also runs weekly so a changed
+# API shows up here before members notice.
+
+on:
+  workflow_dispatch:
+  # And whenever an adapter changes, since that is when a mismatch would creep in.
+  push:
+    paths: ['auction-scanner/src/sources/**', 'auction-scanner/src/probe.ts', '.github/workflows/gavel-live-probe.yml']
+  schedule:
+    - cron: '17 9 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auction-scanner
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Probe the live sources
+        run: node src/probe.ts
+        env:
+          GAVEL_GSA: '1'
+          GAVEL_GSA_API_KEY: ${{ secrets.GAVEL_GSA_API_KEY }}
+          GAVEL_EBAY_CLIENT_ID: ${{ secrets.GAVEL_EBAY_CLIENT_ID }}
+          GAVEL_EBAY_CLIENT_SECRET: ${{ secrets.GAVEL_EBAY_CLIENT_SECRET }}
+          GAVEL_MARKETCHECK_API_KEY: ${{ secrets.GAVEL_MARKETCHECK_API_KEY }}
+          GAVEL_MARKETCHECK_AUCTION_PATH: ${{ secrets.GAVEL_MARKETCHECK_AUCTION_PATH }}
