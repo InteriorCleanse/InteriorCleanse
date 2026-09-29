@@ -38,7 +38,7 @@ export type Pick = {
 }
 
 const HARD_END = new Set(['ebay'])
-const SOFT_CLOSE = new Set(['carsandbids', 'bat', 'govdeals', 'acv'])
+const SOFT_CLOSE = new Set(['carsandbids', 'bat', 'govdeals', 'acv', 'gsa'])
 const LIVE_LANE = new Set(['copart', 'iaa', 'manheim', 'adesa', 'local', 'collector'])
 
 function modelMatches(target: Target, l: Listing): boolean {

@@ -144,12 +144,13 @@ test('GSA in the live shape: camelCase fields under Results, the lot text in lot
   // TEST FIXTURE in the field names the live API sent to the probe on GitHub. Values are made up.
   const body = {
     Results: [
-      { saleNo: 'TF1QSC26001', lotNo: '101', itemName: '2019 FORD F-150 XL 4X4', aucEndDt: '2030-10-02T18:00:00', propertyCity: 'Denver', propertyState: 'co', highBidAmount: 12500, biddersCount: 7, itemDescURL: 'https://www.gsaauctions.gov/auctions/preview/TF', imageURL: 'https://www.gsaauctions.gov/tf.jpg', lotInfo: [{ lotSequence: 1, lotDescript: 'Odometer 61,204 miles. Starts and runs. SF-97 provided.' }], coEmail: 'not-read@example.com' },
+      { saleNo: 'TF1QSC26001', lotNo: '101', itemName: '2019 FORD F-150 XL 4X4', aucEndDt: '2030-10-02', propertyCity: 'Denver', propertyState: 'co', highBidAmount: 12500, biddersCount: 7, itemDescURL: 'https://www.gsaauctions.gov/auctions/preview/TF', imageURL: 'https://www.gsaauctions.gov/tf.jpg', lotInfo: '<p><strong style="background-color: yellow;">Odometer&nbsp;61,204 miles.</strong></p><p>Starts and runs. SF-97 provided.</p>', coEmail: 'not-read@example.com' },
+      { saleNo: 'TF1QSC26001', lotNo: '103', itemName: '1983 Beechcraft T-34C aircraft', aucEndDt: '2030-10-02', highBidAmount: '105100' },
       { saleNo: 'TF1QSC26001', lotNo: '102', itemName: 'OFFICE CHAIRS, QTY 40', aucEndDt: '2030-10-02T18:00:00', lotInfo: 'Assorted chairs.' },
     ],
   }
   const rows = gsaRows(body)
-  assert.equal(rows.length, 2)
+  assert.equal(rows.length, 3)
   const l = fromGsaRow(rows[0], Date.UTC(2030, 0, 1))!
   assert.ok(l, 'the truck is read')
   assert.equal(l.id, 'gsa:TF1QSC26001-101')
@@ -161,8 +162,11 @@ test('GSA in the live shape: camelCase fields under Results, the lot text in lot
   assert.equal(l.runsAndDrives, true)
   assert.equal(l.titleStatus, 'clean', 'SF-97 in the lot text is the title document')
   assert.equal(l.location?.state, 'CO')
-  assert.ok(l.endsAt && l.endsAt > Date.UTC(2030, 0, 1))
+  assert.equal(l.endsAtDateOnly, true, 'GSA sends a closing date without a time')
+  assert.ok(l.endsAt! > Date.UTC(2030, 9, 2, 12) && l.endsAt! < Date.UTC(2030, 9, 3, 12), 'counted to the end of that day, US Eastern')
+  assert.ok(!/[<>]|&nbsp;/.test(l.description ?? ''), 'the HTML is stripped: ' + l.description)
   assert.equal(l.url, 'https://www.gsaauctions.gov/auctions/preview/TF')
   assert.ok(!JSON.stringify(l).includes('not-read@example.com'), 'contact details never enter a listing')
   assert.equal(fromGsaRow(rows[1]), undefined, 'chairs are not a car')
+  assert.equal(fromGsaRow(rows[2]), undefined, 'an aircraft has a year and a maker but is not a car')
 })

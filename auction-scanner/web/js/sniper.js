@@ -1,6 +1,6 @@
 // The Sniper: saved hunts with a budget, makes, models and years. It scans, ranks the picks,
 // and builds the fire plan for each car. Armed targets fire PAPER bids; nothing is sent to an auction.
-import { getJson, postJson, del, esc, money, when, timeLeft } from './api.js'
+import { getJson, postJson, del, esc, money, when, closesText } from './api.js'
 import { stub, badges, stamp, toast, loading, errorStrip, sheet, sourceName } from './ui.js'
 
 let catalog = null
@@ -71,7 +71,7 @@ function wireForm(root, t, onSaved) {
 function pickHtml(p) {
   const l = p.card.listing
   const [tone, word] = METHOD[p.fire.method] || METHOD.unknown
-  const t = timeLeft(l.endsAt)
+  const t = closesText(l)
   return `<article class="tag pick" data-id="${esc(l.id)}">
     ${l.kind === 'SAMPLE' ? '<div class="band">Sample. Not a real car.</div>' : ''}
     <div class="tagbody"><div class="body">

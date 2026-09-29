@@ -54,6 +54,16 @@ export function timeLeft(endsAt, now = Date.now()) {
   return { text: `Ends in ${m} min`, tone: 'hot' }
 }
 
+/** A listing's time left; or, when the source gives only a closing date (GSA), that date and never a made-up countdown. */
+export function closesText(l, now = Date.now()) {
+  if (l && l.endsAtDateOnly && typeof l.endsAt === 'number') {
+    if (l.endsAt - now <= 0) return { text: 'Ended', tone: 'dim' }
+    // endsAt is the end of that day, US Eastern; step back a few hours to name the day itself.
+    return { text: `Closes ${new Date(l.endsAt - 6 * 3_600_000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, tone: '' }
+  }
+  return timeLeft(l && l.endsAt, now)
+}
+
 export function when(ms) {
   try { return new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) } catch { return '' }
 }

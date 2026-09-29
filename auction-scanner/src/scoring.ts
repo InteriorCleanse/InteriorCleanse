@@ -178,10 +178,10 @@ export function scoreListing(l: Listing, est: Estimate, demand?: DemandEntry, ru
   const msLeft = l.endsAt !== undefined ? l.endsAt - now : undefined
   if (msLeft !== undefined && msLeft <= 0) {
     add(0, 'This auction has already ended; the price shown is history, not an offer:')
-  } else if (msLeft !== undefined && msLeft <= 2 * HOUR) {
+  } else if (msLeft !== undefined && msLeft <= 2 * HOUR && !l.endsAtDateOnly) {
     add(0, 'Ending soon: under 2 hours left. Set your max bid now, not in the last minute:')
   }
-  if (l.bidCount === 0 && msLeft !== undefined && msLeft > 0 && msLeft < 6 * HOUR) {
+  if (l.bidCount === 0 && msLeft !== undefined && msLeft > 0 && msLeft < 6 * HOUR && !l.endsAtDateOnly) {
     add(3, 'Few bidders so far: no bids yet with under 6 hours left:')
   }
 

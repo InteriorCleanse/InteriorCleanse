@@ -29,7 +29,7 @@ function fail(source: string, why: string): void {
   out(`FAIL  ${source}: ${why}`)
 }
 
-function show(listings: Listing[], n = 3): void {
+function show(listings: Listing[], n = 5): void {
   for (const l of listings.slice(0, n)) {
     const price = l.soldUsd ?? l.currentBidUsd ?? l.buyNowUsd
     out(`      · ${l.title} | ${price !== undefined ? money(price) : 'no price'} | ${[l.year, l.make, l.model].filter(Boolean).join(' ') || 'no year/make/model'} | title ${l.titleStatus} | ${l.mileage !== undefined ? l.mileage.toLocaleString('en-US') + ' mi' : 'miles not stated'} | ${l.location?.state ?? 'no state'} | ${l.endsAt ? 'ends ' + new Date(l.endsAt).toISOString() : 'no end time'} | ${/^https:\/\//.test(l.url) ? 'link ok' : 'no link'}`)

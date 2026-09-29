@@ -1,6 +1,6 @@
 // Shared pieces of the interface: toasts, sheets, the grade stamp, the score
 // stub and the lot-tag card. Every string from the server passes through esc().
-import { esc, money, moneyK, miles, pct, safeUrl, timeLeft, reducedMotion } from './api.js'
+import { esc, money, moneyK, miles, pct, safeUrl, closesText, reducedMotion } from './api.js'
 
 export function toast(text, tone = '') {
   const root = document.getElementById('toasts')
@@ -85,7 +85,7 @@ function runsBadge(r) {
 export function badges(l, now = Date.now()) {
   const out = [titleStatusBadge(l.titleStatus), damageBadge(l.damage), runsBadge(l.runsAndDrives)]
   if (l.hasKeys === true) out.push('<span class="badge">Keys</span>')
-  const t = timeLeft(l.endsAt, now)
+  const t = closesText(l, now)
   if (t) out.push(`<span class="badge ${t.tone === 'dim' ? '' : t.tone}">${esc(t.text)}</span>`)
   else if (l.saleType === 'buy-now') out.push('<span class="badge">Buy now</span>')
   return `<div class="badges">${out.join('')}</div>`
@@ -103,7 +103,7 @@ export function cardHtml(card, opts = {}) {
   const l = card.listing
   const sample = l.kind === 'SAMPLE'
   const photo = safeUrl(l.photos && l.photos[0])
-  const t = timeLeft(l.endsAt)
+  const t = closesText(l)
   const lot = `<span class="lot mono">${esc(sourceName(l.source))}${t ? ' · ' + esc(t.text.replace('Ends in ', '')) : ''}</span>`
   const photoHtml = photo
     ? `<img src="${esc(photo)}" alt="" loading="lazy" />`

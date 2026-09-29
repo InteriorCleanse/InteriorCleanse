@@ -18,6 +18,7 @@
  */
 import type { Listing, SearchQuery } from '../types.ts'
 import { env, flag } from '../env.ts'
+import { CATALOG } from '../catalog.ts'
 import { looksLikeVin, parseDamage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
 
 const URL_BASE = 'https://api.gsa.gov/assets/gsaauctions/v2/auctions'
@@ -44,9 +45,21 @@ function lowerKeys(r: Row): Row {
   return out
 }
 
+/** Plain text from the HTML the live API puts in lotInfo. */
+function stripHtml(v: string): string {
+  if (!v.includes('<') && !v.includes('&')) return v.trim()
+  return v
+    .replace(/<(br|\/p|\/div|\/li)\b[^>]*>/gi, '. ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .replace(/(\.\s*){2,}/g, '. ')
+    .trim()
+}
+
 /** Readable text from a field that may be a string, a number, a list or an object of them. */
 function textOf(v: unknown, depth = 0): string {
-  if (typeof v === 'string') return v.trim()
+  if (typeof v === 'string') return stripHtml(v)
   if (typeof v === 'number') return String(v)
   if (depth > 3 || !v || typeof v !== 'object') return ''
   const parts = (Array.isArray(v) ? v : Object.values(v as Record<string, unknown>)).map((x) => textOf(x, depth + 1)).filter(Boolean)
@@ -63,6 +76,16 @@ export function gsaRows(body: unknown): Row[] {
 }
 
 const VEHICLE_WORDS = /\b(sedan|coupe|pickup|pick-up|truck|suv|sport utility|van|minivan|wagon|hatchback|4x4|4wd|awd|crew cab|extended cab|vehicle)\b/i
+/** Things the government sells that have a year and a maker but are not cars. Checked against the lot name. */
+const NOT_A_CAR = /\b(aircraft|airplane|aeroplane|helicopter|glider|boat|vessel|yacht|pontoon|outboard|jet ?ski|trailer|forklift|tractor|mower|golf cart|atv|utv|snowmobile|excavator|backhoe|loader|bulldozer|dozer|crane|generator|compressor|motorcycle|scooter|engine only|parts only)\b/i
+const CAR_MAKES = new Set(CATALOG.map((c) => c.make.toLowerCase()))
+
+/** GSA gives a closing date without a time: count to the end of that day, US Eastern, and flag it. */
+function endOf(v: string): { at?: number; dateOnly: boolean } {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
+  if (d) return { at: Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3]) + 1, 4, 59), dateOnly: true }
+  return { at: parseDate(v), dateOnly: false }
+}
 
 function parseDate(v: string): number | undefined {
   if (!v) return undefined
@@ -89,10 +112,13 @@ export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
   const name = s(r.itemname)
   const desc = textOf(r.lotdescript) || textOf(r.lotinfo)
   if (!name) return undefined
+  if (NOT_A_CAR.test(name)) return undefined
   const t = splitTitle(name)
   const vinMatch = /\b([A-HJ-NPR-Z0-9]{17})\b/.exec(`${name} ${desc}`.toUpperCase())
-  const isVehicle = (t.year !== undefined && t.make !== undefined) || VEHICLE_WORDS.test(`${name} ${desc}`) || !!vinMatch
+  const knownMake = t.make !== undefined && CAR_MAKES.has(t.make.toLowerCase())
+  const isVehicle = (t.year !== undefined && knownMake) || VEHICLE_WORDS.test(name) || !!vinMatch
   if (!isVehicle) return undefined
+  const ends = endOf(s(r.aucenddt))
   const sale = s(r.saleno)
   const lot = s(r.lotno)
   const text = `${name}. ${desc}`
@@ -116,7 +142,8 @@ export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
     location: { city: (s(r.propertycity) || s(r.locationcity)) || undefined, state: (s(r.propertystate) || s(r.locationst)).toUpperCase() || undefined, postalCode: (s(r.propertyzip) || s(r.locationzip)) || undefined, country: 'US' },
     saleType: 'auction',
     currentBidUsd: bid !== undefined && bid > 0 ? bid : undefined,
-    endsAt: parseDate(s(r.aucenddt)),
+    endsAt: ends.at,
+    endsAtDateOnly: ends.dateOnly || undefined,
     bidCount: r.bidderscount !== undefined && r.bidderscount !== null && Number.isFinite(Number(r.bidderscount)) ? Number(r.bidderscount) : undefined,
     sellerType: 'fleet',
     photos: s(r.imageurl) ? [s(r.imageurl)] : [],

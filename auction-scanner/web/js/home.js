@@ -1,6 +1,6 @@
 // Home: the command centre. What is ending soon, what the Sniper found, what you watch,
 // how the practice and the business are going, and the one next thing to do.
-import { getJson, esc, money, timeLeft, when } from './api.js'
+import { getJson, esc, money, timeLeft, closesText, when } from './api.js'
 import { stamp, loading, errorStrip, sourceName } from './ui.js'
 
 const GOAL = { rental: 'Building a rental fleet', flip: 'Flipping cars', keep: 'Finding your next car' }
@@ -10,7 +10,8 @@ function tile(label, value, sub, href, tone = '') {
   return `<a class="tile big ${tone}" href="${href}"><div class="k mono">${esc(label)}</div><div class="v">${value}</div><div class="s">${esc(sub)}</div></a>`
 }
 
-function countdown(ms) {
+function countdown(ms, dateOnly = false) {
+  if (dateOnly) { const t = closesText({ endsAt: ms, endsAtDateOnly: true }); return `<span class="cd">${esc(t.text)}</span>` }
   const t = timeLeft(ms)
   return t ? `<span class="cd ${t.tone}" data-ends="${ms}">${esc(t.text)}</span>` : '<span class="cd dim">No end time</span>'
 }
@@ -20,7 +21,7 @@ function bestHtml(p) {
   const now = l.currentBidUsd ?? l.buyNowUsd
   const why = (p.card.score.reasons || [])[0]
   return `<a class="tag nextup best" href="#plan/${encodeURIComponent(l.id)}"><div class="body" style="padding:16px 18px">
-      <div class="mono dim">Your best pick${l.kind === 'SAMPLE' ? ' · sample, for practice' : ''}${l.endsAt ? ' · ' + countdown(l.endsAt) : ''}</div>
+      <div class="mono dim">Your best pick${l.kind === 'SAMPLE' ? ' · sample, for practice' : ''}${l.endsAt ? ' · ' + countdown(l.endsAt, l.endsAtDateOnly) : ''}</div>
       <h2 class="nt">${esc(l.title)}</h2>
       <div class="row" style="gap:18px;margin:6px 0 2px"><div><span class="k mono">Price now</span><div class="bn">${esc(money(now))}</div></div><div><span class="k mono">Never bid above</span><div class="bn" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div>${p.plan.feeUnknown ? '<span class="feenote">before the buyer fee</span>' : ''}</div></div>
       ${why ? `<p style="margin:4px 0 0">${esc(why)}</p>` : ''}
@@ -52,7 +53,7 @@ export async function render(el, ctx) {
     <div class="homegrid">
       <section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Ending soon</h2><a class="mono" href="#sniper">All picks</a></div>
-        ${h.sniper.endingSoon.length ? `<div class="list">${h.sniper.endingSoon.map((p) => { const l = p.card.listing; return `<a class="item row-link" href="#plan/${encodeURIComponent(l.id)}"><div class="main"><b>${esc(l.title)}</b>${l.kind === 'SAMPLE' ? ' ' + stamp('Sample', 'hot') : ''}<div class="mono dim">${esc(sourceName(l.source))} · now ${esc(money(l.currentBidUsd ?? l.buyNowUsd))} · never above ${esc(money(p.fire.maxBidUsd))}</div></div><div class="right">${countdown(l.endsAt)}<div class="mono dim">score ${p.card.score.total}</div></div></a>` }).join('')}</div>` : `<p class="dim">${h.sniper.active ? 'Nothing with a clock on it right now. The Sniper keeps looking.' : 'Set a Sniper target and the cars it finds will count down here.'}</p>`}
+        ${h.sniper.endingSoon.length ? `<div class="list">${h.sniper.endingSoon.map((p) => { const l = p.card.listing; return `<a class="item row-link" href="#plan/${encodeURIComponent(l.id)}"><div class="main"><b>${esc(l.title)}</b>${l.kind === 'SAMPLE' ? ' ' + stamp('Sample', 'hot') : ''}<div class="mono dim">${esc(sourceName(l.source))} · now ${esc(money(l.currentBidUsd ?? l.buyNowUsd))} · never above ${esc(money(p.fire.maxBidUsd))}</div></div><div class="right">${countdown(l.endsAt, l.endsAtDateOnly)}<div class="mono dim">score ${p.card.score.total}</div></div></a>` }).join('')}</div>` : `<p class="dim">${h.sniper.active ? 'Nothing with a clock on it right now. The Sniper keeps looking.' : 'Set a Sniper target and the cars it finds will count down here.'}</p>`}
       </section>
       <section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Latest alerts</h2>${h.alerts.unread ? `<span class="pill hot">${h.alerts.unread} new</span>` : ''}</div>
