@@ -14,8 +14,7 @@
  * import screen shows what was found and what is missing before it is saved.
  */
 import type { Damage, Listing, SaleType, TitleStatus } from '../types.ts'
-import { CATALOG } from '../catalog.ts'
-import { looksLikeVin, parseDamage, parseMileage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
+import { canonicalMake, isKnownMake, looksLikeVin, parseDamage, parseMileage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
 import { createHash } from 'node:crypto'
 
 const HOSTS: Array<[RegExp, string]> = [
@@ -294,7 +293,7 @@ const SOURCES = new Set(['copart', 'iaa', 'ebay', 'carsandbids', 'bat', 'manheim
 /** Lot pages shout (PORSCHE); keep the catalog's spelling so filters and the demand list match. */
 function catalogMake(m: string | undefined): string | undefined {
   if (!m) return undefined
-  return CATALOG.find((c) => c.make.toLowerCase() === m.toLowerCase())?.make ?? m
+  return isKnownMake(m) ? canonicalMake(m) : m
 }
 
 /** Validate member-edited fields and build the listing. Title is required; everything else may be blank. */

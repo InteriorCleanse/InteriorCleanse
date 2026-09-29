@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { looksLikeVin, parseDamage, parseMileage, parseMoney, parseTitleStatus, splitTitle } from '../src/sources/normalize.ts'
+import { canonicalMake, isKnownMake, looksLikeVin, parseDamage, parseMileage, parseMoney, parseTitleStatus, splitTitle } from '../src/sources/normalize.ts'
 
 test('parseTitleStatus reads the common phrasings and never guesses', () => {
   assert.equal(parseTitleStatus('Clean'), 'clean')
@@ -85,4 +85,16 @@ test('looksLikeVin accepts 17 characters without I, O or Q and nothing else', ()
   assert.equal(looksLikeVin(undefined), false)
   // A SAMPLE VIN has the right shape on purpose; decodeVin refuses it separately.
   assert.equal(looksLikeVin('SAMPLE00000000001'), true)
+})
+
+test('canonicalMake: one spelling per make, nicknames included, unknown makes left readable', () => {
+  assert.equal(canonicalMake('Chevy'), 'Chevrolet')
+  assert.equal(canonicalMake('CHEVROLET'), 'Chevrolet')
+  assert.equal(canonicalMake('vw'), 'Volkswagen')
+  assert.equal(canonicalMake('mercedes'), 'Mercedes-Benz')
+  assert.equal(canonicalMake('bmw'), 'BMW')
+  assert.equal(canonicalMake('INTERNATIONAL'), 'International')
+  assert.equal(canonicalMake(''), undefined)
+  assert.equal(isKnownMake('Chevy'), true)
+  assert.equal(isKnownMake('Beechcraft'), false)
 })

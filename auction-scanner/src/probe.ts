@@ -16,6 +16,7 @@ import { fromGsaRow, gsaConfigured, gsaRows } from './sources/gsa.ts'
 import { marketcheckComps, marketcheckConfigured, searchMarketcheckAuctions } from './sources/marketcheck.ts'
 import { scanAll } from './sources/registry.ts'
 import { money } from './ui.ts'
+import { estimateValue } from './valuation.ts'
 
 loadEnv()
 let failed = false
@@ -111,6 +112,9 @@ async function probeMarketcheck(): Promise<void> {
 async function probeScan(): Promise<void> {
   const r = await scanAll({ limit: 100 }, { allowSample: false })
   out(`SCAN  everything together: ${r.kind}, ${r.listings.length} listings, ${r.comps.length} comparables${r.errors.length ? `; notes: ${r.errors.map((e) => e.split('.')[0]).join(' | ')}` : ''}`)
+  // An estimate needs config.scoring.minComps similar cars; this says how many of the listings get one from the sources connected.
+  const priced = r.listings.filter((l) => estimateValue(l, r.comps).ok).length
+  out(`      ${priced} of ${r.listings.length} listings have enough comparables for an estimate from these sources alone`)
 }
 
 await probeGsa()

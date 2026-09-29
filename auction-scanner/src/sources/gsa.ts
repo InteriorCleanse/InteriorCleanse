@@ -18,8 +18,7 @@
  */
 import type { Listing, SearchQuery } from '../types.ts'
 import { env, flag } from '../env.ts'
-import { CATALOG } from '../catalog.ts'
-import { looksLikeVin, parseDamage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
+import { canonicalMake, isKnownMake, looksLikeVin, parseDamage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
 
 const URL_BASE = 'https://api.gsa.gov/assets/gsaauctions/v2/auctions'
 const CACHE_MS = 15 * 60_000
@@ -77,8 +76,7 @@ export function gsaRows(body: unknown): Row[] {
 
 const VEHICLE_WORDS = /\b(sedan|coupe|pickup|pick-up|truck|suv|sport utility|van|minivan|wagon|hatchback|4x4|4wd|awd|crew cab|extended cab|vehicle)\b/i
 /** Things the government sells that have a year and a maker but are not cars. Checked against the lot name. */
-const NOT_A_CAR = /\b(aircraft|airplane|aeroplane|helicopter|glider|boat|vessel|yacht|pontoon|outboard|jet ?ski|trailer|forklift|tractor|mower|golf cart|atv|utv|snowmobile|excavator|backhoe|loader|bulldozer|dozer|crane|generator|compressor|motorcycle|scooter|engine only|parts only)\b/i
-const CAR_MAKES = new Set(CATALOG.map((c) => c.make.toLowerCase()))
+const NOT_A_CAR = /\b(john deere|gator|kubota|polaris|kawasaki mule|rtv|xuv|aircraft|airplane|aeroplane|helicopter|glider|boat|vessel|yacht|pontoon|outboard|jet ?ski|trailer|forklift|tractor|mower|golf cart|atv|utv|snowmobile|excavator|backhoe|loader|bulldozer|dozer|crane|generator|compressor|motorcycle|scooter|engine only|parts only)\b/i
 
 /** GSA gives a closing date without a time: count to the end of that day, US Eastern, and flag it. */
 function endOf(v: string): { at?: number; dateOnly: boolean } {
@@ -115,7 +113,7 @@ export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
   if (NOT_A_CAR.test(name)) return undefined
   const t = splitTitle(name)
   const vinMatch = /\b([A-HJ-NPR-Z0-9]{17})\b/.exec(`${name} ${desc}`.toUpperCase())
-  const knownMake = t.make !== undefined && CAR_MAKES.has(t.make.toLowerCase())
+  const knownMake = isKnownMake(t.make)
   const isVehicle = (t.year !== undefined && knownMake) || VEHICLE_WORDS.test(name) || !!vinMatch
   if (!isVehicle) return undefined
   const ends = endOf(s(r.aucenddt))
@@ -132,7 +130,7 @@ export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
     url: s(r.itemdescurl) || 'https://www.gsaauctions.gov/',
     title: name,
     year: t.year,
-    make: t.make ? t.make[0].toUpperCase() + t.make.slice(1).toLowerCase() : undefined,
+    make: canonicalMake(t.make),
     model: t.model,
     vin: vinMatch && looksLikeVin(vinMatch[1]) ? vinMatch[1] : undefined,
     mileage: mileageFrom(desc),

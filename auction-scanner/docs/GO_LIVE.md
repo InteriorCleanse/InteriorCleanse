@@ -27,6 +27,16 @@ Every secret below goes in the server's environment (the `.env` file next to
 Start with GSA and eBay (both free). Add MarketCheck when you want sharper
 prices: it is the largest single improvement to the estimates.
 
+**Check a source the moment you add it.** `npm run probe` calls every source
+you have configured, for real, and says how many lots came back and whether
+Gavel could read them (`GAVEL_GSA=1 npm run probe` tries GSA with no signup).
+The same check runs on GitHub under Actions → **Gavel live probe**: weekly,
+whenever an adapter changes, and on demand. Add your eBay and MarketCheck
+keys there as repository secrets (Settings → Secrets and variables →
+Actions, same names as in `.env`) and it checks those too. It has already
+earned its keep: its first run found that GSA's live API names its fields
+differently from GSA's own documentation.
+
 **Why not scrape Copart and IAA?** Their terms forbid automated collection,
 and the services that sell their data are unofficial. Gavel stays on the
 right side of that line: it only reads lots you open yourself. When Copart or

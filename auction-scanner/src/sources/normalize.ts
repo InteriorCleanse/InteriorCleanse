@@ -3,6 +3,7 @@
  * conservative: when the text is ambiguous the answer is 'unknown', never a guess.
  */
 import type { Damage, TitleStatus } from '../types.ts'
+import { CATALOG } from '../catalog.ts'
 
 export function parseTitleStatus(text: string | undefined): TitleStatus {
   const t = (text ?? '').toLowerCase()
@@ -53,6 +54,29 @@ export function splitTitle(title: string): { year?: number; make?: string; model
   if (!m) return {}
   const model = m[3].trim().split(/\s+/).slice(0, 2).join(' ') || undefined
   return { year: Number(m[1]), make: m[2], model }
+}
+
+const MAKE_ALIASES: Record<string, string> = { chevy: 'Chevrolet', vw: 'Volkswagen', volkswagon: 'Volkswagen', mercedes: 'Mercedes-Benz', benz: 'Mercedes-Benz', landrover: 'Land Rover', 'range rover': 'Land Rover' }
+const CATALOG_MAKES = new Map(CATALOG.map((c) => [c.make.toLowerCase(), c.make]))
+
+/**
+ * One spelling per make, so a GSA 'Chevy' and an eBay 'Chevrolet' compare and
+ * match the demand list: the catalog's spelling when Gavel knows the make
+ * (nicknames included), otherwise the name as given, in title case.
+ */
+export function canonicalMake(make: string | undefined): string | undefined {
+  const m = (make ?? '').trim()
+  if (!m) return undefined
+  const lower = m.toLowerCase()
+  const known = MAKE_ALIASES[lower] ?? CATALOG_MAKES.get(lower)
+  if (known) return known
+  return m.split(/(\s+|-)/).map((w) => (/^[a-z]/i.test(w) ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w)).join('')
+}
+
+/** True when the make is a car make Gavel knows, nicknames included. */
+export function isKnownMake(make: string | undefined): boolean {
+  const lower = (make ?? '').trim().toLowerCase()
+  return !!lower && (lower in MAKE_ALIASES || CATALOG_MAKES.has(lower))
 }
 
 /** Ten years of VINs look like this; anything else is not a VIN. */

@@ -80,6 +80,12 @@ npm start             # boots, prints the PIN; sign in; the feed shows SAMPLE ca
 CI (`.github/workflows/gavel.yml`) runs the first three on every change to
 this folder, and builds the Docker image and waits for `/healthz`.
 
+The sandbox cannot reach the auction APIs, and the tests use recorded shapes.
+`npm run probe` checks the real ones; `.github/workflows/gavel-live-probe.yml`
+runs it on GitHub (open internet) whenever `src/sources/` changes. After any
+adapter change, read that job's log before trusting the adapter: the first
+run found GSA's live field names differ from its documentation.
+
 For UI work, drive the app in Chromium at 390×844 and 1280×800 and look at the
 screenshots. Data for a test run goes in a temp `GAVEL_DATA_DIR`, never `data/`.
 
