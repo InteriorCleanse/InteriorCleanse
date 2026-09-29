@@ -139,3 +139,30 @@ test('registry: imports alone make the feed LIVE, and the query filters them', a
   assert.equal(miss.kind, 'EMPTY')
   assert.deepEqual(dedupeByVin([{ ...imp, vin: 'A' }, { ...imp, id: 'x', vin: 'A' }, { ...imp, id: 'y' }]).map((l) => l.id), [imp.id, 'y'])
 })
+
+test('GSA in the live shape: camelCase fields under Results, the lot text in lotInfo', () => {
+  // TEST FIXTURE in the field names the live API sent to the probe on GitHub. Values are made up.
+  const body = {
+    Results: [
+      { saleNo: 'TF1QSC26001', lotNo: '101', itemName: '2019 FORD F-150 XL 4X4', aucEndDt: '2030-10-02T18:00:00', propertyCity: 'Denver', propertyState: 'co', highBidAmount: 12500, biddersCount: 7, itemDescURL: 'https://www.gsaauctions.gov/auctions/preview/TF', imageURL: 'https://www.gsaauctions.gov/tf.jpg', lotInfo: [{ lotSequence: 1, lotDescript: 'Odometer 61,204 miles. Starts and runs. SF-97 provided.' }], coEmail: 'not-read@example.com' },
+      { saleNo: 'TF1QSC26001', lotNo: '102', itemName: 'OFFICE CHAIRS, QTY 40', aucEndDt: '2030-10-02T18:00:00', lotInfo: 'Assorted chairs.' },
+    ],
+  }
+  const rows = gsaRows(body)
+  assert.equal(rows.length, 2)
+  const l = fromGsaRow(rows[0], Date.UTC(2030, 0, 1))!
+  assert.ok(l, 'the truck is read')
+  assert.equal(l.id, 'gsa:TF1QSC26001-101')
+  assert.equal(l.year, 2019)
+  assert.equal(l.make, 'Ford')
+  assert.equal(l.currentBidUsd, 12_500)
+  assert.equal(l.bidCount, 7)
+  assert.equal(l.mileage, 61_204)
+  assert.equal(l.runsAndDrives, true)
+  assert.equal(l.titleStatus, 'clean', 'SF-97 in the lot text is the title document')
+  assert.equal(l.location?.state, 'CO')
+  assert.ok(l.endsAt && l.endsAt > Date.UTC(2030, 0, 1))
+  assert.equal(l.url, 'https://www.gsaauctions.gov/auctions/preview/TF')
+  assert.ok(!JSON.stringify(l).includes('not-read@example.com'), 'contact details never enter a listing')
+  assert.equal(fromGsaRow(rows[1]), undefined, 'chairs are not a car')
+})

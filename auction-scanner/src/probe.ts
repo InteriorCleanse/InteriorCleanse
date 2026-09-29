@@ -67,12 +67,19 @@ async function probeGsa(): Promise<void> {
   }
   const fields = [...new Set(rows.slice(0, 5).flatMap((r) => Object.keys(r)))].sort()
   out(`      field names: ${fields.join(', ')}`)
+  // Read without regard to case, as the adapter does: the published reference and the live API disagree on it.
   const expected = ['SaleNo', 'LotNo', 'ItemName', 'AucEndDt', 'PropertyState', 'ItemDescURL']
-  const missing = expected.filter((f) => !fields.includes(f))
+  const lower = fields.map((f) => f.toLowerCase())
+  const missing = expected.filter((f) => !lower.includes(f.toLowerCase()))
   if (missing.length) fail('GSA Auctions', `expected fields not present: ${missing.join(', ')}`)
+  // One row as it arrives, values shortened. Public sale data only: the contracting officer's contact details are left out.
+  const PRIVATE = /email|phone|officer|contact/i
+  const sample = rows.find((r) => /\b(19|20)\d\d\b/.test(JSON.stringify(r))) ?? rows[0]
+  out(`      one row: ${JSON.stringify(Object.fromEntries(Object.entries(sample).filter(([k]) => !PRIVATE.test(k)).map(([k, v]) => [k, typeof v === 'string' ? v.slice(0, 80) : JSON.stringify(v)?.slice(0, 160)])))}`)
   const now = Date.now()
   const vehicles = rows.map((r) => fromGsaRow(r, now)).filter((l): l is Listing => !!l)
   out(`      ${vehicles.length} of ${rows.length} rows are vehicles Gavel can list; coverage: ${coverage(vehicles)}`)
+  if (!vehicles.length) fail('GSA Auctions', 'no row reads as a vehicle; the vehicle test or the field names need a look')
   show(vehicles)
 }
 

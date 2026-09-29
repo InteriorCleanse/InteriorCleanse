@@ -4,10 +4,12 @@
  *
  *   GET https://api.gsa.gov/assets/gsaauctions/v2/auctions?api_key=…&format=JSON
  *
- * Field names follow GSA's published field reference: SaleNo, LotNo,
- * AucStartDt, AucEndDt, ItemName, PropertyCity, PropertyState, PropertyZip,
- * AuctionStatus, BiddersCount, LotDescript, Reserve, HighBidAmount,
- * ItemDescURL, ImageURL. The feed carries everything the government sells, so
+ * GSA's published field reference spells the fields SaleNo, LotNo, AucEndDt,
+ * ItemName and so on; the live API (checked by `npm run probe` on GitHub)
+ * sends them as saleNo, lotNo, aucEndDt, itemName, with the lot text in
+ * lotInfo rather than LotDescript. Fields are therefore read without regard
+ * to case, and the lot text from whichever of the two is there, whatever its
+ * shape. The feed carries everything the government sells, so
  * only lots that read as vehicles are kept. The API is read-only; bidding
  * happens on gsaauctions.gov.
  *
@@ -33,6 +35,22 @@ type Row = Record<string, unknown>
 
 function s(v: unknown): string {
   return typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : ''
+}
+
+/** The row with every key lower-cased: the reference says SaleNo, the live API sends saleNo. */
+function lowerKeys(r: Row): Row {
+  const out: Row = {}
+  for (const [k, v] of Object.entries(r)) out[k.toLowerCase()] = v
+  return out
+}
+
+/** Readable text from a field that may be a string, a number, a list or an object of them. */
+function textOf(v: unknown, depth = 0): string {
+  if (typeof v === 'string') return v.trim()
+  if (typeof v === 'number') return String(v)
+  if (depth > 3 || !v || typeof v !== 'object') return ''
+  const parts = (Array.isArray(v) ? v : Object.values(v as Record<string, unknown>)).map((x) => textOf(x, depth + 1)).filter(Boolean)
+  return parts.join(' ').slice(0, 4000)
 }
 
 /** The list of lots, wherever the response keeps it. */
@@ -66,25 +84,26 @@ function runsFrom(text: string): boolean | undefined {
 }
 
 /** Turn one GSA lot into a listing, or undefined when it does not read as a vehicle. */
-export function fromGsaRow(r: Row, now = Date.now()): Listing | undefined {
-  const name = s(r.ItemName)
-  const desc = s(r.LotDescript)
+export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
+  const r = lowerKeys(raw)
+  const name = s(r.itemname)
+  const desc = textOf(r.lotdescript) || textOf(r.lotinfo)
   if (!name) return undefined
   const t = splitTitle(name)
   const vinMatch = /\b([A-HJ-NPR-Z0-9]{17})\b/.exec(`${name} ${desc}`.toUpperCase())
   const isVehicle = (t.year !== undefined && t.make !== undefined) || VEHICLE_WORDS.test(`${name} ${desc}`) || !!vinMatch
   if (!isVehicle) return undefined
-  const sale = s(r.SaleNo)
-  const lot = s(r.LotNo)
+  const sale = s(r.saleno)
+  const lot = s(r.lotno)
   const text = `${name}. ${desc}`
   const title = /\bSF[- ]?97\b|certificate to obtain title/i.test(text) ? 'clean' : parseTitleStatus(desc)
-  const bid = parseMoney(s(r.HighBidAmount))
+  const bid = parseMoney(s(r.highbidamount))
   return {
     id: `gsa:${sale}-${lot}`,
     source: 'gsa',
     externalId: `${sale}-${lot}`,
     lotNumber: lot || undefined,
-    url: s(r.ItemDescURL) || 'https://www.gsaauctions.gov/',
+    url: s(r.itemdescurl) || 'https://www.gsaauctions.gov/',
     title: name,
     year: t.year,
     make: t.make ? t.make[0].toUpperCase() + t.make.slice(1).toLowerCase() : undefined,
@@ -94,13 +113,13 @@ export function fromGsaRow(r: Row, now = Date.now()): Listing | undefined {
     titleStatus: title,
     damage: parseDamage(desc),
     runsAndDrives: runsFrom(desc),
-    location: { city: s(r.PropertyCity) || undefined, state: s(r.PropertyState).toUpperCase() || undefined, postalCode: s(r.PropertyZip) || undefined, country: 'US' },
+    location: { city: (s(r.propertycity) || s(r.locationcity)) || undefined, state: (s(r.propertystate) || s(r.locationst)).toUpperCase() || undefined, postalCode: (s(r.propertyzip) || s(r.locationzip)) || undefined, country: 'US' },
     saleType: 'auction',
     currentBidUsd: bid !== undefined && bid > 0 ? bid : undefined,
-    endsAt: parseDate(s(r.AucEndDt)),
-    bidCount: Number.isFinite(Number(r.BiddersCount)) ? Number(r.BiddersCount) : undefined,
+    endsAt: parseDate(s(r.aucenddt)),
+    bidCount: r.bidderscount !== undefined && r.bidderscount !== null && Number.isFinite(Number(r.bidderscount)) ? Number(r.bidderscount) : undefined,
     sellerType: 'fleet',
-    photos: s(r.ImageURL) ? [s(r.ImageURL)] : [],
+    photos: s(r.imageurl) ? [s(r.imageurl)] : [],
     description: desc || undefined,
     kind: 'LIVE',
     origin: 'api',
