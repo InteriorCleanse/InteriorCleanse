@@ -178,3 +178,9 @@ test('a car is never its own comparable, even under another id', () => {
   assert.equal(isComparable(target, fx({ vin: 'WP0AB2A99KS123456' })), false)
   assert.equal(isComparable(target, fx({ vin: 'WP0AB2A99KS654321' })), true)
 })
+
+test('a model written with or without a hyphen is the same model', () => {
+  const target = fx({ make: 'Ford', model: 'F-350 XL' })
+  assert.equal(isComparable(target, fx({ make: 'Ford', model: 'F350' })), true)
+  assert.equal(isComparable(target, fx({ make: 'Ford', model: 'F-250' })), false)
+})

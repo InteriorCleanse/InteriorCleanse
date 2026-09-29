@@ -47,8 +47,9 @@ function norm(s: string | undefined): string {
   return (s ?? '').trim().toLowerCase()
 }
 
+/** The model's first word without punctuation, so 'F-350' and 'F350' (GSA writes both) are the same model. */
 function firstWord(s: string | undefined): string {
-  return norm(s).split(/\s+/)[0] ?? ''
+  return (norm(s).split(/\s+/)[0] ?? '').replace(/[^a-z0-9]/g, '')
 }
 
 /** True when `c` may be used as a comparable for `target`. */

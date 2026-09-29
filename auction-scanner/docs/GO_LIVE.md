@@ -37,6 +37,13 @@ Actions, same names as in `.env`) and it checks those too. It has already
 earned its keep: its first run found that GSA's live API names its fields
 differently from GSA's own documentation.
 
+**What the probe says about GSA on its own:** about a hundred real vehicles
+at a time (mostly fleet trucks and sedans, with titles, miles and bids), but
+almost none can be priced from GSA alone: an estimate needs three similar
+cars, and a government fleet is too scattered. GSA is a place to find cars;
+eBay (free) or MarketCheck, or the sold prices members add, are what let
+Gavel say one is cheap. Connect eBay next.
+
 **Why not scrape Copart and IAA?** Their terms forbid automated collection,
 and the services that sell their data are unofficial. Gavel stays on the
 right side of that line: it only reads lots you open yourself. When Copart or
