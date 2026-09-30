@@ -295,3 +295,11 @@ test('scalp desk: a labelled reading with the engine\'s own costs, and break-eve
   const five = await getJson<{ ok: boolean; data: { windowMinutes: number } }>('/api/forecast?window=5')
   assert.equal(five.data.windowMinutes, 5)
 })
+
+test('/api/stocks says whether stock data keys are set, as a yes or no only', async () => {
+  const r = await getJson<{ ok: boolean; data: { mode: string; dataConnected: unknown } }>('/api/stocks')
+  assert.equal(r.ok, true)
+  assert.equal(r.data.mode, 'PAPER')
+  assert.equal(typeof r.data.dataConnected, 'boolean')
+  assert.doesNotMatch(JSON.stringify(r), /APCA-API|"key":|"secret":/i, 'no key material in the response')
+})
