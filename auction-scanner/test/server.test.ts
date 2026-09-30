@@ -561,3 +561,22 @@ test('a fee or tax rate typed on one plan is remembered for every plan', async (
   assert.equal((await gus('/api/settings')).body.feeOverrides.sample, 10, 'without remember, nothing is saved')
   assert.ok(probe.body.maxBidUsd > typed.body.maxBidUsd)
 })
+
+test('a car with no comparables is priced once three sold prices are added from its plan page', async () => {
+  const made = await api('/api/admin/members', { method: 'POST', json: { email: 'hal@example.com' } })
+  const r = await api('/api/login', { method: 'POST', json: { email: 'hal@example.com', code: made.body.code }, noCsrf: true })
+  const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+  const hal = (path: string, init: any = {}) => api(path, { ...init, asMember: c, headers: { ...(init.headers ?? {}), 'x-gavel-csrf': r.body.csrf } })
+  // TEST FIXTURE: a fleet truck like the ones GSA lists, with nothing to compare it against.
+  const car = await hal('/api/import', { method: 'POST', json: { title: '2017 Ford F350', year: 2017, make: 'Ford', model: 'F350', source: 'gsa', lotNumber: 'TFG1', currentBidUsd: 12_000, mileage: 150_000, titleStatus: 'clean' } })
+  assert.equal(car.body.estimate.ok, false)
+  // What the plan page's form sends, three times, the hyphenated way eBay writes the model.
+  for (const [year, price, day] of [[2017, 24_000, 3], [2016, 21_000, 9], [2018, 27_000, 15]] as const) {
+    const s = await hal('/api/import', { method: 'POST', json: { title: `${year} Ford F-350`, year, make: 'Ford', model: 'F-350', soldUsd: price, soldAt: Date.UTC(2026, 7, day, 12), mileage: 150_000, source: 'ebay' } })
+    assert.equal(s.body.sold, true, JSON.stringify(s.body))
+  }
+  const priced = await hal('/api/listing/' + encodeURIComponent(car.body.listing.id))
+  assert.equal(priced.body.estimate.ok, true, JSON.stringify(priced.body.estimate))
+  assert.equal(priced.body.estimate.valueUsd, 24_000)
+  assert.match(priced.body.estimate.method, /3 sold prices/)
+})

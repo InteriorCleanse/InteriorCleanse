@@ -114,7 +114,7 @@ export function cardHtml(card, opts = {}) {
   const est = card.estimate
   const compsHtml = est.ok
     ? `<div><span class="k mono">Comps</span><div class="comps">${esc(money(est.valueUsd))}</div><div class="receipt mono">${esc(moneyK(est.low))}–${esc(moneyK(est.high))} · ${est.comps} comps</div></div>`
-    : `<div><span class="k mono">Comps</span><div class="comps nocomps">Not enough comps</div><div class="receipt mono">${esc(String(est.comps))} found · 3 needed</div></div>`
+    : `<div><span class="k mono">Comps</span><div class="comps nocomps">Not enough comps</div><div class="receipt mono">${esc(String(est.comps))} found · 3 needed${sample ? '' : ` · <a href="#plan/${encodeURIComponent(l.id)}">price it yourself</a>`}</div></div>`
   const sub = [miles(l.mileage), l.location && [l.location.city, l.location.state].filter(Boolean).join(', '), l.vin ? 'VIN ' + l.vin.slice(-6) : null].filter(Boolean).join(' · ')
   const why = (card.score.reasons || []).slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join('')
   const moreN = Math.max(0, (card.score.reasons || []).length - 3)

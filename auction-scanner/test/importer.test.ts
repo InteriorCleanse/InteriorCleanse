@@ -206,3 +206,12 @@ test('importFieldsOf round-trips a stored listing through the same checks', () =
   assert.equal(again.location?.state, 'TX')
   assert.equal(again.url, l.url)
 })
+
+test('two sold prices for the same model with no lot or link are two sales', () => {
+  const now = Date.UTC(2026, 8, 28)
+  const a = listingFromImport({ title: '2017 Ford F-350', soldUsd: 18_000, soldAt: '2026-08-01' }, now)
+  const b = listingFromImport({ title: '2017 Ford F-350', soldUsd: 21_500, soldAt: '2026-08-20' }, now)
+  assert.notEqual(a.id, b.id)
+  const again = listingFromImport({ title: '2017 Ford F-350', soldUsd: 18_000, soldAt: '2026-08-01' }, now)
+  assert.equal(again.id, a.id, 'the same sale typed twice is one sale')
+})

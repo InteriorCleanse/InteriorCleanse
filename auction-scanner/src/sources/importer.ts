@@ -337,7 +337,8 @@ export function listingFromImport(input: unknown, now = Date.now()): Listing {
   const bin = sold === undefined ? money(p.buyNowUsd, 'The buy-now price') : undefined
   const st = text(p.state, 2)?.toUpperCase()
   const lot = text(p.lotNumber, 40)
-  const ext = lot ?? vin ?? createHash('sha256').update(`${title}|${url ?? ''}`).digest('hex').slice(0, 12)
+  // Two sold prices for the same model with no lot number or link are two sales, not one: the price, date and miles tell them apart.
+  const ext = lot ?? vin ?? createHash('sha256').update(`${title}|${url ?? ''}${sold !== undefined ? `|${sold}|${soldAt}|${miles ?? ''}` : ''}`).digest('hex').slice(0, 12)
   const t = splitTitle(title)
   const saleType: SaleType = bid !== undefined && bin !== undefined ? 'auction-or-buy-now' : bin !== undefined && bid === undefined ? 'buy-now' : 'auction'
   return {

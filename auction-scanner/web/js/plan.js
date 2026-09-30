@@ -38,6 +38,31 @@ function splitFirst(text) {
   return m && m[2].length > 40 ? [m[1], m[2]] : [String(text || ''), '']
 }
 
+/**
+ * No estimate yet: the member can price the car in a couple of minutes by adding
+ * three sold prices for the same model. Gavel opens the searches; it never reads them.
+ */
+function priceItHtml(l, est) {
+  if (l.kind === 'SAMPLE' || est.ok) return ''
+  if (!l.year || !l.make || !l.model) return `<div class="panel" id="p-price"><h2>Price this car yourself</h2><p>The listing does not say its year, make and model, so Gavel cannot match sold prices to it. Import it with those filled in, then add sold prices here.</p></div>`
+  const car = `${l.year} ${l.make} ${String(l.model).split(' ').slice(0, 2).join(' ')}`
+  const ebay = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(car)}&_sacat=6001&LH_Sold=1&LH_Complete=1`
+  const web = `https://www.google.com/search?q=${encodeURIComponent(car + ' sold price')}`
+  const have = est.comps || 0
+  return `<div class="panel" id="p-price"><h2>Price this car yourself</h2>
+    <p style="margin-top:0"><b>Gavel needs 3 sold prices for a ${esc(car)} to say what it is worth. It has ${have}.</b> Two minutes: open a search, add what similar cars sold for.</p>
+    <div class="row"><a class="btn outline sm" href="${esc(ebay)}" target="_blank" rel="noopener noreferrer">eBay sold listings ↗</a><a class="btn outline sm" href="${esc(web)}" target="_blank" rel="noopener noreferrer">Search the web ↗</a></div>
+    <ol class="fire-steps"><li>Pick sold cars of the same make and model, ${l.year - 1} to ${l.year + 1}.</li><li>Type what each sold for and when; the miles too if shown.</li><li>After the third, the estimate and the bid plan appear on this page.</li></ol>
+    <form id="p-sold" class="grid2" style="margin-top:8px">
+      <label class="f">Sold for ($) <input name="soldUsd" type="number" min="1" step="any" required /></label>
+      <label class="f">Sold on <input name="soldAt" type="date" required /></label>
+      <label class="f">Year <input name="year" type="number" min="${l.year - 1}" max="${l.year + 1}" value="${l.year}" required /></label>
+      <label class="f">Miles (if shown) <input name="mileage" type="number" min="0" step="any" /></label>
+      <label class="f">Where <select name="source"><option value="ebay">eBay</option><option value="bat">Bring a Trailer</option><option value="carsandbids">Cars &amp; Bids</option><option value="other">Somewhere else</option></select></label>
+      <div class="row" style="grid-column:1/-1"><button class="btn" type="submit">Add this sold price</button></div>
+    </form></div>`
+}
+
 function walkthroughHtml(w) {
   return `<div class="mono dim">Explained by: ${esc(w.source === 'ai' ? 'AI · checked against the rules' : 'the rules')}</div>
     <h2 style="margin:6px 0 8px">${esc(w.title)}</h2>
@@ -64,6 +89,7 @@ export async function render(el, ctx, [id]) {
       <div>
         <div class="tag" style="display:grid;grid-template-columns:1fr 132px"><div class="body" style="padding-left:14px"><div class="mono dim">The car</div><div class="money"><div><span class="k mono">${typeof l.currentBidUsd === 'number' ? 'Current bid' : 'Buy now'}</span><div class="now">${esc(money(typeof l.currentBidUsd === 'number' ? l.currentBidUsd : l.buyNowUsd))}</div></div>
           <div><span class="k mono">Comps</span><div class="comps ${card.estimate.ok ? '' : 'nocomps'}">${card.estimate.ok ? esc(money(card.estimate.valueUsd)) : 'Not enough comps'}</div><div class="receipt mono">${card.estimate.ok ? esc(card.estimate.method) : esc(card.estimate.reason)}</div></div></div>${badges(l)}</div>${stub(card.score, { big: true })}</div>
+        ${priceItHtml(l, card.estimate)}
         <div class="panel" style="margin-top:16px"><h2>The number</h2><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
         <div class="panel"><h2>Bid</h2>
           <p>Paper means nothing was sent to the auction. Practise here, then place the real bid on the auction's own site, and never go above your number.</p>
@@ -102,6 +128,23 @@ export async function render(el, ctx, [id]) {
   wireLedger()
 
   el.querySelector('#p-print').addEventListener('click', () => window.print())
+  const soldForm = el.querySelector('#p-sold')
+  if (soldForm) soldForm.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const f = new FormData(soldForm)
+    const miles = String(f.get('mileage') || '')
+    try {
+      await postJson('/api/import', {
+        title: `${f.get('year')} ${l.make} ${l.model}`, year: Number(f.get('year')), make: l.make, model: l.model,
+        soldUsd: Number(f.get('soldUsd')), soldAt: Date.parse(String(f.get('soldAt')) + 'T12:00:00'),
+        mileage: miles === '' ? undefined : Number(miles), source: String(f.get('source') || 'other'),
+      })
+      toast('Sold price added.')
+      await render(el, ctx, [id]) // re-price with it, and stay where the member was working
+      const back = el.querySelector('#p-price') || el.querySelector('.never')
+      if (back) back.scrollIntoView({ block: 'center' })
+    } catch (err) { toast(err.message, 'hot') }
+  })
   el.querySelector('#p-ai').addEventListener('click', async (e) => {
     e.target.disabled = true
     const walk = el.querySelector('#p-walk')
