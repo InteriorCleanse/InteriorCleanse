@@ -76,6 +76,17 @@ function paint() {
     </div>
     <div class="sk-hero-r">${curve(s.equity, a.startEquity)}<div class="sk-curve-cap">${s.closedTrades < 20 ? 'NOT ENOUGH DATA to judge the strategy yet: ' : ''}${s.closedTrades} closed trade${s.closedTrades === 1 ? '' : 's'} on paper.</div></div>
   </section>
+  ${s.dataConnected === false ? `<section class="card sk-connect">
+    <h2>Connect stock data to start</h2>
+    <p>The desk is on its schedule, but it has no prices yet, so it cannot scan or trade. It needs free, read-only market data from Alpaca. Paper keys cannot move real money.</p>
+    <ol>
+      <li>Make a free account at <b>alpaca.markets</b>.</li>
+      <li>Switch to <b>Paper Trading</b>, open <b>API Keys</b>, and generate a key pair.</li>
+      <li>In the <code>trading-bot</code> folder, copy <code>.env.example</code> to <code>.env</code> and fill in <code>MRCASH_ALPACA_KEY</code> and <code>MRCASH_ALPACA_SECRET</code>.</li>
+      <li>Restart Kestrel. The next scan fills this page.</li>
+    </ol>
+    <p class="muted sk-small">Keys stay on your computer in <code>.env</code>, which is never uploaded. Never paste them into a chat.</p>
+  </section>` : ''}
   ${s.paused ? `<div class="card sk-warn"><b>Paused: no new buys.</b> ${open.length ? `Stops and exits on the ${open.length} open position${open.length === 1 ? '' : 's'} are still enforced every 15 minutes.` : 'Nothing is open.'} Resume to allow new buys.</div>` : ''}
 
   <section class="sk-grid">

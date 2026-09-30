@@ -32,7 +32,7 @@ function paint() {
   out.innerHTML = `
   <div class="ov-lead" data-tab="${lead.tab}" role="button" tabindex="0" aria-label="Open the ${esc(lead.label)}">
     <div class="ov-lead-l">
-      <div class="ov-eyebrow">${esc(lead.label)} <span class="badge sc-prov">PAPER</span><span class="ov-status">${esc(lead.status.toLowerCase())}</span></div>
+      <div class="ov-eyebrow">${esc(lead.label)} <span class="badge sc-prov">PAPER</span><span class="ov-status${lead.status === 'NOT CONNECTED' ? ' warn' : ''}">${esc(lead.status.toLowerCase())}</span></div>
       <div class="ov-big">${usd(lead.now)}</div>
       <div class="ov-chg ${tone(lead.changePct)}">${pc(lead.changePct)} <span>since the ${usd(lead.start, 0)} start · ${lead.open} open</span></div>
       <div class="ov-market">${esc(lead.market)}</div>
