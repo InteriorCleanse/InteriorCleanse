@@ -56,7 +56,8 @@ export function splitTitle(title: string): { year?: number; make?: string; model
   return { year: Number(m[1]), make: m[2], model }
 }
 
-const MAKE_ALIASES: Record<string, string> = { chevy: 'Chevrolet', vw: 'Volkswagen', volkswagon: 'Volkswagen', mercedes: 'Mercedes-Benz', benz: 'Mercedes-Benz', landrover: 'Land Rover', 'range rover': 'Land Rover' }
+// A Map, not an object: a make read from a lot page ('constructor', '__proto__') must never match a built-in key.
+const MAKE_ALIASES = new Map<string, string>([['chevy', 'Chevrolet'], ['vw', 'Volkswagen'], ['volkswagon', 'Volkswagen'], ['mercedes', 'Mercedes-Benz'], ['benz', 'Mercedes-Benz'], ['landrover', 'Land Rover'], ['range rover', 'Land Rover']])
 const CATALOG_MAKES = new Map(CATALOG.map((c) => [c.make.toLowerCase(), c.make]))
 
 /**
@@ -68,7 +69,7 @@ export function canonicalMake(make: string | undefined): string | undefined {
   const m = (make ?? '').trim()
   if (!m) return undefined
   const lower = m.toLowerCase()
-  const known = MAKE_ALIASES[lower] ?? CATALOG_MAKES.get(lower)
+  const known = MAKE_ALIASES.get(lower) ?? CATALOG_MAKES.get(lower)
   if (known) return known
   return m.split(/(\s+|-)/).map((w) => (/^[a-z]/i.test(w) ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w)).join('')
 }
@@ -76,7 +77,7 @@ export function canonicalMake(make: string | undefined): string | undefined {
 /** True when the make is a car make Gavel knows, nicknames included. */
 export function isKnownMake(make: string | undefined): boolean {
   const lower = (make ?? '').trim().toLowerCase()
-  return !!lower && (lower in MAKE_ALIASES || CATALOG_MAKES.has(lower))
+  return !!lower && (MAKE_ALIASES.has(lower) || CATALOG_MAKES.has(lower))
 }
 
 /** Ten years of VINs look like this; anything else is not a VIN. */

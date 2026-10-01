@@ -213,3 +213,11 @@ test('tax and title come out of your cash too, when you have set your rate', () 
   // Tax does not change what the car is worth, so with plenty of cash the value limit is untouched.
   assert.equal(buildPlan(fx(), EST_OK, { distanceMiles: 100, repairsUsd: 500, cashUsd: 90_000, taxTitlePct: 7 }).maxBidUsd, 15_600)
 })
+
+test('the cash cap never asks for more than the cash, even at extreme fee and tax rates', () => {
+  for (const cash of [5_000_000, 1_000_000, 60_000, 12_000]) {
+    const plan = buildPlan(fx(), { ok: true, valueUsd: 10_000_000, low: 1, high: 1, comps: 3, method: 'test' }, { distanceMiles: 0, repairsUsd: 0, cashUsd: cash, feePct: 30, taxTitlePct: 20 })
+    assert.ok(plan.cashNeededUsd <= cash, `cash ${cash}: needs ${plan.cashNeededUsd}`)
+    assert.ok(Number.isFinite(plan.maxBidUsd) && plan.maxBidUsd >= 0)
+  }
+})

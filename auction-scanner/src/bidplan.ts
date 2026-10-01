@@ -61,6 +61,13 @@ function bidWithin(room: number, houseId: string, feePct: number | undefined, ta
     bid = next
     if (settled) break
   }
+  // At high fee and tax rates the rounds swing either side of the answer and can stop above it.
+  // Step down until the bid, its fee and the tax really fit: a plan must never ask for more than the room.
+  for (let i = 0; i < 50 && bid > 0; i++) {
+    const over = bid + buyerFee(houseId, bid, feePct).usd + taxFraction * bid - top
+    if (over <= 0) break
+    bid = Math.max(0, bid - Math.max(1, over))
+  }
   return bid
 }
 

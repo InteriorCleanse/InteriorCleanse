@@ -98,3 +98,10 @@ test('canonicalMake: one spelling per make, nicknames included, unknown makes le
   assert.equal(isKnownMake('Chevy'), true)
   assert.equal(isKnownMake('Beechcraft'), false)
 })
+
+test('canonicalMake never returns a built-in: "constructor" and "__proto__" are just words', () => {
+  for (const w of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+    assert.equal(typeof canonicalMake(w), 'string', w)
+    assert.equal(isKnownMake(w), false, w)
+  }
+})

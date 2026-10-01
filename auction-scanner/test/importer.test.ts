@@ -215,3 +215,8 @@ test('two sold prices for the same model with no lot or link are two sales', () 
   const again = listingFromImport({ title: '2017 Ford F-350', soldUsd: 18_000, soldAt: '2026-08-01' }, now)
   assert.equal(again.id, a.id, 'the same sale typed twice is one sale')
 })
+
+test('a lot that names its make "__proto__" is stored as plain text', () => {
+  const l = listingFromImport({ title: '2015 __proto__ thing', make: '__proto__', source: 'other', lotNumber: 'TFP' })
+  assert.equal(typeof l.make, 'string')
+})

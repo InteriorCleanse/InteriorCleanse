@@ -10,6 +10,9 @@ on:
     paths: ['auction-scanner/**', '.github/workflows/gavel.yml']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

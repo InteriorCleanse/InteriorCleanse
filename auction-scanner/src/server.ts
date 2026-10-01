@@ -237,6 +237,15 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     return true
   }
 
+  /** Keep the scan cache small: drop what has expired, and the oldest past 300 entries. */
+  function cacheScan(key: string, entry: { at: number; result: ScanResult }): void {
+    const t = now()
+    for (const [k, v] of scanCache) if (t - v.at >= SCAN_CACHE_MS) scanCache.delete(k)
+    scanCache.delete(key)
+    scanCache.set(key, entry)
+    while (scanCache.size > 300) scanCache.delete(scanCache.keys().next().value as string)
+  }
+
   /** A short fingerprint of a member's imports, so the scan cache never hands one member's lots to another. */
   function importsSignature(extra: Listing[]): string {
     if (!extra.length) return ''
@@ -250,7 +259,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   }
 
   function remember(result: ScanResult): void {
-    for (const l of result.listings) if (l.origin !== 'import') known.set(l.id, l)
+    for (const l of result.listings) if (l.origin !== 'import') { known.delete(l.id); known.set(l.id, l) }
+    // Newest last; past 20,000 public listings the oldest go (a plan opened later simply rescans).
+    while (known.size > 20_000) known.delete(known.keys().next().value as string)
     if (result.kind === 'EMPTY') return
     let pool = pools.get(result.kind)
     if (!pool) { pool = new Map(); pools.set(result.kind, pool) }
@@ -308,7 +319,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const query: SearchQuery = { text: q || undefined, make: make || undefined, maxPriceUsd: maxPrice, limit: 100 }
       result = await scanAll(query, { allowSample, fetchImpl, extra })
       scannedAt = now()
-      scanCache.set(key, { at: scannedAt, result })
+      cacheScan(key, { at: scannedAt, result })
       remember(result)
     }
 
@@ -348,7 +359,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     if (hit && now() - hit.at < SCAN_CACHE_MS) result = hit.result
     else {
       result = await scanAll({ text, limit: 100 }, { allowSample, fetchImpl, extra })
-      scanCache.set(key, { at: now(), result })
+      cacheScan(key, { at: now(), result })
       remember(result)
     }
     const mine = myComps()
