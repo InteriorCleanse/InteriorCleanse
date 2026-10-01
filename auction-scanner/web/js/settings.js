@@ -1,6 +1,7 @@
 // Settings: starter rules, sample cars, home, fee overrides, your demand list, sources, VIN decode, account.
 import { getJson, postJson, esc, safeUrl } from './api.js'
 import { STATES } from './states.js'
+import { HOUSES } from './houses.js'
 import { toast, loading, errorStrip } from './ui.js'
 
 export async function render(el, ctx) {
@@ -30,7 +31,7 @@ export async function render(el, ctx) {
       <label class="switch"><input type="checkbox" name="allowSample" ${s.allowSample ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Show SAMPLE cars when no source is connected <small class="dim" style="display:block;font-weight:400">Sample cars are not real and are labelled on every card. They never mix with live data.</small></span></label>
       <div class="grid2" style="margin-top:12px"><label class="f">Home state <select name="homeState"><option value="">Not set</option>${Object.entries(STATES).sort((a, b) => a[1].replace(/^the /, '').localeCompare(b[1].replace(/^the /, ''))).map(([code, name]) => `<option value="${code}" ${s.homeState === code ? 'selected' : ''}>${esc(name.replace(/^the /, ''))}</option>`).join('')}</select></label><label class="f">Home ZIP <input type="text" name="homeZip" maxlength="10" value="${esc(s.homeZip || '')}" /></label></div></div>
     <div class="panel"><h2>Buyer fee overrides</h2><p class="dim">Some houses use a sliding scale, so Gavel does not guess. When you have looked the fee up, type the percent here and every plan for that house uses it.</p>
-      <div class="grid2">${['ebay', 'carsandbids', 'bat', 'copart', 'iaa', 'manheim', 'adesa', 'acv', 'govdeals', 'local', 'collector'].map((h) => `<label class="f">${esc(h)} (%) <input type="number" name="fee:${h}" min="0" max="30" step="0.5" value="${s.feeOverrides && s.feeOverrides[h] !== undefined ? s.feeOverrides[h] : ''}" placeholder="published" /></label>`).join('')}</div></div>
+      <div class="grid2">${HOUSES.filter(([h]) => h !== 'marketcheck').map(([h, name]) => `<label class="f">${esc(name)} (%) <input type="number" name="fee:${h}" min="0" max="30" step="0.5" value="${s.feeOverrides && s.feeOverrides[h] !== undefined ? s.feeOverrides[h] : ''}" placeholder="published" /></label>`).join('')}</div></div>
     <div class="panel"><h2>Your demand list additions</h2><p class="dim">Cars you want a small score bonus for, with the reason. One per line: <code>Make | Model, Model | tier | why</code>. Tier is supercar, enthusiast, holds-value or rental.</p>
       <textarea name="demandExtra" rows="4" placeholder="Toyota | Land Cruiser | holds-value | Sells in days where I live">${esc((s.demandExtra || []).map((d) => `${d.make} | ${d.models.join(', ')} | ${d.tier} | ${d.why}`).join('\n'))}</textarea></div>
     <div class="row" style="margin:12px 0 24px"><button class="btn" type="submit">Save settings</button><span class="dim" id="s-status"></span></div>

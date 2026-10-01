@@ -1,6 +1,7 @@
 // The Plan screen: the stub, the ledger, "never bid above", the walkthrough, the PAPER bid.
 import { getJson, postJson, esc, money, debounce, safeUrl, reducedMotion } from './api.js'
 import { stub, badges, stamp, toast, loading, errorStrip, sourceName } from './ui.js'
+import { HOUSES } from './houses.js'
 
 let current = null
 
@@ -58,7 +59,7 @@ function priceItHtml(l, est) {
       <label class="f">Sold on <input name="soldAt" type="date" required /></label>
       <label class="f">Year <input name="year" type="number" min="${l.year - 1}" max="${l.year + 1}" value="${l.year}" required /></label>
       <label class="f">Miles (if shown) <input name="mileage" type="number" min="0" step="any" /></label>
-      <label class="f">Where <select name="source"><option value="ebay">eBay</option><option value="bat">Bring a Trailer</option><option value="carsandbids">Cars &amp; Bids</option><option value="other">Somewhere else</option></select></label>
+      <label class="f">Where <select name="source">${[['ebay', 'eBay Motors'], ['bat', 'Bring a Trailer'], ['carsandbids', 'Cars & Bids'], ...HOUSES.filter(([h]) => !['ebay', 'bat', 'carsandbids', 'marketcheck'].includes(h)), ['other', 'Somewhere else']].map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('')}</select></label>
       <div class="row" style="grid-column:1/-1"><button class="btn" type="submit">Add this sold price</button></div>
     </form></div>`
 }

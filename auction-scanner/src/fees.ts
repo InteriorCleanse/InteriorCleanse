@@ -38,6 +38,23 @@ export const FEE_SCHEDULES: FeeSchedule[] = [
   { houseId: 'marketcheck', basis: 'stated-per-lot', note: 'The seller behind the listing sets the fee: a dealer documentation fee, or the auction\'s buyer fee. Read the listing and type it in.', verifyUrl: 'https://www.marketcheck.com/apis/pricing/' },
   { houseId: 'local', basis: 'stated-per-lot', note: 'Stated at the door, usually a percent of hammer with a minimum. Ask before you register and type it in.', verifyUrl: 'https://www.google.com/maps/search/public+auto+auction' },
   { houseId: 'collector', basis: 'percent', percent: 10, note: 'About 10% of hammer in person and more online, as published per event; verify before you register.', verifyUrl: 'https://www.mecum.com/faq/' },
+  { houseId: 'pcarmarket', basis: 'stated-per-lot', note: 'A percent with a minimum and a cap, set in the buyer agreement. Check it and type the percent.', verifyUrl: 'https://www.pcarmarket.com/buyer-agreement/' },
+  { houseId: 'collectingcars', basis: 'percent', percent: 6, minUsd: 1000, maxUsd: 10000, note: '6% of the hammer price, minimum US$1,000, maximum US$10,000, as published; verify on the link.', verifyUrl: 'https://collectingcars.com/faqs' },
+  { houseId: 'hagerty', basis: 'percent', percent: 7, minUsd: 500, note: '7% of the hammer price, minimum $500, no cap found, as published; verify on the link.', verifyUrl: 'https://www.hagerty.com/marketplace/faq/bid' },
+  { houseId: 'dupont', basis: 'percent', percent: 5, note: '5% of the hammer price, as published; verify on the link.', verifyUrl: 'https://live.dupontregistry.com/bidder-guidelines' },
+  { houseId: 'mbmarket', basis: 'percent', percent: 4.5, minUsd: 225, maxUsd: 4500, note: '4.5% of the hammer price, minimum $225, maximum $4,500, as published; verify on the link.', verifyUrl: 'https://thembmarket.com/how-it-works' },
+  { houseId: 'hemmings', basis: 'stated-per-lot', note: 'A percent with a minimum and a cap; check the current figures on the site and type the percent.', verifyUrl: 'https://www.hemmings.com/auction' },
+  { houseId: 'rmsothebys', basis: 'percent', percent: 12, note: '12% of the hammer price up to $250,000 and 10% above, as published for the sale; Gavel uses 12%, which is high above $250,000. Verify on the link.', verifyUrl: 'https://rmsothebys.com/auctions/mo26/bidder-info/' },
+  { houseId: 'gooding', basis: 'percent', percent: 12, note: 'Live sales 12% of the hammer price, 10% above $250,000; online-only sales 10%, as published. Gavel uses 12%; type 10 for an online sale. Verify on the link.', verifyUrl: 'https://www.goodingco.com/terms/' },
+  { houseId: 'bonhams', basis: 'stated-per-lot', note: 'The buyer\'s premium changed on 1 October 2026. Check the page and type the percent.', verifyUrl: 'https://www.bonhams.com/how-to-buy/buyers-premium-united-states/' },
+  { houseId: 'publicsurplus', basis: 'stated-per-lot', note: 'Set by each selling agency, often around 6.5% to 10%; read the lot and type the percent.', verifyUrl: 'https://www.publicsurplus.com/sms/help/public/useragree.html' },
+  { houseId: 'municibid', basis: 'percent', percent: 9, note: '9% of the hammer price up to $99,999.99, then tiered, as published; verify on the link.', verifyUrl: 'https://support.municibid.com/en/articles/404877' },
+  { houseId: 'propertyroom', basis: 'stated-per-lot', note: '10%, 12% or 15% on vehicles depending on the sale; read the lot and type the percent.', verifyUrl: 'https://www.propertyroom.com' },
+  { houseId: 'govplanet', basis: 'sliding', note: 'A sliding fee by price; check the buyer-fees page and type the percent.', verifyUrl: 'https://www.govplanet.com/buyer-fees' },
+  { houseId: 'hibid', basis: 'stated-per-lot', note: 'Set by each auctioneer, often 10% to 18%; read the sale terms and type the percent.', verifyUrl: 'https://hibid.com' },
+  { houseId: 'purplewave', basis: 'percent', percent: 10, minUsd: 100, note: '10% on most sales (some 15%), minimum $100, as published; verify on the link.', verifyUrl: 'https://www.purplewave.com/auction/legal/terms' },
+  { houseId: 'treasury', basis: 'none', note: 'No buyer premium on Treasury and Customs sales, as published; verify on the link.', verifyUrl: 'https://www.cwsmarketing.com/faqs' },
+  { houseId: 'americasaa', basis: 'sliding', note: 'A sliding scale set by each location; ask before the sale and type the percent.', verifyUrl: 'https://www.americasaa.com' }
 ]
 
 export function feeScheduleFor(houseId: string): FeeSchedule | undefined {

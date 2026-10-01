@@ -14,6 +14,7 @@
  * import screen shows what was found and what is missing before it is saved.
  */
 import type { Damage, Listing, SaleType, TitleStatus } from '../types.ts'
+import { AUCTION_HOUSES } from './directory.ts'
 import { canonicalMake, isKnownMake, looksLikeVin, parseDamage, parseMileage, parseMoney, parseTitleStatus, splitTitle } from './normalize.ts'
 import { createHash } from 'node:crypto'
 
@@ -29,6 +30,23 @@ const HOSTS: Array<[RegExp, string]> = [
   [/(^|\.)govdeals\.com$/i, 'govdeals'],
   [/(^|\.)gsaauctions\.gov$/i, 'gsa'],
   [/(^|\.)(mecum|barrett-jackson)\.com$/i, 'collector'],
+  [/(^|\.)pcarmarket\.com$/i, 'pcarmarket'],
+  [/(^|\.)collectingcars\.com$/i, 'collectingcars'],
+  [/(^|\.)hagerty\.com$/i, 'hagerty'],
+  [/(^|\.)dupontregistry\.com$/i, 'dupont'],
+  [/(^|\.)thembmarket\.com$/i, 'mbmarket'],
+  [/(^|\.)hemmings\.com$/i, 'hemmings'],
+  [/(^|\.)rmsothebys\.com$/i, 'rmsothebys'],
+  [/(^|\.)goodingco\.com$/i, 'gooding'],
+  [/(^|\.)bonhams\.com$/i, 'bonhams'],
+  [/(^|\.)publicsurplus\.com$/i, 'publicsurplus'],
+  [/(^|\.)municibid\.com$/i, 'municibid'],
+  [/(^|\.)propertyroom\.com$/i, 'propertyroom'],
+  [/(^|\.)govplanet\.com$/i, 'govplanet'],
+  [/(^|\.)hibid\.com$/i, 'hibid'],
+  [/(^|\.)purplewave\.com$/i, 'purplewave'],
+  [/(^|\.)cwsmarketing\.com$/i, 'treasury'],
+  [/(^|\.)americasaa\.com$/i, 'americasaa'],
 ]
 
 /** Which house a lot URL belongs to; 'other' for anything else. */
@@ -288,7 +306,8 @@ export function parseCsvImport(text: string, fallbackSource = 'other', opts: { s
   return { rows, used, skipped: skipped + Math.max(0, table.length - 1001) }
 }
 
-const SOURCES = new Set(['copart', 'iaa', 'ebay', 'carsandbids', 'bat', 'manheim', 'adesa', 'acv', 'govdeals', 'gsa', 'collector', 'local', 'other'])
+// Every house in the directory, plus 'other' for anywhere else.
+const SOURCES = new Set([...AUCTION_HOUSES.map((h) => h.id).filter((id) => id !== 'marketcheck'), 'other'])
 
 /** Lot pages shout (PORSCHE); keep the catalog's spelling so filters and the demand list match. */
 function catalogMake(m: string | undefined): string | undefined {

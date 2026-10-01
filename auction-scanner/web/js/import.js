@@ -2,8 +2,10 @@
 // Gavel reads only what you hand it; nothing here visits another site.
 import { getJson, postJson, del, esc, money, when } from './api.js'
 import { toast, loading, errorStrip, sourceName } from './ui.js'
+import { HOUSES } from './houses.js'
 
-const SOURCES = [['copart', 'Copart'], ['iaa', 'IAA'], ['ebay', 'eBay Motors'], ['carsandbids', 'Cars & Bids'], ['bat', 'Bring a Trailer'], ['manheim', 'Manheim'], ['adesa', 'ADESA / OPENLANE'], ['acv', 'ACV'], ['govdeals', 'GovDeals'], ['gsa', 'GSA Auctions'], ['collector', 'Mecum / Barrett-Jackson'], ['local', 'Local auction'], ['other', 'Somewhere else']]
+// Where a lot came from: every house in the directory, then the catch-alls.
+const SOURCES = [...HOUSES.filter(([id]) => id !== 'marketcheck'), ['other', 'Somewhere else']]
 const LABEL = { title: 'Name', vin: 'VIN', mileage: 'Miles', titleStatus: 'Title', damage: 'Damage', runsAndDrives: 'Runs and drives', currentBidUsd: 'Current bid', endsAt: 'End time', soldUsd: 'Sold for', soldAt: 'Sold on' }
 
 function bookmarklet() {

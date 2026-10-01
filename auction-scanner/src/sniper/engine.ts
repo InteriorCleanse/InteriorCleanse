@@ -38,8 +38,8 @@ export type Pick = {
 }
 
 const HARD_END = new Set(['ebay'])
-const SOFT_CLOSE = new Set(['carsandbids', 'bat', 'govdeals', 'acv', 'gsa'])
-const LIVE_LANE = new Set(['copart', 'iaa', 'manheim', 'adesa', 'local', 'collector'])
+const SOFT_CLOSE = new Set(['carsandbids', 'bat', 'govdeals', 'acv', 'gsa', 'collectingcars', 'hagerty', 'dupont'])
+const LIVE_LANE = new Set(['copart', 'iaa', 'manheim', 'adesa', 'local', 'collector', 'rmsothebys', 'gooding', 'bonhams', 'americasaa'])
 
 function modelMatches(target: Target, l: Listing): boolean {
   if (!target.models.length) return true

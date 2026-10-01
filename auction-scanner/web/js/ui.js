@@ -1,5 +1,6 @@
 // Shared pieces of the interface: toasts, sheets, the grade stamp, the score
 // stub and the lot-tag card. Every string from the server passes through esc().
+import { houseName } from './houses.js'
 import { esc, money, moneyK, miles, pct, safeUrl, closesText, reducedMotion } from './api.js'
 
 export function toast(text, tone = '') {
@@ -92,7 +93,7 @@ export function badges(l, now = Date.now()) {
 }
 
 export function sourceName(id) {
-  return { ebay: 'eBay Motors', sample: 'SAMPLE', carsandbids: 'Cars & Bids', bat: 'Bring a Trailer', copart: 'Copart', iaa: 'IAA', gsa: 'GSA Auctions', marketcheck: 'MarketCheck', manheim: 'Manheim', adesa: 'ADESA', acv: 'ACV', govdeals: 'GovDeals', collector: 'Mecum / B-J', local: 'Local auction', other: 'Imported' }[id] || id
+  return houseName(id)
 }
 
 /**
