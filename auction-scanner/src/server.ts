@@ -68,6 +68,8 @@ import { pickFor } from './sniper/engine.ts'
 import type { Pick } from './sniper/engine.ts'
 import { addAlert, alreadyFired, firedOnCar, listAlerts, markAlertsRead } from './sniper/alerts.ts'
 import { money } from './ui.ts'
+import { autodevComps, autodevConfigured } from './sources/autodev.ts'
+import { vinauditConfigured, vinauditEstimate, vinauditValue } from './sources/vinaudit.ts'
 import { isStateCode } from './states.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -254,8 +256,25 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
 
   /** Extra comparables for one LIVE car: MarketCheck dealer prices for its make and model, when connected. */
   async function extraComps(l: Listing): Promise<Listing[]> {
-    if (l.kind !== 'LIVE' || !l.make || !l.model || !marketcheckConfigured()) return []
-    try { return await marketcheckComps(l.make, l.model, fetchImpl) } catch { return [] }
+    if (l.kind !== 'LIVE' || !l.make || !l.model) return []
+    const [mc, ad] = await Promise.all([
+      marketcheckConfigured() ? marketcheckComps(l.make, l.model, fetchImpl).catch(() => []) : Promise.resolve([]),
+      autodevConfigured() ? autodevComps(l.make, l.model, l.year, fetchImpl).catch(() => []) : Promise.resolve([]),
+    ])
+    return [...mc, ...ad]
+  }
+
+  /**
+   * One car, priced as well as Gavel can: comparables first, and when they
+   * fall short, VinAudit's market value for the VIN (if connected and it
+   * rests on enough recorded sales). Used where a single car is shown.
+   */
+  async function cardWithValue(l: Listing, settings: Settings): Promise<Card> {
+    const extra = await extraComps(l)
+    const card = cardFor(l, settings, { extra })
+    if (card.estimate.ok || l.kind !== 'LIVE' || !l.vin || !vinauditConfigured()) return card
+    const fallback = vinauditEstimate(await vinauditValue(l.vin, l.mileage, fetchImpl).catch(() => undefined))
+    return fallback ? cardFor(l, settings, { extra, fallback }) : card
   }
 
   function remember(result: ScanResult): void {
@@ -288,9 +307,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
    * imports and sold prices. Pass `mine` when scoring many cards at once, so
    * the member's files are read once.
    */
-  function cardFor(l: Listing, settings: Settings, opts: { extra?: Listing[]; mine?: Listing[] } = {}): Card {
+  function cardFor(l: Listing, settings: Settings, opts: { extra?: Listing[]; mine?: Listing[]; fallback?: Estimate } = {}): Card {
     const pool = [...(pools.get(l.kind)?.values() ?? []), ...(opts.extra ?? []), ...(opts.mine ?? myComps())]
-    const estimate = estimateValue(l, pool)
+    const fromComps = estimateValue(l, pool)
+    const estimate = !fromComps.ok && opts.fallback?.ok ? opts.fallback : fromComps
     const demand = demandFor(l.make, l.model, settings.demandExtra)
     const score = scoreListing(l, estimate, demand, settings.starter, now())
     return { listing: l, estimate, score, demand: demand ? { tier: demand.tier, why: demand.why } : undefined }
@@ -620,7 +640,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const id = decodeURIComponent(parts[2])
       const l = await ensureKnown(id)
       const settings = getSettings()
-      const card = cardFor(l, settings, { extra: await extraComps(l) })
+      const card = await cardWithValue(l, settings)
       const plan = planFor(l, card.estimate, {}, settings)
       const wt = walkthrough({ ...card, plan }, houseById(l.source))
       return json(res, 200, { ...card, plan, walkthrough: wt })
@@ -641,7 +661,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         if (Object.keys(patch).length) { updateSettings(patch); runSniper().catch(() => {}) }
       }
       const settings = getSettings()
-      const card = cardFor(l, settings, { extra: await extraComps(l) })
+      const card = await cardWithValue(l, settings)
       return json(res, 200, planFor(l, card.estimate, inputs, settings))
     }
 
@@ -649,7 +669,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const body = await readJsonBody(req)
       const l = await ensureKnown(str(body.listingId, 200))
       const settings = getSettings()
-      const card = cardFor(l, settings)
+      const card = await cardWithValue(l, settings)
       const plan = planFor(l, card.estimate, {}, settings)
       const house = houseById(l.source)
       const base = walkthrough({ ...card, plan }, house)
@@ -833,7 +853,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       }
       saveImports([listing])
       const settings = getSettings()
-      return json(res, 200, cardFor(listing, settings, { extra: await extraComps(listing) }))
+      return json(res, 200, await cardWithValue(listing, settings))
     }
     if (path === '/api/import/csv' && method === 'POST') {
       const body = await readJsonBody(req)
@@ -876,7 +896,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const items: Array<{ id: string; group: string; name: string; done: boolean; unlocks: string; cost: string; steps: string[]; env: string[]; link?: string; ownerOnly?: boolean }> = [
         { id: 'ebay', group: 'Auction sources', name: 'eBay Motors', done: !!st.ebay, unlocks: 'Live eBay Motors auctions and Buy It Now cars in the feed and the Sniper.', cost: 'Free developer account.', link: 'https://developer.ebay.com', env: ['GAVEL_EBAY_CLIENT_ID', 'GAVEL_EBAY_CLIENT_SECRET'], steps: ['Sign in at developer.ebay.com with your eBay account and join the developer programme.', 'Open Application Keys and create a Production keyset.', 'Copy the App ID into GAVEL_EBAY_CLIENT_ID and the Cert ID into GAVEL_EBAY_CLIENT_SECRET.', 'Restart Gavel. The chip at the top turns LIVE.'] },
         { id: 'gsa', group: 'Auction sources', name: 'GSA Auctions (federal surplus)', done: !!st.gsa, unlocks: 'Government fleet cars, trucks and SUVs, live, with no buyer premium.', cost: 'Free.', link: 'https://api.data.gov/signup/', env: ['GAVEL_GSA_API_KEY', 'or GAVEL_GSA=1 to try with DEMO_KEY'], steps: ['Fill in the short form at api.data.gov/signup; the key arrives by email in a minute.', 'Put it in GAVEL_GSA_API_KEY. (To try it first, GAVEL_GSA=1 uses the shared demo key, which is rate-limited.)', 'Restart Gavel.'] },
-        { id: 'marketcheck', group: 'Auction sources', name: 'MarketCheck (dealers and auctions)', done: !!st.marketcheck, unlocks: 'Auction lots in the feed, and dealer asking prices from across the country behind every estimate. The biggest single upgrade to pricing.', cost: 'Paid API plan; ask them for trial data. Check current pricing on their site.', link: 'https://www.marketcheck.com/apis/', env: ['GAVEL_MARKETCHECK_API_KEY', 'GAVEL_MARKETCHECK_AUCTION_PATH (only if your plan uses a different path)'], steps: ['Create an account at marketcheck.com/apis and choose a plan that includes Inventory Search and Auction Inventory Search.', 'Copy your API key into GAVEL_MARKETCHECK_API_KEY.', 'If your dashboard shows a different auction search path than search/car/auction/active, put that path in GAVEL_MARKETCHECK_AUCTION_PATH.', 'Restart Gavel.'] },
+        { id: 'marketcheck', group: 'Auction sources', name: 'MarketCheck (dealers and auctions)', done: !!st.marketcheck, unlocks: 'Auction lots in the feed, and dealer asking prices from across the country behind every estimate. The biggest single upgrade to pricing.', cost: 'A free tier (about 500 calls a month within 100 miles) and paid plans, as listed on their pricing page; check it before you sign up.', link: 'https://www.marketcheck.com/apis/', env: ['GAVEL_MARKETCHECK_API_KEY', 'GAVEL_MARKETCHECK_AUCTION_PATH (only if your plan uses a different path)'], steps: ['Create an account at marketcheck.com/apis and choose a plan that includes Inventory Search and Auction Inventory Search.', 'Copy your API key into GAVEL_MARKETCHECK_API_KEY.', 'If your dashboard shows a different auction search path than search/car/auction/active, put that path in GAVEL_MARKETCHECK_AUCTION_PATH.', 'Restart Gavel.'] },
+        { id: 'autodev', group: 'Prices', name: 'auto.dev (dealer prices)', done: autodevConfigured(), unlocks: 'Dealer asking prices for the same make, model and year behind every estimate, so many more cars in the Feed get a price instead of "not enough comps".', cost: 'A free tier (about 1,000 calls a month) and paid plans, as listed on their pricing page.', link: 'https://auto.dev/pricing', env: ['GAVEL_AUTODEV_API_KEY'], steps: ['Create a free account at auto.dev (no card needed for the free tier, as listed).', 'Copy your API key into GAVEL_AUTODEV_API_KEY.', 'Restart Gavel, then run npm run probe to check it answers.'] },
+        { id: 'vinaudit', group: 'Prices', name: 'VinAudit market value', done: vinauditConfigured(), unlocks: 'A market value for any car with a VIN, from the sales VinAudit has recorded, shown on its plan when the scan has too few comparables (GSA and imported cars especially).', cost: 'A free developer account to start; check their data pricing page for paid use.', link: 'https://data.vinaudit.com/market-values-api', env: ['GAVEL_VINAUDIT_API_KEY'], steps: ['Open a developer account at data.vinaudit.com.', 'Copy your API key into GAVEL_VINAUDIT_API_KEY.', 'Restart Gavel, then run npm run probe to check it answers.'] },
         { id: 'import', group: 'Auction sources', name: 'Copart, IAA, Bring a Trailer, Cars & Bids and every other house', done: listImports().length > 0, unlocks: 'Any lot you are looking at, scored against live comparables with a full bid plan.', cost: 'Free. Copart and IAA need their own membership to bid.', env: [], steps: ['Open Import in Gavel and drag the Send to Gavel button to your bookmarks bar.', 'On any lot page (Copart, IAA, BaT, Cars & Bids, GovDeals, a dealer), click the bookmark.', 'Check the fields Gavel found, fill any blanks, save. The car appears in your feed and can be planned and watched.', 'For many lots at once, export a CSV from your auction account and upload it on the same screen.'] },
         { id: 'anthropic', group: 'Intelligence', name: 'Claude (the AI explainer, web research and lot reader)', done: ai.available, unlocks: 'Walkthroughs rewritten for each car, a research desk that searches the live web with sources, and a reader for messy lot pages.', cost: 'Pay as you go; see the Anthropic pricing page.', link: 'https://console.anthropic.com', env: ['ANTHROPIC_API_KEY'], steps: ['Create an account at console.anthropic.com and add a payment method.', 'Create an API key and put it in ANTHROPIC_API_KEY.', 'Run npm install once in the Gavel folder, then restart.'] },
       ]

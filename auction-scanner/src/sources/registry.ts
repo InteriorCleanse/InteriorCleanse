@@ -17,6 +17,7 @@ import { ebayConfigured, searchEbay } from './ebay.ts'
 import { gsaConfigured, searchGsa } from './gsa.ts'
 import { marketcheckComps, marketcheckConfigured, searchMarketcheckAuctions } from './marketcheck.ts'
 import { sampleComps, sampleListings } from './sample.ts'
+import { autodevComps, autodevConfigured } from './autodev.ts'
 
 export type ScanResult = {
   /** The cars to show. */
@@ -140,18 +141,25 @@ export function dedupeByVin(listings: Listing[]): Listing[] {
   })
 }
 
-/** Dealer comparables for the distinct make and model groups in these listings, up to six groups. */
+/** Dealer comparables (MarketCheck and auto.dev, whichever are connected) for the distinct make and model groups in these listings, up to six groups. */
 async function dealerComps(listings: Listing[], fetchImpl: typeof fetch, errors: string[]): Promise<Listing[]> {
-  if (!marketcheckConfigured()) return []
-  const groups = new Map<string, { make: string; model: string }>()
+  const mc = marketcheckConfigured()
+  const ad = autodevConfigured()
+  if (!mc && !ad) return []
+  const groups = new Map<string, { make: string; model: string; year?: number }>()
   for (const l of listings) {
     if (!l.make || !l.model) continue
     const key = `${l.make.toLowerCase()}|${l.model.toLowerCase().split(' ')[0]}`
-    if (!groups.has(key)) groups.set(key, { make: l.make, model: l.model })
+    if (!groups.has(key)) groups.set(key, { make: l.make, model: l.model, year: l.year })
     if (groups.size >= 6) break
   }
   const out: Listing[] = []
-  await Promise.all([...groups.values()].map((g) => withTimeout(marketcheckComps(g.make, g.model, fetchImpl), SOURCE_TIMEOUT_MS, 'MarketCheck').then((c) => { out.push(...c) }).catch((e) => { errors.push(describeError('MarketCheck comparables', e)) })))
+  const jobs: Array<Promise<void>> = []
+  for (const g of groups.values()) {
+    if (mc) jobs.push(withTimeout(marketcheckComps(g.make, g.model, fetchImpl), SOURCE_TIMEOUT_MS, 'MarketCheck').then((c) => { out.push(...c) }).catch((e) => { errors.push(describeError('MarketCheck comparables', e)) }))
+    if (ad) jobs.push(withTimeout(autodevComps(g.make, g.model, g.year, fetchImpl), SOURCE_TIMEOUT_MS, 'auto.dev').then((c) => { out.push(...c) }).catch((e) => { errors.push(describeError('auto.dev comparables', e)) }))
+  }
+  await Promise.all(jobs)
   return out
 }
 

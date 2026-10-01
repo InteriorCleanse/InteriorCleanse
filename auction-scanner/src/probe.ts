@@ -17,6 +17,11 @@ import { marketcheckComps, marketcheckConfigured, searchMarketcheckAuctions } fr
 import { scanAll } from './sources/registry.ts'
 import { money } from './ui.ts'
 import { estimateValue } from './valuation.ts'
+import { autodevComps, autodevConfigured, autodevRows } from './sources/autodev.ts'
+import { vinauditConfigured, vinauditEstimate, vinauditValue } from './sources/vinaudit.ts'
+
+/** A real VIN from a live GSA lot, for the VinAudit check. */
+let liveVin: { vin: string; miles?: number; title: string } | undefined
 
 loadEnv()
 let failed = false
@@ -80,6 +85,8 @@ async function probeGsa(): Promise<void> {
   const now = Date.now()
   const vehicles = rows.map((r) => fromGsaRow(r, now)).filter((l): l is Listing => !!l)
   out(`      ${vehicles.length} of ${rows.length} rows are vehicles Gavel can list; coverage: ${coverage(vehicles)}`)
+  const withVin = vehicles.find((l) => l.vin)
+  if (withVin) liveVin = { vin: withVin.vin!, miles: withVin.mileage, title: withVin.title }
   if (!vehicles.length) fail('GSA Auctions', 'no row reads as a vehicle; the vehicle test or the field names need a look')
   show(vehicles)
 }
@@ -109,6 +116,36 @@ async function probeMarketcheck(): Promise<void> {
   } catch (e) { fail('MarketCheck dealer comparables', e instanceof Error ? e.message : String(e)) }
 }
 
+async function probeAutodev(): Promise<void> {
+  if (!autodevConfigured()) { out('SKIP  auto.dev: not configured (GAVEL_AUTODEV_API_KEY).'); return }
+  try {
+    // The raw answer first, so a renamed field shows up here rather than as an empty list.
+    const res = await fetch('https://api.auto.dev/listings?vehicle.make=Toyota&vehicle.model=Camry&vehicle.year=2017-2019&limit=5', { headers: { authorization: `Bearer ${env('GAVEL_AUTODEV_API_KEY')}`, accept: 'application/json' } })
+    if (!res.ok) { fail('auto.dev', `HTTP ${res.status}`); return }
+    const body: unknown = await res.json()
+    const rows = autodevRows(body)
+    const top = body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body).join(', ') : '(a bare list)'
+    const first = (rows[0] ?? {}) as Record<string, unknown>
+    const nested = (k: string) => (first[k] && typeof first[k] === 'object' ? Object.keys(first[k] as object).join(', ') : 'absent')
+    out(`OK    auto.dev: HTTP 200, top-level: ${top}; ${rows.length} rows; row keys: ${Object.keys(first).join(', ')}; vehicle: ${nested('vehicle')}; retailListing: ${nested('retailListing')}`)
+    const comps = await autodevComps('Toyota', 'Camry', 2018)
+    out(`      ${comps.length} Toyota Camry dealer comparables Gavel can use; coverage: ${coverage(comps)}`)
+    if (rows.length && !comps.length) fail('auto.dev', 'rows came back but none could be read; the field names above need a look')
+    show(comps, 3)
+  } catch (e) { fail('auto.dev', e instanceof Error ? e.message : String(e)) }
+}
+
+async function probeVinaudit(): Promise<void> {
+  if (!vinauditConfigured()) { out('SKIP  VinAudit: not configured (GAVEL_VINAUDIT_API_KEY).'); return }
+  if (!liveVin) { out('SKIP  VinAudit: no live VIN to price (GSA gave none this run).'); return }
+  try {
+    const mv = await vinauditValue(liveVin.vin, liveVin.miles)
+    if (!mv) { out(`OK    VinAudit: answered, but has no market value for the ${liveVin.title} (VIN …${liveVin.vin.slice(-6)}).`); return }
+    const est = vinauditEstimate(mv)
+    out(`OK    VinAudit: ${liveVin.title}: average ${money(mv.averageUsd)} (below ${money(mv.belowUsd)}, above ${money(mv.aboveUsd)}) from ${mv.count} sales; ${est ? 'enough for an estimate' : 'too few sales for an estimate'}`)
+  } catch (e) { fail('VinAudit', e instanceof Error ? e.message : String(e)) }
+}
+
 async function probeScan(): Promise<void> {
   const r = await scanAll({ limit: 100 }, { allowSample: false })
   out(`SCAN  everything together: ${r.kind}, ${r.listings.length} listings, ${r.comps.length} comparables${r.errors.length ? `; notes: ${r.errors.map((e) => e.split('.')[0]).join(' | ')}` : ''}`)
@@ -120,6 +157,8 @@ async function probeScan(): Promise<void> {
 await probeGsa()
 await probeEbay()
 await probeMarketcheck()
+await probeAutodev()
+await probeVinaudit()
 await probeScan()
 out(failed ? '\nAt least one source failed. The lines above say which and why.' : '\nEvery configured source answered and Gavel could read it.')
 process.exit(failed ? 1 : 0)
