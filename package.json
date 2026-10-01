@@ -23,7 +23,7 @@
     "@babylonjs/loaders": "^7.34.4",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.10",
-    "@react-three/postprocessing": "^2.16.3",
+    "@react-three/postprocessing": "^2.19.1",
     "@rive-app/react-canvas": "^4.16.7",
     "@stripe/stripe-js": "^5.5.0",
     "framer-motion": "^11.11.17",
