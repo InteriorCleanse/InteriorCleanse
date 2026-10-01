@@ -14,7 +14,7 @@ import { store } from '../store.ts'
 import type { Candle, Headline } from '../types.ts'
 import { ALL_SYMBOLS, MARKET_CHECK, STOCK_OF, THEME_ETF, THEME_LABEL, UNIVERSE } from './universe.ts'
 import type { Theme } from './universe.ts'
-import { catalystDay, dailyStats, evaluate, intraday, manage, nextWake, phase, regime, themeBoard } from './rules.ts'
+import { OPEN_AT, catalystDay, ctParts, dailyStats, evaluate, intraday, manage, nextWake, phase, regime, themeBoard } from './rules.ts'
 import type { CatalystDay, Evaluation, Phase, Position, Quote, Regime, Report, ThemeRow } from './rules.ts'
 
 type Fetch = (symbols: string[], timeframe: '1Day' | '15Min', start: number) => Promise<{ ok: true; feed: 'sip' | 'iex'; bars: Record<string, Candle[]> } | { ok: false; reason: string }>
@@ -170,8 +170,14 @@ export class StockDesk {
           this.deps.alert?.(`Stock desk: bought ${b.symbol}`, `${fresh.report.setup} Stop ${fresh.setup.stop.toFixed(2)}. PAPER.`)
           bought++
         }
+        const sessionBars = UNIVERSE.some((u) => (q[u.symbol]?.i?.bars.length ?? 0) > 0)
         if (this.state.paused) lines.push('Paused by you: no new buys. Stops and exits are still enforced.')
-        else if (!bought) {
+        else if (!bought && !sessionBars) {
+          // SIP bars arrive about 16 minutes late, so the first finished session bar shows up a little after 9:00 CT.
+          lines.push(ctParts(now).mins >= OPEN_AT + 45
+            ? 'No regular-session bars today: a market holiday, or the data feed has nothing yet. Nothing bought; open positions keep their stops.'
+            : 'Waiting for the first finished session bars (the data runs about 15 minutes behind). Never at the bell.')
+        } else if (!bought) {
           const near = evaluations.filter((e) => e.report).sort((a, b) => (b.report?.confidence ?? 0) - (a.report?.confidence ?? 0))[0]
           lines.push(reg.aggression === 0 ? `No new buys: the market check is ${reg.state}. Cash is a position.` : near ? `No trade. Closest: ${near.symbol}, ${near.reason}` : 'No trade: nothing has a clean setup with support behind it. Cash is a position.')
         }
