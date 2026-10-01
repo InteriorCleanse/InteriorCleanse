@@ -155,6 +155,8 @@ test('findSetup needs 30 minutes of session first', () => {
 })
 
 test('the desk runs a paper cycle end to end: buys on a clean setup, then sells in full when the stop breaks', async () => {
+  const { store } = await import('../../src/store.ts')
+  store().setJson('stocks:state', {}) // a fresh paper book for this test
   let now = ct(9, 46)
   const make = (extraBar?: [number, number, number, number]) => {
     const q = quotes(now)
@@ -222,6 +224,18 @@ test('paused means no new buys, even on Scan now; stops are still enforced while
   const c3 = await desk.cycle(false)
   assert.ok(c3.lines.some((l) => /^Sold NVDA: stop/.test(l)), c3.lines.join(' | '))
   assert.equal(desk.snapshot().positions.length, 0, 'the stop still sells while paused')
+})
+
+test('a weekday with no session bars (a holiday) says so instead of "no clean setup"', async () => {
+  const { store } = await import('../../src/store.ts')
+  store().setJson('stocks:state', {}) // a fresh paper book for this test
+  const now = ct(10, 1)
+  const names = ['SPY', 'QQQ', 'XLK', 'SMH', 'IGV', 'VIXY', 'IEF', 'NVDA']
+  const daily = Object.fromEntries(names.map((s) => [s, dailyUp(100, 0.002)]))
+  const desk = new StockDesk({ now: () => now, headlines: async () => [], fetchBars: async (_s, tf) => ({ ok: true, feed: 'sip', bars: tf === '1Day' ? daily : {} }) })
+  const c = await desk.cycle(false)
+  assert.ok(c.lines.some((l) => /No regular-session bars today/.test(l)), c.lines.join(' | '))
+  assert.equal(desk.snapshot().positions.length, 0)
 })
 
 test('the stock desk never reaches the engine, a broker or an order path', async () => {
