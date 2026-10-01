@@ -44,6 +44,21 @@ cars, and a government fleet is too scattered. GSA is a place to find cars;
 eBay (free) or MarketCheck, or the sold prices members add, are what let
 Gavel say one is cheap. Connect eBay next.
 
+**Price the cars, not just find them.** Two official APIs with free starts:
+
+| Service | What it adds | Cost | What to do |
+|---|---|---|---|
+| **auto.dev** | Dealer asking prices for the same make, model and year behind every estimate, so many more cars get a price | Free tier (about 1,000 calls a month, as listed); paid above | Free account at auto.dev, then `GAVEL_AUTODEV_API_KEY=…` |
+| **VinAudit** | A market value by VIN from recorded sales, on a car's plan when comparables are short | Developer account to start; see their pricing | Account at data.vinaudit.com, then `GAVEL_VINAUDIT_API_KEY=…` |
+
+Add the same names as repository secrets and the live probe checks them.
+
+**More auctions.** `docs/AUCTIONS.md` ranks the best auctions for each goal
+and lists the partnerships worth asking for (Cox/Manheim for wholesale
+values, Collecting Cars, Classic.com, Municibid and GovDeals, Copart and IAA).
+None of those auctions offers data to outside apps today, so until a
+partnership exists, members bring their lots in with Send to Gavel.
+
 **Why not scrape Copart and IAA?** Their terms forbid automated collection,
 and the services that sell their data are unofficial. Gavel stays on the
 right side of that line: it only reads lots you open yourself. When Copart or

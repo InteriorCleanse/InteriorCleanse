@@ -25,7 +25,7 @@ import { env, flag, loadEnv } from './env.ts'
 import type { BidPlan, Estimate, Listing, Score, SearchQuery } from './types.ts'
 import { scanAll, sourceStatuses } from './sources/registry.ts'
 import type { ScanResult } from './sources/registry.ts'
-import { AUCTION_HOUSES, houseById } from './sources/directory.ts'
+import { AUCTION_HOUSES, houseById, HOUSE_GROUPS } from './sources/directory.ts'
 import { estimateValue, askingPrice } from './valuation.ts'
 import { demandFor } from './demand.ts'
 import type { DemandEntry } from './demand.ts'
@@ -739,7 +739,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         buyerFee: h.buyerFee, feeUrl: h.feeUrl, api: h.api, bidApi: h.bidApi, inPerson: h.inPerson, starterNote: h.starterNote,
         searchUrl: h.searchUrl(q || 'cars'),
       }))
-      return json(res, 200, { houses, sources: sourceStatuses() })
+      return json(res, 200, { houses, groups: HOUSE_GROUPS, sources: sourceStatuses() })
     }
 
     if (path === '/api/playbook' && method === 'GET') return json(res, 200, { guides: GUIDES })

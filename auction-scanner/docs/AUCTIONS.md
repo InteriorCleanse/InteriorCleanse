@@ -1,7 +1,61 @@
 # The auction directory
 
-The source of truth is `src/sources/directory.ts`; the app renders it on the
-Auctions screen. Fees change: every entry links to the house's own fee page.
+The source of truth is `src/sources/directory.ts` (30 houses, in the groups
+of `HOUSE_GROUPS`); the app renders it on the Auctions screen. Fees change:
+every entry links to the house's own fee page.
+
+## The best auctions for each goal (researched October 2026)
+
+Research covered the developer pages, terms and fee pages of every major US
+car auction: wholesale and salvage, enthusiast and collector, and government
+and local. Two findings decide everything below:
+
+1. **Only three sources offer data to outside apps on fair terms**: eBay
+   Motors (free), GSA Auctions (free) and MarketCheck (free tier, then paid).
+   Gavel reads all three. Copart, IAA, Bring a Trailer, Cars & Bids,
+   GovDeals and the rest publish no API, and most of their terms forbid
+   automated reading. Gavel never scrapes, so members bring those lots in
+   with Send to Gavel (one click on a page they are looking at).
+2. **Prices matter as much as listings.** A car is only a steal against what
+   similar cars sell for. auto.dev (dealer prices, free tier) and VinAudit
+   (market value by VIN, developer account) give Gavel that; members' own
+   sold prices add more.
+
+**A first rental car (reliable, clean title, low fees).**
+GSA Auctions (no buyer premium, fleet cars with records; read live), US
+Treasury seized vehicles through CWS (no buyer premium), Public Surplus and
+Municibid (city and county fleets), eBay Motors (no buyer fee; read live),
+then a local public auction once you have been once as a spectator.
+
+**Flipping (buy under market, sell on).**
+eBay Motors and Cars & Bids for clean cars, Copart and IAA filtered to clean
+title and "run and drive" for the deepest discounts once you know repair
+costs, and Bring a Trailer and Cars & Bids results as the price guide.
+
+**Supercars and cars that hold their value.**
+Cars & Bids (modern enthusiast, 5% capped, 1-minute reset), Bring a Trailer
+(the deepest market and sold history), PCARMARKET (Porsche), duPont REGISTRY
+Live (exotics, 5%), Collecting Cars (global, 6% capped, proxy bids; check
+where the car is). Watch the live houses (RM Sotheby's, Gooding, Bonhams,
+Mecum, Barrett-Jackson) to learn values; at 10-12% on top they are hard
+places to flip from.
+
+**Later, with a dealer licence.** Manheim, OPENLANE, ACV and America's Auto
+Auction are where used-car lots buy.
+
+### Partnerships worth asking for
+
+None of these is self-serve; each is an email to start. Ask what a small
+subscription app may show to members who are not dealers.
+
+| Who | What it would add | How to ask |
+|---|---|---|
+| Cox Automotive (Manheim) | MMR wholesale values and Manheim listings with condition reports, by API | DataSyndication@coxautoinc.com; licensed under Cox's Master Agreement and Additional Terms; price not published |
+| Collecting Cars | Its listings and results; its terms allow data use with written consent | Through the contact page, asking for written authorisation |
+| Classic.com | Collector-car sold prices; a business tier with API access was listed as coming soon | Their business enquiry |
+| Municibid, GovDeals | Government fleet lots; Municibid's terms allow access under a separate written agreement | Their seller or partner contact |
+| Copart, IAA | Salvage and clean-title lots, the biggest volume | Business development; no published programme was found |
+
 
 | House | Who may buy | Registering | Buyer fee basis | In person | API | Gavel reads it |
 |---|---|---|---|---|---|---|
@@ -18,6 +72,23 @@ Auctions screen. Fees change: every entry links to the house's own fee page.
 | MarketCheck | A data service; the seller decides | Paid API plan | Set by the dealer or auction | No | Official (paid) | **Yes** (auction lots; dealer prices as comparables) |
 | Local public auctions | Anyone | ID + deposit at the door | Stated at the door | Yes | None | Import |
 | Mecum / Barrett-Jackson | Anyone | Bidder registration fee, proof of funds | About 10% in person, more online (per event) | Yes | None | Import |
+| PCARMARKET | Anyone | Free account + card | A percent with a minimum and cap (buyer agreement) | No | None | Import |
+| Collecting Cars | Anyone | Free account + card | 6%, min US$1,000, max US$10,000 (as published) | No | None (data by written consent) | Import |
+| Hagerty Marketplace | Anyone | Free account + card | 7%, min $500, no cap found (as published) | No | None | Import |
+| duPont REGISTRY Live | Registered bidders | See bidder guidelines | 5% (as published) | Some lots | None | Import |
+| The MB Market | Anyone | Free account + card | 4.5%, min $225, max $4,500 (as published) | No | None | Import |
+| Hemmings Auctions | Anyone | Free account | Check the site | No | None | Import |
+| RM Sotheby's | Approved bidders | References | 12% to $250k, 10% above (as published for the sale) | Yes | None | Import |
+| Gooding Christie's | Approved bidders | References | Live 12% / 10% above $250k; online 10% (as published) | Yes | None | Import |
+| Bonhams Cars | Approved bidders | References | Changed 1 Oct 2026; check the page | Yes | None | Import |
+| Public Surplus | Anyone | Free | Set by each agency, often 6.5-10% | No | None | Import |
+| Municibid | 18+, US/Canada | Free + card | 9% to $99,999.99, then tiered (as published) | No | None (written agreement possible) | Import |
+| PropertyRoom | Anyone | Free | 10, 12 or 15% on vehicles | No | None | Import |
+| GovPlanet | 21+, approved | Free, approval to bid | Sliding by price | No | None | Import |
+| HiBid (local auctioneers) | Depends on the auctioneer | Free, per-auctioneer approval | Set by each auctioneer, often 10-18% | Some | None | Import |
+| Purple Wave | Anyone | Free | 10% on most sales, some 15%, min $100 (as published) | No | None | Import |
+| US Treasury seized (CWS) | Anyone with photo ID | Free | None (as published) | Some | None | Import |
+| America's Auto Auction | Dealers; public at public and GSA sales | AuctionACCESS | Sliding by location | Yes | None | Import |
 
 ## How a beginner should use each
 

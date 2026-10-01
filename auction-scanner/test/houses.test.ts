@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { AUCTION_HOUSES } from '../src/sources/directory.ts'
+import { AUCTION_HOUSES, HOUSE_GROUPS } from '../src/sources/directory.ts'
 import { houseFromUrl } from '../src/sources/importer.ts'
 import { feeScheduleFor } from '../src/fees.ts'
 import { policyFor } from '../src/knowledge/policies.ts'
@@ -22,4 +22,10 @@ test('every house has a fee schedule, a policy card and an https link; its own s
   }
   const sites: Array<[string, string]> = [['https://www.pcarmarket.com/auction/x', 'pcarmarket'], ['https://collectingcars.com/for-sale/x', 'collectingcars'], ['https://www.hagerty.com/marketplace/auction/x', 'hagerty'], ['https://live.dupontregistry.com/x', 'dupont'], ['https://municibid.com/listing/x', 'municibid'], ['https://hibid.com/lot/x', 'hibid'], ['https://www.cwsmarketing.com/x', 'treasury']]
   for (const [url, id] of sites) assert.equal(houseFromUrl(url), id, url)
+})
+
+test('every house sits in exactly one group on the Auctions screen', () => {
+  const placed = HOUSE_GROUPS.flatMap((g) => g.houses)
+  assert.deepEqual([...placed].sort(), AUCTION_HOUSES.map((h) => h.id).sort())
+  assert.equal(new Set(placed).size, placed.length)
 })

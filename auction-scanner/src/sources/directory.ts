@@ -527,3 +527,18 @@ export const AUCTION_HOUSES: AuctionHouse[] = [
 export function houseById(id: string): AuctionHouse | undefined {
   return AUCTION_HOUSES.find((h) => h.id === id)
 }
+
+/**
+ * How the Auctions screen groups the houses, in the order a beginner should
+ * meet them, with what each group is best for. Every house is in exactly one
+ * group (a test checks).
+ */
+export const HOUSE_GROUPS: Array<{ id: string; title: string; bestFor: string; houses: string[] }> = [
+  { id: 'live', title: 'Read live by Gavel', bestFor: 'Cars that come into your Feed and the Sniper by themselves once the source is connected.', houses: ['ebay', 'gsa', 'marketcheck'] },
+  { id: 'enthusiast', title: 'Enthusiast and supercar, online', bestFor: 'Supercars, Porsches and cars that hold their value. Clean titles, public results to learn prices from, fees around 5% with caps.', houses: ['carsandbids', 'bat', 'pcarmarket', 'collectingcars', 'dupont', 'hagerty', 'mbmarket', 'hemmings'] },
+  { id: 'government', title: 'Government, police and seized', bestFor: 'A first rental car: fleet cars with service records, often clean titles, low or no buyer premium.', houses: ['govdeals', 'publicsurplus', 'municibid', 'treasury', 'propertyroom', 'purplewave', 'govplanet'] },
+  { id: 'salvage', title: 'Salvage and insurance, public in many states', bestFor: 'The biggest volume and the deepest discounts, but mostly damaged cars: filter to clean titles and "run and drive", and expect sliding-scale fees.', houses: ['copart', 'iaa'] },
+  { id: 'local', title: 'Local auctions near you', bestFor: 'Fewer bidders than the big sites. Go in person first to learn.', houses: ['hibid', 'local'] },
+  { id: 'collector', title: 'Live collector auctions: watch first', bestFor: 'Learning what the best examples fetch. 10-12% on top makes a flip hard for a beginner.', houses: ['collector', 'rmsothebys', 'gooding', 'bonhams'] },
+  { id: 'dealer', title: 'Dealer-only wholesale', bestFor: 'Where used-car lots buy. Needs a dealer licence, so later, not first.', houses: ['manheim', 'adesa', 'acv', 'americasaa'] },
+]
