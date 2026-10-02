@@ -48,6 +48,7 @@ type State = {
 const KEY = 'stocks:state'
 const SLIP = 0.0005 // 5 basis points each way
 const DAY = 86_400_000
+const STALE_AFTER = 6 * DAY // covers a weekend plus a holiday
 
 export class StockDesk {
   private readonly deps: StockDeskDeps
@@ -89,9 +90,13 @@ export class StockDesk {
       this.deps.fetchBars(ALL_SYMBOLS, '15Min', now - 4 * DAY),
     ])
     if (!daily.ok) return { error: daily.reason }
+    // Stale data is refused, not traded on: a gap measured against an old close is wrong.
+    const lastBar = (s: string) => daily.bars[s]?.[daily.bars[s].length - 1]?.openTime ?? 0
+    const newest = Math.max(0, ...ALL_SYMBOLS.map(lastBar))
+    if (newest < now - STALE_AFTER) return { error: newest ? `stock data is stale: the newest daily bar is from ${ctParts(newest).date}` : 'the data feed returned no daily bars' }
     const q: Record<string, Quote> = {}
     for (const s of ALL_SYMBOLS) {
-      const d = dailyStats(daily.bars[s] ?? [])
+      const d = lastBar(s) < newest - STALE_AFTER ? null : dailyStats(daily.bars[s] ?? []) // a symbol that stopped updating is left out
       const i = d && intra.ok ? intraday(intra.bars[s] ?? [], d.prevClose, now) : null
       q[s] = { symbol: s, d, i }
       if (i) this.state.marks[s] = i.last

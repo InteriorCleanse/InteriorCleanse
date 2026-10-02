@@ -36,7 +36,7 @@ export type WatchItem = {
 }
 
 export type FetchResult = { ok: true; candles: Candle[] } | { ok: false; reason: string }
-export type FetchLike = (url: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>
+export type FetchLike = (url: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown>; headers?: { get: (name: string) => string | null } }>
 
 const HOUR = 3_600_000
 
@@ -197,8 +197,13 @@ export async function fetchStocks(symbols: string[], now = Date.now(), fetchImpl
  * free plan serves it for bars older than 15 minutes), then IEX, which every
  * plan has but which carries only a small slice of the day's volume. The result
  * says which feed answered, so volume is never read as more than it is.
+ *
+ * A rate limit (429), a server error (5xx) or a dropped connection is retried
+ * up to three times per page, honouring Retry-After (capped at ten seconds),
+ * before the next feed is tried. Data that would arrive incomplete (more pages
+ * than expected) is refused rather than used, and repeated bars are dropped.
  */
-export async function fetchStockBars(symbols: string[], timeframe: '1Day' | '15Min', start: number, now = Date.now(), fetchImpl: FetchLike = fetch as unknown as FetchLike, feeds: Array<'sip' | 'iex'> = ['sip', 'iex']): Promise<{ ok: true; feed: 'sip' | 'iex'; bars: Record<string, Candle[]> } | { ok: false; reason: string }> {
+export async function fetchStockBars(symbols: string[], timeframe: '1Day' | '15Min', start: number, now = Date.now(), fetchImpl: FetchLike = fetch as unknown as FetchLike, feeds: Array<'sip' | 'iex'> = ['sip', 'iex'], wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))): Promise<{ ok: true; feed: 'sip' | 'iex'; bars: Record<string, Candle[]> } | { ok: false; reason: string }> {
   const cfg = alpacaConfig()
   if (!cfg) return { ok: false, reason: 'not connected: add read-only Alpaca keys (MRCASH_ALPACA_KEY / _SECRET) for stock data' }
   if (!symbols.length) return { ok: true, feed: feeds[0], bars: {} }
@@ -206,14 +211,25 @@ export async function fetchStockBars(symbols: string[], timeframe: '1Day' | '15M
   let lastReason = 'no feed answered'
   for (const feed of feeds) {
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 20_000)
+    const timer = setTimeout(() => controller.abort(), 45_000)
     try {
       const all: Record<string, Candle[]> = {}
       let token = ''
       for (let page = 0; page < 12; page++) {
         const end = feed === 'sip' ? `&end=${encodeURIComponent(new Date(now - 16 * 60_000).toISOString())}` : ''
         const url = `${alpacaDataBase()}/v2/stocks/bars?symbols=${encodeURIComponent(symbols.join(','))}&timeframe=${timeframe}&start=${encodeURIComponent(new Date(start).toISOString())}${end}&limit=10000&feed=${feed}&adjustment=split${token ? `&page_token=${encodeURIComponent(token)}` : ''}`
-        const res = await fetchImpl(url, { headers: { 'APCA-API-KEY-ID': cfg.key, 'APCA-API-SECRET-KEY': cfg.secret, accept: 'application/json' }, signal: controller.signal })
+        const init = { headers: { 'APCA-API-KEY-ID': cfg.key, 'APCA-API-SECRET-KEY': cfg.secret, accept: 'application/json' }, signal: controller.signal }
+        let res: Awaited<ReturnType<FetchLike>>
+        for (let attempt = 1; ; attempt++) {
+          try { res = await fetchImpl(url, init) } catch (e) {
+            if (attempt >= 3 || controller.signal.aborted) throw e
+            await wait(1000 * attempt * attempt)
+            continue
+          }
+          if ((res.status !== 429 && res.status < 500) || attempt >= 3) break
+          const retryAfter = Number(res.headers?.get('retry-after'))
+          await wait(Math.min(10_000, retryAfter > 0 ? retryAfter * 1000 : 1000 * attempt * attempt))
+        }
         if (res.status === 401 || res.status === 403) throw new Error(feed === 'sip' ? 'SIP feed not available on this plan' : 'Alpaca rejected the keys for market data')
         if (!res.ok) throw new Error(`Alpaca returned HTTP ${res.status}`)
         const body = await res.json() as { next_page_token?: string | null }
@@ -222,7 +238,8 @@ export async function fetchStockBars(symbols: string[], timeframe: '1Day' | '15M
         token = body && typeof body.next_page_token === 'string' ? body.next_page_token : ''
         if (!token) break
       }
-      for (const k of Object.keys(all)) all[k].sort((a, b) => a.openTime - b.openTime)
+      if (token) throw new Error('Alpaca returned more pages than expected; refusing incomplete data')
+      for (const k of Object.keys(all)) all[k] = all[k].sort((a, b) => a.openTime - b.openTime).filter((c, i, a) => i === 0 || c.openTime !== a[i - 1].openTime)
       return { ok: true, feed, bars: all }
     } catch (e) {
       lastReason = safeReason(e)

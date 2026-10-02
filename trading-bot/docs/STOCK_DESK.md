@@ -81,6 +81,18 @@ Checked in this order every cycle:
 If the app stops with positions open, they stay on the paper book unmanaged
 until it starts again; the page shows them and offers Flatten.
 
+## When the data goes wrong
+
+- A rate limit (HTTP 429), a server error (5xx) or a dropped connection is
+  retried up to three times per page, honouring Retry-After (capped at ten
+  seconds), before the IEX feed is tried. If no feed answers, the cycle logs
+  "No stock data" and buys and sells nothing.
+- Data that would arrive incomplete (pages that never end) is refused, and a
+  bar served twice is kept once.
+- If the newest daily bar is more than six days old, the cycle stops with
+  "stock data is stale" instead of measuring gaps against an old close. A
+  symbol whose bars stopped updating while the rest moved on is left out.
+
 ## Settings
 
 | Variable | Default | Meaning |
