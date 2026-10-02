@@ -10,3 +10,6 @@ next-env.d.ts
 
 # Copied from node_modules at install/build time
 public/maplibre
+
+# Embedded dev database (PGlite)
+.data

@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { DEFAULT_COVERAGE, getPlan } from '@/lib/catalog'
-import { carTitle, cityName } from '@/lib/data'
+import { carTitle, cityName } from '@/lib/places'
 import { money } from '@/lib/format'
 import { allInDaily } from '@/lib/pricing'
 import { actions, useLocal } from '@/lib/store'
 import type { Car } from '@/lib/types'
 import { CarImage } from './CarImage'
 import { Icon } from './Icons'
+import { useSession } from './Session'
 import { useToast } from './Toast'
 import { Stars } from './ui'
 
@@ -20,19 +21,22 @@ export function displayDaily(car: Car, allIn: boolean): number {
 
 export function SaveButton({ car, labelled = false }: { car: Car; labelled?: boolean }) {
   const { saved } = useLocal()
+  const { user } = useSession()
   const toast = useToast()
-  const on = saved.includes(car.id)
+  const on = saved.includes(car.slug)
   return (
     <button
       type="button"
       className={labelled ? 'btn btn-secondary btn-sm' : 'save-btn'}
       aria-pressed={on}
-      aria-label={labelled ? undefined : on ? `Remove ${carTitle(car)} from saved` : `Save ${carTitle(car)}`}
+      aria-label={labelled ? undefined : on ? `Remove ${carTitle(car)} from favorites` : `Save ${carTitle(car)} to favorites`}
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
-        actions.toggleSaved(car.id)
-        toast(on ? 'Removed from saved' : 'Saved. We’ll flag price drops.')
+        const next = actions.toggleSaved(car.slug)
+        if (user)
+          void fetch('/api/favorites', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: car.slug, on: next }) })
+        toast(next ? (user ? 'Saved to your favorites' : 'Saved on this device. Sign in to keep it everywhere.') : 'Removed from favorites')
       }}
     >
       <Icon name={on ? 'heart-filled' : 'heart'} size={17} />

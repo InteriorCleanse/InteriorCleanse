@@ -1,44 +1,48 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   AVANT design system.
-   Ground: white and a cool mist grey. Ink: asphalt, for text and the main
-   action. Signal: lime, only ever as a fill behind ink — the price you are
-   looking at, the pin you hover, the brand dot. Never lime text on white.
-   Type: Archivo, one family at two widths. Expanded for headlines (car
-   badging), normal for everything read.
+   AVANT design system: quiet luxury.
+   Ground: white and porcelain. Ink: obsidian, for text and the main action.
+   Detail: champagne, used like trim on a fine car (the active pin, a rating
+   star, the rule under the wordmark), never as body text on white; bronze
+   carries any accent text. Type: Urbanist, light at display sizes, regular
+   for reading. Generous space, soft shadows, pill controls.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --bg: #ffffff;
-  --bg-2: #f4f5f7;
+  --bg-2: #f5f4f2;
   --surface: #ffffff;
-  --surface-2: #f4f5f7;
-  --surface-3: #e9ebef;
-  --line: #e4e6ea;
-  --line-2: #d2d5db;
-  --text: #1c1f24;
-  --ink-2: #2c3038;
-  --muted: #5b6170;
-  --dim: #6b7180;
-  --lime: #d4ff3a;
-  --lime-ink: #1c1f24;
-  --lime-soft: #f3ffd0;
-  --danger: #c4321e;
-  --danger-soft: #fdecea;
+  --surface-2: #f5f4f2;
+  --surface-3: #ebe9e5;
+  --line: #e8e6e2;
+  --line-2: #d6d3cd;
+  --text: #121316;
+  --ink-2: #2a2c30;
+  --muted: #66635d;
+  --dim: #75716a;
+  --gold: #b8956a;
+  --gold-ink: #8a6a43;
+  --gold-soft: #f4ede3;
+  /* Kept for components that name them: champagne replaces the old lime. */
+  --lime: #b8956a;
+  --lime-ink: #121316;
+  --lime-soft: #f4ede3;
+  --danger: #b4321e;
+  --danger-soft: #fbece9;
   --warn: #8a5300;
-  --warn-soft: #fff4dc;
-  --ok: #0c7a4a;
-  --ok-soft: #e7f6ee;
-  --shadow-1: 0 1px 2px rgba(28, 31, 36, 0.06), 0 2px 8px rgba(28, 31, 36, 0.05);
-  --shadow-2: 0 2px 6px rgba(28, 31, 36, 0.06), 0 14px 36px -10px rgba(28, 31, 36, 0.22);
-  --shadow-3: 0 30px 80px -20px rgba(28, 31, 36, 0.35);
-  --radius: 16px;
-  --radius-sm: 12px;
-  --radius-xs: 8px;
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --top: 68px;
-  --tab: 64px;
-  --gutter: clamp(16px, 4vw, 40px);
-  --max: 1280px;
+  --warn-soft: #fbf3e2;
+  --ok: #276749;
+  --ok-soft: #e8f3ec;
+  --shadow-1: 0 1px 2px rgba(18, 19, 22, 0.05), 0 4px 14px rgba(18, 19, 22, 0.05);
+  --shadow-2: 0 2px 8px rgba(18, 19, 22, 0.05), 0 18px 44px -14px rgba(18, 19, 22, 0.2);
+  --shadow-3: 0 36px 90px -24px rgba(18, 19, 22, 0.35);
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+  --ease: cubic-bezier(0.22, 0.8, 0.2, 1);
+  --top: 72px;
+  --tab: 76px;
+  --gutter: clamp(18px, 4vw, 48px);
+  --max: 1240px;
   --sans: var(--font-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: light;
 }
@@ -59,8 +63,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 16px;
+  font-size: 16.5px;
   line-height: 1.55;
+  letter-spacing: 0.005em;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -89,14 +94,14 @@ h2,
 h3,
 h4 {
   margin: 0;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.15;
 }
 
 h1,
 h2 {
-  font-stretch: 112%;
+  font-weight: 500;
 }
 
 p {
@@ -145,10 +150,9 @@ p {
 /* ── Type ────────────────────────────────────────────────────────────── */
 
 .display {
-  font-stretch: 118%;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 0.98;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1;
 }
 
 /* Headlines are one voice: no single accented word. */
@@ -160,9 +164,11 @@ p {
 }
 
 .eyebrow {
-  font-size: 0.88rem;
+  font-size: 0.74rem;
   font-weight: 600;
-  color: var(--muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
 }
 
 .muted {
@@ -238,11 +244,10 @@ p {
 }
 
 .page-title {
-  font-stretch: 116%;
-  font-weight: 800;
-  font-size: clamp(2rem, 4.6vw, 3.1rem);
+  font-weight: 300;
+  font-size: clamp(2.1rem, 4.8vw, 3.4rem);
   letter-spacing: -0.025em;
-  line-height: 1.02;
+  line-height: 1.04;
 }
 
 .lead {
@@ -265,10 +270,10 @@ p {
 }
 
 .section-head h2 {
-  font-size: clamp(1.6rem, 3vw, 2.25rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
+  font-size: clamp(1.45rem, 2.6vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
 }
 
 .section-head p {
@@ -309,8 +314,9 @@ p {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: var(--radius-sm);
-  font-weight: 650;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   border: 1px solid transparent;
   transition: background 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
@@ -327,18 +333,17 @@ p {
 }
 
 .btn-sm {
-  padding: 7px 14px;
+  padding: 8px 16px;
   font-size: 0.875rem;
-  border-radius: 10px;
 }
 
 .btn-md {
-  padding: 11px 20px;
+  padding: 12px 24px;
   font-size: 0.95rem;
 }
 
 .btn-lg {
-  padding: 15px 26px;
+  padding: 16px 30px;
   font-size: 1.02rem;
 }
 
@@ -594,24 +599,24 @@ p {
 }
 
 .wordmark {
-  font-stretch: 125%;
-  font-weight: 900;
-  font-size: 1.35rem;
-  letter-spacing: 0.01em;
+  font-weight: 300;
+  font-size: 1.12rem;
+  letter-spacing: 0.42em;
   line-height: 1;
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding-right: 0.1em;
 }
 
-/* The brand mark: a lime plate with an ink edge, readable on white. */
+/* The brand mark: a champagne rule beneath the name, like a coachline. */
 .wordmark i {
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
-  background: var(--lime);
-  box-shadow: inset 0 0 0 2px var(--text);
-  display: inline-block;
+  width: 22px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--gold);
+  display: block;
 }
 
 .topnav {
@@ -757,47 +762,53 @@ p {
 
   .tabbar {
     position: fixed;
-    inset-inline: 0;
-    bottom: 0;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
     z-index: 40;
-    height: calc(var(--tab) + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
+    height: 64px;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: saturate(160%) blur(12px);
-    -webkit-backdrop-filter: saturate(160%) blur(12px);
-    border-top: 1px solid var(--line);
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    box-shadow: 0 0 0 1px rgba(18, 19, 22, 0.06), 0 14px 40px -12px rgba(18, 19, 22, 0.28);
   }
 
   .tabbar a,
   .tabbar button {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    font-size: 11px;
+    gap: 2px;
+    border-radius: 999px;
+    font-size: 11.5px;
     font-weight: 600;
-    color: var(--dim);
+    color: var(--muted);
   }
 
   .tabbar [aria-current='page'] {
     color: var(--text);
+    background: rgba(18, 19, 22, 0.06);
   }
 
-  .tabbar .tab-ai {
-    color: var(--text);
-  }
-
-  .tab-ai-dot {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
+  .tab-badge {
+    position: absolute;
+    top: 4px;
+    left: calc(50% + 6px);
+    min-width: 17px;
+    height: 17px;
+    padding: 0 5px;
+    border-radius: 999px;
     background: var(--text);
-    color: var(--lime);
-    display: grid;
-    place-items: center;
+    color: #fff;
+    font-size: 10.5px;
+    line-height: 17px;
+    text-align: center;
   }
 
   main {
@@ -1621,12 +1632,10 @@ p {
 
 /* The brand moment on every card: an all-in tag. */
 .carcard-price .allin {
-  background: var(--lime);
-  color: var(--lime-ink);
-  font-size: 0.74rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 5px;
+  color: var(--gold-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .carcard-price em {
@@ -1670,8 +1679,8 @@ p {
 }
 
 .stars svg {
-  color: var(--text);
-  fill: var(--text);
+  color: var(--gold);
+  fill: var(--gold);
 }
 
 .cargrid {
@@ -1827,9 +1836,9 @@ p {
 .pin[data-active='true'],
 .pin:hover,
 .pin:focus-visible {
-  background: var(--lime);
-  color: var(--lime-ink);
-  box-shadow: 0 0 0 2px var(--text), 0 6px 16px rgba(28, 31, 36, 0.25);
+  background: var(--text);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--gold), 0 6px 16px rgba(18, 19, 22, 0.3);
   transform: translate(-50%, -100%) scale(1.1);
   z-index: 5;
 }
@@ -2409,8 +2418,7 @@ p {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--lime);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+  background: radial-gradient(circle at 35% 30%, #f3e6d2, var(--gold) 55%, #7d6241);
 }
 
 @media (max-width: 920px) {
@@ -2915,4 +2923,615 @@ p {
 
 .band-ink .btn-secondary:hover:not(:disabled) {
   border-color: #fff;
+}
+
+/* ══ App screens ═══════════════════════════════════════════════════════ */
+
+.app-head {
+  padding: 22px 0 6px;
+}
+
+.app-title {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 14px 0 18px;
+}
+
+.greeting {
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.greeting + p {
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* "Search anywhere": a quiet field with an obsidian button. */
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 8px 8px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  color: var(--muted);
+  font-size: 1.02rem;
+  text-align: left;
+  transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.search-pill:hover {
+  border-color: var(--text);
+}
+
+.search-pill span {
+  flex: 1;
+}
+
+.search-pill b {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--text);
+  color: #fff;
+}
+
+/* Category chips with icons, scrolling sideways like the app. */
+.cats {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 18px calc(var(--gutter) * -1) 0;
+  padding: 0 var(--gutter) 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cats::-webkit-scrollbar {
+  display: none;
+}
+
+.cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.cat:hover {
+  color: var(--text);
+}
+
+.cat[aria-pressed='true'] {
+  background: var(--text);
+  color: #fff;
+}
+
+/* Rails: a titled row of cars that scrolls sideways and snaps. */
+.rail {
+  margin-top: 34px;
+}
+
+.rail-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rail-head h2 {
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.rail-head p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+
+.rail-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 23%);
+  gap: 18px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  margin: 0 calc(var(--gutter) * -1);
+  padding: 0 var(--gutter) 6px;
+  scroll-padding-inline: var(--gutter);
+}
+
+.rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.rail-track > * {
+  scroll-snap-align: start;
+}
+
+@media (max-width: 720px) {
+  .rail-track {
+    grid-auto-columns: 74%;
+  }
+}
+
+.rail-card {
+  position: relative;
+  display: block;
+}
+
+.rail-card .car-img {
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius);
+}
+
+.rail-card h3 {
+  margin-top: 12px;
+  font-size: 1.12rem;
+  font-weight: 600;
+}
+
+.rail-card .meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+
+.rail-card .meta .dot::before {
+  content: '·';
+  color: var(--dim);
+}
+
+.rail-card .price {
+  margin-top: 14px;
+  font-size: 1.05rem;
+}
+
+.rail-card .price strong {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-card .price small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Underlined tabs (Inbox: Messages / Notifications). */
+.tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button {
+  padding: 14px 8px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabs button[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--gold);
+}
+
+.tabs button .count {
+  margin-left: 6px;
+  color: var(--gold-ink);
+}
+
+/* Inbox list. */
+.threads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.thread {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  padding: 18px 4px;
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+}
+
+.thread .top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.thread .top span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread strong {
+  display: block;
+  font-size: 1.08rem;
+  margin-top: 2px;
+}
+
+.thread p {
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread[data-unread='true'] p {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.thread[data-unread='true'] .avatar-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.avatar-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* A conversation. */
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--top) - 40px);
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.chat-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 0;
+}
+
+.bubble {
+  max-width: min(78%, 560px);
+  padding: 11px 16px;
+  border-radius: 20px;
+  background: var(--bg-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bubble[data-mine='true'] {
+  align-self: flex-end;
+  background: var(--text);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+}
+
+.bubble[data-mine='false'] {
+  border-bottom-left-radius: 6px;
+}
+
+.bubble-time {
+  font-size: 0.75rem;
+  color: var(--dim);
+  margin: 2px 6px 8px;
+}
+
+.bubble-time[data-mine='true'] {
+  align-self: flex-end;
+}
+
+.composer {
+  position: sticky;
+  bottom: calc(var(--tab) + 18px);
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 8px;
+  border-radius: 26px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.composer textarea {
+  flex: 1;
+  border: 0;
+  resize: none;
+  font: inherit;
+  padding: 10px 12px;
+  outline: none;
+  max-height: 160px;
+  background: transparent;
+}
+
+@media (min-width: 921px) {
+  .composer {
+    bottom: 18px;
+  }
+}
+
+/* Trips. */
+.trip-card {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 18px;
+  padding: 22px 0 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.trip-card h2 {
+  font-size: 1.55rem;
+  font-weight: 600;
+  margin: 8px 0 2px;
+  line-height: 1.15;
+}
+
+.trip-card .when {
+  color: var(--ink-2);
+  margin-top: 10px;
+}
+
+.trip-card .where {
+  color: var(--muted);
+}
+
+.trip-card .thumb {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.trip-card .actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .trip-card {
+    grid-template-columns: 1fr 120px;
+  }
+
+  .trip-card h2 {
+    font-size: 1.3rem;
+  }
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--text);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.status-pill[data-tone='quiet'] {
+  background: var(--bg-2);
+  color: var(--ink-2);
+}
+
+.status-pill[data-tone='gold'] {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+
+.status-pill[data-tone='bad'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.row-link {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-top: 22px;
+  font-size: 1.1rem;
+}
+
+.row-link:hover {
+  border-color: var(--text);
+}
+
+.row-link > :last-child {
+  margin-left: auto;
+}
+
+/* More menu. */
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 0 26px;
+}
+
+.profile-head .avatar-wrap {
+  width: 72px;
+  height: 72px;
+}
+
+.menu {
+  list-style: none;
+  margin: 0 0 26px;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.menu-title {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+  margin: 10px 0 6px;
+}
+
+.menu a,
+.menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 17px 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 1.05rem;
+  text-align: left;
+}
+
+.menu a > :last-child,
+.menu button > :last-child {
+  margin-left: auto;
+  color: var(--dim);
+}
+
+/* Sign in. */
+.auth {
+  max-width: 440px;
+  margin: 6vh auto 0;
+}
+
+.auth .greeting {
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  margin-bottom: 10px;
+}
+
+/* Car page gallery: host photos, large first. */
+.gallery {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  border-radius: 24px;
+  overflow: hidden;
+  aspect-ratio: 16 / 7;
+}
+
+.gallery > :first-child {
+  grid-row: 1 / -1;
+}
+
+.gallery .car-img {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 760px) {
+  .gallery {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    aspect-ratio: 4 / 3;
+    margin-inline: calc(var(--gutter) * -1);
+    border-radius: 0;
+    scrollbar-width: none;
+  }
+
+  .gallery > * {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+}
+
+.host-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.host-card .avatar-wrap {
+  width: 64px;
+  height: 64px;
+}
+
+.coachline {
+  width: 28px;
+  height: 1.5px;
+  background: var(--gold);
+  border: 0;
+  margin: 14px 0;
+}
+
+.center {
+  text-align: center;
+}
+
+.fade-in {
+  animation: rise 0.5s var(--ease) both;
+}
+
+@media (max-width: 920px) {
+  /* Phones get the app layout: no top bar, the floating tabs do the work. */
+  .topbar {
+    display: none;
+  }
+}
+
+.topnav .count {
+  color: var(--gold-ink);
+  font-weight: 700;
+}
+
+.car-media {
+  position: relative;
 }

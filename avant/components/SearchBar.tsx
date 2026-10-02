@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { cities } from '@/lib/data'
+import { cities } from '@/lib/places'
 import { addDays, todayIso, weekendFrom } from '@/lib/dates'
 import { searchHref } from '@/lib/search'
 import type { SearchState } from '@/lib/types'

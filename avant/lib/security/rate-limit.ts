@@ -28,6 +28,10 @@ export const LIMITS = {
   conciergeSession: { capacity: 60, refillPerSec: 60 / 86_400 },
   verify: { capacity: 5, refillPerSec: 5 / 3600 },
   checkout: { capacity: 10, refillPerSec: 10 / 600 },
+  /** Sign-in and sign-up attempts: 10 per 10 minutes per address. */
+  auth: { capacity: 10, refillPerSec: 10 / 600 },
+  message: { capacity: 30, refillPerSec: 30 / 60 },
+  upload: { capacity: 40, refillPerSec: 40 / 600 },
   default: { capacity: 60, refillPerSec: 1 },
 } satisfies Record<string, Limit>
 

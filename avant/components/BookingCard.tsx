@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { DEFAULT_COVERAGE, getPlan, VALUE_TIERS } from '@/lib/catalog'
-import { getCity } from '@/lib/data'
+import { getCity } from '@/lib/places'
 import { addDays, billableDays, formatDate, isIsoDate, parseIso, rangesOverlap, todayIso } from '@/lib/dates'
 import { checkEligibility, youngDriverFee } from '@/lib/eligibility'
 import { money, moneyExact } from '@/lib/format'

@@ -109,7 +109,7 @@ export function VerifyFlow() {
           <p className="small dim">Opens our verification partner (Stripe Identity). You&apos;ll come straight back here.</p>
         </div>
       ) : (
-        <form onSubmit={demo} className="panel stack" aria-labelledby="demo-h">
+        <form method="post" onSubmit={demo} className="panel stack" aria-labelledby="demo-h">
           <div>
             <p className="eyebrow">Preview verification</p>
             <h2 id="demo-h" style={{ fontSize: '1.2rem', marginTop: 6 }}>

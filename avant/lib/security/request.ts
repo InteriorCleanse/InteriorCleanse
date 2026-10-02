@@ -51,7 +51,12 @@ export async function guard(
  * cap, so a missing or lying content-length cannot make us buffer more.
  */
 export async function readCapped(req: NextRequest, maxBytes = MAX_BODY_BYTES): Promise<string> {
-  if (!req.body) return ''
+  return new TextDecoder('utf-8', { fatal: true }).decode(await readBytes(req, maxBytes))
+}
+
+/** The raw body, counted while streaming and refused past the cap. */
+export async function readBytes(req: NextRequest, maxBytes: number): Promise<Uint8Array> {
+  if (!req.body) return new Uint8Array()
   const reader = req.body.getReader()
   const chunks: Uint8Array[] = []
   let total = 0
@@ -71,7 +76,7 @@ export async function readCapped(req: NextRequest, maxBytes = MAX_BODY_BYTES): P
     all.set(c, at)
     at += c.byteLength
   }
-  return new TextDecoder('utf-8', { fatal: true }).decode(all)
+  return all
 }
 
 /** Reads a JSON body with a hard size cap even when content-length lies. */

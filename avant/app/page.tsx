@@ -1,18 +1,15 @@
-import Link from 'next/link'
-import { CarArt } from '@/components/CarArt'
-import { CarCard } from '@/components/CarCard'
+import { Discover } from '@/components/Discover'
 import { Icon } from '@/components/Icons'
 import { PriceBreakdown } from '@/components/PriceBreakdown'
-import { SearchBar } from '@/components/SearchBar'
 import { ButtonLink } from '@/components/ui'
-import { BODY_TYPES, COVERAGE_PLANS, DEFAULT_COVERAGE, getPlan, HOST_SHARE_PCT, TRIP_FEE_PCT, YOUNG_DRIVER_FEES } from '@/lib/catalog'
-import { cars, cities, countByBody, featuredCars, SAMPLE_FLEET } from '@/lib/data'
+import { COVERAGE_PLANS, DEFAULT_COVERAGE, getPlan, HOST_SHARE_PCT, TRIP_FEE_PCT, YOUNG_DRIVER_FEES } from '@/lib/catalog'
 import { money } from '@/lib/format'
 import { quote } from '@/lib/pricing'
-import { searchHref } from '@/lib/search'
+import { listCars } from '@/lib/server/catalog'
 
-// The hero shows the product's promise rather than a photo: what a trip
-// really costs, broken down the way checkout shows it. Clearly an example.
+export const dynamic = 'force-dynamic'
+
+// What a trip really costs, broken down the way checkout shows it.
 const EXAMPLE = { rate: 8000, days: 3 }
 const exampleQuote = quote({
   dailyRateCents: EXAMPLE.rate,
@@ -27,80 +24,15 @@ const exampleQuote = quote({
   youngDriverFeeCents: 0,
 })
 
-// Neutral paint for the vehicle-type drawings, so the row reads as one set.
-const TYPE_PAINT = '#9aa0aa'
-
-export default function Home() {
-  const counts = countByBody()
+export default async function Home() {
+  const cars = await listCars()
   const young = YOUNG_DRIVER_FEES[1]
-  const perCity = (slug: string) => cars.filter((c) => c.city === slug).length
 
   return (
     <>
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-frame">
-          <div className="hero-inner">
-            <h1 id="hero-title" className="display">
-              Arrive differently.
-            </h1>
-            <p className="lead">
-              Book the exact car you want from a local host. The whole price before you tap, coverage in one number, your licence checked once.
-            </p>
-          </div>
-          <figure className="hero-quote" aria-label="Example of an all-in price">
-            <figcaption>
-              <span className="badge badge-lime">All-in</span>
-              <span className="small muted">Example: {EXAMPLE.days} days at {money(EXAMPLE.rate)}/day, before tax</span>
-            </figcaption>
-            <PriceBreakdown quote={{ ...exampleQuote, lines: exampleQuote.lines.filter((l) => l.cents !== 0) }} notes={false} />
-          </figure>
-        </div>
-        <div className="hero-search">
-          <SearchBar presets />
-        </div>
-      </section>
+      <Discover cars={cars} />
 
       <div className="wrap">
-        <section className="section" aria-labelledby="types">
-          <div className="section-head">
-            <h2 id="types">Browse by vehicle type</h2>
-          </div>
-          <div className="types">
-            {BODY_TYPES.map((b) => (
-              <Link key={b.id} href={searchHref({ bodies: [b.id] })} className="type-tile">
-                <span className="car-art">
-                  <CarArt body={b.id} color={TYPE_PAINT} />
-                </span>
-                <strong>{b.label}</strong>
-                <span>{counts[b.id] ?? 0} cars</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {cars.length ? (
-        <section className="section" aria-labelledby="top">
-          <div className="section-head">
-            <div>
-              <h2 id="top">{SAMPLE_FLEET ? 'Sample listings' : 'Top rated in every city'}</h2>
-              <p style={{ marginTop: 6 }}>
-                {SAMPLE_FLEET
-                  ? 'Demonstration cars that show how listings work. Real listings, with their hosts’ own photos, replace them at launch.'
-                  : 'Prices include the trip fee and standard coverage, before tax.'}
-              </p>
-            </div>
-            <ButtonLink href={searchHref({ sort: 'rating' })} variant="secondary">
-              See all cars
-            </ButtonLink>
-          </div>
-          <div className="cargrid">
-            {featuredCars().map((c, i) => (
-              <CarCard key={c.id} car={c} priority={i < 4} />
-            ))}
-          </div>
-        </section>
-        ) : null}
-
         <section className="section" aria-labelledby="how">
           <div className="section-head">
             <h2 id="how">Booking takes three steps</h2>
@@ -123,7 +55,19 @@ export default function Home() {
 
         <section className="section" aria-labelledby="why">
           <div className="section-head">
-            <h2 id="why">Why people switch to AVANT</h2>
+            <div>
+              <p className="eyebrow">The AVANT way</p>
+              <h2 id="why" style={{ marginTop: 8 }}>Thoughtful at every step</h2>
+            </div>
+            <figure className="hero-quote" aria-label="Example of an all-in price" style={{ maxWidth: 360, transform: 'none' }}>
+              <figcaption>
+                <span className="badge badge-lime">All-in</span>
+                <span className="small muted">
+                  Example: {EXAMPLE.days} days at {money(EXAMPLE.rate)}/day
+                </span>
+              </figcaption>
+              <PriceBreakdown quote={{ ...exampleQuote, lines: exampleQuote.lines.filter((l) => l.cents !== 0) }} notes={false} />
+            </figure>
           </div>
           <div className="promises">
             <div className="promise">
@@ -179,24 +123,6 @@ export default function Home() {
                 <p className="display">{money(p.maxOutOfPocketCents)}</p>
                 <p className="muted">{p.oneLiner}</p>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="section" aria-labelledby="cities">
-          <div className="section-head">
-            <h2 id="cities">Browse by city</h2>
-          </div>
-          <div className="cities">
-            {cities.map((c) => (
-              <Link key={c.slug} href={searchHref({ city: c.slug })} className="city-tile">
-                <strong>{c.name}</strong>
-                <span>
-                  {c.state}
-                  {perCity(c.slug) ? `, ${perCity(c.slug)} cars` : ''}
-                </span>
-                <Icon name="chevron-right" size={18} />
-              </Link>
             ))}
           </div>
         </section>

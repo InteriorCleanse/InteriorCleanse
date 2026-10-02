@@ -1,40 +1,46 @@
 'use client'
 
 /**
- * What AVANT keeps in this browser: saved cars, recently viewed, trips and
- * the all-in price preference. Nothing personal. Read after mount so the
- * server HTML and first paint agree; synced across tabs.
+ * What AVANT keeps in this browser: favorites (mirrored to the account when
+ * signed in), recently viewed cars, listing drafts, trip check-in ticks and
+ * the all-in price preference. Trips themselves live on the server. Read
+ * after mount so the server HTML and first paint agree; synced across tabs.
  */
 
 import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react'
-import { CHECK_IN_ITEMS } from './catalog'
 import type { Listing } from './listing'
-import type { Trip } from './types'
 
-const KEY = 'avant:v1'
+const KEY = 'avant:v2'
 
 export interface LocalState {
   hydrated: boolean
+  /** Listing slugs. */
   saved: string[]
+  /** Listing slugs, most recent first. */
   recent: string[]
-  trips: Trip[]
+  /** Check-in items ticked, by trip id. */
+  checks: Record<string, string[]>
   listings: Listing[]
   allIn: boolean
 }
 
-const EMPTY: LocalState = { hydrated: false, saved: [], recent: [], trips: [], listings: [], allIn: true }
+const EMPTY: LocalState = { hydrated: false, saved: [], recent: [], checks: {}, listings: [], allIn: true }
 let state = EMPTY
 const subs = new Set<() => void>()
 const emit = () => subs.forEach((f) => f())
 
+const strings = (x: unknown) => (Array.isArray(x) ? x.filter((v): v is string => typeof v === 'string') : [])
+
 function load(): LocalState {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<LocalState>
+    const checks: Record<string, string[]> = {}
+    for (const [k, v] of Object.entries(raw.checks ?? {})) checks[k] = strings(v)
     return {
       hydrated: true,
-      saved: Array.isArray(raw.saved) ? raw.saved.filter((x) => typeof x === 'string') : [],
-      recent: Array.isArray(raw.recent) ? raw.recent.filter((x) => typeof x === 'string') : [],
-      trips: Array.isArray(raw.trips) ? raw.trips : [],
+      saved: strings(raw.saved),
+      recent: strings(raw.recent),
+      checks,
       listings: Array.isArray(raw.listings) ? raw.listings : [],
       allIn: raw.allIn !== false,
     }
@@ -83,42 +89,30 @@ export function useLocal(): LocalState {
   )
 }
 
-const strip = (s: LocalState) => ({ saved: s.saved, recent: s.recent, trips: s.trips, listings: s.listings, allIn: s.allIn })
+const strip = (s: LocalState) => ({ saved: s.saved, recent: s.recent, checks: s.checks, listings: s.listings, allIn: s.allIn })
 
 export const actions = {
-  toggleSaved(id: string) {
-    const s = strip(state)
-    write({ ...s, saved: s.saved.includes(id) ? s.saved.filter((x) => x !== id) : [id, ...s.saved] })
+  setSaved(slugs: string[]) {
+    write({ ...strip(state), saved: [...new Set(slugs)] })
   },
-  viewed(id: string) {
+  toggleSaved(slug: string): boolean {
     const s = strip(state)
-    if (s.recent[0] === id) return
-    write({ ...s, recent: [id, ...s.recent.filter((x) => x !== id)].slice(0, 8) })
+    const on = !s.saved.includes(slug)
+    write({ ...s, saved: on ? [slug, ...s.saved] : s.saved.filter((x) => x !== slug) })
+    return on
+  },
+  viewed(slug: string) {
+    const s = strip(state)
+    if (s.recent[0] === slug) return
+    write({ ...s, recent: [slug, ...s.recent.filter((x) => x !== slug)].slice(0, 12) })
   },
   setAllIn(allIn: boolean) {
     write({ ...strip(state), allIn })
   },
-  addTrip(trip: Omit<Trip, 'checkIn' | 'status' | 'bookedAt'>): Trip {
-    const full: Trip = {
-      ...trip,
-      status: 'booked',
-      bookedAt: new Date().toISOString(),
-      checkIn: CHECK_IN_ITEMS.map((c) => ({ ...c, done: false })),
-    }
-    const s = strip(state)
-    if (!s.trips.some((t) => t.id === full.id)) write({ ...s, trips: [full, ...s.trips] })
-    return full
-  },
-  cancelTrip(id: string) {
-    const s = strip(state)
-    write({ ...s, trips: s.trips.map((t) => (t.id === id ? { ...t, status: 'cancelled' } : t)) })
-  },
   toggleCheck(tripId: string, itemId: string) {
     const s = strip(state)
-    write({
-      ...s,
-      trips: s.trips.map((t) => (t.id === tripId ? { ...t, checkIn: t.checkIn.map((c) => (c.id === itemId ? { ...c, done: !c.done } : c)) } : t)),
-    })
+    const done = s.checks[tripId] ?? []
+    write({ ...s, checks: { ...s.checks, [tripId]: done.includes(itemId) ? done.filter((x) => x !== itemId) : [...done, itemId] } })
   },
   saveListing(listing: Listing) {
     const s = strip(state)
@@ -130,7 +124,7 @@ export const actions = {
     write({ ...s, listings: s.listings.filter((l) => l.id !== id) })
   },
   clear() {
-    write({ saved: [], recent: [], trips: [], listings: [], allIn: true })
+    write({ saved: [], recent: [], checks: {}, listings: [], allIn: true })
   },
   export(): string {
     return JSON.stringify(strip(state), null, 2)

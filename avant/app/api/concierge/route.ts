@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { askConcierge } from '@/lib/ai/concierge'
 import { offlineConcierge } from '@/lib/ai/offline'
-import { getCar } from '@/lib/data'
+import { listCars } from '@/lib/server/catalog'
 import { sessionKey } from '@/lib/security/keys'
 import { LIMITS, take } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
@@ -64,20 +64,21 @@ export async function POST(req: NextRequest) {
   const history = await trustedHistory(body.messages, sid, sessionKey())
   if (!history.length) return problem(400, 'Invalid conversation.')
   const last = history[history.length - 1].content
-  let reply = process.env.ANTHROPIC_API_KEY && underDailyCap() ? null : offlineConcierge(last)
+  const inventory = await listCars()
+  let reply = process.env.ANTHROPIC_API_KEY && underDailyCap() ? null : offlineConcierge(last, inventory)
 
   if (!reply) {
     try {
-      reply = await askConcierge(history)
+      reply = await askConcierge(history, inventory)
     } catch (err) {
       // Never leak provider errors; degrade to the rules-based answer.
       if (err instanceof Anthropic.RateLimitError) console.warn('concierge: rate limited upstream')
       else if (err instanceof Anthropic.APIError) console.error(`concierge: API ${err.status}`)
       else console.error('concierge: unexpected error')
-      reply = offlineConcierge(last)
+      reply = offlineConcierge(last, inventory)
     }
   }
 
-  const cars = reply.carSlugs.map(getCar).filter((c): c is NonNullable<typeof c> => Boolean(c)).map(toCardData)
+  const cars = reply.carSlugs.map((s) => inventory.find((c) => c.slug === s)).filter((c): c is NonNullable<typeof c> => Boolean(c)).map(toCardData)
   return NextResponse.json({ text: reply.text, cars, mode: reply.mode, sig: await signTurn(sid, reply.text.trim(), sessionKey()) })
 }

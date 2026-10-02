@@ -1,11 +1,13 @@
 # AVANT
 
-Next.js 15 App Router app for a peer-to-peer car sharing marketplace. Light,
-photo-led marketplace design: white and mist grey, asphalt ink `#1c1f24` for
-text and primary actions, lime `#d4ff3a` only as a fill behind ink (the
-all-in price tag, the active map pin, the brand mark). Archivo at two widths:
-expanded for headlines, normal for reading. Standalone: its own package.json,
-lockfile, PostCSS config and CI.
+Next.js 15 App Router app for a peer-to-peer car sharing marketplace, with
+a Postgres backend (`lib/server/`): accounts, host listings with their own
+photos, bookings, message threads, notifications and favorites. Quiet-luxury
+brand (see `docs/BRAND.md`): white and porcelain `#f5f4f2`, obsidian
+`#121316` for text and primary actions, champagne `#b8956a` only for detail
+(bronze `#8a6a43` when it must be text), Urbanist throughout, pill controls,
+hairline dividers, a floating tab bar on phones. Standalone: its own
+package.json, lockfile, PostCSS config and CI.
 
 This is a real marketplace. The only photos of a car are the ones its host
 took. Sample listings (`content/fleet.json`, hidden with
@@ -14,8 +16,8 @@ took. Sample listings (`content/fleet.json`, hidden with
 
 Design skills in `.claude/skills`: `frontend-design` (Anthropic),
 `web-design-guidelines`, `react-best-practices`, `composition-patterns`
-(Vercel), `webapp-testing` (Anthropic). Never lime text on white; never a
-single accented word in a headline.
+(Vercel), `webapp-testing` (Anthropic). Never champagne text on white;
+never a single accented word in a headline.
 
 ## Rules
 
@@ -31,6 +33,11 @@ single accented word in a headline.
 - **Coverage numbers are placeholders** until an insurer signs them; leave
   `COVERAGE_TERMS_FINAL` false until then.
 - **Follow the security baseline** in `.claude/skills/open-compute/SKILL.md`.
+- **Every marketplace query checks the user is a party to the row.** Trips,
+  threads, messages and listings return 404 to anyone else. Bookings keep
+  the per-car advisory lock and overlap check in `lib/server/bookings.ts`.
+- **Schema changes are new migrations** in `lib/server/schema.ts`; never edit
+  a shipped one.
 - Pure modules (`lib/pricing.ts`, `lib/eligibility.ts`, `lib/security/*`,
   `lib/verification/*`) import siblings with `.ts` extensions so Node's test
   runner can load them directly.

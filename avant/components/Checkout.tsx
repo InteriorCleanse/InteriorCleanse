@@ -4,19 +4,19 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { DEFAULT_COVERAGE, EXTRAS, getExtra, getPlan, VALUE_TIERS } from '@/lib/catalog'
-import { carTitle, getCity } from '@/lib/data'
+import { carTitle, getCity } from '@/lib/places'
 import { PICKUP_TIMES, addDays, billableDays, formatDate, formatTime, isIsoDate, rangesOverlap, todayIso } from '@/lib/dates'
 import { checkEligibility, youngDriverFee } from '@/lib/eligibility'
-import { money, moneyExact, shortId } from '@/lib/format'
+import { money, moneyExact } from '@/lib/format'
 import { quote as makeQuote } from '@/lib/pricing'
 import { blockedRanges } from '@/lib/search'
-import { actions } from '@/lib/store'
 import type { Car, CoverageId, ExtraId, Quote } from '@/lib/types'
 import { CarImage } from './CarImage'
 import { CoveragePicker } from './CoveragePicker'
 import { useDriver } from './DriverProvider'
 import { Icon } from './Icons'
 import { PriceBreakdown } from './PriceBreakdown'
+import { useSession } from './Session'
 import { useToast } from './Toast'
 import { Breadcrumbs } from './ui'
 
@@ -25,6 +25,7 @@ export function Checkout({ car }: { car: Car }) {
   const router = useRouter()
   const toast = useToast()
   const { facts, loaded, method, modes } = useDriver()
+  const session = useSession()
   const iso = (v: string | null) => (v && isIsoDate(v) ? v : '')
   const [today, setToday] = useState<string | null>(null)
   const [start, setStart] = useState(iso(params.get('start')))
@@ -61,8 +62,9 @@ export function Checkout({ car }: { car: Car }) {
     youngDriverFeeCents: youngDriverFee(facts.age, Math.max(1, days), facts.cleanRecord),
   })
 
-  const canPay = datesOk && Boolean(elig?.ok) && agree && !busy && (!delivery || address.trim().length >= 6)
-  const verifyHref = `/verify?next=${encodeURIComponent(`/checkout/${car.slug}?start=${start}&end=${end}`)}`
+  const canPay = datesOk && Boolean(elig?.ok) && Boolean(session.user) && agree && !busy && (!delivery || address.trim().length >= 6)
+  const here = `/checkout/${car.slug}?start=${start}&end=${end}`
+  const verifyHref = session.user ? `/verify?next=${encodeURIComponent(here)}` : `/signin?next=${encodeURIComponent(here)}`
 
   const pay = async () => {
     setError(null)
@@ -79,22 +81,8 @@ export function Checkout({ car }: { car: Car }) {
         window.location.assign(json.url)
         return
       }
-      const trip = actions.addTrip({
-        id: shortId('trip'),
-        carId: car.id,
-        start,
-        end,
-        startTime,
-        endTime,
-        plan: coverage,
-        delivery: delivery && car.delivery.offered,
-        deliveryAddress: delivery ? address : '',
-        extras,
-        quote: json.quote,
-        paid: 'demo',
-      })
-      toast('You’re booked')
-      router.push(`/trips/${trip.id}?new=1`)
+      toast(json.status === 'requested' ? 'Request sent' : 'You’re booked')
+      router.push(`/trips/${json.bookingId}?new=1`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Booking failed.')
       setBusy(false)
@@ -102,7 +90,7 @@ export function Checkout({ car }: { car: Car }) {
   }
 
   const step1 = datesOk
-  const step2 = Boolean(elig?.ok)
+  const step2 = Boolean(elig?.ok) && Boolean(session.user)
 
   return (
     <div className="wrap page">
@@ -164,8 +152,13 @@ export function Checkout({ car }: { car: Car }) {
                 <Icon name={facts.verified ? 'check' : 'id'} size={22} />
               </span>
               <div style={{ flex: 1, minWidth: 200 }}>
-                {!loaded ? (
+                {!loaded || !session.loaded ? (
                   <strong>Checking your Driver Pass…</strong>
+                ) : !session.user ? (
+                  <>
+                    <strong>Sign in to book</strong>
+                    <p className="small muted">One account for your trips, messages with your host and your Driver Pass.</p>
+                  </>
                 ) : facts.verified ? (
                   <>
                     <strong>Driver Pass verified{method === 'demo' ? ' (preview)' : ''}</strong>
@@ -181,9 +174,9 @@ export function Checkout({ car }: { car: Car }) {
                   </>
                 )}
               </div>
-              {!facts.verified && loaded ? (
+              {(!facts.verified || !session.user) && loaded && session.loaded ? (
                 <Link href={verifyHref} className="btn btn-primary btn-md">
-                  Verify now
+                  {session.user ? 'Verify now' : 'Sign in'}
                 </Link>
               ) : null}
             </div>
@@ -259,7 +252,7 @@ export function Checkout({ car }: { car: Car }) {
             {error ? <p className="error-block" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
             <button type="button" className="btn btn-primary btn-lg btn-block" style={{ marginTop: 18 }} disabled={!canPay} onClick={pay}>
               <Icon name="lock" size={17} />
-              {busy ? 'Confirming…' : modes?.payments ? `Pay ${moneyExact(q.totalCents)}` : `Confirm preview booking · ${moneyExact(q.totalCents)}`}
+              {busy ? 'Confirming…' : modes?.payments ? `Pay ${moneyExact(q.totalCents)}` : car.instantBook ? `Confirm preview booking · ${moneyExact(q.totalCents)}` : `Request to book · ${moneyExact(q.totalCents)}`}
             </button>
             <p className="small dim" style={{ marginTop: 10 }}>
               {modes?.payments ? 'Card details are entered on Stripe’s secure page. AVANT never sees your card number.' : 'Preview mode: nothing is charged.'} The price is re-checked on our server before anything is confirmed.

@@ -13,7 +13,7 @@ const MAX_EVENT_BYTES = 256 * 1024
 /**
  * Stripe Identity events. Signature-checked on the raw body; the event is
  * only a hint, and the session is re-read from Stripe before anything is
- * trusted. Needs the vault (the record is addressed by key, not cookie).
+ * trusted. The record is addressed by key (vault or database), not cookie.
  *
  * An event only updates a record that exists and is still waiting on that
  * exact session, so a late or replayed event cannot revive a deleted record

@@ -5,7 +5,8 @@
  */
 
 import { BODY_TYPES } from '../catalog'
-import { cities } from '../data'
+import { cities } from '../places'
+import type { Car } from '../types'
 import { POLICIES, COVERAGE_SUMMARY, type PolicyTopic } from './knowledge'
 import { runTool } from './tools'
 import type { ConciergeReply } from './concierge'
@@ -25,7 +26,7 @@ const TOPIC_WORDS: [PolicyTopic, RegExp][] = [
   ['fees', /\b(fee|price|cost|hidden|total)\b/],
 ]
 
-export function offlineConcierge(message: string): ConciergeReply {
+export function offlineConcierge(message: string, inventory: Car[]): ConciergeReply {
   const m = message.toLowerCase()
 
   if (/\b(insurance|coverage|protect)/.test(m)) {
@@ -50,7 +51,7 @@ export function offlineConcierge(message: string): ConciergeReply {
       body: body?.id,
       fuel: electric ? 'electric' : undefined,
       max_price_per_day: price ? Number(price[1]) : undefined,
-    })
+    }, inventory)
     const parsed = JSON.parse(run.output) as { count: number; cars: { title: string; all_in_daily: number; city: string }[] }
     if (!parsed.count) {
       return { text: 'Nothing matches that exactly. Try another city or a higher budget, or open Search to use every filter.', carSlugs: [], mode: 'offline' }

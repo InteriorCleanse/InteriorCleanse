@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * List your car in six short steps. Everything is checked against the same
+ * List your car in seven short steps. Everything is checked against the same
  * rules the tests cover (lib/listing.ts), the price suggestion comes from
  * live local medians, and a draft is saved on this device at every step.
  */
@@ -9,14 +9,29 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { BODY_TYPES, FUELS, HOST_SHARE_PCT, TRANSMISSIONS, tierForRate, VALUE_TIERS } from '@/lib/catalog'
-import { cities, medianRateCents } from '@/lib/data'
+import { BODY_TYPES, FEATURE_IDS, FEATURES, FUELS, HOST_SHARE_PCT, TRANSMISSIONS, tierForRate, VALUE_TIERS } from '@/lib/catalog'
+import { medianRateCents } from '@/lib/data'
 import { money, shortId } from '@/lib/format'
-import { checkVin, MAX_MILES, MAX_VEHICLE_AGE_YEARS, normaliseVin, problemsFor, validateListing, type Listing, type ListingDraft, type ListingStep } from '@/lib/listing'
+import {
+  checkVin,
+  COLORS,
+  DEFAULT_RULES,
+  MAX_MILES,
+  MAX_VEHICLE_AGE_YEARS,
+  normaliseVin,
+  problemsFor,
+  validateListing,
+  type Listing,
+  type ListingDraft,
+  type ListingProblem,
+  type ListingStep,
+} from '@/lib/listing'
 import { hostMonthlyEstimate } from '@/lib/pricing'
-import { deleteListingPhotos } from '@/lib/listing-photos-db'
+import { deleteListingPhotos, getListingPhoto } from '@/lib/listing-photos-db'
+import { cities } from '@/lib/places'
 import { actions, useLocal } from '@/lib/store'
-import type { BodyType, Fuel, Transmission } from '@/lib/types'
+import type { BodyType, FeatureId, Fuel, Transmission } from '@/lib/types'
+import { useSession } from './Session'
 import { CarImage } from './CarImage'
 import { ListingPhotos, useListingPhotoUrl } from './ListingPhotos'
 import { Icon } from './Icons'
@@ -26,6 +41,7 @@ import { Breadcrumbs } from './ui'
 const STEPS: { id: ListingStep | 'review'; label: string }[] = [
   { id: 'car', label: 'Car' },
   { id: 'photos', label: 'Photos' },
+  { id: 'details', label: 'Details' },
   { id: 'location', label: 'Where' },
   { id: 'price', label: 'Price' },
   { id: 'safety', label: 'Safety' },
@@ -52,9 +68,41 @@ const EMPTY: ListingDraft = {
   noOpenRecalls: false,
   insuredAndRegistered: false,
   photos: [],
+  color: '',
+  description: '',
+  features: [],
+  rules: DEFAULT_RULES,
+  efficiency: 0,
+  monthlyDiscountPct: 20,
+  milesPerDay: 200,
 }
 
-const PREVIEW_TINT = '#d4ff3a'
+const PREVIEW_TINT = '#b8956a'
+
+/** Sends each photo (already re-encoded on this device) and then the listing. */
+async function publish(d: ListingDraft): Promise<{ slug: string } | { problems: ListingProblem[] } | { signIn: true } | { error: string }> {
+  const photoIds: string[] = []
+  for (const p of d.photos) {
+    const blob = await getListingPhoto(p.id)
+    if (!blob) return { problems: [{ step: 'photos', field: 'photos', message: 'A photo is missing from this device. Add it again.' }] }
+    const res = await fetch(`/api/photos?angle=${encodeURIComponent(p.angle)}`, { method: 'POST', headers: { 'content-type': 'image/jpeg' }, body: blob })
+    const json = await res.json().catch(() => ({}))
+    if (res.status === 401) return { signIn: true }
+    if (!res.ok) return { problems: [{ step: 'photos', field: 'photos', message: json.error ?? 'A photo couldn’t be uploaded.' }] }
+    photoIds.push(json.photo.id)
+  }
+  const { photos: _p, ...draft } = d
+  const res = await fetch('/api/listings', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ draft: { ...draft, vin: normaliseVin(d.vin) }, photoIds }),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (res.status === 401) return { signIn: true }
+  if (res.status === 422 && Array.isArray(json.problems)) return { problems: json.problems }
+  if (!res.ok) return { error: json.error ?? 'Couldn’t publish the listing. Try again.' }
+  return { slug: json.slug }
+}
 
 /** "SUVs", "sedans", "vans": keeps acronyms upper case. */
 function pluralType(body: BodyType): string {
@@ -67,6 +115,9 @@ export function ListingWizard() {
   const router = useRouter()
   const toast = useToast()
   const { listings, hydrated } = useLocal()
+  const session = useSession()
+  const [busy, setBusy] = useState(false)
+  const [serverProblem, setServerProblem] = useState<string | null>(null)
   const editId = params.get('id')
   const [id] = useState(() => editId ?? shortId('lst'))
   const [step, setStep] = useState(0)
@@ -108,17 +159,42 @@ export function ListingWizard() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const submit = () => {
+  const submit = async () => {
     setTouched(true)
+    setServerProblem(null)
     if (problems.length) {
       const first = STEPS.findIndex((s) => s.id === problems[0].step)
       setStep(first)
       return
     }
-    persist('submitted')
-    toast('Listing submitted')
-    router.push('/host/listings')
+    persist('draft')
+    if (!session.user) {
+      router.push(`/signin?next=${encodeURIComponent(`/host/new?id=${id}`)}`)
+      return
+    }
+    setBusy(true)
+    try {
+      const out = await publish(d)
+      if ('signIn' in out) router.push(`/signin?next=${encodeURIComponent(`/host/new?id=${id}`)}`)
+      else if ('problems' in out) {
+        setServerProblem(out.problems[0]?.message ?? 'Check each step.')
+        const first = STEPS.findIndex((s) => s.id === out.problems[0]?.step)
+        if (first >= 0) setStep(first)
+      } else if ('error' in out) setServerProblem(out.error)
+      else {
+        actions.deleteListing(id)
+        void deleteListingPhotos(id)
+        toast('Your car is live')
+        router.push(`/cars/${out.slug}`)
+      }
+    } catch {
+      setServerProblem('Connection lost. Your draft is saved; try again.')
+    } finally {
+      setBusy(false)
+    }
   }
+
+  const toggleFeature = (f: FeatureId) => set('features', d.features.includes(f) ? d.features.filter((x) => x !== f) : [...d.features, f])
 
   if (!hydrated) return <div className="skeleton" />
 
@@ -229,6 +305,23 @@ export function ListingWizard() {
                   <input className="input" inputMode="numeric" value={d.seats || ''} onChange={(e) => set('seats', Number(e.target.value.replace(/\D/g, '').slice(0, 2)))} aria-invalid={Boolean(err('seats'))} />
                   {err('seats') ? <span className="error">{err('seats')}</span> : null}
                 </label>
+                <label className="field">
+                  <span className="label">Colour</span>
+                  <select className="select" value={d.color} onChange={(e) => set('color', e.target.value)} aria-invalid={Boolean(err('color'))}>
+                    <option value="">Choose…</option>
+                    {COLORS.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  {err('color') ? <span className="error">{err('color')}</span> : null}
+                </label>
+                <label className="field">
+                  <span className="label">{d.fuel === 'electric' ? 'Range (miles)' : 'Combined mpg'}</span>
+                  <input className="input" inputMode="numeric" value={d.efficiency || ''} onChange={(e) => set('efficiency', Number(e.target.value.replace(/\D/g, '').slice(0, 3)))} aria-invalid={Boolean(err('efficiency'))} />
+                  {err('efficiency') ? <span className="error">{err('efficiency')}</span> : <span className="hint">{d.fuel === 'electric' ? 'On a full charge, as rated.' : 'From the window sticker or fueleconomy.gov.'}</span>}
+                </label>
               </div>
             </section>
           ) : null}
@@ -247,6 +340,58 @@ export function ListingWizard() {
                 </p>
               ) : null}
               <p className="small dim">No stock photos, renders or pictures from the internet. Listings that use them are removed.</p>
+            </section>
+          ) : null}
+
+          {current === 'details' ? (
+            <section className="panel stack" aria-labelledby="h-details">
+              <h2 id="h-details" style={{ fontSize: '1.3rem' }}>Introduce your car</h2>
+              <label className="field">
+                <span className="label">Description</span>
+                <textarea
+                  className="textarea"
+                  rows={6}
+                  value={d.description}
+                  onChange={(e) => set('description', e.target.value.slice(0, 1500))}
+                  placeholder="What it's like to drive, how you look after it, what it's good for."
+                  aria-invalid={Boolean(err('description'))}
+                />
+                {err('description') ? <span className="error">{err('description')}</span> : <span className="hint">Write it the way you&apos;d tell a friend. {d.description.length}/1,500</span>}
+              </label>
+              <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+                <legend className="label">Features</legend>
+                <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  {FEATURE_IDS.map((f) => (
+                    <button key={f} type="button" className="chip" aria-pressed={d.features.includes(f)} onClick={() => toggleFeature(f)}>
+                      {d.features.includes(f) ? <Icon name="check" size={13} /> : null} {FEATURES[f]}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+                <legend className="label">House rules</legend>
+                <div className="stack" style={{ gap: 8 }}>
+                  {d.rules.map((r, i) => (
+                    <div key={i} className="row" style={{ gap: 8 }}>
+                      <input
+                        className="input"
+                        value={r}
+                        aria-label={`Rule ${i + 1}`}
+                        onChange={(e) => set('rules', d.rules.map((x, j) => (j === i ? e.target.value.slice(0, 140) : x)))}
+                      />
+                      <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove rule ${i + 1}`} onClick={() => set('rules', d.rules.filter((_, j) => j !== i))}>
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  {d.rules.length < 8 ? (
+                    <button type="button" className="link" style={{ justifySelf: 'start' }} onClick={() => set('rules', [...d.rules, ''])}>
+                      Add a rule
+                    </button>
+                  ) : null}
+                </div>
+                {err('rules') ? <span className="error">{err('rules')}</span> : null}
+              </fieldset>
             </section>
           ) : null}
 
@@ -316,6 +461,16 @@ export function ListingWizard() {
                   <input className="input" inputMode="numeric" value={d.weeklyDiscountPct} onChange={(e) => set('weeklyDiscountPct', Number(e.target.value.replace(/\D/g, '').slice(0, 2)))} aria-invalid={Boolean(err('weeklyDiscountPct'))} />
                   {err('weeklyDiscountPct') ? <span className="error">{err('weeklyDiscountPct')}</span> : null}
                 </label>
+                <label className="field">
+                  <span className="label">Monthly discount (%)</span>
+                  <input className="input" inputMode="numeric" value={d.monthlyDiscountPct} onChange={(e) => set('monthlyDiscountPct', Number(e.target.value.replace(/\D/g, '').slice(0, 2)))} aria-invalid={Boolean(err('monthlyDiscountPct'))} />
+                  {err('monthlyDiscountPct') ? <span className="error">{err('monthlyDiscountPct')}</span> : <span className="hint">For trips of 30 days or more. Monthly guests are the steadiest income.</span>}
+                </label>
+                <label className="field">
+                  <span className="label">Miles included per day</span>
+                  <input className="input" inputMode="numeric" value={d.milesPerDay || ''} onChange={(e) => set('milesPerDay', Number(e.target.value.replace(/\D/g, '').slice(0, 4)))} aria-invalid={Boolean(err('milesPerDay'))} />
+                  {err('milesPerDay') ? <span className="error">{err('milesPerDay')}</span> : null}
+                </label>
               </div>
               <label className="check">
                 <input type="checkbox" checked={d.instantBook} onChange={() => set('instantBook', !d.instantBook)} />
@@ -374,13 +529,17 @@ export function ListingWizard() {
 
           {current === 'review' ? (
             <section className="panel stack" aria-labelledby="h-review">
-              <h2 id="h-review" style={{ fontSize: '1.3rem' }}>Ready to submit</h2>
+              <h2 id="h-review" style={{ fontSize: '1.3rem' }}>Ready to go live</h2>
               <dl className="kv">
                 <div>
                   <dt>Car</dt>
                   <dd>
-                    {d.year} {d.make} {d.model} · {d.seats} seats · {d.miles.toLocaleString('en-US')} mi
+                    {d.year} {d.make} {d.model} · {d.color || 'colour?'} · {d.seats} seats · {d.miles.toLocaleString('en-US')} mi
                   </dd>
+                </div>
+                <div>
+                  <dt>Photos</dt>
+                  <dd>{d.photos.length} of your own</dd>
                 </div>
                 <div>
                   <dt>VIN</dt>
@@ -396,17 +555,24 @@ export function ListingWizard() {
                 <div>
                   <dt>Price</dt>
                   <dd>
-                    {money(d.dailyRateCents)}/day · {d.weeklyDiscountPct}% off weekly · {d.instantBook ? 'Instant book' : 'Request to book'}
+                    {money(d.dailyRateCents)}/day · {d.weeklyDiscountPct}% off weekly · {d.monthlyDiscountPct}% off monthly · {d.milesPerDay} mi/day ·{' '}
+                    {d.instantBook ? 'Instant book' : 'Request to book'}
                   </dd>
                 </div>
               </dl>
               <p className="small muted">
-                Submitted listings go live when hosting opens in your city. We&apos;ll confirm the VIN against registration records and photograph
-                requirements before the first trip.
+                Your listing goes live as soon as you publish, with your photos and an approximate pin; the exact spot is shared only with booked
+                guests. You can pause it any time from Your listings.
+                {session.user ? null : ' You’ll sign in or create an account first; your draft stays on this device.'}
               </p>
               {touched && problems.length ? (
                 <p className="error-block" role="alert">
                   {problems[0].message}
+                </p>
+              ) : null}
+              {serverProblem ? (
+                <p className="error-block" role="alert">
+                  {serverProblem}
                 </p>
               ) : null}
             </section>
@@ -440,8 +606,8 @@ export function ListingWizard() {
                 Save draft
               </button>
               {current === 'review' ? (
-                <button type="button" className="btn btn-primary btn-md" onClick={submit}>
-                  Submit listing <Icon name="check" size={16} />
+                <button type="button" className="btn btn-primary btn-md" onClick={() => void submit()} disabled={busy} aria-busy={busy}>
+                  {busy ? 'Publishing…' : session.user ? 'Publish listing' : 'Sign in to publish'} <Icon name="check" size={16} />
                 </button>
               ) : (
                 <button type="button" className="btn btn-primary btn-md" onClick={next}>
@@ -465,7 +631,7 @@ export function ListingWizard() {
               ) : null}
               {d.fuel === 'electric' ? <span className="badge badge-glass">EV</span> : null}
             </div>
-            <CarImage body={d.body} color={PREVIEW_TINT} photo={cover} alt="" />
+            <CarImage body={d.body} color={COLORS.find((c) => c.name === d.color)?.hex ?? PREVIEW_TINT} photo={cover} alt="" />
             <div className="carcard-body">
               <div className="carcard-title">
                 <h3>{d.make || d.model ? `${d.year} ${d.make} ${d.model}`.trim() : 'Your car'}</h3>
@@ -497,7 +663,109 @@ function ListingCover({ listing }: { listing: Listing }) {
   return <CarImage body={listing.body} color={PREVIEW_TINT} photo={url} alt="" />
 }
 
+interface Live {
+  id: string
+  slug: string
+  status: 'live' | 'paused'
+  title: string
+  city: string
+  neighborhood: string
+  dailyRateCents: number
+  cover: string | null
+  createdAt: string
+  upcomingTrips: number
+}
+
+function LiveListings() {
+  const toast = useToast()
+  const [items, setItems] = useState<Live[] | null>(null)
+  const [confirm, setConfirm] = useState<string | null>(null)
+  const load = () =>
+    fetch('/api/listings/mine')
+      .then((r) => (r.ok ? r.json() : { listings: [] }))
+      .then((j) => setItems(j.listings))
+      .catch(() => setItems([]))
+  useEffect(() => {
+    void load()
+  }, [])
+
+  const setStatus = async (l: Live, status: Live['status']) => {
+    const res = await fetch(`/api/listings/${l.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) })
+    toast(res.ok ? (status === 'live' ? 'Back on AVANT' : 'Paused. Guests can’t find it until you resume.') : 'Couldn’t change that. Try again.')
+    void load()
+  }
+  const remove = async (l: Live) => {
+    const res = await fetch(`/api/listings/${l.id}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    toast(res.ok ? 'Listing deleted' : (json.error ?? 'Couldn’t delete it.'))
+    setConfirm(null)
+    void load()
+  }
+
+  if (!items) return <div className="skeleton" style={{ height: 120 }} />
+  if (!items.length) return null
+  return (
+    <section className="stack" aria-labelledby="h-live" style={{ marginBottom: 32 }}>
+      <h2 id="h-live" style={{ fontSize: '1.2rem' }}>
+        On AVANT
+      </h2>
+      <ul className="stack" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {items.map((l) => (
+          <li key={l.id} className="panel row" style={{ gap: 18, alignItems: 'center' }}>
+            <Link href={`/cars/${l.slug}`} style={{ width: 140, borderRadius: 14, overflow: 'hidden', flex: 'none', aspectRatio: '4 / 3', background: 'var(--surface-2)' }}>
+              {l.cover ? <img src={l.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
+            </Link>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div className="row">
+                <Link href={`/cars/${l.slug}`}>
+                  <strong style={{ fontSize: '1.05rem' }}>{l.title}</strong>
+                </Link>
+                <span className="status-pill" data-tone={l.status === 'live' ? 'gold' : 'quiet'}>
+                  {l.status === 'live' ? 'Live' : 'Paused'}
+                </span>
+              </div>
+              <p className="small muted" style={{ marginTop: 4 }}>
+                {money(l.dailyRateCents)}/day · {l.neighborhood}, {cities.find((c) => c.slug === l.city)?.name ?? l.city} ·{' '}
+                {l.upcomingTrips ? `${l.upcomingTrips} upcoming trip${l.upcomingTrips === 1 ? '' : 's'}` : 'no upcoming trips'}
+              </p>
+            </div>
+            <div className="row">
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => void setStatus(l, l.status === 'live' ? 'paused' : 'live')}>
+                {l.status === 'live' ? 'Pause' : 'Resume'}
+              </button>
+              {confirm === l.id ? (
+                <>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => void remove(l)}>
+                    Delete for good
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirm(null)}>
+                    Keep
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirm(l.id)} aria-label={`Delete ${l.title}`}>
+                  <Icon name="trash" size={15} />
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export function MyListings() {
+  const session = useSession()
+  return (
+    <>
+      {session.user ? <LiveListings /> : null}
+      <Drafts />
+    </>
+  )
+}
+
+function Drafts() {
   const { listings, hydrated } = useLocal()
   const toast = useToast()
   const [confirm, setConfirm] = useState<string | null>(null)
@@ -506,8 +774,8 @@ export function MyListings() {
     return (
       <div className="empty">
         <Icon name="key" size={30} className="dim" />
-        <h2>No listings yet</h2>
-        <p>Six short steps, starting with photos of your car. Drafts save on this device as you go.</p>
+        <h2>No drafts</h2>
+        <p>Seven short steps, starting with photos of your car. Drafts save on this device as you go.</p>
         <Link href="/host/new" className="btn btn-primary btn-md">
           <Icon name="plus" size={16} /> List your car
         </Link>
@@ -526,7 +794,7 @@ export function MyListings() {
               <strong style={{ fontSize: '1.05rem' }}>
                 {l.year} {l.make} {l.model}
               </strong>
-              <span className={l.status === 'submitted' ? 'badge badge-lime' : 'badge'}>{l.status === 'submitted' ? 'Submitted' : 'Draft'}</span>
+              <span className="status-pill" data-tone="quiet">Draft</span>
             </div>
             <p className="small muted" style={{ marginTop: 4 }}>
               {l.dailyRateCents ? `${money(l.dailyRateCents)}/day · ` : ''}

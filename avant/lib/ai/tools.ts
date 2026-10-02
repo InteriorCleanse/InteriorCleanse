@@ -7,12 +7,12 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import { BODY_TYPES, DEFAULT_COVERAGE, FUELS, getPlan } from '../catalog'
-import { carTitle, cars, cities, cityName, getCar, getCity } from '../data'
+import { carTitle, cities, cityName, getCity } from '../places'
 import { billableDays, isIsoDate, todayIso } from '../dates'
 import { youngDriverFee } from '../eligibility'
 import { allInDaily, quote } from '../pricing'
 import { EMPTY_SEARCH, applySearch } from '../search'
-import type { CoverageId } from '../types'
+import type { Car, CoverageId } from '../types'
 import { COVERAGE_SUMMARY, POLICIES, POLICY_TOPICS } from './knowledge'
 
 export const TOOLS: Anthropic.Tool[] = [
@@ -95,14 +95,15 @@ export interface ToolRun {
   isError: boolean
 }
 
-export function runTool(name: string, rawInput: unknown): ToolRun {
+/** `inventory` is every car a guest can see right now (see lib/server/catalog). */
+export function runTool(name: string, rawInput: unknown, inventory: Car[]): ToolRun {
   const plan = getPlan(DEFAULT_COVERAGE)
   try {
     if (name === 'search_cars') {
       const i = SearchInput.parse(rawInput)
       const dated = i.start && i.end && isIsoDate(i.start) && isIsoDate(i.end)
       const results = applySearch(
-        cars,
+        inventory,
         {
           ...EMPTY_SEARCH,
           city: i.city && getCity(i.city) ? i.city : '',
@@ -131,8 +132,9 @@ export function runTool(name: string, rawInput: unknown): ToolRun {
             all_in_daily: Math.round(allInDaily(c.dailyRateCents, plan.pctOfTrip, plan.minPerDayCents) / 100),
             seats: c.seats,
             fuel: c.fuel,
-            rating: c.rating,
+            rating: c.reviews.length ? c.rating : null,
             trips: c.tripCount,
+            sample: Boolean(c.sample),
             instant_book: c.instantBook,
             delivery: c.delivery.offered,
             class: c.valueTier,
@@ -144,7 +146,7 @@ export function runTool(name: string, rawInput: unknown): ToolRun {
     }
     if (name === 'quote_trip') {
       const i = QuoteInput.parse(rawInput)
-      const car = getCar(i.slug)
+      const car = inventory.find((c) => c.slug === i.slug)
       if (!car) return { output: 'No car with that slug. Use search_cars first.', carSlugs: [], isError: true }
       if (!isIsoDate(i.start) || !isIsoDate(i.end) || i.end < i.start) {
         return { output: 'Dates must be YYYY-MM-DD with the return on or after pickup.', carSlugs: [], isError: true }

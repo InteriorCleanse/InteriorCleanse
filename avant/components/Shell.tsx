@@ -3,13 +3,15 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { SAMPLE_FLEET } from '@/lib/data'
-import { LocalProvider, useLocal } from '@/lib/store'
+import { SAMPLE_FLEET } from '@/lib/places'
+import { LocalProvider } from '@/lib/store'
 import { CommandPalette } from './CommandPalette'
 import { ConciergeProvider, useConcierge } from './Concierge'
 import { DriverProvider, useDriver } from './DriverProvider'
 import { Icon } from './Icons'
-import { NAV, TOP_NAV } from './nav'
+import { NAV, TABS } from './nav'
+import { SessionProvider, useSession } from './Session'
+import { Avatar } from './ui'
 import { ToastProvider } from './Toast'
 
 function typing(t: EventTarget | null) {
@@ -17,15 +19,19 @@ function typing(t: EventTarget | null) {
   return Boolean(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable))
 }
 
-function PassBadge() {
-  const { facts, loaded } = useDriver()
-  const verified = loaded && facts.verified
+function AccountBadge() {
+  const { user, loaded } = useSession()
+  if (!loaded) return <span className="pass" aria-hidden="true" style={{ width: 120, visibility: 'hidden' }} />
+  if (!user)
+    return (
+      <Link href="/signin" className="btn btn-primary btn-sm">
+        Sign in
+      </Link>
+    )
   return (
-    <Link href={verified ? '/account' : '/verify'} className="pass" data-verified={verified ? 'true' : undefined} aria-label={verified ? 'Driver Pass: verified' : 'Verify your licence'}>
-      <span className="pass-dot">
-        <Icon name={verified ? 'check' : 'id'} size={14} />
-      </span>
-      <span className="pass-label">{verified ? 'Driver Pass' : 'Verify licence'}</span>
+    <Link href="/more" className="pass" aria-label={`Your account, ${user.firstName}`}>
+      <Avatar name={user.name} photo={user.photo} size={28} />
+      <span className="pass-label">{user.firstName}</span>
     </Link>
   )
 }
@@ -46,8 +52,8 @@ function Frame({ children }: { children: ReactNode }) {
   const [palette, setPalette] = useState(false)
   const chord = useRef<number | null>(null)
   const { setOpen } = useConcierge()
-  const { trips } = useLocal()
-  const upcoming = trips.filter((t) => t.status === 'booked').length
+  const { unread } = useSession()
+  const inbox = unread.messages + unread.notifications
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -67,7 +73,7 @@ function Frame({ children }: { children: ReactNode }) {
         chord.current = null
         const target = NAV.find((n) => n.key === e.key.toLowerCase())
         if (target) router.push(target.href)
-        else if (e.key === 'i') setOpen(true)
+        else if (e.key === 'a') setOpen(true)
         return
       }
       if (e.key === 'g') chord.current = window.setTimeout(() => (chord.current = null), 1000)
@@ -76,7 +82,7 @@ function Frame({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [palette, router, setOpen])
 
-  const active = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
+  const active = (href: string) => (href === '/' ? pathname === '/' || pathname.startsWith('/search') || pathname.startsWith('/cars') : pathname.startsWith(href) || (href === '/favorites' && pathname.startsWith('/saved')))
 
   return (
     <>
@@ -90,12 +96,15 @@ function Frame({ children }: { children: ReactNode }) {
             AVANT<i aria-hidden="true" />
           </Link>
           <nav className="topnav" aria-label="Main">
-            {TOP_NAV.map((n) => (
+            {TABS.slice(0, 4).map((n) => (
               <Link key={n.href} href={n.href} aria-current={active(n.href) ? 'page' : undefined}>
                 {n.label}
-                {n.href === '/trips' && upcoming ? ` (${upcoming})` : ''}
+                {n.href === '/inbox' && inbox ? <span className="count"> {inbox}</span> : null}
               </Link>
             ))}
+            <Link href="/host" aria-current={active('/host') ? 'page' : undefined}>
+              Become a host
+            </Link>
           </nav>
           <div className="top-actions">
             <button type="button" className="palette-btn" onClick={() => setPalette(true)} aria-label="Jump to a page or car">
@@ -103,7 +112,7 @@ function Frame({ children }: { children: ReactNode }) {
               <span>Jump to</span>
               <span className="kbd">⌘K</span>
             </button>
-            <PassBadge />
+            <AccountBadge />
           </div>
         </div>
       </header>
@@ -154,27 +163,17 @@ function Frame({ children }: { children: ReactNode }) {
       </footer>
 
       <nav className="tabbar" aria-label="Main">
-        <Link href="/search" aria-current={active('/search') ? 'page' : undefined}>
-          <Icon name="compass" size={22} />
-          Search
-        </Link>
-        <Link href="/trips" aria-current={active('/trips') ? 'page' : undefined}>
-          <Icon name="trips" size={22} />
-          Trips{upcoming ? ` (${upcoming})` : ''}
-        </Link>
-        <button type="button" className="tab-ai" onClick={() => setOpen(true)} aria-label="Ask the AVANT concierge">
-          <span className="tab-ai-dot">
-            <Icon name="sparkle" size={22} />
-          </span>
-        </button>
-        <Link href="/saved" aria-current={active('/saved') ? 'page' : undefined}>
-          <Icon name="heart" size={22} />
-          Saved
-        </Link>
-        <Link href="/account" aria-current={active('/account') ? 'page' : undefined}>
-          <Icon name="user" size={22} />
-          Account
-        </Link>
+        {TABS.map((n) => (
+          <Link key={n.href} href={n.href} aria-current={active(n.href) ? 'page' : undefined}>
+            <Icon name={n.href === '/favorites' && active(n.href) ? 'heart-filled' : n.icon} size={22} />
+            {n.label}
+            {n.href === '/inbox' && inbox ? (
+              <span className="tab-badge" aria-label={`${inbox} unread`}>
+                {inbox > 9 ? '9+' : inbox}
+              </span>
+            ) : null}
+          </Link>
+        ))}
       </nav>
 
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
@@ -185,6 +184,7 @@ function Frame({ children }: { children: ReactNode }) {
 export function Shell({ children }: { children: ReactNode }) {
   return (
     <LocalProvider>
+      <SessionProvider>
       <DriverProvider>
         <ToastProvider>
           <ConciergeProvider>
@@ -192,6 +192,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </ConciergeProvider>
         </ToastProvider>
       </DriverProvider>
+      </SessionProvider>
     </LocalProvider>
   )
 }

@@ -2,7 +2,7 @@
   "name": "avant",
   "version": "0.1.0",
   "private": true,
-  "description": "AVANT \u2014 peer-to-peer car sharing, ahead of you.",
+  "description": "AVANT — peer-to-peer car sharing, ahead of you.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
+    "@electric-sql/pglite": "^0.5.8",
     "maplibre-gl": "^6.11.2",
     "next": "^15.5.0",
+    "postgres": "^3.4.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^3.24.0"

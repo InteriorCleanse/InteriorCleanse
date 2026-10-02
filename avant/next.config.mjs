@@ -24,12 +24,15 @@ const nextConfig = {
   // This app lives in its own folder; never trace files from a parent project.
   outputFileTracingRoot: import.meta.dirname,
   poweredByHeader: false,
+  // The database drivers load at runtime (PGlite ships WebAssembly).
+  serverExternalPackages: ['@electric-sql/pglite', 'postgres'],
   reactStrictMode: true,
   async headers() {
     return [
       { source: '/:path*', headers: SECURITY_HEADERS },
-      // Nothing under /api is ever cached by a shared cache.
-      { source: '/api/:path*', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+      // Nothing under /api is cached by a shared cache, except photos, whose
+      // ids are random and whose bytes never change.
+      { source: '/api/:path((?!photos/).*)', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
     ]
   },
 }

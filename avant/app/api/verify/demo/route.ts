@@ -6,7 +6,7 @@ import { ageOn } from '@/lib/eligibility'
 import { modes } from '@/lib/modes'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
-import { requireSession } from '@/lib/security/session'
+import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 
 export const runtime = 'nodejs'
 
@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
   if (age < 16 || age > 110) return problem(400, 'That birth date does not look right.')
   if (body.licenceYears > age - 14) return problem(400, 'Years licensed is longer than seems possible for that age.')
 
-  const sid = await requireSession()
+  const user = await currentUser()
+  if (!user) return signInRequired()
+  const sid = driverKey(user)
   const prev = await loadRecord(sid)
   await saveRecord(sid, {
     ...prev,

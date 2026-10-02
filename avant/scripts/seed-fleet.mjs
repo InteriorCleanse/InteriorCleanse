@@ -337,4 +337,6 @@ const fleet = {
 }
 
 writeFileSync(OUT, JSON.stringify(fleet, null, 2) + '\n')
+// Cities alone, so browsers can load them without the sample fleet.
+writeFileSync(OUT.replace('fleet.json', 'cities.json'), JSON.stringify(fleet.cities, null, 2) + '\n')
 console.log(`Wrote ${cars.length} cars, ${HOSTS.length} hosts, ${CITIES.length} cities → ${OUT}`)

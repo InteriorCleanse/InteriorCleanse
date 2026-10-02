@@ -5,13 +5,12 @@
  */
 
 import { z } from 'zod'
-import { EXTRAS, getExtra, getPlan } from './catalog'
-import { getCar, getCity } from './data'
-import { billableDays, isIsoDate, isIsoTime, rangesOverlap, todayIso } from './dates'
-import { checkEligibility, youngDriverFee } from './eligibility'
-import { quote } from './pricing'
-import { blockedRanges } from './search'
-import type { Car, DriverFacts, ExtraId, Quote } from './types'
+import { EXTRAS, getExtra, getPlan } from './catalog.ts'
+import { billableDays, isIsoDate, isIsoTime, rangesOverlap, todayIso } from './dates.ts'
+import { checkEligibility, youngDriverFee } from './eligibility.ts'
+import { quote } from './pricing.ts'
+import { blockedRanges } from './search.ts'
+import type { Car, DriverFacts, ExtraId, Quote } from './types.ts'
 
 export const TripRequest = z
   .object({
@@ -41,11 +40,13 @@ export interface PriceOptions {
    * midnight checkout, availability, a record deleted since).
    */
   paid?: boolean
+  /** Sales tax for the car's city (0.0863 for 8.63%). */
+  taxRate?: number
 }
 
-export function priceTrip(req: TripRequest, driver: DriverFacts, today = todayIso(), opts: PriceOptions = {}): Priced {
-  const car = getCar(req.slug)
-  if (!car) return { ok: false, status: 404, error: 'That car is not available.' }
+/** Prices a trip in `car`, which the caller has already loaded for req.slug. */
+export function priceTrip(car: Car | null | undefined, req: TripRequest, driver: DriverFacts, today = todayIso(), opts: PriceOptions = {}): Priced {
+  if (!car || car.slug !== req.slug) return { ok: false, status: 404, error: 'That car is not available.' }
   if (req.end < req.start) return { ok: false, status: 400, error: 'Return is before pickup.' }
   if (!opts.paid && req.start < today) return { ok: false, status: 400, error: 'Pickup is in the past.' }
   const days = billableDays(req.start, req.startTime, req.end, req.endTime)
@@ -72,7 +73,7 @@ export function priceTrip(req: TripRequest, driver: DriverFacts, today = todayIs
     delivery: req.delivery,
     deliveryFeeCents: car.delivery.feeCents,
     extras: req.extras.map(getExtra),
-    taxRate: getCity(car.city)?.taxRate ?? 0,
+    taxRate: opts.taxRate ?? 0,
     youngDriverFeeCents: youngDriverFee(driver.age, days, driver.cleanRecord),
   })
   return { ok: true, car, quote: q, days }

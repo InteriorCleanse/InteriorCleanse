@@ -11,7 +11,7 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { cities, carTitle } from '@/lib/data'
+import { cities, carTitle } from '@/lib/places'
 import { money } from '@/lib/format'
 import type { Car, City } from '@/lib/types'
 import { CarCard, displayDaily } from './CarCard'

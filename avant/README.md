@@ -15,25 +15,29 @@ session could not create a new repository; move it to its own repo with
 npm install
 cp .env.example .env.local    # everything optional; empty = preview mode
 npm run dev                   # http://localhost:3000
-npm test                      # 30 unit tests
+npm test                      # 61 unit and database tests
 (cd services/vault && npm test)
 ```
 
 Preview mode needs no keys: sample fleet, simulated licence checks, no
-charges, and a banner that says so.
+charges, and a banner that says so. Without `DATABASE_URL` it runs an
+embedded Postgres (PGlite) in `.data/`, so accounts, listings, bookings and
+messages all work locally with nothing to install.
 
 ## What's inside
 
 | Area | Files |
 | --- | --- |
-| Pages | `app/` — home, search with live price map, car, one-page checkout, Driver Pass, coverage, trips, host (estimator, six-step listing wizard with required host photos, my listings), account, trust & safety, concierge |
+| Pages | `app/` — home (greeting, category chips, rails: delivered, monthly, airports, nearby, cities), search with live price map, car (host photo gallery), one-page checkout, favorites, trips (upcoming, hosting, past), inbox (messages and notifications), more, sign in, Driver Pass, coverage, host (estimator, seven-step listing wizard, your listings), profile, trust & safety, concierge |
+| Marketplace backend | `lib/server/` — Postgres schema and migrations, accounts and sessions, photo storage, listings, bookings with per-car locking, message threads, notifications, favorites. Tests in `lib/server/__tests__/` |
+| Brand | `docs/BRAND.md` |
 | Host listing rules | `lib/listing.ts` (VIN check digit, vehicle age and mileage limits, recall attestation) |
 | Pricing, coverage, age rules | `lib/pricing.ts`, `lib/catalog.ts`, `lib/eligibility.ts`, `lib/checkout.ts` |
 | AI concierge | `lib/ai/` (Claude with read-only tools; rules-based fallback) |
 | Security | `lib/security/`, `middleware.ts`, `SECURITY.md` |
 | Licence verification | `lib/verification/`, `app/api/verify/` |
 | Privacy vault | `services/vault/` (Cloudflare Workers or self-hosted open-compute) |
-| Photos | Only the host's own photos of the actual car (six required angles, re-encoded on the device to strip location data). No stock, generated or illustrative car photos anywhere. Sample listings have no photos and are labelled |
+| Photos | Only the host's own photos of the actual car (six required angles, re-encoded on the device to strip location data, checked again on the server, stored in Postgres and served from `/api/photos/<id>`). No stock, generated or illustrative car photos anywhere. Sample listings have no photos and are labelled |
 
 ## Founder docs
 

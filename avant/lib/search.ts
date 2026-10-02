@@ -135,7 +135,7 @@ export function matchesQuery(car: Car, q: string, cityName: string): boolean {
 
 /** The car's blocked-out dates, anchored on the visitor's `today`. */
 export function blockedRanges(car: Car, today: string): DateRange[] {
-  return car.blockedOffsets.map(([from, to]) => ({ start: addDays(today, from), end: addDays(today, to) }))
+  return [...car.blockedOffsets.map(([from, to]) => ({ start: addDays(today, from), end: addDays(today, to) })), ...(car.booked ?? [])]
 }
 
 export function isAvailable(car: Car, start: string, end: string, today: string): boolean {

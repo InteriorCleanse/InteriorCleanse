@@ -58,7 +58,15 @@ export function Breadcrumbs({ items }: { items: { label: string; href?: string }
   )
 }
 
-export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+/** A person: their own photo if they added one, else their initials. */
+export function Avatar({ name, size = 40, photo }: { name: string; size?: number; photo?: string | null }) {
+  if (photo) {
+    return (
+      <span className="avatar-wrap" style={{ width: size, height: size, flex: 'none' }}>
+        <img className="avatar-photo" src={photo} alt="" width={size} height={size} />
+      </span>
+    )
+  }
   let h = 0
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0
   const initials = name
@@ -70,7 +78,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
     <span
       className="avatar"
       aria-hidden="true"
-      style={{ width: size, height: size, fontSize: size * 0.36, background: `hsl(${h % 360} 45% 90%)`, color: `hsl(${h % 360} 45% 28%)` }}
+      style={{ width: size, height: size, fontSize: size * 0.36, background: `hsl(${h % 360} 22% 90%)`, color: `hsl(${h % 360} 30% 26%)` }}
     >
       {initials}
     </span>

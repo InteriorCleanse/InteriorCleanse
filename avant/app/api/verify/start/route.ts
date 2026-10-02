@@ -4,7 +4,8 @@ import { loadRecord, saveRecord } from '@/lib/driver-record'
 import { modes } from '@/lib/modes'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
-import { recordKey, requireSession } from '@/lib/security/session'
+import { recordKey } from '@/lib/security/session'
+import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { createLicenceSession } from '@/lib/verification/stripe-identity'
 
 export const runtime = 'nodejs'
@@ -20,7 +21,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return problem(400, 'Tell us how many years you have been licensed.')
   }
-  const sid = await requireSession()
+  const user = await currentUser()
+  if (!user) return signInRequired()
+  const sid = driverKey(user)
   const m = modes()
   if (!m.identity) return NextResponse.json({ demo: true })
 

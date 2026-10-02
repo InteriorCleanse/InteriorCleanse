@@ -39,6 +39,13 @@ const base: ListingDraft = {
   instantBook: true,
   noOpenRecalls: true,
   insuredAndRegistered: true,
+  color: 'Silver',
+  description: 'A comfortable hybrid I use for weekend trips into the mountains. Clean, quiet and easy to park, with plenty of room for bags and skis.',
+  features: ['awd', 'bluetooth'],
+  rules: ['No smoking.'],
+  efficiency: 40,
+  monthlyDiscountPct: 20,
+  milesPerDay: 200,
   photos: PHOTO_ANGLES.map(
     (a, i): ListingPhoto => ({ id: `p${i}`, angle: a.id, sha256: 'x'.repeat(64), width: 1600, height: 1200, bytes: 200_000, addedAt: '2026-10-01T00:00:00Z' }),
   ),
@@ -74,5 +81,15 @@ describe('listing photos', () => {
     const p = validateListing({ ...base, photos: small }, 2026)
     assert.deepEqual(p.map((x) => x.field), ['photos'])
     assert.match(p[0].message, /Retake one photo/)
+  })
+})
+
+describe('listing details', () => {
+  it('needs a colour, an efficiency figure and a real description', () => {
+    const fields = (d: Partial<ListingDraft>) => validateListing({ ...base, ...d }, 2026).map((p) => p.field)
+    assert.deepEqual(fields({ color: '' }), ['color'])
+    assert.deepEqual(fields({ efficiency: 0 }), ['efficiency'])
+    assert.deepEqual(fields({ description: 'Nice car.' }), ['description'])
+    assert.deepEqual(fields({ milesPerDay: 50, monthlyDiscountPct: 80 }), ['monthlyDiscountPct', 'milesPerDay'])
   })
 })

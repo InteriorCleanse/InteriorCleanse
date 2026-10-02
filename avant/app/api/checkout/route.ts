@@ -1,22 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { priceTrip, TripRequest } from '@/lib/checkout'
-import { carTitle } from '@/lib/data'
+import { carTitle } from '@/lib/places'
 import { loadRecord, toFacts } from '@/lib/driver-record'
-import { seal } from '@/lib/security/crypto'
-import { encryptionKeys } from '@/lib/security/keys'
+import { createBooking, DatesTaken } from '@/lib/server/bookings'
+import { cityNameFor, findCar, taxRateFor } from '@/lib/server/catalog'
+import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
-import { recordKey, requireSession } from '@/lib/security/session'
 
 export const runtime = 'nodejs'
 
-/** Stripe rejects metadata values over 500 characters. */
-const METADATA_MAX = 500
-
 /**
- * Prices the trip on the server and either opens Stripe Checkout or, with no
- * payment keys, returns the confirmed demo trip. `quote` is always the
- * server's, so the client can show exactly what will be charged.
+ * Books a trip. The server loads the car, re-checks dates and eligibility,
+ * re-prices, and takes a hold on the dates inside a transaction. With
+ * payments live, the hold lasts 30 minutes while Stripe Checkout runs.
  */
 export async function POST(req: NextRequest) {
   const blocked = await guard(req, { limit: LIMITS.checkout, limitKey: 'checkout' })
@@ -27,29 +24,28 @@ export async function POST(req: NextRequest) {
   } catch {
     return problem(400, 'Something in the booking is invalid. Refresh and try again.')
   }
-  const sid = await requireSession()
-  const record = await loadRecord(sid)
-  const priced = priceTrip(body, toFacts(record))
+  const user = await currentUser()
+  if (!user) return signInRequired()
+  const record = await loadRecord(driverKey(user))
+  const car = await findCar(body.slug)
+  const priced = priceTrip(car, body, toFacts(record), undefined, { taxRate: car ? taxRateFor(car) : 0 })
   if (!priced.ok) return NextResponse.json({ error: priced.error, reasons: priced.reasons }, { status: priced.status })
+  if (car!.sample && process.env.NEXT_PUBLIC_AVANT_SAMPLE_FLEET === '0') return problem(404, 'That car is not available.')
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return NextResponse.json({ mode: 'demo', quote: priced.quote })
-  }
-  // Real money needs a real licence check, even if demo verification is
-  // switched on for testing.
-  if (record.method !== 'stripe_identity') {
+  const stripe = process.env.STRIPE_SECRET_KEY
+  if (stripe && record.method !== 'stripe_identity') {
     return NextResponse.json({ error: 'Verify your licence to book.', reasons: ['unverified'] }, { status: 403 })
   }
 
-  const key = await recordKey(sid)
-  // The address never goes to Stripe in the clear: it is sealed to this
-  // driver's record key and only opened again on confirmation.
-  const { deliveryAddress, ...trip } = body
-  const tripJson = JSON.stringify(trip)
-  const sealedAddress = deliveryAddress ? await seal(deliveryAddress, encryptionKeys()[0], key) : ''
-  if (tripJson.length > METADATA_MAX || sealedAddress.length > METADATA_MAX) {
-    return problem(400, 'Something in the booking is too long. Shorten the delivery address and try again.')
+  let booking: { id: string; status: string }
+  try {
+    booking = await createBooking({ guestId: user.id, car: priced.car, cityName: cityNameFor(priced.car), request: body, quote: priced.quote, paid: stripe ? 'stripe' : 'demo' })
+  } catch (err) {
+    if (err instanceof DatesTaken) return problem(409, err.message)
+    console.error('booking failed')
+    return problem(500, 'Couldn’t book that. Nothing was charged.')
   }
+  if (!stripe) return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote })
 
   const site = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`
   const form = new URLSearchParams({
@@ -61,14 +57,13 @@ export async function POST(req: NextRequest) {
     'line_items[0][price_data][unit_amount]': String(priced.quote.totalCents),
     'line_items[0][price_data][product_data][name]': `${carTitle(priced.car)} · ${body.start} to ${body.end}`,
     'line_items[0][price_data][product_data][description]': priced.quote.lines.map((l) => l.label).join(', ').slice(0, 480),
-    'metadata[record]': key,
-    'metadata[trip]': tripJson,
-    'payment_intent_data[metadata][car]': priced.car.id,
+    'metadata[booking]': booking.id,
+    'metadata[user]': user.id,
+    expires_at: String(Math.floor(Date.now() / 1000) + 30 * 60),
   })
-  if (sealedAddress) form.set('metadata[addr]', sealedAddress)
   const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
-    headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'content-type': 'application/x-www-form-urlencoded' },
+    headers: { authorization: `Bearer ${stripe}`, 'content-type': 'application/x-www-form-urlencoded' },
     body: form.toString(),
     signal: AbortSignal.timeout(10_000),
   })
@@ -77,5 +72,5 @@ export async function POST(req: NextRequest) {
     return problem(502, 'Payment is unavailable right now. Nothing was charged.')
   }
   const session = (await res.json()) as { url: string }
-  return NextResponse.json({ mode: 'stripe', url: session.url, quote: priced.quote })
+  return NextResponse.json({ mode: 'stripe', url: session.url, bookingId: booking.id, quote: priced.quote })
 }

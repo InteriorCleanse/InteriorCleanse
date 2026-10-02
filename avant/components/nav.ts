@@ -8,13 +8,16 @@ export interface NavItem {
 }
 
 export const NAV: NavItem[] = [
-  { label: 'Search', href: '/search', icon: 'compass', key: 's' },
-  { label: 'Coverage', href: '/coverage', icon: 'shield', key: 'c' },
+  { label: 'Search', href: '/', icon: 'search', key: 's' },
+  { label: 'Favorites', href: '/favorites', icon: 'heart', key: 'f' },
   { label: 'Trips', href: '/trips', icon: 'trips', key: 't' },
-  { label: 'Host', href: '/host', icon: 'key', key: 'h' },
-  { label: 'Saved', href: '/saved', icon: 'heart', key: 'v' },
-  { label: 'Account', href: '/account', icon: 'user', key: 'a' },
+  { label: 'Inbox', href: '/inbox', icon: 'chat', key: 'i' },
+  { label: 'More', href: '/more', icon: 'list', key: 'm' },
+  { label: 'Become a host', href: '/host', icon: 'key', key: 'h' },
+  { label: 'Coverage', href: '/coverage', icon: 'shield', key: 'c' },
+  { label: 'Profile', href: '/account', icon: 'user', key: 'a' },
   { label: 'Trust & safety', href: '/security', icon: 'lock', key: 'p' },
 ]
 
-export const TOP_NAV = NAV.slice(0, 4).map((n) => (n.href === '/host' ? { ...n, label: 'Become a host' } : n))
+/** The five tabs, in the order the app shows them. */
+export const TABS = NAV.slice(0, 5)

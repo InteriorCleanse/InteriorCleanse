@@ -1,16 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { deleteRecord, loadRecord, toFacts } from '@/lib/driver-record'
+import { deleteRecord, EMPTY_RECORD, loadRecord, toFacts } from '@/lib/driver-record'
 import { modes } from '@/lib/modes'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard } from '@/lib/security/request'
-import { requireSession } from '@/lib/security/session'
+import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { redactLicenceSession, stripeIdentityConfigured } from '@/lib/verification/stripe-identity'
 
 export const runtime = 'nodejs'
 
 /** The driver's facts and how they were verified. Nothing else exists to return. */
 export async function GET() {
-  const sid = await requireSession()
+  const user = await currentUser()
+  if (!user) return NextResponse.json({ facts: toFacts(EMPTY_RECORD), method: null, verifiedAt: null, pending: false, modes: modes(), signedIn: false })
+  const sid = driverKey(user)
   const r = await loadRecord(sid)
   return NextResponse.json({
     facts: toFacts(r),
@@ -18,6 +20,7 @@ export async function GET() {
     verifiedAt: r.verifiedAt,
     pending: Boolean(r.pendingProviderRef),
     modes: modes(),
+    signedIn: true,
   })
 }
 
@@ -25,7 +28,9 @@ export async function GET() {
 export async function DELETE(req: NextRequest) {
   const blocked = await guard(req, { limit: LIMITS.default, limitKey: 'driver-delete', requireJson: false })
   if (blocked) return blocked
-  const sid = await requireSession()
+  const user = await currentUser()
+  if (!user) return signInRequired()
+  const sid = driverKey(user)
   const r = await loadRecord(sid)
   const ref = r.providerRef ?? r.pendingProviderRef
   if (ref && stripeIdentityConfigured()) {

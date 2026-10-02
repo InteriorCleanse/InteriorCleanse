@@ -1,14 +1,5 @@
-import { SavedList } from '@/components/Saved'
-
-export const metadata = { title: 'Saved' }
+import { redirect } from 'next/navigation'
 
 export default function SavedPage() {
-  return (
-    <div className="wrap page">
-      <h1 className="page-title" style={{ marginBottom: 28 }}>
-        Saved for later.
-      </h1>
-      <SavedList />
-    </div>
-  )
+  redirect('/favorites')
 }

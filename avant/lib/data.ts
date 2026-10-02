@@ -8,23 +8,24 @@
  */
 
 import fleet from '@/content/fleet.json'
-import type { Car, City, Host } from './types'
+import { cities, SAMPLE_FLEET } from './places'
+import type { Car, Host } from './types'
 
-export const SAMPLE_FLEET = process.env.NEXT_PUBLIC_AVANT_SAMPLE_FLEET !== '0'
-
-export const cities = fleet.cities as City[]
+export { carTitle, cities, cityName, getCity, SAMPLE_FLEET } from './places'
 export const hosts: Host[] = SAMPLE_FLEET ? (fleet.hosts as Host[]) : []
-export const cars: Car[] = SAMPLE_FLEET ? (fleet.cars as unknown as Car[]) : []
+const hostsById = new Map((fleet.hosts as Host[]).map((h) => [h.id, h]))
+
+/** Sample cars, each with its (equally invented) host embedded. */
+export const cars: Car[] = SAMPLE_FLEET
+  ? (fleet.cars as unknown as Omit<Car, 'host'>[]).map((c) => ({ ...c, host: hostsById.get(c.hostId) as Host }))
+  : []
 
 const carBySlug = new Map(cars.map((c) => [c.slug, c]))
 const carById = new Map(cars.map((c) => [c.id, c]))
 const hostById = new Map(hosts.map((h) => [h.id, h]))
-const cityBySlug = new Map(cities.map((c) => [c.slug, c]))
 
 export const getCar = (slug: string) => carBySlug.get(slug)
 export const getCarById = (id: string) => carById.get(id)
-export const getCity = (slug: string) => cityBySlug.get(slug)
-export const cityName = (slug: string) => cityBySlug.get(slug)?.name ?? slug
 
 export function getHost(id: string): Host {
   const host = hostById.get(id)
@@ -32,7 +33,6 @@ export function getHost(id: string): Host {
   return host
 }
 
-export const carTitle = (c: Pick<Car, 'year' | 'make' | 'model'>) => `${c.year} ${c.make} ${c.model}`
 
 const byRating = (a: Car, b: Car) => b.rating - a.rating || b.tripCount - a.tripCount
 

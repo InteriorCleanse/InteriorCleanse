@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
-import { TripsList } from '@/components/Trips'
+import { TripsHome } from '@/components/Trips'
 
-export const metadata: Metadata = { title: 'Trips' }
+export const metadata: Metadata = { title: 'Trips', robots: { index: false } }
 
 export default function TripsPage() {
   return (
-    <div className="wrap page">
-      <h1 className="page-title" style={{ marginBottom: 28 }}>
-        Your trips.
-      </h1>
-      <TripsList />
+    <div className="wrap page" style={{ maxWidth: 880 }}>
+      <h1 className="app-title">Trips</h1>
+      <TripsHome />
     </div>
   )
 }

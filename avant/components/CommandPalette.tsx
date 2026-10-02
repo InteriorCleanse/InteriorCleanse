@@ -2,9 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { carTitle, cars, cities, cityName } from '@/lib/data'
+import { cities } from '@/lib/places'
 import { todayIso, weekendFrom } from '@/lib/dates'
-import { money } from '@/lib/format'
 import { searchHref } from '@/lib/search'
 import { useModalDialog } from '@/lib/use-modal-dialog'
 import { Icon, type IconName } from './Icons'
@@ -12,7 +11,7 @@ import { NAV } from './nav'
 
 interface Item {
   id: string
-  group: 'Go to' | 'Quick search' | 'Cars'
+  group: 'Go to' | 'Quick search'
   label: string
   hint?: string
   icon: IconName
@@ -41,17 +40,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       { id: 'deliver', group: 'Quick search', label: 'Delivered to me, instant book', icon: 'truck', href: searchHref({ delivery: true, instantBook: true }) },
       ...cities.map<Item>((c) => ({ id: `city-${c.slug}`, group: 'Quick search', label: `Cars in ${c.name}`, icon: 'pin', href: searchHref({ city: c.slug }) })),
     ]
-    const fleet: Item[] = cars.map((c) => ({
-      id: c.id,
-      group: 'Cars',
-      label: carTitle(c),
-      hint: `${cityName(c.city)} · ${money(c.dailyRateCents)}/day`,
-      icon: 'trips',
-      href: `/cars/${c.slug}`,
-    }))
     const words = q.toLowerCase().split(/\s+/).filter(Boolean)
     if (!words.length) return [...pages, ...quick.slice(0, 3)]
-    return [...pages, ...quick, ...fleet].filter((i) => words.every((w) => `${i.label} ${i.hint ?? ''}`.toLowerCase().includes(w))).slice(0, 14)
+    return [...pages, ...quick].filter((i) => words.every((w) => `${i.label} ${i.hint ?? ''}`.toLowerCase().includes(w))).slice(0, 14)
   }, [q])
 
   useEffect(() => setCursor(0), [q])

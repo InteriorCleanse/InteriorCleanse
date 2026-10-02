@@ -7,23 +7,51 @@ import { CarImage } from '@/components/CarImage'
 import { Icon } from '@/components/Icons'
 import { Avatar, Breadcrumbs, Notice, Stars } from '@/components/ui'
 import { BODY_TYPES, FEATURES, VALUE_TIERS } from '@/lib/catalog'
-import { carTitle, cityName, getCar, getHost, similarCars } from '@/lib/data'
 import { formatDate } from '@/lib/dates'
+import { carTitle, cityName } from '@/lib/places'
 import { searchHref } from '@/lib/search'
+import { findCar, listCars } from '@/lib/server/catalog'
+import type { Car } from '@/lib/types'
+import { Viewed } from '@/components/Viewed'
+
+export const dynamic = 'force-dynamic'
+
+function similar(car: Car, all: Car[], limit = 4): Car[] {
+  const others = all.filter((c) => c.id !== car.id)
+  const score = (c: Car) => (c.city === car.city ? 2 : 0) + (c.body === car.body ? 1 : 0) + (Boolean(c.sample) === Boolean(car.sample) ? 1 : 0)
+  return others
+    .filter((c) => c.city === car.city || c.body === car.body)
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, limit)
+}
+
+function replies(minutes: number | null): string | null {
+  if (minutes == null) return null
+  if (minutes < 60) return `Typically replies within ${Math.max(5, Math.round(minutes / 5) * 5)} minutes`
+  return `Typically replies within ${Math.round(minutes / 60)} hour${minutes >= 90 ? 's' : ''}`
+}
 
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const car = getCar((await params).slug)
+  const car = await findCar((await params).slug)
   if (!car) return {}
-  return { title: `${carTitle(car)} in ${cityName(car.city)}`, description: car.description.slice(0, 155) }
+  return {
+    title: `${carTitle(car)} in ${cityName(car.city)}`,
+    description: car.description.slice(0, 155),
+    ...(car.sample ? { robots: { index: false } } : {}),
+  }
 }
 
 export default async function CarPage({ params }: Props) {
-  const car = getCar((await params).slug)
+  const car = await findCar((await params).slug)
   if (!car) notFound()
-  const host = getHost(car.hostId)
+  const host = car.host
   const body = BODY_TYPES.find((b) => b.id === car.body)
+  const more = similar(car, await listCars())
+  const photos = car.photos.slice(0, 5)
+  const title = carTitle(car)
+  const reply = replies(host.responseMinutes)
 
   return (
     <div className="wrap page">
@@ -36,8 +64,19 @@ export default async function CarPage({ params }: Props) {
           </Notice>
         </div>
       ) : null}
-      <div className="car-hero">
-        <CarImage body={car.body} color={car.color.hex} photo={car.photos[0]} sample={car.sample} alt={`${carTitle(car)}, photo by the host`} priority />
+      <Viewed slug={car.slug} />
+      <div className="car-media">
+        {photos.length > 1 ? (
+          <div className="gallery" aria-label={`${photos.length} photos of this ${title} by the host`}>
+            {photos.map((src, i) => (
+              <CarImage key={src} body={car.body} color={car.color.hex} photo={src} alt={`${title}, host photo ${i + 1} of ${photos.length}`} priority={i === 0} />
+            ))}
+          </div>
+        ) : (
+          <div className="car-hero">
+            <CarImage body={car.body} color={car.color.hex} photo={photos[0]} sample={car.sample} alt={`${title}, photo by the host`} priority />
+          </div>
+        )}
         <div className="car-hero-badges">
           {car.instantBook ? (
             <span className="badge badge-lime">
@@ -61,7 +100,15 @@ export default async function CarPage({ params }: Props) {
             <SaveButton car={car} labelled />
           </div>
           <p className="row muted" style={{ marginTop: 12 }}>
-            <Stars value={car.rating} size={16} /> · {car.reviews.length} reviews · {car.tripCount} trips · {car.neighborhood}, {cityName(car.city)}
+            {car.reviews.length ? (
+              <>
+                <Stars value={car.rating} size={16} /> · {car.reviews.length} reviews · {car.tripCount} trips
+              </>
+            ) : (
+              <span className="badge badge-glass">New listing</span>
+            )}{' '}
+            · {car.neighborhood}, {cityName(car.city)}
+            {car.approxLocation ? <span className="dim"> (exact spot shared after booking)</span> : null}
           </p>
 
           <ul className="specs" aria-label="Key details">
@@ -110,21 +157,24 @@ export default async function CarPage({ params }: Props) {
           </section>
 
           <section className="car-section" aria-labelledby="host">
-            <div className="row" style={{ gap: 14 }}>
-              <Avatar name={host.name} size={56} />
+            <div className="host-card">
+              <Avatar name={host.name} size={64} photo={host.photo} />
               <div>
                 <h2 id="host" style={{ marginBottom: 4 }}>
-                  Hosted by {host.name}
+                  Hosted by {host.name.split(' ')[0]}
                 </h2>
                 <p className="small muted">
                   {host.allStar ? 'All-star · ' : ''}
-                  {host.rating.toFixed(2)} rating · {host.trips} trips · since {host.joined.slice(0, 4)} · replies in ~{host.responseMinutes} min
+                  {host.trips ? `${host.rating ? `${host.rating.toFixed(2)} rating · ` : ''}${host.trips} trips` : 'New host'} · since {host.joined.slice(0, 4)}
+                  {reply ? ` · ${reply}` : ''}
                 </p>
               </div>
             </div>
-            <p className="muted" style={{ marginTop: 12, maxWidth: '68ch' }}>
-              {host.bio}
-            </p>
+            {host.bio ? (
+              <p className="muted" style={{ marginTop: 12, maxWidth: '68ch' }}>
+                {host.bio}
+              </p>
+            ) : null}
           </section>
 
           <section className="car-section" aria-labelledby="rules">
@@ -137,9 +187,8 @@ export default async function CarPage({ params }: Props) {
           </section>
 
           <section className="car-section" aria-labelledby="reviews">
-            <h2 id="reviews">
-              {car.reviews.length} reviews · {car.rating.toFixed(1)} average
-            </h2>
+            <h2 id="reviews">{car.reviews.length ? `${car.reviews.length} reviews · ${car.rating.toFixed(1)} average` : 'Reviews'}</h2>
+            {car.reviews.length ? null : <p className="muted">No trips yet. Reviews appear here after each completed trip, from guests who drove this car.</p>}
             <div className="stack">
               {car.reviews.map((r) => (
                 <div key={r.id} className="review">
@@ -169,6 +218,7 @@ export default async function CarPage({ params }: Props) {
         </aside>
       </div>
 
+      {more.length ? (
       <section className="section" aria-labelledby="similar">
         <div className="section-head">
           <h2 id="similar">
@@ -176,11 +226,12 @@ export default async function CarPage({ params }: Props) {
           </h2>
         </div>
         <div className="cargrid">
-          {similarCars(car).map((c) => (
+          {more.map((c) => (
             <CarCard key={c.id} car={c} />
           ))}
         </div>
       </section>
+      ) : null}
     </div>
   )
 }

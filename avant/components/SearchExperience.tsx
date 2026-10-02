@@ -3,11 +3,11 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BODY_TYPES } from '@/lib/catalog'
-import { cars as fleet, cityName } from '@/lib/data'
+import { cityName } from '@/lib/places'
 import { billableDays, todayIso } from '@/lib/dates'
 import { SORTS, activeFilterCount, applySearch, clearFilters, parseSearch, toSearchParams } from '@/lib/search'
 import { actions, useLocal } from '@/lib/store'
-import type { SearchState } from '@/lib/types'
+import type { Car, SearchState } from '@/lib/types'
 import { CarCard } from './CarCard'
 import { FilterSheet } from './Filters'
 import { Icon } from './Icons'
@@ -17,7 +17,7 @@ import { ButtonLink, Empty } from './ui'
 
 const PAGE = 12
 
-export function SearchExperience() {
+export function SearchExperience({ cars: fleet }: { cars: Car[] }) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -40,7 +40,7 @@ export function SearchExperience() {
     [router, pathname],
   )
 
-  const results = useMemo(() => (today ? applySearch(fleet, state, cityName, today) : []), [state, today])
+  const results = useMemo(() => (today ? applySearch(fleet, state, cityName, today) : []), [fleet, state, today])
   const days = state.start && state.end ? billableDays(state.start, '10:00', state.end, '10:00') : undefined
   const n = activeFilterCount(state)
   const onActivate = useCallback((id: string | null) => setActive(id), [])

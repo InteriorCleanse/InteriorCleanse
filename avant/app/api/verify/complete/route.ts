@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { todayIso } from '@/lib/dates'
 import { loadRecord, saveRecord } from '@/lib/driver-record'
-import { requireSession } from '@/lib/security/session'
+import { currentUser, driverKey } from '@/lib/server/session'
 import { readLicenceSession, redactLicenceSession } from '@/lib/verification/stripe-identity'
 import { recordFromOutcome } from '@/lib/verification/outcome'
 
@@ -13,7 +13,9 @@ export const runtime = 'nodejs'
  * person cannot claim another's verification by editing a URL.
  */
 export async function GET(req: NextRequest) {
-  const sid = await requireSession()
+  const user = await currentUser()
+  if (!user) return NextResponse.redirect(new URL('/signin?next=/verify', req.url), 303)
+  const sid = driverKey(user)
   const prev = await loadRecord(sid)
   const ref = prev.pendingProviderRef
   const back = (q: string) => NextResponse.redirect(new URL(`/verify?${q}`, req.url), 303)

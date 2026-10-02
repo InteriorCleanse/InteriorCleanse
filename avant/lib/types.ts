@@ -59,8 +59,11 @@ export interface Host {
   allStar: boolean
   rating: number
   trips: number
-  responseMinutes: number
+  /** Typical reply time; null until there is enough history to say. */
+  responseMinutes: number | null
   bio: string
+  /** The host's own profile photo, if they added one. */
+  photo?: string | null
 }
 
 export interface Review {
@@ -104,8 +107,14 @@ export interface Car {
   listedAt: string
   description: string
   guidelines: string[]
-  /** Day offsets from "today" the car is booked; resolved on the client. */
+  /** Sample listings only: day offsets from "today" shown as booked. */
   blockedOffsets: [number, number][]
+  /** Real bookings holding this car, as absolute dates. */
+  booked?: DateRange[]
+  /** The host, embedded so every screen can show who they are. */
+  host: Host
+  /** Real listings show an approximate pin until a trip is booked. */
+  approxLocation?: boolean
   reviews: Review[]
   valueTier: ValueTier
   /** The host's own photos of this car, first is the cover. Never stock or generated. */

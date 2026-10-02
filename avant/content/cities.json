@@ -1,0 +1,233 @@
+[
+  {
+    "slug": "san-francisco",
+    "name": "San Francisco",
+    "state": "CA",
+    "lat": 37.7749,
+    "lng": -122.4194,
+    "bounds": [
+      37.7,
+      -122.52,
+      37.82,
+      -122.36
+    ],
+    "taxRate": 0.0863,
+    "landmarks": [
+      {
+        "name": "Golden Gate Bridge",
+        "lat": 37.8199,
+        "lng": -122.4783
+      },
+      {
+        "name": "Ferry Building",
+        "lat": 37.7955,
+        "lng": -122.3937
+      },
+      {
+        "name": "Dolores Park",
+        "lat": 37.7596,
+        "lng": -122.4269
+      },
+      {
+        "name": "Ocean Beach",
+        "lat": 37.7594,
+        "lng": -122.5107
+      },
+      {
+        "name": "Twin Peaks",
+        "lat": 37.7544,
+        "lng": -122.4477
+      }
+    ]
+  },
+  {
+    "slug": "los-angeles",
+    "name": "Los Angeles",
+    "state": "CA",
+    "lat": 34.0522,
+    "lng": -118.2437,
+    "bounds": [
+      33.9,
+      -118.55,
+      34.2,
+      -118.15
+    ],
+    "taxRate": 0.095,
+    "landmarks": [
+      {
+        "name": "Santa Monica Pier",
+        "lat": 34.0094,
+        "lng": -118.4973
+      },
+      {
+        "name": "Griffith Observatory",
+        "lat": 34.1184,
+        "lng": -118.3004
+      },
+      {
+        "name": "LAX",
+        "lat": 33.9416,
+        "lng": -118.4085
+      },
+      {
+        "name": "Downtown",
+        "lat": 34.0407,
+        "lng": -118.2468
+      },
+      {
+        "name": "Venice Beach",
+        "lat": 33.985,
+        "lng": -118.4695
+      }
+    ]
+  },
+  {
+    "slug": "austin",
+    "name": "Austin",
+    "state": "TX",
+    "lat": 30.2672,
+    "lng": -97.7431,
+    "bounds": [
+      30.15,
+      -97.9,
+      30.45,
+      -97.6
+    ],
+    "taxRate": 0.0825,
+    "landmarks": [
+      {
+        "name": "State Capitol",
+        "lat": 30.2747,
+        "lng": -97.7404
+      },
+      {
+        "name": "Zilker Park",
+        "lat": 30.2669,
+        "lng": -97.7729
+      },
+      {
+        "name": "AUS Airport",
+        "lat": 30.1975,
+        "lng": -97.6664
+      },
+      {
+        "name": "The Domain",
+        "lat": 30.4021,
+        "lng": -97.7256
+      }
+    ]
+  },
+  {
+    "slug": "denver",
+    "name": "Denver",
+    "state": "CO",
+    "lat": 39.7392,
+    "lng": -104.9903,
+    "bounds": [
+      39.6,
+      -105.12,
+      39.85,
+      -104.8
+    ],
+    "taxRate": 0.0881,
+    "landmarks": [
+      {
+        "name": "Union Station",
+        "lat": 39.753,
+        "lng": -105.0002
+      },
+      {
+        "name": "City Park",
+        "lat": 39.7469,
+        "lng": -104.9508
+      },
+      {
+        "name": "Cherry Creek",
+        "lat": 39.7175,
+        "lng": -104.954
+      },
+      {
+        "name": "Sloan’s Lake",
+        "lat": 39.748,
+        "lng": -105.045
+      }
+    ]
+  },
+  {
+    "slug": "miami",
+    "name": "Miami",
+    "state": "FL",
+    "lat": 25.7617,
+    "lng": -80.1918,
+    "bounds": [
+      25.68,
+      -80.32,
+      25.86,
+      -80.1
+    ],
+    "taxRate": 0.07,
+    "landmarks": [
+      {
+        "name": "South Beach",
+        "lat": 25.7826,
+        "lng": -80.1341
+      },
+      {
+        "name": "Wynwood Walls",
+        "lat": 25.801,
+        "lng": -80.1994
+      },
+      {
+        "name": "MIA Airport",
+        "lat": 25.7959,
+        "lng": -80.287
+      },
+      {
+        "name": "Coconut Grove",
+        "lat": 25.7126,
+        "lng": -80.257
+      }
+    ]
+  },
+  {
+    "slug": "seattle",
+    "name": "Seattle",
+    "state": "WA",
+    "lat": 47.6062,
+    "lng": -122.3321,
+    "bounds": [
+      47.5,
+      -122.42,
+      47.72,
+      -122.24
+    ],
+    "taxRate": 0.1035,
+    "landmarks": [
+      {
+        "name": "Space Needle",
+        "lat": 47.6205,
+        "lng": -122.3493
+      },
+      {
+        "name": "Pike Place",
+        "lat": 47.6097,
+        "lng": -122.3422
+      },
+      {
+        "name": "Gas Works Park",
+        "lat": 47.6456,
+        "lng": -122.3344
+      },
+      {
+        "name": "Alki Beach",
+        "lat": 47.5812,
+        "lng": -122.409
+      },
+      {
+        "name": "Ballard Locks",
+        "lat": 47.6656,
+        "lng": -122.3975
+      }
+    ]
+  }
+]
