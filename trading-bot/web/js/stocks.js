@@ -69,14 +69,15 @@ function paint() {
         <div><span>Next wake</span><b>${ct(s.nextWake)}</b></div>
       </div>
       <div class="sk-actions">
-        <button class="btn" data-sk="run" ${busy ? 'disabled' : ''}>${busy === 'run' ? 'Scanning…' : 'Scan now'}</button>
+        <button class="btn" data-sk="run" ${busy || s.runsHere === false ? 'disabled' : ''}>${busy === 'run' ? 'Scanning…' : 'Scan now'}</button>
         <button class="btn ghost" data-sk="pause">${s.paused ? 'Resume' : 'Pause'}</button>
         ${open.length ? `<button class="btn ghost danger" data-sk="flatten">Flatten all</button>` : ''}
       </div>
     </div>
     <div class="sk-hero-r">${curve(s.equity, a.startEquity)}<div class="sk-curve-cap">${s.closedTrades < 20 ? 'NOT ENOUGH DATA to judge the strategy yet: ' : ''}${s.closedTrades} closed trade${s.closedTrades === 1 ? '' : 's'} on paper.</div></div>
   </section>
-  ${s.dataConnected === false ? `<section class="card sk-connect">
+  ${s.runsHere === false ? `<section class="card sk-connect"><h2>The stock desk runs in the main Kestrel window</h2><p>This window is one of the extra fleet lanes, so it shows the stock desk but does not run it. Open the main window (the one started by <code>start-24-7.bat</code>, port 4173) to see its paper book and use Scan now.</p></section>` : ''}
+  ${s.dataConnected === false && s.runsHere !== false ? `<section class="card sk-connect">
     <h2>Connect stock data to start</h2>
     <p>The desk is on its schedule, but it has no prices yet, so it cannot scan or trade. It needs free, read-only market data from Alpaca. Paper keys cannot move real money.</p>
     <ol>

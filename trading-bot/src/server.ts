@@ -625,6 +625,7 @@ const server = createServer(async (req, res) => {
       const body = async () => JSON.parse((await readBody(req, 4 * 1024)) || '{}') as Record<string, unknown>
       try {
         if (path === '/api/stocks' && req.method === 'GET') { json(res, 200, { ok: true, data: stockSnap() }); return }
+        if (path.startsWith('/api/stocks/') && req.method === 'POST' && !STOCK_DESK_RUNS) { json(res, 200, { ok: false, error: 'The stock desk runs in the main Kestrel window, not this one.' }); return }
         if (path === '/api/stocks/run' && req.method === 'POST') { await stockDesk.cycle(true); json(res, 200, { ok: true, data: stockSnap() }); return }
         if (path === '/api/stocks/pause' && req.method === 'POST') { const b = await body(); stockDesk.setPaused(b.on === true); json(res, 200, { ok: true, data: stockSnap() }); return }
         if (path === '/api/stocks/flatten' && req.method === 'POST') { stockDesk.flatten(); json(res, 200, { ok: true, data: stockSnap() }); return }
@@ -1792,7 +1793,10 @@ const stockDesk = new StockDesk({
   bankroll: Number(process.env.MRCASH_STOCK_BANKROLL) || 10_000,
 })
 /** The desk's snapshot plus whether stock data keys are set (never the keys themselves). */
-const stockSnap = () => ({ ...stockDesk.snapshot(), dataConnected: !!alpacaConfig() })
+// One stock desk per machine: like the prediction desk, it runs only in the window that runs the all-markets scan,
+// so the fleet's extra lanes (MRCASH_MARKETS=0) do not each keep their own paper book.
+const STOCK_DESK_RUNS = process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_STOCK_DESK !== '0'
+const stockSnap = () => ({ ...stockDesk.snapshot(), dataConnected: !!alpacaConfig(), runsHere: STOCK_DESK_RUNS })
 function stockDeskContext(): string {
   try { return `\n\nSTOCK DESK (PAPER, no orders, long stocks only): ${stockDesk.summary()}` } catch { return '' }
 }
@@ -1802,7 +1806,7 @@ function overview() {
   const pd = predictionDesk.snapshot()
   const openEngine = readPositions().open.filter((p) => p.status === 'open').length
   const books = [
-    { id: 'stocks', label: 'Stock desk', market: alpacaConfig() ? 'US tech leaders, long only' : 'Needs stock data: open the Stock desk to connect it', start: st.account.startEquity, now: st.account.equity, open: st.positions.length, status: !alpacaConfig() ? 'NOT CONNECTED' : st.paused ? 'PAUSED' : st.phase === 'regular' ? 'TRADING HOURS' : st.phase === 'premarket' ? 'PREMARKET' : 'MARKET CLOSED', tab: 'stocks' },
+    { id: 'stocks', label: 'Stock desk', market: alpacaConfig() ? 'US tech leaders, long only' : 'Needs stock data: open the Stock desk to connect it', start: st.account.startEquity, now: st.account.equity, open: st.positions.length, status: !STOCK_DESK_RUNS ? 'MAIN WINDOW ONLY' : !alpacaConfig() ? 'NOT CONNECTED' : st.paused ? 'PAUSED' : st.phase === 'regular' ? 'TRADING HOURS' : st.phase === 'premarket' ? 'PREMARKET' : 'MARKET CLOSED', tab: 'stocks' },
     { id: 'engine', label: 'Bitcoin engine', market: `${config.symbol}, around the clock`, start: config.accountSizeUsd, now: equity(), open: openEngine, status: 'RUNNING', tab: 'today' },
     { id: 'predict', label: 'Prediction desk', market: 'Polymarket and Kalshi', start: pd.sheet.startingBalance, now: pd.sheet.endingBalance, open: pd.open.length, status: pd.status, tab: 'predict' },
   ].map((b) => ({ ...b, changePct: b.start > 0 ? (b.now / b.start - 1) * 100 : 0 }))
@@ -1811,7 +1815,7 @@ function overview() {
     books,
     equityCurve: st.equity,
     autopilot: [
-      { name: 'Stock desk', schedule: 'premarket scan 8:15 CT, every 15 minutes 8:30-3:00 CT', next: st.nextWake, paused: st.paused },
+      { name: 'Stock desk', schedule: STOCK_DESK_RUNS ? 'premarket scan 8:15 CT, every 15 minutes 8:30-3:00 CT' : 'runs in the main Kestrel window, not this one', next: STOCK_DESK_RUNS ? st.nextWake : null, paused: st.paused || !STOCK_DESK_RUNS },
       { name: 'Bitcoin engine', schedule: 'every closed 5-minute candle, 24/7', next: null, paused: false },
       { name: 'Prediction desk', schedule: 'every 10 minutes, 24/7', next: null, paused: false },
       { name: 'Market watch', schedule: 'crypto, stocks, forex and indexes, rescanned every few minutes', next: null, paused: false },
@@ -1887,7 +1891,7 @@ server.listen(PORT, host, () => {
   if (process.env.MRCASH_MARKETS !== '0') { marketWatch.start(); bigMoney.start() }
   if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_PREDICT !== '0') predictionDesk.start()
   if (process.env.MRCASH_MARKETS !== '0' && process.env.MRCASH_RESEARCH_DESK !== '0') researchDesk.start()
-  if (process.env.MRCASH_STOCK_DESK !== '0') stockDesk.start()
+  if (STOCK_DESK_RUNS) stockDesk.start()
   if (process.env.MRCASH_CALLS !== '0') { callDesk.start(); callDesk5.start() }
   if (process.env.MRCASH_MARKETS !== '0') { const t = setInterval(() => { void checkConditions() }, 5 * 60_000); t.unref?.(); setTimeout(() => { void checkConditions() }, 90_000).unref?.() }
   ui.heading('KESTREL IS RUNNING')

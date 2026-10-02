@@ -303,3 +303,22 @@ test('/api/stocks says whether stock data keys are set, as a yes or no only', as
   assert.equal(typeof r.data.dataConnected, 'boolean')
   assert.doesNotMatch(JSON.stringify(r), /APCA-API|"key":|"secret":/i, 'no key material in the response')
 })
+
+test('a fleet lane (MRCASH_MARKETS=0) shows the stock desk but does not run it or trade from it', async () => {
+  const laneTmp = tempDataDir('mrcash-lane-')
+  mkdirSync(laneTmp.dir, { recursive: true })
+  const lane = await startBot(feeds, { dir: laneTmp.dir, env: { MRCASH_MARKETS: '0' } })
+  try {
+    const snap = await (await fetch(`${lane.base}/api/stocks`)).json() as { ok: boolean; data: { runsHere: boolean } }
+    assert.equal(snap.ok, true)
+    assert.equal(snap.data.runsHere, false)
+    const run = await (await lane.post('/api/stocks/run')).json() as { ok: boolean; error?: string }
+    assert.equal(run.ok, false)
+    assert.match(run.error ?? '', /main Kestrel window/)
+    const main = await getJson<{ data: { runsHere: boolean } }>('/api/stocks')
+    assert.equal(main.data.runsHere, true, 'the main window still runs it')
+  } finally {
+    lane.stop()
+    laneTmp.cleanup()
+  }
+})

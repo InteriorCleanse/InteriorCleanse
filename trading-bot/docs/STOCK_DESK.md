@@ -85,7 +85,7 @@ until it starts again; the page shows them and offers Flatten.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `MRCASH_STOCK_DESK` | on | `0` turns the desk off |
+| `MRCASH_STOCK_DESK` | on | `0` turns the desk off. It also stays off in any window started with `MRCASH_MARKETS=0` (the fleet's extra lanes), so a machine keeps one stock desk and one paper book, in the main window. |
 | `MRCASH_STOCK_BANKROLL` | 10000 | Starting paper equity in dollars |
 | `MRCASH_ALPACA_KEY`, `MRCASH_ALPACA_SECRET` | none | Read-only market data. Without them the desk logs "no data" and does nothing. |
 
