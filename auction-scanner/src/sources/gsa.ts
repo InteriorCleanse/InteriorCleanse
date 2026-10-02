@@ -104,6 +104,20 @@ function runsFrom(text: string): boolean | undefined {
   return undefined
 }
 
+/**
+ * Year, make and model from the lot name. GSA often leaves the year out of the
+ * name ("Ford E-450 Super Duty 16-Passenger Bus") and puts it in the lot text
+ * ("Year: 2016"), so a name that starts with a known make is read without one.
+ */
+function titleParts(name: string, desc: string): { year?: number; make?: string; model?: string } {
+  const t = splitTitle(name)
+  if (t.year !== undefined) return t
+  const m = /^\s*([A-Za-z-]+(?:\s+(?:Romeo|Rover|Martin|Royce|Benz))?)\s+(.+)$/.exec(name)
+  if (!m || !isKnownMake(m[1])) return t
+  const y = /\b(?:model year|year)\s*[:#-]?\s*(19[5-9]\d|20[0-4]\d)\b/i.exec(desc)
+  return { year: y ? Number(y[1]) : undefined, make: m[1], model: m[2].trim().split(/\s+/).slice(0, 2).join(' ') || undefined }
+}
+
 /** Turn one GSA lot into a listing, or undefined when it does not read as a vehicle. */
 export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
   const r = lowerKeys(raw)
@@ -111,7 +125,7 @@ export function fromGsaRow(raw: Row, now = Date.now()): Listing | undefined {
   const desc = textOf(r.lotdescript) || textOf(r.lotinfo)
   if (!name) return undefined
   if (NOT_A_CAR.test(name)) return undefined
-  const t = splitTitle(name)
+  const t = titleParts(name, desc)
   const vinMatch = /\b([A-HJ-NPR-Z0-9]{17})\b/.exec(`${name} ${desc}`.toUpperCase())
   const knownMake = isKnownMake(t.make)
   const isVehicle = (t.year !== undefined && knownMake) || VEHICLE_WORDS.test(name) || !!vinMatch

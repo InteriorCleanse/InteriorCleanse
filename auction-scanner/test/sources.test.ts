@@ -149,10 +149,12 @@ test('GSA in the live shape: camelCase fields under Results, the lot text in lot
       { saleNo: 'TF1QSC26001', lotNo: '104', itemName: '2014 John Deere XUV Gator utility vehicle', aucEndDt: '2030-10-02' },
       { saleNo: 'TF1QSC26001', lotNo: '105', itemName: '2014 Chevy Impala Sedan', aucEndDt: '2030-10-02', lotInfo: 'Odometer 50,258. SF-97.' },
       { saleNo: 'TF1QSC26001', lotNo: '102', itemName: 'OFFICE CHAIRS, QTY 40', aucEndDt: '2030-10-02T18:00:00', lotInfo: 'Assorted chairs.' },
+      { saleNo: 'TF1QSC26001', lotNo: '106', itemName: 'Ford E-450 Super Duty 16-Passenger Bus', aucEndDt: '2030-10-02', lotInfo: '<p>Year: 2016. Odometer 45,065.</p>' },
+      { saleNo: 'TF1QSC26001', lotNo: '107', itemName: 'Chevrolet Express 2500 Cargo Van', aucEndDt: '2030-10-02', lotInfo: 'Odometer 88,100.' },
     ],
   }
   const rows = gsaRows(body)
-  assert.equal(rows.length, 5)
+  assert.equal(rows.length, 7)
   const lot = (n: string) => rows.find((r) => r.lotNo === n)!
   const l = fromGsaRow(lot('101'), Date.UTC(2030, 0, 1))!
   assert.ok(l, 'the truck is read')
@@ -173,5 +175,9 @@ test('GSA in the live shape: camelCase fields under Results, the lot text in lot
   assert.equal(fromGsaRow(lot('102')), undefined, 'chairs are not a car')
   assert.equal(fromGsaRow(lot('103')), undefined, 'an aircraft has a year and a maker but is not a car')
   assert.equal(fromGsaRow(lot('104')), undefined, 'a farm utility vehicle is not a car')
+  const bus = fromGsaRow(lot('106'))!
+  assert.deepEqual([bus.year, bus.make, bus.model], [2016, 'Ford', 'E-450 Super'], 'no year in the name: the make from the name, the year from the lot text')
+  const van = fromGsaRow(lot('107'))!
+  assert.deepEqual([van.year, van.make], [undefined, 'Chevrolet'], 'no year anywhere: the make is still read, the year left blank, never guessed')
   assert.equal(fromGsaRow(lot('105'))!.make, 'Chevrolet', 'a Chevy compares with every other Chevrolet')
 })
