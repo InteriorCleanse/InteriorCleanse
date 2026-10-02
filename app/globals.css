@@ -6085,3 +6085,46 @@ html[data-intro='skip'] .intro-veil { display: none; }
   .cyber-title::before,
   .cyber-title::after { opacity: 0; }
 }
+
+/* ─── PHASE 15 · sell-ready product page ──────────────────────────────────── */
+.product-trust {
+  list-style: none;
+  margin: -0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: #5f5a52;
+}
+.product-trust li { display: inline-flex; align-items: center; gap: 0.5rem; }
+.product-trust li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold, #b08d57);
+}
+.product-trust a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.product-trust a:hover { color: var(--bone); }
+
+/* On a phone the decision comes first: name, price, the button, and what
+   happens after it. The story and the details follow, in source order. */
+@media (max-width: 900px) {
+  .product-viewer-col { height: 50vh; min-height: 340px; }
+  .product-info-col { padding-top: 2.5rem; gap: 1.5rem; }
+  .product-info-col > * { order: 1; }
+  .product-info-col > .product-breadcrumb,
+  .product-info-col > .eyebrow,
+  .product-info-col > .product-detail-name,
+  .product-info-col > .product-detail-tagline,
+  .product-info-col > .product-price-row,
+  .product-info-col > .add-to-cart-btn,
+  .product-info-col > .purchase-note,
+  .product-info-col > .product-trust { order: 0; }
+}
+/* The shop section opens with paddingTop: 0 under its hero, which left the
+   collection chips touching the hero's bottom edge. */
+.collection-nav { margin-top: 3rem; }
+@media (max-width: 900px) { .collection-nav { margin-top: 2rem; } }
