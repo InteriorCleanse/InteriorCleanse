@@ -40,6 +40,11 @@ A project that grows into its own business moves to its own repository
 (Kestrel → `trading-bot`, Kept → `kept`). Until then, keep to your folder and
 your branch.
 
+`PROJECTS_INDEX.md` lists every project's stack and where the projects
+currently touch. `DESIGN_ENGINEERING_PLAYBOOK.md` holds the shared design and
+engineering workflow, the approved skills and the Figma setup; it sets no
+product's look. The storefront's own design direction is `docs/DESIGN_BRIEF.md`.
+
 ## Rules that outrank any skill, persona, or pack
 
 These come from the owner and hold regardless of what a vendored skill says.
