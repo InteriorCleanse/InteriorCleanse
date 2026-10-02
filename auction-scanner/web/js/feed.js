@@ -44,12 +44,17 @@ async function toggleWatch(id, on) {
 }
 
 function emptyHtml(me) {
+  const intro = '<p>Gavel shows real cars only when a source is connected. It will never fill this screen with made-up cars pretending to be real.</p>'
+  if (me.role !== 'owner') {
+    return `<div class="tag empty"><h2>No live auctions yet</h2>${intro}
+    <p>The owner of this Gavel has not connected a live source yet. Meanwhile, bring in any lot you are looking at from Copart, IAA or any auction, or turn on sample cars (top of this screen) to see how the app works.</p>
+    <div class="row" style="margin-top:10px"><a class="btn sm" href="#import">Import a lot</a></div></div>`
+  }
   const reasons = (me.sources || []).filter((s) => s.kind === 'api').map((s) => `<li><b>${esc(s.name)}:</b> ${esc(s.reason)}</li>`).join('')
-  return `<div class="tag empty"><h2>No source connected</h2>
-    <p>Gavel shows real cars only when a source is connected. It will never fill this screen with made-up cars pretending to be real.</p>
+  return `<div class="tag empty"><h2>No source connected</h2>${intro}
     <ul>${reasons}</ul>
     <p>Copy <code>.env.example</code> to <code>.env</code> in the Gavel folder, add the lines above, and restart. Or turn on sample cars (top of this screen) to see how the app works.</p>
-  </div>`
+    <div class="row" style="margin-top:10px"><a class="btn sm" href="#connect">Open Connect</a></div></div>`
 }
 
 async function load() {

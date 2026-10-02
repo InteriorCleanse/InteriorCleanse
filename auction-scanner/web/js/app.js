@@ -27,7 +27,8 @@ function route() {
   const [name, ...rest] = raw.split('/')
   const screen = SCREENS[name] ? name : 'home'
   document.body.classList.toggle('in-setup', screen === 'setup')
-  if (screen === 'admin' && ctx.me && ctx.me.role !== 'owner') { location.hash = '#feed'; return }
+  // Members and Connect are about running the server; a member can change neither.
+  if ((screen === 'admin' || screen === 'connect') && ctx.me && ctx.me.role !== 'owner') { location.hash = '#home'; return }
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.dataset.screen !== screen })
   document.querySelectorAll('.tabs a').forEach((a) => {
     const grouped = ['watch', 'intel', 'auctions', 'playbook', 'rental', 'settings', 'admin', 'import', 'connect']
@@ -45,15 +46,17 @@ export function setMode(kind, detail) {
   const chip = document.getElementById('mode-chip')
   chip.className = 'chip ' + (kind === 'LIVE' ? 'go' : kind === 'SAMPLE' ? 'hot' : '')
   chip.textContent = kind === 'LIVE' ? `Live · ${detail || 'source'}` : kind === 'SAMPLE' ? 'Sample data' : 'No source'
-  chip.title = kind === 'LIVE' ? 'These are real listings from a connected source.' : kind === 'SAMPLE' ? 'These cars are SAMPLES. They are not real. Connect a source in Settings.' : 'No source is connected. See Settings.'
+  const owner = ctx.me && ctx.me.role === 'owner'
+  const fix = owner ? 'Connect a source on the Connect screen.' : 'The owner has not connected a live source yet.'
+  chip.title = kind === 'LIVE' ? 'These are real listings from a connected source.' : kind === 'SAMPLE' ? `These cars are SAMPLES. They are not real. ${fix}` : `No source is connected. ${fix}`
   ctx.feedKind = kind
 }
 
 function moreSheet() {
   const owner = ctx.me.role === 'owner'
   const rental = ctx.me.goal === 'rental'
-  const items = [...(rental ? [['#garage', 'Garage', 'The cars you bought: every cost in, every dollar out']] : []), ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'], ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
-  if (owner) items.push(['#admin', 'Members', 'Access codes and Stripe'])
+  const items = [...(rental ? [['#garage', 'Garage', 'The cars you bought: every cost in, every dollar out']] : []), ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
+  if (owner) items.push(['#admin', 'Members', 'Invite members, access codes, Stripe'], ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'])
   const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
   document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
 }
@@ -64,9 +67,9 @@ function accountMenu() {
   const owner = ctx.me.role === 'owner'
   btn.textContent = (ctx.me.email || 'o')[0].toUpperCase()
   menu.innerHTML = `<div class="who dim">${esc(ctx.me.email)} · ${owner ? 'owner' : 'member'}</div>
-    <a href="#connect" role="menuitem">Connect (go-live guide)</a>
+    ${owner ? '<a href="#connect" role="menuitem">Connect (go-live guide)</a>' : ''}
     <a href="#settings" role="menuitem">Settings</a>
-    ${owner ? '<a href="#admin" role="menuitem">Members (admin)</a>' : ''}
+    ${owner ? '<a href="#admin" role="menuitem">Members</a>' : ''}
     <button type="button" role="menuitem" id="signout">Sign out</button>`
   const toggle = (open) => { menu.hidden = !open; btn.setAttribute('aria-expanded', String(open)) }
   btn.addEventListener('click', () => toggle(menu.hidden))
@@ -105,7 +108,7 @@ export function applyGoal(me) {
 }
 
 async function boot() {
-  document.getElementById('mode-chip').addEventListener('click', () => { location.hash = '#settings' })
+  document.getElementById('mode-chip').addEventListener('click', () => { location.hash = ctx.me && ctx.me.role === 'owner' ? '#connect' : '#settings' })
   document.getElementById('more-btn').addEventListener('click', moreSheet)
   try {
     ctx.me = await getJson('/api/me')
@@ -116,8 +119,11 @@ async function boot() {
   setCsrf(ctx.me.csrf)
   applyGoal(ctx.me)
   document.title = ctx.me.brand || 'Gavel'
+  document.querySelectorAll('.tabs .owner-only').forEach((a) => { a.hidden = ctx.me.role !== 'owner' })
   const live = (ctx.me.sources || []).filter((s) => s.kind === 'api' && s.connected)
-  setMode(live.length ? 'LIVE' : 'EMPTY', live.map((s) => s.name).join(', '))
+  // The same word the Feed will use: with samples allowed and nothing live, the cars are SAMPLES.
+  const names = live.map((s) => s.name).concat(ctx.me.hasImports ? ['your imports'] : [])
+  setMode(names.length ? 'LIVE' : ctx.me.allowSample ? 'SAMPLE' : 'EMPTY', names.join(', '))
   accountMenu()
   window.addEventListener('hashchange', route)
   route()

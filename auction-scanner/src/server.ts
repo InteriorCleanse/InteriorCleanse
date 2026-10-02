@@ -22,7 +22,7 @@ import { config } from '../config.ts'
 import { BRAND, TAGLINE } from './brand.ts'
 import { VERSION } from './version.ts'
 import { env, flag, loadEnv } from './env.ts'
-import type { BidPlan, Estimate, Listing, Score, SearchQuery } from './types.ts'
+import type { BidPlan, Estimate, Listing, Score, SearchQuery, SourceStatus } from './types.ts'
 import { scanAll, sourceStatuses } from './sources/registry.ts'
 import type { ScanResult } from './sources/registry.ts'
 import { AUCTION_HOUSES, houseById, HOUSE_GROUPS } from './sources/directory.ts'
@@ -193,6 +193,19 @@ function isSecure(req: IncomingMessage): boolean {
 function safeUrl(u: string | undefined): string | null {
   if (!u) return null
   return /^https?:\/\//i.test(u) ? u : null
+}
+
+/**
+ * A member cannot change the server, so what they read about sources names no
+ * environment variable and no terminal step: only whether it is on.
+ */
+function memberSources(list: SourceStatus[]): SourceStatus[] {
+  return list.map((x) => (x.kind === 'api' && !x.connected ? { ...x, reason: 'Not connected on this Gavel yet. The owner connects sources.' } : x))
+}
+
+/** Feed notes for a member: a source that is simply not connected is the owner's business; setup words become a plain line. */
+function memberErrors(errors: string[]): string[] {
+  return errors.filter((e) => !/not connected/i.test(e)).map((e) => (/GAVEL_|ANTHROPIC_|\.env\b|npm /.test(e) ? 'One source did not answer this time. The cars below come from the others.' : e))
 }
 
 export async function startServer(opts: ServerOptions = {}): Promise<Started> {
@@ -615,6 +628,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
 
     if (path === '/api/me' && method === 'GET') {
       const ai = await aiStatus()
+      const research = await researchAvailable()
+      const owner = session.role === 'owner'
       return json(res, 200, {
         email: session.email,
         role: session.role,
@@ -623,9 +638,11 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         brand: BRAND,
         tagline: TAGLINE,
         liveBidding: flag('GAVEL_LIVE_BIDDING'),
-        sources: sourceStatuses(),
-        ai: { available: ai.available, reason: ai.reason },
-        research: await researchAvailable(),
+        sources: owner ? sourceStatuses() : memberSources(sourceStatuses()),
+        ai: { available: ai.available, reason: owner || ai.available ? ai.reason : 'Off on this Gavel. Every car is still explained by the built-in rules.' },
+        research: owner || research.available ? research : { available: false, reason: 'Answers come from the built-in knowledge base: auction rules, fees, laws and terms.' },
+        allowSample: getSettings().allowSample,
+        hasImports: listImports().length > 0,
         sniper: { unread: listAlerts().filter((a) => !a.read).length, targets: listTargets().filter((t) => t.active).length },
         goal: getSettings().goal ?? null,
         homeState: getSettings().homeState ?? null,
@@ -634,7 +651,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       })
     }
 
-    if (path === '/api/feed' && method === 'GET') return json(res, 200, await buildFeed(url.searchParams))
+    if (path === '/api/feed' && method === 'GET') {
+      const feed = await buildFeed(url.searchParams)
+      return json(res, 200, session.role === 'owner' ? feed : { ...feed, errors: memberErrors(feed.errors) })
+    }
 
     if (parts[1] === 'listing' && parts.length === 3 && method === 'GET') {
       const id = decodeURIComponent(parts[2])
@@ -890,7 +910,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     }
 
     if (path === '/api/connect' && method === 'GET') {
-      const owner = session.role === 'owner'
+      // The go-live guide is about the server: a member can change none of it.
+      if (session.role !== 'owner') throw new HttpError(403, 'Only the owner sets up Gavel.')
+      const owner = true
       const st = Object.fromEntries(sourceStatuses().filter((x) => x.kind === 'api').map((x) => [x.id, x.connected]))
       const ai = await aiStatus()
       const items: Array<{ id: string; group: string; name: string; done: boolean; unlocks: string; cost: string; steps: string[]; env: string[]; link?: string; ownerOnly?: boolean }> = [
@@ -935,6 +957,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         { id: 'setup', title: 'Tell Gavel what you are after', body: 'Four questions: your goal, your state, your cash, and the cars you like.', href: '#setup', done: settings.onboarded },
         // Only the owner can connect a source; for a member it would be a step they can never finish.
         ...(owner ? [{ id: 'source', title: 'Connect a live auction source', body: 'eBay Motors and GSA Auctions are free to connect. The Connect screen walks you through each one.', href: '#connect', done: liveSource }] : []),
+        ...(owner ? [{ id: 'members', title: 'Invite your first member', body: 'Add their email on Members, then press Copy invite and send it. Try it on yourself first, on your phone.', href: '#admin', done: gate.listMembers().length > 0 }] : []),
         { id: 'target', title: 'Set your first Sniper target', body: 'Makes, models, years and the most you will spend. It watches for you.', href: '#sniper', done: targets.length > 0 },
         best
           ? { id: 'pick', title: `Open your best pick: ${bestTitle}`, body: `Never bid above ${money(best.fire.maxBidUsd)}. The plan shows where every dollar goes.`, href: `#plan/${encodeURIComponent(best.card.listing.id)}`, done: paper.length > 0 }
@@ -1148,7 +1171,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     console.log(`  ${BRAND} ${VERSION} — ${TAGLINE}`)
     console.log(`  Open:        ${url}`)
     console.log(`  Owner PIN:   ${pin}   (sign in on the Owner tab; set GAVEL_PIN in .env to keep it fixed)`)
-    console.log(`  Members:     sign in with email + access code (issue codes on the Admin page, or set GAVEL_MEMBER_CODES)`)
+    console.log(`  Members:     sign in with email + access code (issue codes on the Members page, or set GAVEL_MEMBER_CODES)`)
     console.log(`  Sources:     ${live.length ? `LIVE from ${live.join(', ')}` : 'none connected — the feed shows SAMPLE cars, labelled, until you add a source (see .env.example)'}`)
     console.log(`  Bidding:     PAPER. ${flag('GAVEL_LIVE_BIDDING') ? 'GAVEL_LIVE_BIDDING=1 is set, but no connected source can take a bid by API, so bids still stay on paper.' : 'Live bidding is off (GAVEL_LIVE_BIDDING=0).'}`)
     if (!secretInfo.persistent) console.log(`  Sessions:    reset on restart. Set GAVEL_SESSION_SECRET (32+ characters) in .env to keep members signed in.`)

@@ -17,8 +17,14 @@ export async function render(el, ctx) {
       <p>with the events <code>checkout.session.completed</code>, <code>customer.subscription.updated</code> and <code>customer.subscription.deleted</code>. Paste the endpoint's signing secret into the server's environment as <code>GAVEL_STRIPE_WEBHOOK_SECRET</code> (never into the code). A paid checkout creates the member; you then issue their code here with <b>New code</b> and send it to them. A cancelled or unpaid subscription switches them off.</p>
       <p class="dim" style="font-size:14px">Gavel does not send email. You send the code.</p></div>`
   const showCode = (made) => {
-    el.querySelector('#m-new').innerHTML = `<div class="strip go" style="margin-top:12px"><b>${esc(made.member.email)}</b> — access code: <code style="font-size:18px">${esc(made.code)}</code> <button class="btn outline sm" type="button" id="m-copy">Copy</button><div style="margin-top:6px">Send this to them now. It will not be shown again.</div></div>`
-    el.querySelector('#m-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(made.code); toast('Copied.') } catch { toast('Select the code and copy it.', 'hot') } })
+    const invite = inviteText(origin, made.member.email, made.code)
+    el.querySelector('#m-new').innerHTML = `<div class="strip go" style="margin-top:12px"><b>${esc(made.member.email)}</b> — access code: <code style="font-size:18px">${esc(made.code)}</code>
+      <div class="row" style="margin-top:8px"><button class="btn sm" type="button" id="m-invite">Copy invite</button><button class="btn outline sm" type="button" id="m-copy">Copy code only</button></div>
+      <div style="margin-top:6px">Send it to them now: the code will not be shown again. The invite says where to go and what to type.</div>
+      <pre class="invite">${esc(invite)}</pre></div>`
+    const copy = async (text) => { try { await navigator.clipboard.writeText(text); toast('Copied. Paste it into a text or an email.') } catch { toast('Select the text and copy it.', 'hot') } }
+    el.querySelector('#m-invite').addEventListener('click', () => copy(invite))
+    el.querySelector('#m-copy').addEventListener('click', () => copy(made.code))
   }
   el.querySelector('#m-form').addEventListener('submit', async (e) => {
     e.preventDefault()
@@ -34,4 +40,18 @@ export async function render(el, ctx) {
     if (!window.confirm(`Remove ${email}? They will not be able to sign in.`)) return
     try { await del('/api/admin/members/' + encodeURIComponent(email)); render(el, ctx) } catch (err) { toast(err.message, 'hot') }
   }))
+}
+
+/** The message the owner sends a new member: where to go, which tab, what to type. */
+export function inviteText(origin, email, code) {
+  return [
+    'You are in. Here is how to sign in to Gavel:',
+    '',
+    `1. Open ${origin}/login`,
+    '2. Choose Member.',
+    `3. Email: ${email}`,
+    `4. Access code: ${code}`,
+    '',
+    'Keep the code private: it works like a password. On a phone, add Gavel to your home screen and it opens like an app.',
+  ].join('\n')
 }

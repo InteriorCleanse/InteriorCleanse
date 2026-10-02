@@ -30,11 +30,11 @@
     </div>
     <form id="form-member" role="tabpanel" aria-labelledby="tab-member" novalidate>
       <label class="f">Email <input type="email" name="email" autocomplete="email" required inputmode="email" /></label>
-      <label class="f" style="margin-top:10px">Access code <input type="text" name="code" autocomplete="one-time-code" required placeholder="GVL-XXXX-XXXX" spellcheck="false" /><small>Your code came with your subscription. Lost it? Ask the owner for a new one.</small></label>
+      <label class="f" style="margin-top:10px">Access code <input type="text" name="code" autocomplete="one-time-code" required placeholder="GVL-XXXX-XXXX-XXXX" spellcheck="false" /><small>Your code came with your subscription. Lost it? Ask the owner for a new one.</small></label>
       <button class="btn" type="submit" style="margin-top:14px;width:100%">Sign in</button>
     </form>
     <form id="form-owner" role="tabpanel" aria-labelledby="tab-owner" hidden novalidate>
-      <label class="f">Owner PIN <input type="password" name="pin" inputmode="numeric" autocomplete="current-password" required /><small>The PIN is printed in the terminal when Gavel starts, or set in .env as GAVEL_PIN.</small></label>
+      <label class="f">Owner PIN <input type="password" name="pin" inputmode="numeric" autocomplete="current-password" required /><small>Only for the person who runs this Gavel. Members sign in on the Member tab with their email and access code.</small></label>
       <button class="btn" type="submit" style="margin-top:14px;width:100%">Sign in as owner</button>
     </form>
     <p class="err" id="err" role="alert"></p>

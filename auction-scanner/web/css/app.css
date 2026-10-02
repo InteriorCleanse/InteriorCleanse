@@ -262,6 +262,7 @@ textarea { min-height: 80px; }
 .empty h2 { font-size: 24px; margin-bottom: 8px; }
 .empty pre { background: var(--paper); color: var(--on-paper); border: 1px solid var(--ink-3); padding: 12px; border-radius: 4px; overflow-x: auto; font: 500 13px/1.5 var(--mono); }
 @media (prefers-color-scheme: dark) { .empty pre { background: #EDE4CF; color: #1C1A16; } }
+.invite { white-space: pre-wrap; margin: 10px 0 0; padding: 10px 12px; border: 1px dashed var(--ink-3); border-radius: 4px; font: 500 13px/1.5 var(--mono); color: var(--on-paper); background: transparent; }
 .toasts { position: fixed; left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 60; display: grid; gap: 8px; pointer-events: none; }
 @media (min-width: 960px) { .toasts { left: auto; width: 380px; bottom: 24px; } }
 .toast { background: var(--ink); color: var(--tag); padding: 12px 14px; border-radius: 4px; box-shadow: var(--shadow); pointer-events: auto; }

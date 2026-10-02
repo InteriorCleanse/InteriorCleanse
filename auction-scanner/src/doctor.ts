@@ -49,6 +49,6 @@ try {
 
 say(env('GAVEL_PIN') ? 'PASS' : 'INFO', env('GAVEL_PIN') ? 'Owner PIN is fixed in .env' : 'Owner PIN is random each start', env('GAVEL_PIN') ? '' : 'It is printed when the app starts. Set GAVEL_PIN to keep it.')
 say(env('GAVEL_SESSION_SECRET').length >= 32 ? 'PASS' : 'INFO', env('GAVEL_SESSION_SECRET').length >= 32 ? 'Session secret set' : 'Sessions reset on restart', env('GAVEL_SESSION_SECRET').length >= 32 ? '' : 'Set GAVEL_SESSION_SECRET (32+ random characters) so members stay signed in across restarts.')
-say(env('GAVEL_STRIPE_WEBHOOK_SECRET') ? 'PASS' : 'INFO', env('GAVEL_STRIPE_WEBHOOK_SECRET') ? 'Stripe webhook secret set' : 'Stripe webhook not configured', env('GAVEL_STRIPE_WEBHOOK_SECRET') ? '' : 'Optional. Members can be added by hand on the Admin page, or with GAVEL_MEMBER_CODES.')
-say(env('GAVEL_MEMBER_CODES') ? 'INFO' : 'INFO', env('GAVEL_MEMBER_CODES') ? `${env('GAVEL_MEMBER_CODES').split(',').filter(Boolean).length} shared access code(s) in GAVEL_MEMBER_CODES` : 'No shared access codes', 'Codes issued on the Admin page are per member and safer.')
+say(env('GAVEL_STRIPE_WEBHOOK_SECRET') ? 'PASS' : 'INFO', env('GAVEL_STRIPE_WEBHOOK_SECRET') ? 'Stripe webhook secret set' : 'Stripe webhook not configured', env('GAVEL_STRIPE_WEBHOOK_SECRET') ? '' : 'Optional. Members can be added by hand on the Members page, or with GAVEL_MEMBER_CODES.')
+say(env('GAVEL_MEMBER_CODES') ? 'INFO' : 'INFO', env('GAVEL_MEMBER_CODES') ? `${env('GAVEL_MEMBER_CODES').split(',').filter(Boolean).length} shared access code(s) in GAVEL_MEMBER_CODES` : 'No shared access codes', 'Codes issued on the Members page are per member and safer.')
 ui.line()

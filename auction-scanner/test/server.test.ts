@@ -580,3 +580,31 @@ test('a car with no comparables is priced once three sold prices are added from 
   assert.equal(priced.body.estimate.valueUsd, 24_000)
   assert.match(priced.body.estimate.method, /3 sold prices/)
 })
+
+test('a member sees no server setup: no Connect, no variable names; the owner is told to invite', async () => {
+  const owner = await api('/api/login', { method: 'POST', json: { pin: PIN }, noCsrf: true })
+  cookie = (owner.headers.get('set-cookie') ?? '').split(';')[0]
+  csrf = owner.body.csrf
+  const home = await api('/api/home')
+  const invite = home.body.next.find((n: any) => n.id === 'members')
+  assert.ok(invite, 'the owner\'s path includes inviting a member')
+  assert.equal(invite.href, '#admin')
+  const made = await api('/api/admin/members', { method: 'POST', json: { email: 'cal@example.com' } })
+  assert.equal((await api('/api/home')).body.next.find((n: any) => n.id === 'members').done, true)
+  const r = await api('/api/login', { method: 'POST', json: { email: 'cal@example.com', code: made.body.code }, noCsrf: true })
+  const c = (r.headers.get('set-cookie') ?? '').split(';')[0]
+  const connect = await api('/api/connect', { asMember: c })
+  assert.equal(connect.status, 403)
+  const me = await api('/api/me', { asMember: c })
+  assert.equal(me.status, 200)
+  const text = JSON.stringify({ sources: me.body.sources, ai: me.body.ai, research: me.body.research })
+  assert.doesNotMatch(text, /GAVEL_|ANTHROPIC_|\.env|npm /, 'nothing a member cannot act on')
+  assert.equal(me.body.dataDir, undefined)
+  assert.equal(typeof me.body.allowSample, 'boolean')
+  assert.ok(!(await api('/api/home', { asMember: c })).body.next.some((n: any) => n.id === 'members' || n.id === 'source'))
+  const feed = await api('/api/feed?starter=0', { asMember: c })
+  assert.doesNotMatch(JSON.stringify(feed.body.errors), /GAVEL_|ANTHROPIC_|\.env/)
+  // The owner still gets the exact steps.
+  const ownerMe = await api('/api/me')
+  assert.match(JSON.stringify(ownerMe.body.sources), /GAVEL_/)
+})
