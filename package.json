@@ -18,7 +18,7 @@
     "check:seo": "node scripts/check-seo.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
+    "@anthropic-ai/sdk": "^0.128.0",
     "@babylonjs/core": "^7.34.4",
     "@babylonjs/loaders": "^7.34.4",
     "@react-three/drei": "^9.114.3",
