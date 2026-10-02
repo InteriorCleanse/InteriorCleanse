@@ -1,0 +1,20 @@
+/* Picked design tokens as CSS custom properties. Source: design-tokens.json */
+:root {
+  /* primitive */
+  --pk-ink: #1E1A17; --pk-cream: #FFF7EC; --pk-paper: #FFFDF8;
+  --pk-leaf: #2F7D3A; --pk-deep-leaf: #1F4D2C; --pk-sprout: #9BD36A;
+  --pk-strawberry: #F0505E; --pk-strawberry-deep: #C81E3A; --pk-strawberry-soft: #FFD3D9;
+  --pk-mango: #FFB01F; --pk-mango-deep: #E5482B; --pk-mango-soft: #FFF0C7;
+  --pk-raspberry: #B8185A; --pk-raspberry-soft: #F9C6DA; --pk-lemon: #F6DD3D;
+  --pk-font-display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --pk-font-body: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+  --pk-radius-sm: 8px; --pk-radius-md: 14px; --pk-radius-lg: 22px; --pk-radius-pill: 999px;
+  /* semantic */
+  --pk-surface: var(--pk-cream); --pk-surface-raised: var(--pk-paper); --pk-surface-dark: var(--pk-deep-leaf);
+  --pk-text: var(--pk-ink); --pk-text-on-dark: var(--pk-cream);
+  --pk-link: var(--pk-leaf); --pk-accent: var(--pk-strawberry-deep); --pk-focus: var(--pk-leaf);
+  /* active flavour, swapped by [data-flavour] */
+  --pk-flavour-bg: var(--pk-strawberry); --pk-flavour-fg: var(--pk-ink); --pk-flavour-soft: var(--pk-strawberry-soft);
+}
+[data-flavour="mango"] { --pk-flavour-bg: var(--pk-mango); --pk-flavour-fg: var(--pk-ink); --pk-flavour-soft: var(--pk-mango-soft); }
+[data-flavour="raspberry-lemon"] { --pk-flavour-bg: var(--pk-raspberry); --pk-flavour-fg: var(--pk-cream); --pk-flavour-soft: var(--pk-raspberry-soft); }

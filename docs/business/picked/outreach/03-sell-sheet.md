@@ -1,6 +1,7 @@
 # Sell sheet content (one page, for store buyers)
 
-Lay this out with the brand colours and the pouch art from `brand/`. Fill
+The designed version is `sell-sheet/sell-sheet.pdf` (US Letter, one page),
+with a PNG for email. Edit `sell-sheet/sell-sheet.html`, then re-export. Fill
 every bracket from final production data before you hand it out.
 
 **picked**: real fruit protein drink mix

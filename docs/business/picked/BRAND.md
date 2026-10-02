@@ -127,6 +127,41 @@ final size, the bleed, the zipper, and the tear notch.
   real pouch exists to reference.
 - No shirtless gym shots. The setting is a kitchen counter, a park, a car after a run.
 
+## Packaging system
+
+| File | What it is |
+| --- | --- |
+| `brand/pouch-back-strawberry.svg` | Back panel template: story, Supplement Facts layout, other ingredients, Contains: Milk, directions, lot QR slot, UPC slot, distributor line |
+| `brand/stick-*.svg` | Single-serve stick packs, one per flavor |
+| `brand/counter-display.svg` | Counter box for 10 sticks with header card, for gyms, studios, and cafés |
+| `brand/shaker.svg` | Branded shaker with volume marks |
+
+Every value in brackets on the back panel is a placeholder. The Supplement
+Facts layout shows structure only; the manufacturer and a label consultant
+fill it in from the final formula.
+
+## Design tokens
+
+`brand/tokens/design-tokens.json` holds the system in three layers: primitive
+values, semantic roles, and component settings. `brand/tokens/tokens.css` is
+the same as CSS variables, with `[data-flavor]` switching the active flavor.
+Contrast ratios are recorded next to each pairing.
+
+## Exports
+
+- `brand/png/`: wordmark and reverse wordmark at 512, 1024, and 3000 px wide,
+  and the mark at 512 and 1024, all with transparent backgrounds.
+- `brand/social/`: five editable Instagram templates (HTML) with PNG exports:
+  a Strawberry post, a flavor vote, a label comparison, the first Real Fruit
+  Test carousel slide, and a waitlist story.
+- `brand/mood/MOOD.md`: six AI-generated mood photos of fruit and drinks,
+  with links and the prompt recipe for more.
+
+## Spelling
+
+Customer-facing copy (pack, site, social, email) uses US spelling: flavor,
+color. Internal planning documents may differ.
+
 ## Rebuilding the art
 
 `brand/src/` holds the scripts that drew the wordmark and pouches from the

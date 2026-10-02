@@ -16,7 +16,10 @@ The manufacturer is the long pole, so the request for quotes goes out first.
 - [ ] Register pickedprotein.com and drinkpicked.com. Claim @pickedprotein on Instagram and TikTok.
 - [ ] Form an LLC, get an EIN (free, online, same day), and open a business bank account.
 - [ ] Put the waitlist site live (`site/`, see `site/README.md`) with a Klaviyo signup form.
-- [ ] Post the first "building a protein that tastes like fruit" video. Film everything from here on.
+- [ ] Download the six mood photos (`brand/mood/MOOD.md`) and drop two into `site/assets/img/`.
+- [ ] Set up Klaviyo's sending domain and the waitlist welcome flow (`marketing/EMAIL.md`, section 0 first).
+- [ ] Post the first "building a protein that tastes like fruit" video. Film everything from here on: `marketing/TIKTOK.md` has 22 scripts you can shoot before the product exists.
+- [ ] Set up Instagram from `marketing/INSTAGRAM.md` and post the first three templates in `brand/social/`.
 
 ## Weeks 2 to 8: make the product
 
