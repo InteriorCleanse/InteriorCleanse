@@ -1,1 +1,18 @@
-{ "landed": [] }
+{
+  "landed": [
+    "hero",
+    "sedan",
+    "suv",
+    "truck",
+    "van",
+    "convertible",
+    "coupe",
+    "hatchback",
+    "wagon",
+    "keys",
+    "coast",
+    "driver",
+    "test-low",
+    "test-medium"
+  ]
+}
