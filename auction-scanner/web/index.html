@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Gavel</title>
 <meta name="description" content="Gavel — an AI car-auction scanner. Clean cars, dumb cheap, explained. Paper bidding by default." />
-<meta name="theme-color" content="#E6DBC2" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#14120E" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#EEEFF1" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0B0D0F" media="(prefers-color-scheme: dark)" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -15,13 +15,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" />
 <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body class="on-paper">
-<div class="grain" aria-hidden="true"></div>
 <header class="topbar">
-  <a class="brand" href="#home" aria-label="Gavel, go home"><span class="eyelet" aria-hidden="true"></span><span class="wordmark">Gavel</span></a>
+  <a class="brand" href="#home" aria-label="Gavel, go home"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><defs><mask id="gm-t"><rect width="64" height="64" fill="#fff"/><g transform="rotate(-14 33 32)"><rect x="23" y="24.6" width="11.5" height="2" fill="#000"/><rect x="23" y="37.4" width="11.5" height="2" fill="#000"/></g></mask></defs><path d="M41.42 12.68 A21.5 21.5 0 1 0 53.29 34.99" fill="none" stroke="currentColor" stroke-width="7"/><path class="s1" d="M52.86 26.80 A21.5 21.5 0 0 0 51.64 23.26" fill="none" stroke-width="7"/><path class="s2" d="M51.16 22.24 A21.5 21.5 0 0 0 48.94 18.76" fill="none" stroke-width="7"/><path class="s3" d="M48.23 17.89 A21.5 21.5 0 0 0 45.24 15.06" fill="none" stroke-width="7"/><g mask="url(#gm-t)"><g transform="rotate(-14 33 32)"><rect x="33" y="29" width="14.5" height="6" rx="1" fill="currentColor"/><rect x="23.5" y="21" width="10.5" height="22" rx="2.5" fill="currentColor"/></g></g></svg><span class="wordmark">Gavel</span></a>
   <span class="spacer"></span>
   <button class="chip" id="mode-chip" type="button" title="Where the cars on the feed come from">…</button>
   <button class="ring" id="account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">·</button>
@@ -29,7 +28,7 @@
 </header>
 
 <nav class="tabs" aria-label="Screens">
-  <a href="#home" class="rail-brand" aria-label="Gavel, go home"><span class="eyelet" aria-hidden="true"></span>Gavel</a>
+  <a href="#home" class="rail-brand" aria-label="Gavel, go home"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><defs><mask id="gm-r"><rect width="64" height="64" fill="#fff"/><g transform="rotate(-14 33 32)"><rect x="23" y="24.6" width="11.5" height="2" fill="#000"/><rect x="23" y="37.4" width="11.5" height="2" fill="#000"/></g></mask></defs><path d="M41.42 12.68 A21.5 21.5 0 1 0 53.29 34.99" fill="none" stroke="currentColor" stroke-width="7"/><path class="s1" d="M52.86 26.80 A21.5 21.5 0 0 0 51.64 23.26" fill="none" stroke-width="7"/><path class="s2" d="M51.16 22.24 A21.5 21.5 0 0 0 48.94 18.76" fill="none" stroke-width="7"/><path class="s3" d="M48.23 17.89 A21.5 21.5 0 0 0 45.24 15.06" fill="none" stroke-width="7"/><g mask="url(#gm-r)"><g transform="rotate(-14 33 32)"><rect x="33" y="29" width="14.5" height="6" rx="1" fill="currentColor"/><rect x="23.5" y="21" width="10.5" height="22" rx="2.5" fill="currentColor"/></g></g></svg><span class="wordmark">Gavel</span></a>
   <a href="#home" data-tab="home">Home</a>
   <a href="#feed" data-tab="feed">Feed</a>
   <a href="#sniper" data-tab="sniper">Sniper <span class="n" id="sniper-badge" hidden></span></a>

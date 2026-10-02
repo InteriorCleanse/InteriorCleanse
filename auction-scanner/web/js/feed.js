@@ -92,7 +92,7 @@ async function load() {
     if (feed.kind === 'SAMPLE') html += `<div class="strip wait"><b>Practice cars, not for sale.</b> ${me.role === 'owner' ? 'Real auctions appear here once a source is connected: <a href="#connect">Connect</a>.' : 'Use them to learn the plan. Real auctions appear here when the owner connects them.'}</div>`
     if (feed.kind === 'EMPTY') html += emptyHtml(me)
     else if (!feed.cards.length) html += `<div class="tag empty"><h2>Nothing matches</h2><p>Loosen a filter, or turn Starter mode off to see the cars it hid (each one says why).</p></div>`
-    html += `<div class="feed">${feed.cards.map((c) => cardHtml(c, { watched: watched.has(c.listing.id), showBlocks: state.showHidden })).join('')}</div>`
+    html += `<div class="feed">${feed.cards.map((c, i) => cardHtml(c, { watched: watched.has(c.listing.id), showBlocks: state.showHidden, pos: state.sort === 'score' ? i + 1 : 0 })).join('')}</div>`
     list.innerHTML = html
     wireCards(list, { onWatch: toggleWatch })
   } catch (e) {

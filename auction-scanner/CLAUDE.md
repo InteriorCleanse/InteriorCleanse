@@ -50,7 +50,7 @@ teaching) · `src/knowledge/` (policies, regulations, glossary, search) ·
 `src/research/` (car intel from public databases; the web desk) ·
 `src/sniper/` (targets, engine, alerts; paper fires only) · `src/security/` (CSP nonce, sessions, members, throttle, Stripe
 signature) · `web/` (vanilla ES modules, no build; `docs/DESIGN.md` is the
-design spec) · `test/` (`node --test`, offline; `test/setup.ts` puts the data
+design spec, `docs/BRAND.md` the brand and logo rules, `web/brand/` the logo files) · `test/` (`node --test`, offline; `test/setup.ts` puts the data
 dir in a temp folder) · `scan.ts` `doctor.ts` `selftest.ts` (CLIs) ·
 `Dockerfile`, `deploy/` (Compose with Caddy for HTTPS, a systemd unit; tested
 with `docker compose` and `GAVEL_DOMAIN=localhost`).

@@ -126,7 +126,7 @@ export async function render(el, ctx, [id]) {
           <div><span class="k mono">${card.estimate.ok ? 'Similar cars sell for' : 'Similar cars'}</span><div class="comps ${card.estimate.ok ? '' : 'nocomps'}">${card.estimate.ok ? esc(money(card.estimate.valueUsd)) : 'Not enough comps'}</div><div class="receipt mono">${card.estimate.ok ? esc(card.estimate.method) : esc(card.estimate.reason)}</div></div></div>${badges(l)}</div>${stub(card.score, { big: true })}</div>
         ${priceItHtml(l, card.estimate)}
         ${whyHtml(card)}
-        <div class="panel" style="margin-top:16px"><h2>The number</h2><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
+        <div class="panel receipt-paper" style="margin-top:16px"><div class="r-head"><h2>The number</h2><span class="mono">Itemised · every dollar</span></div><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
         ${supercarHtml(card.plan)}
         <div class="panel"><h2>Bid</h2>
           <p class="before-bid"><b>Before you bid:</b> do the first four checks in <button class="lnk" type="button" id="p-to-walk">How to buy this car</button>.</p>

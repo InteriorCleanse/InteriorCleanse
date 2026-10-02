@@ -51,7 +51,8 @@ export function sheet(html, { label = 'Dialog' } = {}) {
   return close
 }
 
-const GRADE_TONE = { steal: 'go', 'good deal': 'go', fair: 'wait', pass: '', unpriced: 'hollow' }
+// Timing colours: purple is the best in the session, green good, yellow caution.
+const GRADE_TONE = { steal: 'best', 'good deal': 'go', fair: 'wait', pass: '', unpriced: 'hollow' }
 const GRADE_WORD = { steal: 'Steal', 'good deal': 'Good deal', fair: 'Fair', pass: 'Pass', unpriced: 'Unpriced' }
 
 /** A car's name, escaped, with hyphenated model names (MX-5, F-150) kept on one line. */
@@ -63,19 +64,24 @@ export function stamp(word, tone = '', extra = '') {
   return `<span class="stamp ${tone} ${extra}">${esc(word)}</span>`
 }
 
-/** The tear-off stub: label, discount, numeral, /100, ten ticks, the grade stamp. */
+/** The 240-degree arc of the deal-score gauge, as an SVG path (centre 50,50, radius 40). */
+const GAUGE_ARC = 'M21.72 78.28 A40 40 0 1 1 78.28 78.28'
+
+/** The score: a tachometer from 0 to 100, the needle's arc in the grade's timing colour, the grade underneath. */
 export function stub(score, { big = false } = {}) {
   const g = score.grade
   const n = g === 'unpriced' ? '—' : String(score.total)
-  const filled = g === 'unpriced' ? 0 : Math.round(score.total / 10)
-  const ticks = Array.from({ length: 10 }, (_, i) => `<i class="${i < filled ? 'on' : ''}" style="--k:${i}"></i>`).join('')
+  const value = g === 'unpriced' ? 0 : Math.max(0, Math.min(100, score.total))
   const disc = typeof score.discount === 'number' ? `<span class="mono dim">${esc(pct(score.discount))} under similar cars</span>` : ''
   const sr = g === 'unpriced' ? 'Not scored: not enough comparable cars.' : `Deal score ${score.total} out of 100, ${GRADE_WORD[g]}${typeof score.discount === 'number' ? `, ${pct(score.discount)} under comparable listings` : ''}.`
   return `<div class="stub" role="img" aria-label="${esc(sr)}">
-    <span class="mono dim">Deal score</span>${disc}
-    <span class="n${big ? ' stub-n' : ''}" aria-hidden="true">${n}</span><span class="mono dim" aria-hidden="true">/100</span>
-    <span class="ticks" aria-hidden="true">${ticks}</span>
+    <span class="mono dim">Deal score</span>
+    <div class="gauge ${GRADE_TONE[g]}${big ? ' big' : ''}" aria-hidden="true" style="--v:${value}">
+      <svg viewBox="0 0 100 86"><path class="g-track" d="${GAUGE_ARC}" pathLength="100"/><path class="g-val" d="${GAUGE_ARC}" pathLength="100"/></svg>
+      <span class="n">${n}</span><span class="of mono">/100</span>
+    </div>
     ${stamp(GRADE_WORD[g], GRADE_TONE[g], reducedMotion() ? '' : 'press')}
+    ${disc}
   </div>`
 }
 
@@ -132,6 +138,9 @@ export function cardHtml(card, opts = {}) {
   const priceLabel = typeof l.currentBidUsd === 'number' ? 'Current bid' : typeof l.buyNowUsd === 'number' ? 'Buy now' : 'Price'
   const bidsNote = typeof l.currentBidUsd === 'number' ? `${typeof l.bidCount === 'number' ? l.bidCount + ' bids · ' : ''}not the final price` : (typeof l.buyNowUsd === 'number' && typeof l.currentBidUsd === 'number' ? `or buy now ${money(l.buyNowUsd)}` : '')
   const est = card.estimate
+  // Gap to market, like a lap interval: how far the price sits under (or over) what similar cars go for.
+  const gap = est.ok && typeof asking === 'number' ? asking - est.valueUsd : null
+  const gapHtml = gap === null ? '' : `<div><span class="k mono">Gap to market</span><div class="gap ${gap <= 0 ? 'under' : 'over'}">${gap <= 0 ? '−' : '+'}${esc(money(Math.abs(gap)))}</div></div>`
   const compsHtml = est.ok
     ? `<div><span class="k mono">Similar cars sell for</span><div class="comps">${esc(money(est.valueUsd))}</div><div class="receipt mono">${esc(moneyK(est.low))}–${esc(moneyK(est.high))} · ${est.comps} cars</div></div>`
     : `<div><span class="k mono">Similar cars</span><div class="comps nocomps">Not enough comps</div><div class="receipt mono">${esc(String(est.comps))} found · 3 needed${sample ? '' : ` · <a href="#plan/${encodeURIComponent(l.id)}">price it yourself</a>`}</div></div>`
@@ -154,7 +163,7 @@ export function cardHtml(card, opts = {}) {
     : safeUrl(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''
   return `<article class="tag settle" data-id="${esc(l.id)}">
     ${sample ? '<div class="band">Sample. Not a real car.</div>' : ''}
-    <div class="photo">${photoHtml}${lot}</div>
+    <div class="photo">${photoHtml}${lot}${opts.pos ? `<span class="pos ${opts.pos === 1 ? 'p1' : ''}" title="Position ${opts.pos} by deal score">P${opts.pos}</span>` : ''}</div>
     <div class="tagbody">
       <div class="body">
         <h3 class="title">${carName(l.title)}</h3>
@@ -162,6 +171,7 @@ export function cardHtml(card, opts = {}) {
         <div class="money">
           <div><span class="k mono">${priceLabel}</span><div class="now">${esc(money(asking))}</div><div class="receipt mono">${esc(bidsNote)}</div></div>
           ${compsHtml}
+          ${gapHtml}
         </div>
         ${badges(l, Date.now(), { clock: false })}
         <ul class="why">${why}${demand}</ul>

@@ -1,153 +1,146 @@
-# Gavel — design spec ("Lot Tag")
+# Gavel — design spec ("Purple Sector")
+
+The brand behind it (story, voice, logo rules) is in `docs/BRAND.md`.
 
 ## Thesis
 
-An auction yard is already a design system: manila lot tags wired to
-windscreens, black ink, one red rubber stamp, and numbers you can read from ten
-feet. Gavel borrows it literally, so a beginner meets things they already
-understand — a tag, a stub with a big number, a stamp, a checklist — instead of
-a dashboard. Plain English sits in a plain sans; only the numbers shout.
+A motorsport timing wall already shows what a car buyer at auction needs to
+see: many cars ranked, a number for each, a gap, a clock, and colours that mean
+the same thing every time. Gavel uses that language. The screens are the pit
+wall at night: near-black, dense with numbers that never jitter, and coloured
+only where the colour carries meaning.
 
-Three judged directions fed this spec. Lot Tag won for beginner legibility and
-for making the honesty labels (SAMPLE, PAPER) the most memorable element. Two
-grafts were taken: from "Pit Wall", every number wears its label above and its
-receipt below (source, comps count, verify link); from "Showroom", word tabs
-instead of icon soup and a feed whose colour grows with the quality of the deals.
+- **Purple** = the best in the session: a STEAL, P1 on the feed, the screen you
+  are on.
+- **Green** = good: a GOOD DEAL, under market, starter rules met.
+- **Yellow** = caution: FAIR, things not stated, the next step.
+- **Red** = stop: red flags, SAMPLE, PAPER, a price over your number.
+
+Every colour also carries its word, so nothing depends on colour alone.
+
+One surface is not the pit wall: the Plan's numbers print on a paper receipt,
+because hidden fees are the niche's top complaint and a receipt is the
+universal sign that every dollar is listed.
+
+Chosen over two other directions (a stamped auction-ticket look, the last
+theme, and a racing-green concours look) after studying Copart, IAA, Bring a
+Trailer, Cars & Bids, PCARMARKET, Collecting Cars, CarGurus, Classic.com,
+Hagerty, ACV, Manheim and Carvana. Each of those owns one hue on white; none
+owns performance data, none computes a number to bid, and none admits low
+confidence. Gavel does all three.
 
 ## What we refuse to do
 
-No colour gradients (the ruled photo plate is a pattern, not a fade), no glassmorphism, no floating blur-only shadows (a hard offset always anchors the tag; a soft warm fall-off may sit under it), no purple, no 16px-radius white
-cards floating on grey, no Inter/Roboto, no icon library, no emoji, no AI
-sparkle, no hero illustrations, no stock car photographs (a missing photo is a
-plate that says so), no donut gauges, no skeleton shimmer, no blinking
-countdowns, no distressed "vintage" texture, no truncated model names, no
-success confetti. Red is never decorative.
+No colour gradients on surfaces or the logo (the login's single faint purple
+glow and the receipt's torn edge are the only soft shapes), no glassmorphism, no
+colour used as decoration, no stock car photographs (a missing photo is a ruled
+plate that says so), no emoji, no AI sparkle, no skeleton shimmer, no blinking
+countdowns, no confetti, no truncated model names, and no promise words.
 
-## Tokens
+## Tokens (`web/css/app.css` `:root`)
 
-| Variable | Light (default) | Night (`prefers-color-scheme: dark`) | Use |
+| Variable | Night (default) | Day (`prefers-color-scheme: light`) | Use |
 |---|---|---|---|
-| `--paper` | `#E6DBC2` | `#14120E` | page background: kraft, a step darker than the tags so a tag reads as a tag |
-| `--paper-2` | `#DCCFB2` | `#1E1B16` | wells on the paper |
-| `--tag` | `#FBF7EE` | `#FBF7EE` | card, sheet, input surface (cards stay cream at night) |
-| `--line` | ink at 16% | ink at 16% | soft hairlines; panels and tiles use ink at 24%, lot tags keep the full ink edge |
-| `--ink` | `#1C1A16` | `#1C1A16` on tag; `#EDE4CF` for text on paper | primary text, borders, primary button |
-| `--ink-2` | `#5A554B` | `#5A554B` on tag; `#B8AE9A` on paper | secondary text (6.69:1 on tag) |
-| `--ink-3` | `#B8AE9A` | `#B8AE9A` | hairlines, perforations, unfilled ticks — never text |
-| `--hot` | `#B3261E` | `#B3261E` | SAMPLE, PAPER, red flags, ending soon (5.90:1 on tag as text; cream on hot 5.90:1) |
-| `--hot-deep` | `#8E1B14` | `#8E1B14` | pressed hot |
-| `--go` | `#1F6B3A` | `#1F6B3A` | STEAL and GOOD DEAL stamps, "in budget" (5.9:1 on tag) |
-| `--wait` | `#7D5200` | `#7D5200` | FAIR stamp, cautions, "over budget" (6.4:1 on tag, 5.0:1 on paper) |
-| `--focus` | `#1C1A16` | `#EDE4CF` | 2px focus ring, offset 2px |
+| `--paper` | `#0B0D0F` | `#EEEFF1` | page background |
+| `--paper-2` | `#111418` | `#E3E5E8` | wells, inputs, photo plates |
+| `--tag` | `#15181C` | `#FFFFFF` | cards, panels, sheets |
+| `--tag-2` | `#1B1F24` | `#F6F7F8` | raised: menu, tiles inside panels, save bar |
+| `--ink` | `#F2F2F0` | `#0B0D0F` | text and primary button fill |
+| `--ink-2` | `#9BA3AD` (7.0:1 on tag) | `#545B66` (6.9:1) | secondary text |
+| `--ink-3` | `#2C3138` | `#D3D7DD` | gauge track, hairlines — never text |
+| `--edge` | ink at 9% | ink at 10% | every surface's 1px edge |
+| `--best` | `#B65CFF` (5.1:1) | `#7A2BD9` (6.6:1) | purple: STEAL, P1, current screen |
+| `--go` | `#00D26A` (8.8:1) | `#007A38` | green: GOOD DEAL, under market |
+| `--wait` | `#FFD60A` (12.6:1) | `#7A5C00` | yellow: FAIR, caution, next step |
+| `--hot` | `#FF453A` (5.2:1) | `#D70015` | red: flags, SAMPLE, PAPER |
+| `--*-fill` | as above | the bright night values | solid chips; text on them is `--on-signal` `#0B0D0F` |
 
-Colour is never the only signal: every stamp carries its word; every badge is a
-word; go/wait/stop words accompany the colours.
+The rail and phone tab bar stay night-dark in both modes: they are the brand's
+anchor. The receipt sets its own light tokens inside `.receipt-paper`.
 
 ## Type (Google Fonts, one `<link>`, `display=swap`)
 
-- **Barlow Condensed 700/800** — tag numerals and headlines. Steal numeral 56px
-  phone / 72px desktop, weight 800, line-height 0.9. Card title 22/26px, 700,
-  uppercase, two lines max, never truncated. Price now 28/32px, 800. Section
-  heads 18px, 700, uppercase, letter-spacing .06em. Stamp words 14/16px, 800,
-  uppercase, .14em. NEVER BID ABOVE figure 40/56px, 800.
-- **IBM Plex Sans 400/600** — every plain-English sentence. Body 16/24 phone,
-  17/26 desktop. "Why it scores this" 15/22. Buttons 15px 600. Form labels
-  14px 600.
-- **IBM Plex Mono 500** — data and small labels, 12–13px uppercase, .08em:
-  VIN, source, ENDS 2D 4H, DEAL SCORE, similar-car count, timestamps, ledger columns.
+- **Archivo** (variable width): headlines and the wordmark at width 125, weight
+  850–900, uppercase (h1 `clamp(28px, 4.4vw, 46px)`); section heads at width
+  112, 14px, .1em; car names at width 100, 800, 21/23px, never truncated, and
+  hyphenated model names never break.
+- **Geist** 400–600: every plain-English sentence, 15.5/16px, line-height 1.55.
+- **Geist Mono** 500–600: every figure — prices, scores, gaps, clocks, counts,
+  the ledger — with tabular numbers, so nothing jitters as it changes. Small
+  labels 11.5px uppercase .06em.
 
-Fallbacks: "Arial Narrow", Arial, sans-serif · system-ui, sans-serif · ui-monospace, Menlo, monospace.
+Fallbacks: "Arial Narrow", Arial · system-ui · ui-monospace, Menlo.
 
-## Spacing and shape
+## Shape
 
-4px grid: 4/8/12/16/24/32/48. Radius 6px on tags, 4px on chips, 0 on stamps.
-Lot tags (the car cards) keep a 1px ink edge; panels, tiles and sheets take a
-softer edge (ink at 24%) so a screen reads as tags on a desk, not a grid of
-boxes. One light source, top left: `--shadow` is a hard 2px offset where the tag
-touches the paper plus a soft warm fall-off below; `--shadow-lift` is the same
-tag picked up 3px on hover.
-
-Type: headlines are Barlow 800 at `clamp(34px, 5.2vw, 52px)`, line-height .92,
-balanced wrapping; paragraphs wrap `pretty`. A hyphenated model name (MX-5,
-F-150) never breaks at its hyphen.
+4px grid. Radius 12px on cards and panels, 9px on buttons and inputs, 7px on
+chips, 5px on grade chips and badges. Surfaces have a 1px `--edge` and one
+`--shadow` (a hairline ring plus a deep soft fall-off); hover lifts 3px onto
+`--shadow-lift`.
 
 ## Shell
 
-**Phone (< 960px).** Top strip 52px on paper, 1px ink rule below: eyelet ring +
-GAVEL wordmark left; data-kind chip centre-right ("LIVE · eBay" ink outline, or
-a solid hot band "SAMPLE DATA", or "NO SOURCE"); account ring right. Feed only:
-the five kind chips (All cars · Rental · Holds value · Enthusiast · Supercar) and
-a search box stay in view; Starter mode, price cap, state, sort and sample cars
-fold under one "Filters · N on" chip. Under it one mono line "Starter hid 7
-cars — why?". Bottom bar 64px + safe
-area, ink background, paper text, five WORD tabs: Feed · Watch · Auctions ·
-Playbook · Rental. Settings and Admin live behind the account ring. Plan is a
-full-screen route `#plan/<id>` with a back arrow.
+**Phone (< 960px).** Top strip 52px: the logo mark and GAVEL wordmark left; the
+data chip ("LIVE · eBay", a red "SAMPLE DATA", or "NO SOURCE") and the account
+ring right. Bottom bar 64px + safe area, night-dark, word tabs; the current tab
+carries a purple bar that grows from the centre.
 
-**Desktop (≥ 960px).** A 220px ink rail on the left with the same word tabs
-plus Settings; content max 1120px; the feed is a two-column grid of tags. Plan
-is its own route on every size; on desktop it lays out in two columns, the
-car, the ledger and the bid box on the left, the walkthrough on the right.
+**Desktop (≥ 960px).** A 220px night rail: the mark and wordmark at its head,
+then word tabs; the current screen is a lit row with a purple sector bar, like
+the leader on a timing tower. Content max 1120px; the feed is two columns.
 
-**Login.** One giant tag on a string: eyelet, wordmark, tagline, two segmented
-tabs (Member: email + access code; Owner: PIN), one primary button, the server's
-error text in hot beneath. One sentence says where a code comes from.
+**Login.** One card on the night page under a faint purple glow: the mark (its
+three sectors light in turn, yellow, green, purple), GAVEL, the tagline, a
+segmented Member/Owner control, one button.
 
-## The card (a lot tag)
+## The card
 
-1. **SAMPLE band** (only `kind === 'SAMPLE'`): 24px full-width hot band inside
-   the top edge: "SAMPLE — NOT A REAL CAR", cream, Barlow 800 13px .14em. This
-   band (with the header chip) is the card's one SAMPLE label: the word said
-   seven times on one card stops meaning anything.
-2. **Photo** 16:10, object-fit cover, 1px ink rule beneath, mono chip bottom-left
-   "eBay · Ends 2d 4h" (a sample's chip gives only the time). No photo → a
-   shorter (16:7) ruled kraft plate with the make's initial outlined and "No
-   photo" (mono).
-3. **Tag structure**: eyelet ring top-left of the paper region; a vertical
-   perforation (2px dashed ink-3) with a 124px STUB on the right of the BODY.
-4. **Body**: title (uppercase Barlow), mono sub-line "41,200 MI · CLEAN TITLE ·
-   ATLANTA, GA"; money row "NOW $58,500" (label above: CURRENT BID or BUY NOW)
-   beside "SIMILAR CARS SELL FOR $74,000" with mono receipt "$70k–$78k · 6 cars"
-   or the words **NOT ENOUGH COMPS** in wait colour; facts as plain words with a
-   mark, never as button-like pills: ✓ Clean title · ✓ No damage · ✓ Runs &
-   drives · ✓ Keys (go), ? not stated (wait), ✕ salvage title (hot); "Why it
-   scores this": the reasons the facts do not already say, at most two, with
-   every reason behind "N more reasons" (a full 44px tap); RED FLAGS block (hot
-   rule, ink text) when any; buttons: **Plan my bid** (primary, ink), **Open the
-   lot ↗** (outline; absent on SAMPLE), **Watch** (pin toggle).
-5. **Stub**: mono "DEAL SCORE"; discount line "28% UNDER SIMILAR CARS"; numeral
-   Barlow 800 56/72px ink; "/100" mono; a ten-tick ruler (ticks filled ink up to
-   score); the grade stamp (double rule, −3°): STEAL/GOOD DEAL in go, FAIR in
-   wait, PASS in ink, UNPRICED hollow with an em dash numeral.
+1. **SAMPLE band** (only `kind === 'SAMPLE'`): 24px red band, "SAMPLE. NOT A
+   REAL CAR.", dark text. With the header chip, the card's one SAMPLE label.
+2. **Photo** 16:10 (16:7 when there is none: a ruled plate with the make's
+   initial outlined and "No photo"). Bottom-left a dark chip "eBay · Ends 2d
+   4h"; top-left the **position** "P1", "P2"… when the feed is sorted by deal
+   score — P1 in purple, like the fastest car on the tower.
+3. **Body**: the car's name; a mono line of miles, state, VIN; the money row —
+   CURRENT BID, SIMILAR CARS SELL FOR (with "$18.7k–$21.4k · 3 cars", or NOT
+   ENOUGH COMPS in yellow), and **GAP TO MARKET** "−$6,569" in green (or "+$…"
+   in red), read like a lap interval; facts as words with a mark (✓ Clean
+   title, ? not stated, ✕ salvage title); at most two reasons that the facts do
+   not already say, with every reason behind "N more reasons"; red flags; Plan
+   my bid · Open the lot ↗ (absent on SAMPLE) · Watch.
+4. **Stub**: "DEAL SCORE", the **gauge**, the grade chip, "29% under similar
+   cars".
 
-Screen readers hear one sentence: "Steal score 84 out of 100, steal, 28 percent
-under comparable listings."
+## The gauge
+
+A 240° tachometer: a `--ink-3` track and a value arc in the grade's colour
+(purple STEAL, green GOOD DEAL, yellow FAIR, grey PASS; UNPRICED is a dotted
+empty track with an em dash). The number sits in the middle in Geist Mono,
+"/100" under it. Screen readers hear one sentence: "Deal score 84 out of 100,
+Steal, 28 percent under comparable listings."
+
+## Grade chips
+
+Four grade words — STEAL, GOOD DEAL, FAIR, PASS — plus UNPRICED, SAMPLE and
+PAPER. Solid timing-colour chips with dark text (UNPRICED is an outline),
+Archivo 800 width 112, .12em, no rotation.
 
 ## Plan screen
 
-Stub at the top (same component). Ledger calculator in mono columns: Resale
-target − Buyer fee − Transport − Repairs − Cushion − Your margin = **NEVER BID
-ABOVE $X** (Barlow 800 40/56px, ink, in a double-rule box). Inputs beside each
-row. When the fee basis is unknown the row shows "sliding scale — enter the fee
-from <house> calculator" in wait colour. Below: the walkthrough as numbered
-Plex Sans steps with a mono line "EXPLAINED BY: rules" or "EXPLAINED BY: AI ·
-checked against rules"; warnings in a hot-ruled block. The Bid box: max bid
-input, **Place a PAPER bid** (hot button), the sentence "Paper means nothing
-was sent to the auction. Practise here, then place the real bid on the
-auction's own site." After placing: a PAPER stamp presses onto the receipt and
-**Open the lot with this number ↗** appears.
-
-## Stamps
-
-Three stamp words only: SAMPLE, PAPER, and the grade. Double rule (2px outer,
-1px inner), rotation ≤ 6°, uppercase Barlow 800. No distressing.
+The car with its gauge; "Why it scores" folded to its main reason; then **the
+receipt**: a light paper card headed "THE NUMBER · ITEMISED · EVERY DOLLAR",
+each line in mono with its input, dotted rules between, and the total between
+two heavy rules — NEVER BID ABOVE $X in Geist Mono 40–58px — with a torn
+bottom edge. One line says what is still to type. The Bid box: "Before you
+bid: do the first four checks", the max-bid input, **Place a PAPER bid** (red).
+The walkthrough on the right (below on a phone).
 
 ## States
 
-- **Loading**: a dashed tag outline with "Reading eBay Motors…" (static).
-- **Empty (no source, samples off)**: one tag: "No source connected" and the
-  exact .env lines to add, plus the "Show sample cars" switch.
-- **Error**: a hot-ruled strip with the server's sentence; never a blank page.
+- **Loading**: a dashed outline with "Reading eBay Motors…" in mono (static).
+- **Empty (no source, samples off)**: for the owner the exact lines to add and a
+  Connect button; for a member, that the owner has not connected one, and Import.
+- **Error**: a red-edged strip with the server's sentence; never a blank page.
 - **Starter hid N**: mono line with "why?" that lists each hidden car's reason.
 
 ## Motion
@@ -157,37 +150,35 @@ Paper being handled, never UI flying. One signature curve and three durations:
 | Token | Value | Use |
 |---|---|---|
 | `--ease` | `cubic-bezier(.2, 0, 0, 1)` | everything on screen: hovers, presses, colour |
-| `--ease-emph` | `cubic-bezier(.05, .7, .1, 1)` | entrances: headers, sheets, toasts, menus |
+| `--ease-emph` | `cubic-bezier(.05, .7, .1, 1)` | entrances: headers, sheets, toasts, menus, the gauge |
 | `--ease-in` | `cubic-bezier(.3, 0, 1, 1)` | exits |
-| `--ease-paper` | `cubic-bezier(.34, 1.26, .64, 1)` | a tag landing: about 3% overshoot, as paper does |
+| `--ease-paper` | `cubic-bezier(.34, 1.26, .64, 1)` | a card landing: about 3% overshoot |
 | `--t-quick` / `--t-std` / `--t-slow` | 140 / 260 / 480ms | press / state change / entrance |
 
 `web/js/motion.js` watches `<main>`, so screens only render HTML:
 
-- **Tags settle.** New cards rise 16px with a half-degree turn and settle with
-  the paper curve, 45ms apart, at most seven staggered (under 350ms in all).
-  Only cards on screen move; a card already shown on this visit does not move
-  again when a screen re-renders.
-- **The stamp lands after its card** (280ms later): pressed down from 1.55×
-  and −10°, settling at −3°. The score ticks fill left to right as it lands.
+- **Cards settle.** New cards rise 16px and settle, 45ms apart, at most seven
+  staggered (under 350ms in all). Only cards on screen move; a card already
+  shown on this visit does not move again when a screen re-renders.
+- **The gauge sweeps** from zero to the score (900ms) as its card lands, and the
+  grade chip flashes in 280ms later.
 - **Numbers count up** to their value (scores, prices, tile figures) in 720ms;
   the text at rest is exactly what the server sent.
 - **NEVER BID ABOVE** counts from the old number to the new one when the plan
-  changes, with a brief green wash, so a changed repair estimate is seen.
-- **Sheets** rise 40px (phone) or pop from .97 (desktop) over a fading scrim,
-  and slide away before they close; **toasts** rise in and drop out; the
-  account **menu** drops from its corner.
-- **Hover** lifts a tag 3px onto `--shadow-lift`; **press** puts it back down.
-  Buttons rise 1px on hover and sink on press.
-- **Login**: the tag swings once on its string and comes to rest (1.9s).
-- The phone tab bar's indicator grows from the centre; on desktop the current
-  screen is a cream tag with its own eyelet, hung on the rail.
+  changes, with a brief green wash.
+- **Sheets** rise (phone) or pop (desktop) over a fading scrim and slide away
+  before they close; **toasts** rise in and drop out; the **menu** drops from
+  its corner.
+- **Hover** lifts a card 3px; **press** puts it back. Buttons rise 1px on
+  hover and sink on press.
+- **Login**: the mark's three sectors light in turn, once.
 
 Countdowns update once a minute; nothing blinks. `prefers-reduced-motion:
-reduce` turns every animation off (CSS) and motion.js does not start: cards,
-stamps and numbers appear at rest, sheets close at once.
+reduce` turns every animation off and motion.js does not start: cards, gauges
+and numbers appear at rest, sheets close at once.
 
 ## Icon
 
-The eyelet ring: a 2px ink circle with a hole, on a cream tag square with a
-notched corner. `web/icon.svg`.
+The mark (see `docs/BRAND.md`) on a night-dark rounded square: `web/icon.svg`,
+`web/icons/icon-192.png`, `icon-512.png`, a full-bleed `maskable-512.png`, and
+`apple-touch-icon.png`. Sources in `web/brand/`.
