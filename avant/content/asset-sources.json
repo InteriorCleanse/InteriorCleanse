@@ -1,5 +1,5 @@
 {
-  "_note": "AI-generated imagery for AVANT (Higgsfield, gpt_image_2_5). Unbadged, no logos, no real people's faces. `npm run assets:pull` (or the 'AVANT: land assets' workflow) downloads each to public/img and records it in content/assets-landed.json, after which the app serves the local copy.",
+  "_note": "AI-generated imagery for AVANT (Higgsfield, gpt_image_2_5). Unbadged, no logos, no readable plates, no real people's faces. Keys named car-<slug> are a specific listing's photo; the rest are shared. Pushing a change to this file runs the 'AVANT: land assets' workflow, which downloads each image to public/img and records it in content/assets-landed.json, after which the app serves the local copy.",
   "cdn": "https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl",
   "assets": {
     "hero": {
