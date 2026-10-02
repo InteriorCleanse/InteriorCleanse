@@ -5795,7 +5795,12 @@ html[data-intro='skip'] .intro-veil { display: none; }
 /* Self-contained. Everything is scoped under .cyber-login so the theme
    never leaks into the storefront or the rest of the admin. */
 .cyber-login {
-  position: relative;
+  /* Fixed overlay so the full-screen theme covers the storefront header and
+     footer, which the shared root layout renders around every page. Scoped to
+     this page only: the element exists nowhere else. */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
   min-height: 100vh;
   display: flex;
   align-items: center;
