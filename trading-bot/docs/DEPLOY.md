@@ -64,6 +64,13 @@ internet, put it behind a reverse proxy that terminates TLS (Caddy or nginx), or
 a zero-config tunnel (Tailscale Funnel, cloudflared). Never expose the plain HTTP
 port to the internet directly.
 
+Kestrel answers only to its own names (DNS-rebinding protection), so add the
+proxy's or tunnel's public name to `MRCASH_ALLOWED_HOSTS` in `.env`, for example
+`MRCASH_ALLOWED_HOSTS=kestrel.example.ts.net`. Visitors through the proxy meet
+the PIN even though the proxy runs on this computer. Set
+`MRCASH_COOKIE_SECURE=1` behind TLS. The TradingView webhook works under any
+name and needs no entry.
+
 ## Still paper
 
 None of this enables real trading. Real money is behind the gate chain in

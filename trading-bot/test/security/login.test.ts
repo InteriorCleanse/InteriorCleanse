@@ -44,6 +44,18 @@ test('login: ten failures lock that device out; another device still gets in', (
   assert.equal(g.attempt('owner', '482913', totpAt(KEY, counterAt(now.t) + 1)).ok, true)
 })
 
+test('login: fifty failures across all devices close the door to everyone until the window clears', () => {
+  const now = { t: 1_790_000_000_000 }
+  const g = new LoginGate({ pin: '482913', secret: () => null, now: () => now.t })
+  // Rotating addresses: each "device" stays under its own limit of ten.
+  for (let i = 0; i < 50; i++) g.attempt(`2001:db8::${i}`, '111111', undefined)
+  const r = g.attempt('fresh-device', '482913', undefined)
+  assert.equal(r.ok, false, 'even the right PIN waits while the door is closed')
+  assert.equal((r as { status: number }).status, 429)
+  now.t += 15 * 60_000 + 1
+  assert.equal(g.attempt('fresh-device', '482913', undefined).ok, true)
+})
+
 test('server wiring: the made-up PIN is cryptographic, the login goes through the gate, the cookie stays HttpOnly', () => {
   const server = readFileSync(join(ROOT, 'src', 'server.ts'), 'utf8')
   assert.equal(/Math\.random/.test(server), false, 'no secret in the server may come from Math.random')

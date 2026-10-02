@@ -64,6 +64,7 @@ import { holdLock } from './ops/lock.ts'
 import { startOpsMonitor } from './ops/monitor.ts'
 import * as opsApi from './ops/api.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
+import { allowedHosts, forwardedBy, hostAllowed } from './security/origin.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
@@ -192,7 +193,17 @@ async function safely<T>(fn: () => Promise<T>): Promise<{ ok: true; data: T } | 
 
 function isLocal(req: IncomingMessage): boolean {
   const ip = req.socket.remoteAddress ?? ''
-  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1'
+  // A proxy or tunnel on this computer connects from loopback too; whoever it
+  // forwards is not this computer and meets the PIN (src/security/origin.ts).
+  return (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') && !forwardedBy(req.headers)
+}
+
+// The names this computer answers to, refreshed every 30 s so a new network
+// address is picked up without a restart. Anything else is DNS rebinding.
+let hostsCache = { at: 0, set: new Set<string>() }
+function knownHosts(): Set<string> {
+  if (Date.now() - hostsCache.at > 30_000) hostsCache = { at: Date.now(), set: allowedHosts({ allowPhone: config.app.allowPhone, extra: process.env.MRCASH_ALLOWED_HOSTS }) }
+  return hostsCache.set
 }
 
 function hasSession(req: IncomingMessage): boolean {
@@ -358,6 +369,14 @@ const server = createServer(async (req, res) => {
   // top rather than replacing these. The nonce is per request and never reused.
   const nonce = newNonce()
   for (const [k, v] of Object.entries(securityHeaders(nonce))) res.setHeader(k, v)
+  // DNS rebinding: refuse any Host that is not this computer. The TradingView
+  // webhook is exempt; it arrives through a tunnel under the tunnel's name and
+  // carries its own secret.
+  if (!(path === '/api/tv-alert' && req.method === 'POST') && !hostAllowed(req.headers.host, knownHosts())) {
+    res.writeHead(421, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' })
+    res.end(`Kestrel does not answer to this address. Open http://127.0.0.1:${PORT} on this computer, or add the name to MRCASH_ALLOWED_HOSTS in .env.\n`)
+    return
+  }
   try {
     // Files every device may fetch before logging in
     const st = STATIC[path]
@@ -411,12 +430,13 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    // TradingView alerts carry their own secret
+    // TradingView alerts carry their own secret, in the body or a header. Never
+    // the query string: a URL is written into every proxy and tunnel log.
     if (path === '/api/tv-alert' && req.method === 'POST') {
       const raw = await readBody(req, 64 * 1024)
       let body: Record<string, unknown> = {}
       try { body = JSON.parse(raw) } catch { body = { message: raw } }
-      const secret = String(body.secret ?? req.headers['x-mrcash-secret'] ?? url.searchParams.get('secret') ?? '')
+      const secret = String(body.secret ?? req.headers['x-mrcash-secret'] ?? '')
       if (!safeEqual(secret, WEBHOOK_SECRET)) { json(res, 403, { ok: false, error: 'bad secret' }); return }
       const event = String(body.event ?? body.message ?? 'alert').slice(0, 120)
       const symbol = String(body.symbol ?? '').slice(0, 30)
