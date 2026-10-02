@@ -619,6 +619,17 @@ details > summary { transition: color var(--t-quick) var(--ease); }
 }
 .seg button { transition: background-color var(--t-std) var(--ease), color var(--t-std) var(--ease); }
 
+/* ---------- calmer screens ---------- */
+.panel h2 .mono { margin-left: 8px; font-size: 11px; letter-spacing: .08em; vertical-align: middle; }
+.more-steps { margin-top: 8px; }
+.why-panel > summary { list-style: none; display: grid; gap: 4px; cursor: pointer; }
+.why-panel > summary::-webkit-details-marker { display: none; }
+.why-panel > summary h2 { margin: 0 0 2px; }
+.why-panel > summary > span:not(.mono) { font-weight: 400; font-size: 15px; }
+.why-panel > summary .mono { text-decoration: underline; text-underline-offset: 3px; }
+.why-panel[open] > summary .mono { display: none; }
+.more-steps > summary { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); min-height: 36px; display: flex; align-items: center; }
+
 /* ---------- small fixes ---------- */
 @media (max-width: 719px) { #p-print { display: none; } }
 

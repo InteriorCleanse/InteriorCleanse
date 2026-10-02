@@ -1,7 +1,7 @@
 // Home: the command centre. What is ending soon, what the Sniper found, what you watch,
 // how the practice and the business are going, and the one next thing to do.
 import { getJson, esc, money, timeLeft, closesText, when } from './api.js'
-import { stamp, loading, errorStrip, sourceName, carName } from './ui.js'
+import { loading, errorStrip, sourceName, carName } from './ui.js'
 
 const GOAL = { rental: 'Building a rental fleet', flip: 'Flipping cars', keep: 'Finding your next car' }
 let ticker = null
@@ -14,6 +14,26 @@ function countdown(ms, dateOnly = false) {
   if (dateOnly) { const t = closesText({ endsAt: ms, endsAtDateOnly: true }); return `<span class="cd">${esc(t.text)}</span>` }
   const t = timeLeft(ms)
   return t ? `<span class="cd ${t.tone}" data-ends="${ms}">${esc(t.text)}</span>` : '<span class="cd dim">No end time</span>'
+}
+
+/** "New pick for My 911: 2014 Porsche 911" → the car in bold, what happened underneath. */
+function alertParts(a) {
+  const pick = /^New pick for (.+?): (.+)$/.exec(a.title)
+  if (pick) return { car: pick[2], what: `Pick for ${pick[1]}` }
+  const fired = /^PAPER bid fired: (.+)$/.exec(a.title)
+  if (fired) return { car: fired[1], what: 'Paper bid fired' }
+  return { car: a.title, what: '' }
+}
+
+/** The next few steps, then the rest folded away. */
+function pathHtml(next) {
+  const todo = next.filter((n) => !n.done)
+  const item = (n) => `<li class="${n.done ? 'done' : ''}"><a href="${esc(n.href)}"><span class="tick" aria-hidden="true">${n.done ? '✓' : ''}</span><span><b>${esc(n.title)}</b><span class="dim">${esc(n.body)}</span></span></a><span class="sr-only">${n.done ? 'done' : 'to do'}</span></li>`
+  const shown = todo.slice(0, 3)
+  const others = next.filter((n) => !shown.includes(n))
+  return `<h2>Your path <span class="mono dim">${next.length - todo.length} of ${next.length} done</span></h2>
+    ${shown.length ? `<ol class="path">${shown.map(item).join('')}</ol>` : '<p>Every step is done. The Sniper keeps watching for you.</p>'}
+    ${others.length ? `<details class="more-steps"><summary>All ${next.length} steps</summary><ol class="path">${others.map(item).join('')}</ol></details>` : ''}`
 }
 
 function bestHtml(p) {
@@ -40,8 +60,7 @@ export async function render(el, ctx) {
   const showNext = nextUp && !best
   const done = h.next.filter((n) => n.done).length
   const netTone = h.garage.netUsd > 0 ? 'go' : h.garage.netUsd < 0 ? 'hot' : ''
-  el.innerHTML = `<div class="head"><div><h1>Home</h1><p>${esc(h.goal ? GOAL[h.goal] : 'Your auction desk')}. ${h.liveSource ? 'Reading live auctions.' : 'No live source yet, so the feed shows SAMPLE cars.'}</p></div>
-      <div class="row"><a class="btn" href="#sniper">Sniper</a><a class="btn outline" href="#feed">Browse the feed</a></div></div>
+  el.innerHTML = `<div class="head"><div><h1>Home</h1><p>${esc(h.goal ? GOAL[h.goal] : 'Your auction desk')}. ${h.liveSource ? 'Reading live auctions.' : 'No live source yet, so the feed shows SAMPLE cars.'}</p></div></div>
     ${best ? bestHtml(best) : ''}
     ${showNext ? `<a class="tag nextup" href="${esc(nextUp.href)}"><div class="body" style="padding:16px 18px"><div class="mono dim">Next step · ${done} of ${h.next.length} done</div><h2 class="nt">${esc(nextUp.title)}</h2><p style="margin:4px 0 0">${esc(nextUp.body)}</p></div><span class="go-arrow" aria-hidden="true">→</span></a>` : ''}
     <div class="tiles four">
@@ -53,20 +72,17 @@ export async function render(el, ctx) {
     <div class="homegrid">
       <section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Ending soon</h2><a class="mono" href="#sniper">All picks</a></div>
-        ${h.sniper.endingSoon.length ? `<div class="list">${h.sniper.endingSoon.map((p) => { const l = p.card.listing; return `<a class="item row-link" href="#plan/${encodeURIComponent(l.id)}"><div class="main"><b>${esc(l.title)}</b>${l.kind === 'SAMPLE' ? ' ' + stamp('Sample', 'hot') : ''}<div class="mono dim">${esc(sourceName(l.source))} · now ${esc(money(l.currentBidUsd ?? l.buyNowUsd))} · never above ${esc(money(p.fire.maxBidUsd))}</div></div><div class="right">${countdown(l.endsAt, l.endsAtDateOnly)}<div class="mono dim">score ${p.card.score.total}</div></div></a>` }).join('')}</div>` : `<p class="dim">${h.sniper.active ? 'Nothing with a clock on it right now. The Sniper keeps looking.' : 'Set a Sniper target and the cars it finds will count down here.'}</p>`}
+        ${h.sniper.endingSoon.length ? `<div class="list">${h.sniper.endingSoon.map((p) => { const l = p.card.listing; return `<a class="item row-link" href="#plan/${encodeURIComponent(l.id)}"><div class="main"><b>${carName(l.title)}</b><div class="mono dim">${esc(sourceName(l.source))} · now ${esc(money(l.currentBidUsd ?? l.buyNowUsd))} · never above ${esc(money(p.fire.maxBidUsd))}</div></div><div class="right">${countdown(l.endsAt, l.endsAtDateOnly)}<div class="mono dim">score ${p.card.score.total}</div></div></a>` }).join('')}</div>` : `<p class="dim">${h.sniper.active ? 'Nothing with a clock on it right now. The Sniper keeps looking.' : 'Set a Sniper target and the cars it finds will count down here.'}</p>`}
       </section>
       <section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Latest alerts</h2>${h.alerts.unread ? `<span class="pill hot">${h.alerts.unread} new</span>` : ''}</div>
-        ${h.alerts.latest.length ? `<div class="list">${h.alerts.latest.map((a) => `<a class="item row-link ${a.read ? '' : 'unread'}" href="${a.listingId ? '#plan/' + encodeURIComponent(a.listingId) : '#sniper'}"><div class="main"><b>${esc(a.title)}</b><div class="mono dim">${esc(when(a.at))}</div></div></a>`).join('')}</div>` : '<p class="dim">The Sniper writes here when it finds a pick or fires a paper bid.</p>'}
+        ${h.alerts.latest.length ? `<div class="list">${h.alerts.latest.map((a) => { const x = alertParts(a); return `<a class="item row-link ${a.read ? '' : 'unread'}" href="${a.listingId ? '#plan/' + encodeURIComponent(a.listingId) : '#sniper'}"><div class="main"><b>${carName(x.car)}</b><div class="mono dim">${esc([x.what, when(a.at)].filter(Boolean).join(' · '))}</div></div></a>` }).join('')}</div>` : '<p class="dim">The Sniper writes here when it finds a pick or fires a paper bid.</p>'}
       </section>
-      <section class="panel">
+      ${h.watch.length ? `<section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Watching</h2><a class="mono" href="#watch">Watchlist</a></div>
-        ${h.watch.length ? `<div class="list">${h.watch.map((w) => `<a class="item row-link" href="#plan/${encodeURIComponent(w.listingId)}"><div class="main"><b>${esc(w.title)}</b><div class="mono dim">${w.priceUsd ? 'saved at ' + esc(money(w.priceUsd)) : ''}</div></div><div class="right">${w.endsAt ? countdown(w.endsAt) : ''}</div></a>`).join('')}</div>` : '<p class="dim">Press Watch on any car and it counts down here.</p>'}
-      </section>
-      <section class="panel">
-        <h2>Your path</h2>
-        <ol class="path">${h.next.map((n) => `<li class="${n.done ? 'done' : ''}"><a href="${esc(n.href)}"><span class="tick" aria-hidden="true">${n.done ? '✓' : ''}</span><span><b>${esc(n.title)}</b><span class="dim">${esc(n.body)}</span></span></a><span class="sr-only">${n.done ? 'done' : 'to do'}</span></li>`).join('')}</ol>
-      </section>
+        <div class="list">${h.watch.map((w) => `<a class="item row-link" href="#plan/${encodeURIComponent(w.listingId)}"><div class="main"><b>${carName(w.title)}</b><div class="mono dim">${w.priceUsd ? 'saved at ' + esc(money(w.priceUsd)) : ''}</div></div><div class="right">${w.endsAt ? countdown(w.endsAt) : ''}</div></a>`).join('')}</div>
+      </section>` : ''}
+      <section class="panel">${pathHtml(h.next)}</section>
     </div>`
   ticker = setInterval(() => {
     if (!document.body.contains(el) || el.hidden) { clearInterval(ticker); ticker = null; return }

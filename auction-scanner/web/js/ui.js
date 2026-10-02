@@ -101,10 +101,10 @@ function runsBadge(r) {
   return `<span class="badge wait">Runs? not stated</span>`
 }
 
-export function badges(l, now = Date.now()) {
+export function badges(l, now = Date.now(), { clock = true } = {}) {
   const out = [titleStatusBadge(l.titleStatus), damageBadge(l.damage), runsBadge(l.runsAndDrives)]
   if (l.hasKeys === true) out.push('<span class="badge">Keys</span>')
-  const t = closesText(l, now)
+  const t = clock ? closesText(l, now) : null
   if (t) out.push(`<span class="badge ${t.tone === 'dim' ? '' : t.tone}">${esc(t.text)}</span>`)
   else if (l.saleType === 'buy-now') out.push('<span class="badge">Buy now</span>')
   return `<div class="badges">${out.join('')}</div>`
@@ -135,14 +135,21 @@ export function cardHtml(card, opts = {}) {
     ? `<div><span class="k mono">Comps</span><div class="comps">${esc(money(est.valueUsd))}</div><div class="receipt mono">${esc(moneyK(est.low))}–${esc(moneyK(est.high))} · ${est.comps} comps</div></div>`
     : `<div><span class="k mono">Comps</span><div class="comps nocomps">Not enough comps</div><div class="receipt mono">${esc(String(est.comps))} found · 3 needed${sample ? '' : ` · <a href="#plan/${encodeURIComponent(l.id)}">price it yourself</a>`}</div></div>`
   const sub = [miles(l.mileage), l.location && [l.location.city, l.location.state].filter(Boolean).join(', '), l.vin ? 'VIN ' + l.vin.slice(-6) : null].filter(Boolean).join(' · ')
-  const why = (card.score.reasons || []).slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join('')
-  const moreN = Math.max(0, (card.score.reasons || []).length - 3)
+  // The badges and the price line already say these; the card shows the rest, and every reason stays one tap away.
+  const said = /^(Clean title|No damage|Seller says it runs|Current bid, not the final|How the score works|On the demand list)/
+  const reasons = card.score.reasons || []
+  const lead = reasons.filter((r) => !said.test(r)).slice(0, 2)
+  // The demand line is shown in its own words below, so it is not repeated in the full list.
+  const rest = reasons.filter((r) => !lead.includes(r) && !(card.demand && /^On the demand list/.test(r)))
+  const why = lead.map((r) => `<li>${esc(r)}</li>`).join('')
+  const moreN = rest.length
   const flags = (card.score.redFlags || []).filter((f) => !/^SAMPLE/.test(f))
   const flagsHtml = flags.length ? `<div class="flags"><span class="k mono">Red flags</span><ul>${flags.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''
   const blocks = opts.showBlocks && !card.score.starterOk ? `<div class="strip wait" style="margin:12px 0 0">Starter mode would hide this: ${esc(card.score.starterBlocks.join(' '))}</div>` : ''
   const demand = card.demand ? `<li><b>${esc((card.demand.tags || [card.demand.tier]).map((t) => t === 'holds-value' ? 'Holds value' : t[0].toUpperCase() + t.slice(1)).join(' · '))}:</b> ${esc(card.demand.why)}</li>` : ''
+  // A sample has no lot to open, so no button that cannot be pressed.
   const openBtn = sample
-    ? `<button class="btn outline sm" type="button" disabled title="SAMPLE — there is no real lot to open">Open the lot ↗</button>`
+    ? ''
     : safeUrl(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''
   return `<article class="tag settle" data-id="${esc(l.id)}">
     ${sample ? '<div class="band">Sample. Not a real car.</div>' : ''}
@@ -155,9 +162,9 @@ export function cardHtml(card, opts = {}) {
           <div><span class="k mono">${priceLabel}</span><div class="now">${esc(money(asking))}</div><div class="receipt mono">${esc(bidsNote)}</div></div>
           ${compsHtml}
         </div>
-        ${badges(l)}
+        ${badges(l, Date.now(), { clock: false })}
         <ul class="why">${why}${demand}</ul>
-        ${moreN ? `<button class="more" type="button" data-more>${moreN} more reason${moreN === 1 ? '' : 's'}</button><ul class="why" data-more-list hidden>${(card.score.reasons || []).slice(3).map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+        ${moreN ? `<button class="more" type="button" data-more>${moreN} more reason${moreN === 1 ? '' : 's'}</button><ul class="why" data-more-list hidden>${rest.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
         ${flagsHtml}
         ${blocks}
         <div class="actions">

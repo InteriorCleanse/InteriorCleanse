@@ -5,6 +5,14 @@ import { HOUSES } from './houses.js'
 
 let current = null
 
+/** One plain line for what the number is still missing, instead of a warning per field. */
+function missingLine(feeUnknown, plan) {
+  const missing = [feeUnknown ? 'the buyer fee' : '', plan.taxTitleUsd === undefined ? 'tax and title' : ''].filter(Boolean)
+  if (!missing.length) return ''
+  const tooHigh = feeUnknown || plan.cashUsd !== undefined
+  return `<div class="warn-line">Still to type above: ${missing.join(' and ')}.${tooHigh ? ' Until then this number is too high.' : ''}</div>`
+}
+
 function ledgerHtml(plan, inputs, listing) {
   const feeUnknown = plan.feeUnknown && !inputs.feePct
   const flip = plan.goal === 'flip'
@@ -24,8 +32,7 @@ function ledgerHtml(plan, inputs, listing) {
     ${row(flip ? '− Your margin' : '− Under market by', money(plan.marginUsd), `<input type="number" id="p-margin" min="0" max="90" step="any" value="${shown('marginPct', Math.round(plan.marginFraction * 100))}" placeholder="%" aria-label="${flip ? 'Margin' : 'Discount to market'} percent" />`, `<b>${esc(money(plan.marginUsd))}.</b> ${flip ? 'Percent of the resale price you want left over.' : 'Percent under market value you insist on, so you never pay retail.'}`)}
   </div>
   <div class="never"><span class="k mono">Never bid above</span><div class="n">${esc(money(plan.maxBidUsd))}</div>
-    ${feeUnknown ? '<div class="warn-line">Buyer fee not set: this number is too high. Look up the fee and type the percent above.</div>' : ''}
-    ${plan.taxTitleUsd === undefined ? `<div class="warn-line">Tax and title not set${plan.cashUsd !== undefined ? ': they come out of the same cash' : ''}. Type your percent above.</div>` : ''}
+    ${missingLine(feeUnknown, plan)}
     <div class="mono ${typeof plan.cashUsd === 'number' && plan.cashNeededUsd > plan.cashUsd ? 'nocomps' : 'dim'}">Cash you need on the day: about ${esc(money(plan.cashNeededUsd))}${typeof plan.cashUsd === 'number' ? ` of your ${esc(money(plan.cashUsd))}` : ''}${plan.taxTitleUsd === undefined ? ', plus tax and title' : ', tax and title included'}.</div>
     ${plan.limitedBy === 'cash' ? '<div class="mono dim">Lowered to fit your cash.</div>' : ''}
     ${typeof plan.headroomUsd === 'number' ? `<div class="mono ${plan.headroomUsd < 0 ? 'nocomps' : 'dim'}">${plan.headroomUsd < 0 ? `The price is already ${esc(money(-plan.headroomUsd))} over your number. Not your car.` : `${esc(money(plan.headroomUsd))} of room above the price now.`}</div>` : ''}
@@ -33,15 +40,15 @@ function ledgerHtml(plan, inputs, listing) {
   <details style="margin-top:10px"><summary>Every line, in words</summary><ul class="why">${plan.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`
 }
 
-/** Why the car scores what it does: the score's own reasons and red flags, in full. */
+/** Why the car scores what it does: the main reason open, the full list one tap away. */
 function whyHtml(card) {
   const reasons = card.score.reasons || []
   const flags = (card.score.redFlags || []).filter((f) => !/^SAMPLE/.test(f))
   if (!reasons.length && !flags.length) return ''
-  return `<div class="panel" style="margin-top:16px"><h2>Why it scores ${esc(card.score.total)}</h2>
-    ${card.demand ? `<p class="mono dim">Kind: ${esc(card.demand.tags.map(tierName).join(' · '))}</p>` : ''}
-    ${reasons.length ? `<ul class="why">${reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
-    ${flags.length ? `<div class="flags"><span class="k mono">Red flags</span><ul>${flags.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}</div>`
+  return `<details class="panel why-panel" style="margin-top:16px"><summary><h2>Why it scores ${esc(card.score.total)}</h2>${reasons[0] ? `<span>${esc(reasons[0])}</span>` : ''}<span class="mono dim">${flags.length ? `${flags.length} red flag${flags.length === 1 ? '' : 's'} · ` : ''}every reason</span></summary>
+    ${card.demand ? `<p class="mono dim" style="margin-top:10px">Kind: ${esc(card.demand.tags.map(tierName).join(' · '))}</p>` : ''}
+    ${reasons.length > 1 ? `<ul class="why">${reasons.slice(1).map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+    ${flags.length ? `<div class="flags"><span class="k mono">Red flags</span><ul>${flags.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}</details>`
 }
 
 function tierName(t) {
