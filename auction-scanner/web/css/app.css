@@ -420,7 +420,7 @@ details summary { cursor: pointer; font-weight: 600; }
 
 /* ---------- home, setup, garage ---------- */
 .tiles.four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 20px; }
-@media (min-width: 960px) { .tiles.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 960px) { .tiles.four { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
 .tile.big { display: block; text-decoration: none; background: var(--tag); color: var(--ink); border-color: var(--ink); box-shadow: var(--shadow); padding: 14px; transition: transform var(--dur) var(--ease); }
 a.tile.big:hover { transform: translateY(-2px); }
 .tile.big .v { font-size: clamp(24px, 7.5vw, 36px); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -666,6 +666,27 @@ details.adv > summary .dim { font-size: 14px; font-weight: 400; }
 .fire-k.go { color: var(--go); }
 .fire-k.wait { color: var(--wait); }
 .more { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* Import: on a phone the paste box comes first; the bookmark button is a computer thing. */
+.phone-help { display: none; }
+@media (max-width: 959px) {
+  .imp-paste { order: -1; }
+  .imp-bm .phone-help { display: block; margin: 0; }
+  .imp-bm .desk-help { display: none; }
+}
+
+.lnk { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font: inherit; }
+.before-bid { border-left: 3px solid var(--go); padding: 4px 0 4px 10px; }
+
+/* Members on a phone: one member per block, not seven squeezed columns. */
+@media (max-width: 719px) {
+  table.members thead { display: none; }
+  table.members tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 0; border-bottom: 1px dashed var(--ink-3); }
+  table.members td { border: 0; padding: 0; }
+  table.members td:first-child { grid-column: 1 / -1; font-weight: 600; overflow-wrap: anywhere; }
+  table.members td.wide { display: none; }
+  table.members td:last-child { grid-column: 1 / -1; }
+}
 
 /* ---------- small fixes ---------- */
 @media (max-width: 719px) { #p-print { display: none; } }

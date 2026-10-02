@@ -15,7 +15,7 @@ function targetForm(t = {}) {
     <h2 style="margin-bottom:4px">${t.id ? 'Edit target' : 'New target'}</h2>
     <p class="dim" style="font-size:14px">Pick what you want and the most you will spend. The Sniper does the watching.</p>
     <div class="grid2">
-      <label class="f">Name (optional) <input type="text" name="name" maxlength="80" value="${esc(t.name || '')}" placeholder="Weekend Porsche" /></label>
+      <label class="f">Name (optional) <input type="text" name="name" maxlength="80" value="${esc(t.name || '')}" placeholder="${esc(window.__gavelGoal === 'rental' ? 'Cheap Corolla or Civic' : window.__gavelGoal === 'flip' ? 'Clean trucks to flip' : 'My next car')}" /></label>
       <label class="f">Cash for one car, all in ($) <input type="number" name="maxBudgetUsd" min="500" step="any" required value="${esc(t.maxBudgetUsd || window.__gavelCash || '')}" /><small>Every pick's number keeps the bid, fee, tax, transport and fixes inside it.</small></label>
     </div>
     <label class="f" style="margin-top:12px">Makes <small>Tap to add. Leave empty for any make.</small></label>
@@ -88,6 +88,7 @@ function pickHtml(p) {
 
 export async function render(el, ctx) {
   window.__gavelCash = ctx.me.cashUsd || ''
+  window.__gavelGoal = ctx.me.goal || ''
   el.innerHTML = `<div class="head"><div><h1>Sniper</h1><p>Tell it what you want and the most you will spend. It watches the auctions, ranks the picks, and writes the exact bid plan for each one. Armed targets fire on paper.</p></div><div class="row"><button class="btn" id="sn-new">New target</button><button class="btn outline" id="sn-run">Scan now</button></div></div>${loading('Loading…')}`
   let data
   try { [data, catalog] = await Promise.all([getJson('/api/sniper'), catalog ? Promise.resolve(catalog) : getJson('/api/catalog')]) } catch (e) { el.innerHTML += errorStrip(e.message); return }

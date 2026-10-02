@@ -129,6 +129,7 @@ export async function render(el, ctx, [id]) {
         <div class="panel" style="margin-top:16px"><h2>The number</h2><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
         ${supercarHtml(card.plan)}
         <div class="panel"><h2>Bid</h2>
+          <p class="before-bid"><b>Before you bid:</b> do the first four checks in <button class="lnk" type="button" id="p-to-walk">How to buy this car</button>.</p>
           <p>Paper means nothing was sent to the auction. Practise here, then place the real bid on the auction's own site, and never go above your number.</p>
           <div class="row"><label class="f" style="flex:1;min-width:160px">Your max bid <input type="number" id="p-max" min="1" step="any" value="${card.plan.maxBidUsd || ''}" /></label>
             <label class="f" style="flex:2;min-width:200px">Note (optional) <input type="text" id="p-note" maxlength="500" placeholder="Why this number" /></label></div>
@@ -184,6 +185,7 @@ export async function render(el, ctx, [id]) {
       if (back) back.scrollIntoView({ block: 'center' })
     } catch (err) { toast(err.message, 'hot') }
   })
+  el.querySelector('#p-to-walk').addEventListener('click', () => el.querySelector('#p-walk').scrollIntoView({ behavior: 'smooth', block: 'start' }))
   const aiBtn = el.querySelector('#p-ai')
   if (aiBtn) aiBtn.addEventListener('click', async (e) => {
     e.target.disabled = true

@@ -3,7 +3,7 @@
 import { getJson, esc, money, timeLeft, closesText, when } from './api.js'
 import { loading, errorStrip, sourceName, carName } from './ui.js'
 
-const GOAL = { rental: 'Building a rental fleet', flip: 'Flipping cars', keep: 'Finding your next car' }
+const GOAL = { rental: 'Finding your first rental car', flip: 'Flipping cars', keep: 'Finding your next car' }
 let ticker = null
 
 function tile(label, value, sub, href, tone = '') {
@@ -60,24 +60,31 @@ export async function render(el, ctx) {
   const showNext = nextUp && !best
   const done = h.next.filter((n) => n.done).length
   const netTone = h.garage.netUsd > 0 ? 'go' : h.garage.netUsd < 0 ? 'hot' : ''
+  // The best pick is shown once, at the top: the lists below skip it.
+  const bestId = best ? best.card.listing.id : null
+  const soon = h.sniper.endingSoon.filter((p) => p.card.listing.id !== bestId)
+  const latest = h.alerts.latest.filter((a) => a.listingId !== bestId).slice(0, 4)
+  // A record of nothing is noise: these tiles appear once there is something to count.
+  const paperAny = h.paper.won + h.paper.lost + h.paper.open > 0
+  const garageAny = h.garage.cars > 0
   el.innerHTML = `<div class="head"><div><h1>Home</h1><p>${esc(h.goal ? GOAL[h.goal] : 'Your auction desk')}. ${h.liveSource ? 'Reading live auctions.' : 'No live source yet, so the feed shows SAMPLE cars.'}</p></div></div>
     ${best ? bestHtml(best) : ''}
     ${showNext ? `<a class="tag nextup" href="${esc(nextUp.href)}"><div class="body" style="padding:16px 18px"><div class="mono dim">Next step · ${done} of ${h.next.length} done</div><h2 class="nt">${esc(nextUp.title)}</h2><p style="margin:4px 0 0">${esc(nextUp.body)}</p></div><span class="go-arrow" aria-hidden="true">→</span></a>` : ''}
     <div class="tiles four">
       ${tile('Sniper', `${h.sniper.active}`, `${h.sniper.active === 1 ? 'target' : 'targets'} hunting · ${h.sniper.picks} pick${h.sniper.picks === 1 ? '' : 's'}`, '#sniper')}
       ${tile('Alerts', `${h.alerts.unread}`, h.alerts.unread ? 'new since you looked' : 'all caught up', '#sniper', h.alerts.unread ? 'hot' : '')}
-      ${tile('Paper record', `${h.paper.won}<small>/${h.paper.won + h.paper.lost}</small>`, `won of decided · ${h.paper.open} open`, '#watch')}
-      ${tile('Garage net', esc(money(h.garage.netUsd)), `${h.garage.cars} car${h.garage.cars === 1 ? '' : 's'} · ${esc(money(h.garage.incomeUsd))} in`, '#garage', netTone)}
+      ${paperAny ? tile('Paper record', `${h.paper.won}<small>/${h.paper.won + h.paper.lost}</small>`, `won of decided · ${h.paper.open} open`, '#watch') : ''}
+      ${garageAny ? tile('Garage net', esc(money(h.garage.netUsd)), `${h.garage.cars} car${h.garage.cars === 1 ? '' : 's'} · ${esc(money(h.garage.incomeUsd))} in`, '#garage', netTone) : ''}
     </div>
     <div class="homegrid">
-      <section class="panel">
+      ${soon.length || !best ? `<section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Ending soon</h2><a class="mono" href="#sniper">All picks</a></div>
-        ${h.sniper.endingSoon.length ? `<div class="list">${h.sniper.endingSoon.map((p) => { const l = p.card.listing; return `<a class="item row-link" href="#plan/${encodeURIComponent(l.id)}"><div class="main"><b>${carName(l.title)}</b><div class="mono dim">${esc(sourceName(l.source))} · now ${esc(money(l.currentBidUsd ?? l.buyNowUsd))} · never above ${esc(money(p.fire.maxBidUsd))}</div></div><div class="right">${countdown(l.endsAt, l.endsAtDateOnly)}<div class="mono dim">score ${p.card.score.total}</div></div></a>` }).join('')}</div>` : `<p class="dim">${h.sniper.active ? 'Nothing with a clock on it right now. The Sniper keeps looking.' : 'Set a Sniper target and the cars it finds will count down here.'}</p>`}
-      </section>
-      <section class="panel">
+        ${soon.length ? `<div class="list">${soon.map((p) => { const l = p.card.listing; return `<a class="item row-link" href="#plan/${encodeURIComponent(l.id)}"><div class="main"><b>${carName(l.title)}</b><div class="mono dim">${esc(sourceName(l.source))} · now ${esc(money(l.currentBidUsd ?? l.buyNowUsd))} · never above ${esc(money(p.fire.maxBidUsd))}</div></div><div class="right">${countdown(l.endsAt, l.endsAtDateOnly)}<div class="mono dim">score ${p.card.score.total}</div></div></a>` }).join('')}</div>` : `<p class="dim">${h.sniper.active ? 'Nothing with a clock on it right now. The Sniper keeps looking.' : 'Set a Sniper target and the cars it finds will count down here.'}</p>`}
+      </section>` : ''}
+      ${latest.length || !best ? `<section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Latest alerts</h2>${h.alerts.unread ? `<span class="pill hot">${h.alerts.unread} new</span>` : ''}</div>
-        ${h.alerts.latest.length ? `<div class="list">${h.alerts.latest.map((a) => { const x = alertParts(a); return `<a class="item row-link ${a.read ? '' : 'unread'}" href="${a.listingId ? '#plan/' + encodeURIComponent(a.listingId) : '#sniper'}"><div class="main"><b>${carName(x.car)}</b><div class="mono dim">${esc([x.what, when(a.at)].filter(Boolean).join(' · '))}</div></div></a>` }).join('')}</div>` : '<p class="dim">The Sniper writes here when it finds a pick or fires a paper bid.</p>'}
-      </section>
+        ${latest.length ? `<div class="list">${latest.map((a) => { const x = alertParts(a); return `<a class="item row-link ${a.read ? '' : 'unread'}" href="${a.listingId ? '#plan/' + encodeURIComponent(a.listingId) : '#sniper'}"><div class="main"><b>${carName(x.car)}</b><div class="mono dim">${esc([x.what, when(a.at)].filter(Boolean).join(' · '))}</div></div></a>` }).join('')}</div>` : '<p class="dim">The Sniper writes here when it finds a pick or fires a paper bid.</p>'}
+      </section>` : ''}
       ${h.watch.length ? `<section class="panel">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">Watching</h2><a class="mono" href="#watch">Watchlist</a></div>
         <div class="list">${h.watch.map((w) => `<a class="item row-link" href="#plan/${encodeURIComponent(w.listingId)}"><div class="main"><b>${carName(w.title)}</b><div class="mono dim">${w.priceUsd ? 'saved at ' + esc(money(w.priceUsd)) : ''}</div></div><div class="right">${w.endsAt ? countdown(w.endsAt) : ''}</div></a>`).join('')}</div>

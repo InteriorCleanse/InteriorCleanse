@@ -73,12 +73,13 @@ function formHtml(f = {}, found = [], missing = [], usedAi = false) {
 export async function render(el, ctx, [payload]) {
   el.innerHTML = `<div class="head"><div><h1>Import</h1><p>Bring in a lot from any auction: Copart, IAA, Bring a Trailer, Cars & Bids, a dealer. Gavel scores it against live comparables and writes the bid plan.</p></div></div>
     <div class="grid2" style="align-items:start">
-      <div class="panel"><h2>One click: the Send to Gavel button</h2>
-        <p>Drag this button to your browser's bookmarks bar once:</p>
+      <div class="panel imp-bm"><h2>One click: the Send to Gavel button</h2>
+        <p class="phone-help">On a phone, paste the lot above. On Android, after adding Gavel to your home screen, open a lot page, tap <b>Share</b>, then <b>Gavel</b>. The one-click button below is for a computer.</p>
+        <div class="desk-help"><p>Drag this button to your browser's bookmarks bar once:</p>
         <p><a class="btn hot" id="bm" href="#" title="Drag me to your bookmarks bar">Send to Gavel</a></p>
         <ol class="fire-steps"><li>Open any lot page (you must be signed in to the auction if it needs it).</li><li>Click <b>Send to Gavel</b> in your bookmarks bar.</li><li>Gavel opens here with the lot read. Check it, save it, plan your bid.</li></ol>
-        <p class="dim" style="font-size:14px">It hands Gavel the text you can already see on that page, nothing more. On a phone, use the paste box instead.</p></div>
-      <div class="panel"><h2>Paste a lot</h2>
+        <p class="dim" style="font-size:14px">It hands Gavel the text you can already see on that page, nothing more. On a phone, use the paste box instead.</p></div></div>
+      <div class="panel imp-paste"><h2>Paste a lot</h2>
         <form id="p-form"><label class="f">Lot link (optional) <input name="url" type="url" placeholder="https://www.copart.com/lot/…" /></label>
         <label class="f" style="margin-top:8px">The lot page text <textarea name="text" rows="6" placeholder="Select all on the lot page, copy, and paste here." required></textarea></label>
         <div class="row" style="margin-top:10px"><button class="btn" type="submit">Read it</button><button class="btn outline" type="button" id="p-manual">Type it in instead</button></div></form></div>

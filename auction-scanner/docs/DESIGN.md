@@ -54,7 +54,7 @@ word; go/wait/stop words accompany the colours.
   17/26 desktop. "Why it scores this" 15/22. Buttons 15px 600. Form labels
   14px 600.
 - **IBM Plex Mono 500** — data and small labels, 12–13px uppercase, .08em:
-  VIN, source, ENDS 2D 4H, STEAL SCORE, comps count, timestamps, ledger columns.
+  VIN, source, ENDS 2D 4H, DEAL SCORE, similar-car count, timestamps, ledger columns.
 
 Fallbacks: "Arial Narrow", Arial, sans-serif · system-ui, sans-serif · ui-monospace, Menlo, monospace.
 
@@ -76,8 +76,10 @@ F-150) never breaks at its hyphen.
 **Phone (< 960px).** Top strip 52px on paper, 1px ink rule below: eyelet ring +
 GAVEL wordmark left; data-kind chip centre-right ("LIVE · eBay" ink outline, or
 a solid hot band "SAMPLE DATA", or "NO SOURCE"); account ring right. Feed only:
-a sticky filter rail of ink-outline chips, Starter mode first as a slide switch;
-under it one mono line "Starter hid 7 cars — why?". Bottom bar 64px + safe
+the five kind chips (All cars · Rental · Holds value · Enthusiast · Supercar) and
+a search box stay in view; Starter mode, price cap, state, sort and sample cars
+fold under one "Filters · N on" chip. Under it one mono line "Starter hid 7
+cars — why?". Bottom bar 64px + safe
 area, ink background, paper text, five WORD tabs: Feed · Watch · Auctions ·
 Playbook · Rental. Settings and Admin live behind the account ring. Plan is a
 full-screen route `#plan/<id>` with a back arrow.
@@ -94,22 +96,26 @@ error text in hot beneath. One sentence says where a code comes from.
 ## The card (a lot tag)
 
 1. **SAMPLE band** (only `kind === 'SAMPLE'`): 24px full-width hot band inside
-   the top edge: "SAMPLE — NOT A REAL CAR", cream, Barlow 800 13px .14em. Also a
-   second rotated (−6°) SAMPLE stamp on a cream plate over the photo area.
+   the top edge: "SAMPLE — NOT A REAL CAR", cream, Barlow 800 13px .14em. This
+   band (with the header chip) is the card's one SAMPLE label: the word said
+   seven times on one card stops meaning anything.
 2. **Photo** 16:10, object-fit cover, 1px ink rule beneath, mono chip bottom-left
-   "LOT · eBay · 2d 4h". No photo → cream plate "No photo from the source"
-   (mono); for SAMPLE the plate shows the make's initials large in ink-3.
+   "eBay · Ends 2d 4h" (a sample's chip gives only the time). No photo → a
+   shorter (16:7) ruled kraft plate with the make's initial outlined and "No
+   photo" (mono).
 3. **Tag structure**: eyelet ring top-left of the paper region; a vertical
    perforation (2px dashed ink-3) with a 124px STUB on the right of the BODY.
 4. **Body**: title (uppercase Barlow), mono sub-line "41,200 MI · CLEAN TITLE ·
    ATLANTA, GA"; money row "NOW $58,500" (label above: CURRENT BID or BUY NOW)
-   beside "COMPS $74,000" with mono receipt "$70k–$78k · 6 comps" or the words
-   **NOT ENOUGH COMPS** in wait colour; badge row (words): Clean title · Minor
-   damage · Runs & drives · Keys · Ends in 2d 4h; "Why it scores this": three
-   Plex Sans lines with "more"; RED FLAGS block (hot rule, ink text, warning
-   glyph) when any; three buttons: **Plan my bid** (primary, ink), **Open the
-   lot ↗** (outline; disabled with reason on SAMPLE), **Watch** (pin toggle).
-5. **Stub**: mono "STEAL SCORE"; discount line "28% UNDER COMPS"; numeral
+   beside "SIMILAR CARS SELL FOR $74,000" with mono receipt "$70k–$78k · 6 cars"
+   or the words **NOT ENOUGH COMPS** in wait colour; facts as plain words with a
+   mark, never as button-like pills: ✓ Clean title · ✓ No damage · ✓ Runs &
+   drives · ✓ Keys (go), ? not stated (wait), ✕ salvage title (hot); "Why it
+   scores this": the reasons the facts do not already say, at most two, with
+   every reason behind "N more reasons" (a full 44px tap); RED FLAGS block (hot
+   rule, ink text) when any; buttons: **Plan my bid** (primary, ink), **Open the
+   lot ↗** (outline; absent on SAMPLE), **Watch** (pin toggle).
+5. **Stub**: mono "DEAL SCORE"; discount line "28% UNDER SIMILAR CARS"; numeral
    Barlow 800 56/72px ink; "/100" mono; a ten-tick ruler (ticks filled ink up to
    score); the grade stamp (double rule, −3°): STEAL/GOOD DEAL in go, FAIR in
    wait, PASS in ink, UNPRICED hollow with an em dash numeral.
