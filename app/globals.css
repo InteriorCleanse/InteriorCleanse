@@ -5790,3 +5790,341 @@ html[data-intro='skip'] .intro-veil { display: none; }
    category label fell just under 4.5:1 there. */
 .collection-section .product-card-price { color: #6e552c; }
 .collection-section .product-card-category { color: #5f5a52; }
+
+/* ── ADMIN LOGIN · CYBERPUNK / MATRIX ─────────────────────────────── */
+/* Self-contained. Everything is scoped under .cyber-login so the theme
+   never leaks into the storefront or the rest of the admin. */
+.cyber-login {
+  /* Fixed overlay so the full-screen theme covers the storefront header and
+     footer, which the shared root layout renders around every page. Scoped to
+     this page only: the element exists nowhere else. */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow: hidden;
+  background: #020604;
+  --neon: #15e37a;
+  --neon-dim: rgba(21, 227, 122, 0.4);
+  --neon-faint: rgba(21, 227, 122, 0.12);
+  --cyber-ink: #d7fff0;
+  font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+}
+
+.cyber-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.55;
+}
+
+/* CRT scanlines + faint moving sweep */
+.cyber-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.28) 3px,
+    rgba(0, 0, 0, 0.28) 4px
+  );
+  mix-blend-mode: multiply;
+}
+
+.cyber-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(2, 6, 4, 0) 35%,
+    rgba(2, 6, 4, 0.75) 100%
+  );
+}
+
+.cyber-card {
+  position: relative;
+  z-index: 2;
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 2.75rem 2.5rem 2.25rem;
+  background: rgba(4, 12, 9, 0.82);
+  border: 1px solid var(--neon-dim);
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  box-shadow:
+    0 0 0 1px rgba(21, 227, 122, 0.08),
+    0 0 24px rgba(21, 227, 122, 0.18),
+    0 0 90px rgba(21, 227, 122, 0.12),
+    inset 0 0 40px rgba(21, 227, 122, 0.05);
+  clip-path: polygon(
+    0 14px, 14px 0, 100% 0, 100% calc(100% - 14px),
+    calc(100% - 14px) 100%, 0 100%
+  );
+}
+
+.cyber-card-glow {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  border: 1px solid transparent;
+  background: linear-gradient(130deg, var(--neon), transparent 40%) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+}
+
+.cyber-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--neon);
+  text-shadow: 0 0 8px var(--neon-dim);
+}
+
+.cyber-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon);
+  animation: cyber-pulse 1.6s ease-in-out infinite;
+}
+
+.cyber-title {
+  position: relative;
+  margin: 0.4rem 0 0;
+  font-size: clamp(2.8rem, 9vw, 3.8rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  color: var(--cyber-ink);
+  text-shadow: 0 0 14px var(--neon-dim), 0 0 28px rgba(21, 227, 122, 0.25);
+}
+
+/* Glitch: two offset clones driven by clip-path */
+.cyber-title::before,
+.cyber-title::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.cyber-title::before {
+  color: #00fff0;
+  transform: translate(-2px, 0);
+  animation: cyber-glitch-a 2.6s steps(2, end) infinite;
+}
+.cyber-title::after {
+  color: #ff2e88;
+  transform: translate(2px, 0);
+  animation: cyber-glitch-b 2.6s steps(2, end) infinite;
+}
+
+.cyber-sub {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(215, 255, 240, 0.55);
+}
+
+.cyber-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.cyber-field-label {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--neon);
+  opacity: 0.8;
+}
+
+.cyber-input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--neon-dim);
+  border-radius: 2px;
+  color: var(--cyber-ink);
+  font-family: inherit;
+  font-size: 1.1rem;
+  letter-spacing: 0.25em;
+  caret-color: var(--neon);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.cyber-input::placeholder { color: rgba(21, 227, 122, 0.35); }
+.cyber-input:focus {
+  outline: none;
+  border-color: var(--neon);
+  box-shadow: 0 0 0 1px var(--neon), 0 0 18px rgba(21, 227, 122, 0.4),
+    inset 0 0 12px rgba(21, 227, 122, 0.12);
+}
+
+.cyber-caret {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  width: 9px;
+  height: 1.1rem;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon);
+  animation: cyber-blink 1.05s steps(1, end) infinite;
+  opacity: 0.7;
+}
+
+.cyber-error {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: #ff5a7a;
+  text-shadow: 0 0 10px rgba(255, 46, 136, 0.5);
+  text-transform: uppercase;
+}
+
+.cyber-submit {
+  position: relative;
+  margin-top: 0.4rem;
+  padding: 0.95rem 1rem;
+  background: rgba(21, 227, 122, 0.1);
+  border: 1px solid var(--neon);
+  border-radius: 2px;
+  color: var(--neon);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  transition: color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.cyber-submit:hover:not(:disabled) {
+  color: #020604;
+  background: var(--neon);
+  box-shadow: 0 0 22px rgba(21, 227, 122, 0.6);
+}
+.cyber-submit:disabled { opacity: 0.55; cursor: wait; }
+.cyber-submit-label { position: relative; z-index: 2; }
+
+.cyber-submit-sheen {
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(215, 255, 240, 0.35),
+    transparent
+  );
+  transform: skewX(-18deg);
+  animation: cyber-sheen 3.2s ease-in-out infinite;
+}
+
+.cyber-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  color: rgba(21, 227, 122, 0.55);
+}
+.cyber-blink { animation: cyber-pulse 1.3s ease-in-out infinite; }
+
+@keyframes cyber-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes cyber-blink {
+  0%, 49% { opacity: 0.7; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes cyber-sheen {
+  0% { left: -60%; }
+  55%, 100% { left: 130%; }
+}
+@keyframes cyber-glitch-a {
+  0%, 92%, 100% { clip-path: inset(0 0 100% 0); }
+  93% { clip-path: inset(10% 0 55% 0); }
+  96% { clip-path: inset(70% 0 12% 0); }
+}
+@keyframes cyber-glitch-b {
+  0%, 90%, 100% { clip-path: inset(100% 0 0 0); }
+  91% { clip-path: inset(60% 0 20% 0); }
+  97% { clip-path: inset(18% 0 62% 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyber-dot,
+  .cyber-blink,
+  .cyber-caret,
+  .cyber-submit-sheen,
+  .cyber-title::before,
+  .cyber-title::after {
+    animation: none;
+  }
+  .cyber-title::before,
+  .cyber-title::after { opacity: 0; }
+}
+
+/* ─── PHASE 15 · sell-ready product page ──────────────────────────────────── */
+.product-trust {
+  list-style: none;
+  margin: -0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: #5f5a52;
+}
+.product-trust li { display: inline-flex; align-items: center; gap: 0.5rem; }
+.product-trust li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold, #b08d57);
+}
+.product-trust a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.product-trust a:hover { color: var(--bone); }
+
+/* On a phone the decision comes first: name, price, the button, and what
+   happens after it. The story and the details follow, in source order. */
+@media (max-width: 900px) {
+  .product-viewer-col { height: 50vh; min-height: 340px; }
+  .product-info-col { padding-top: 2.5rem; gap: 1.5rem; }
+  .product-info-col > * { order: 1; }
+  .product-info-col > .product-breadcrumb,
+  .product-info-col > .eyebrow,
+  .product-info-col > .product-detail-name,
+  .product-info-col > .product-detail-tagline,
+  .product-info-col > .product-price-row,
+  .product-info-col > .add-to-cart-btn,
+  .product-info-col > .purchase-note,
+  .product-info-col > .product-trust { order: 0; }
+}
+/* The shop section opens with paddingTop: 0 under its hero, which left the
+   collection chips touching the hero's bottom edge. */
+.collection-nav { margin-top: 3rem; }
+@media (max-width: 900px) { .collection-nav { margin-top: 2rem; } }

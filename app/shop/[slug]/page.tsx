@@ -10,6 +10,7 @@ import { PurchaseAction } from '@/components/product/PurchaseAction'
 import { StaticGallery } from '@/components/product/StaticGallery'
 import { resolveShopSlug, shopParams } from '@/lib/collections'
 import { allProducts } from '@/lib/content'
+import { checkoutModeFor } from '@/lib/category-experience'
 import type { Product } from '@/lib/types'
 
 export function generateStaticParams() {
@@ -132,6 +133,19 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         </div>
 
         <PurchaseAction product={p} />
+
+        {/* Every line here is true for every physical product sold through
+            this site's own checkout; see /legal/returns/ for the full terms.
+            Shipping times are left out until fulfilment states them. */}
+        {checkoutModeFor(p) === 'internal_physical' ? (
+          <ul className="product-trust" aria-label="Buying here">
+            <li>Secure checkout on Stripe</li>
+            <li>Covered if it arrives damaged</li>
+            <li>
+              <Link href="/legal/returns/">Returns policy</Link>
+            </li>
+          </ul>
+        ) : null}
 
         <div className="channel-buttons">
           {validUrl(p.channels.amazonUrl) ? (
