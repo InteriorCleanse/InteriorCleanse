@@ -108,7 +108,7 @@ export function Checkout({ car }: { car: Car }) {
     <div className="wrap page">
       <Breadcrumbs items={[{ label: 'Search', href: '/search' }, { label: carTitle(car), href: `/cars/${car.slug}` }, { label: 'Checkout' }]} />
       <h1 className="page-title" style={{ marginBottom: 28 }}>
-        Almost <em>yours.</em>
+        Almost yours.
       </h1>
       <div className="checkout">
         <div>
@@ -271,7 +271,7 @@ export function Checkout({ car }: { car: Car }) {
           <div className="bookcard">
             <div className="row" style={{ gap: 12 }}>
               <div style={{ width: 96, borderRadius: 12, overflow: 'hidden', flex: 'none' }}>
-                <CarImage body={car.body} color={car.color.hex} alt="" />
+                <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt="" />
               </div>
               <div>
                 <strong>{carTitle(car)}</strong>
@@ -287,7 +287,7 @@ export function Checkout({ car }: { car: Car }) {
       <div className="mobile-pay">
         <div>
           <div className="small muted">Total{days ? `, ${days} days` : ''}</div>
-          <strong style={{ color: 'var(--lime)', fontSize: '1.2rem' }} className="tabular">{days ? moneyExact(q.totalCents) : '—'}</strong>
+          <strong style={{ fontSize: '1.2rem' }} className="tabular">{days ? moneyExact(q.totalCents) : '—'}</strong>
         </div>
         <a href="#s5" className="btn btn-primary btn-md">Review &amp; pay</a>
       </div>

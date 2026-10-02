@@ -12,7 +12,7 @@ export default function ListingsPage() {
       <Breadcrumbs items={[{ label: 'Host', href: '/host' }, { label: 'My listings' }]} />
       <div className="between" style={{ marginBottom: 28 }}>
         <h1 className="page-title">
-          Your <em>listings.</em>
+          Your listings.
         </h1>
         <Link href="/host/new" className="btn btn-primary btn-md">
           <Icon name="plus" size={16} /> Add a car

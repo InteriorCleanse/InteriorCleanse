@@ -22,7 +22,7 @@ export default function CoveragePage() {
       <div className="page-narrow">
         <p className="eyebrow">Coverage</p>
         <h1 className="page-title" style={{ margin: '10px 0 16px' }}>
-          Insurance in <em>thirty seconds.</em>
+          Insurance in thirty seconds.
         </h1>
         <p className="lead">
           Every trip includes liability insurance for other people and their property. The only decision is how much you&apos;d pay if the car you&apos;re
@@ -38,12 +38,12 @@ export default function CoveragePage() {
       <div className="wrap">
         <div className="grid-3" style={{ marginTop: 36 }}>
           {COVERAGE_PLANS.map((p) => (
-            <div key={p.id} className="panel stack" style={{ gap: 10, borderColor: p.id === 'plus' ? 'var(--lime)' : undefined }}>
+            <div key={p.id} className="panel stack" style={{ gap: 10, borderColor: p.id === 'plus' ? 'var(--text)' : undefined, borderWidth: p.id === 'plus' ? 2 : undefined }}>
               <div className="between">
                 <span className="plan-name">{p.name}</span>
                 {p.id === 'plus' ? <span className="badge badge-lime">Most chosen</span> : null}
               </div>
-              <p className="display" style={{ fontSize: 'clamp(3.6rem,7vw,5rem)', color: p.id === 'plus' ? 'var(--lime)' : undefined }}>
+              <p className="display" style={{ fontSize: 'clamp(3.6rem,7vw,5rem)' }}>
                 {money(p.maxOutOfPocketCents)}
               </p>
               <p>{p.oneLiner}</p>
@@ -64,7 +64,7 @@ export default function CoveragePage() {
       <div className="page-narrow section">
         <div className="section-head">
           <h2>
-            The <em>fine print,</em> in plain English
+            The fine print, in plain English
           </h2>
         </div>
         <div className="faq">

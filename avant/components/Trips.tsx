@@ -42,7 +42,7 @@ export function TripsList() {
           <li key={t.id}>
             <Link href={`/trips/${t.id}`} className="panel row" style={{ gap: 18, alignItems: 'center' }}>
               <div style={{ width: 140, borderRadius: 14, overflow: 'hidden', flex: 'none' }}>
-                <CarImage body={car.body} color={car.color.hex} alt="" />
+                <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt="" />
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div className="row">
@@ -93,7 +93,7 @@ export function TripDetail({ id }: { id: string }) {
       <div className="car-layout" style={{ marginTop: 20 }}>
         <div>
           <div className="car-hero" style={{ aspectRatio: '16/7' }}>
-            <CarImage body={car.body} color={car.color.hex} alt="" />
+            <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt="" />
           </div>
           <div className="row" style={{ marginTop: 20 }}>
             <span className={s.cls}>{s.label}</span>

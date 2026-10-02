@@ -62,7 +62,7 @@ export function Account() {
       <section className="panel" aria-labelledby="miles">
         <h2 id="miles" style={{ fontSize: '1.2rem' }}>AVANT Miles</h2>
         <div className="row" style={{ alignItems: 'baseline', marginTop: 10 }}>
-          <span className="display" style={{ fontSize: '3.4rem', color: 'var(--lime)' }}>{miles.toLocaleString()}</span>
+          <span className="display" style={{ fontSize: '3.4rem', }}>{miles.toLocaleString()}</span>
           <span className="muted">miles · {tier} tier</span>
         </div>
         <p className="small muted">One mile per dollar on completed trips. Graphite at 1,500 unlocks free delivery; Onyx at 5,000 waives the deposit.</p>

@@ -29,7 +29,7 @@ export default async function CarPage({ params }: Props) {
     <div className="wrap page">
       <Breadcrumbs items={[{ label: 'Search', href: '/search' }, { label: cityName(car.city), href: searchHref({ city: car.city }) }, { label: carTitle(car) }]} />
       <div className="car-hero">
-        <CarImage body={car.body} color={car.color.hex} alt={`Illustrative photo of a ${car.color.name.toLowerCase()} ${body?.label.toLowerCase()}`} priority />
+        <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt={`Illustrative photo of a ${car.color.name.toLowerCase()} ${body?.label.toLowerCase()}`} priority />
         <div className="car-hero-badges">
           {car.instantBook ? (
             <span className="badge badge-lime">
@@ -164,7 +164,7 @@ export default async function CarPage({ params }: Props) {
       <section className="section" aria-labelledby="similar">
         <div className="section-head">
           <h2 id="similar">
-            More <em>like this</em>
+            More like this
           </h2>
         </div>
         <div className="cargrid">

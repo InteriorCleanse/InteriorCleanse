@@ -25,10 +25,13 @@ export function getHost(id: string): Host {
 
 export const carTitle = (c: Pick<Car, 'year' | 'make' | 'model'>) => `${c.year} ${c.make} ${c.model}`
 
-export function featuredCars(): Car[] {
-  return cities
-    .map((city) => cars.filter((c) => c.city === city.slug).sort((a, b) => b.rating - a.rating || b.tripCount - a.tripCount)[0])
-    .filter((c): c is Car => Boolean(c))
+const byRating = (a: Car, b: Car) => b.rating - a.rating || b.tripCount - a.tripCount
+
+/** The best-rated car in each city, topped up with the next best to fill full rows. */
+export function featuredCars(count = 8): Car[] {
+  const picks = cities.map((city) => cars.filter((c) => c.city === city.slug).sort(byRating)[0]).filter((c): c is Car => Boolean(c))
+  const rest = cars.filter((c) => !picks.includes(c)).sort(byRating)
+  return [...picks, ...rest].slice(0, Math.max(count, picks.length))
 }
 
 export function similarCars(car: Car, limit = 4): Car[] {

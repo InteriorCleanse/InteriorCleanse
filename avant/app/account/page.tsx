@@ -6,7 +6,7 @@ export default function AccountPage() {
   return (
     <div className="page page-narrow">
       <h1 className="page-title" style={{ marginBottom: 28 }}>
-        Your <em>account.</em>
+        Your account.
       </h1>
       <Account />
     </div>

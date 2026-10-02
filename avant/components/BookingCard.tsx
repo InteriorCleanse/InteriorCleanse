@@ -98,7 +98,7 @@ export function BookingCard({ car }: { car: Car }) {
             <span className="muted">
               {days} days, Plus coverage{q.youngDriverCents ? ', young driver fee' : ''}
             </span>
-            <strong className="tabular" style={{ color: 'var(--lime)', fontSize: '1.2rem' }}>
+            <strong className="tabular" style={{ fontSize: '1.2rem' }}>
               {moneyExact(q.totalCents)}
             </strong>
           </div>

@@ -76,20 +76,27 @@ export function CarCard({
           ) : null}
           {car.fuel === 'electric' ? <span className="badge badge-glass">EV</span> : null}
         </div>
-        <CarImage body={car.body} color={car.color.hex} alt="" priority={priority} />
+        <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt="" priority={priority} />
         <div className="carcard-body">
           <div className="carcard-title">
             <h3>{carTitle(car)}</h3>
-            <Stars value={car.rating} />
           </div>
-          <p className="carcard-meta">
-            {car.neighborhood}, {cityName(car.city)} · {car.tripCount} trips
-            {car.delivery.offered ? ' · Delivers' : ''}
+          <p className="carcard-meta row" style={{ gap: 6 }}>
+            <Stars value={car.rating} />
+            <span>({car.tripCount} trips)</span>
+          </p>
+          <p className="carcard-meta row" style={{ gap: 4 }}>
+            <Icon name="map" size={14} />
+            <span>
+              {car.neighborhood}, {cityName(car.city)}
+              {car.delivery.offered ? <span className="dim">{' · Delivers'}</span> : null}
+            </span>
           </p>
           <p className="carcard-price">
             <strong>{money(daily)}</strong>
-            <span>/day {allIn ? 'all-in' : 'rate'}</span>
-            {days ? <em>{money(daily * days)} for {days}d</em> : null}
+            <span>/day</span>
+            {allIn ? <span className="allin">All-in</span> : null}
+            {days ? <em>{money(daily * days)} total</em> : null}
           </p>
         </div>
       </Link>

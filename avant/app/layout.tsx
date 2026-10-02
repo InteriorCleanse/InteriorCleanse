@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next'
-import { Instrument_Serif, Inter_Tight } from 'next/font/google'
+import { Archivo } from 'next/font/google'
 import { headers } from 'next/headers'
 import { Shell } from '@/components/Shell'
 import './globals.css'
 
-const serif = Instrument_Serif({ subsets: ['latin'], weight: '400', style: ['normal', 'italic'], variable: '--font-serif', display: 'swap' })
-const sans = Inter_Tight({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
+// One family at two widths: expanded for headlines, normal for reading.
+const sans = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-sans', display: 'swap' })
 
 const indexable = process.env.AVANT_INDEXABLE === '1'
 
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#07080a',
-  colorScheme: 'dark',
+  themeColor: '#ffffff',
+  colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // response carry its own CSP nonce.
   await headers()
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="en" className={sans.variable}>
       <body>
         <Shell>{children}</Shell>
       </body>

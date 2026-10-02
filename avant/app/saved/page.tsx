@@ -6,7 +6,7 @@ export default function SavedPage() {
   return (
     <div className="wrap page">
       <h1 className="page-title" style={{ marginBottom: 28 }}>
-        Saved <em>for later.</em>
+        Saved for later.
       </h1>
       <SavedList />
     </div>

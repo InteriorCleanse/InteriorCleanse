@@ -7,7 +7,7 @@ export default function TripsPage() {
   return (
     <div className="wrap page">
       <h1 className="page-title" style={{ marginBottom: 28 }}>
-        Your <em>trips.</em>
+        Your trips.
       </h1>
       <TripsList />
     </div>

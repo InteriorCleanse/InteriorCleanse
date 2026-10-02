@@ -7,7 +7,7 @@ export default function ConciergePage() {
     <div className="page page-narrow">
       <p className="eyebrow">Concierge</p>
       <h1 className="page-title" style={{ margin: '10px 0 20px' }}>
-        Ask for the car. <em>Not the form.</em>
+        Ask for the car. Not the form.
       </h1>
       <div className="panel" style={{ padding: 0, height: 'min(70vh, 720px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <ChatView autoFocus />

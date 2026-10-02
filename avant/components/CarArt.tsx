@@ -40,10 +40,11 @@ const SHAPES: Record<BodyType, Silhouette> = {
     wheels: [[70, 120], [254, 120]],
   },
   convertible: {
-    body: 'M18 118 L24 98 Q30 86 52 84 L98 82 L130 66 Q136 62 146 62 L176 62 L176 84 L288 86 Q304 90 304 102 L304 114 Q304 120 296 120 L28 120 Q18 120 18 118 Z',
-    glass: 'M110 82 L134 68 Q138 66 146 66 L170 66 L170 82 Z',
-    detail: 'M176 78 L212 78 L212 84 L176 84 Z',
-    wheels: [[80, 120], [240, 120]],
+    // Low body, open cabin: a raked windscreen frame and the folded top behind the seats.
+    body: 'M18 118 L24 100 Q30 88 54 86 L112 84 L134 66 L140 66 L126 84 L236 84 Q266 85 290 90 Q304 94 304 106 L304 114 Q304 120 296 120 L28 120 Q18 120 18 118 Z',
+    glass: 'M118 84 L136 69 L138 69 L124 84 Z',
+    detail: 'M188 84 Q192 74 206 73 L226 74 Q232 76 234 84 Z',
+    wheels: [[80, 120], [244, 120]],
   },
   coupe: {
     body: 'M18 118 L26 98 Q32 86 56 84 L84 82 L122 54 Q132 46 150 46 L192 46 Q214 46 236 66 L276 84 Q302 88 304 102 L304 114 Q304 120 296 120 L28 120 Q18 120 18 118 Z',

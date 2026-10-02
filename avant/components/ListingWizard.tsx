@@ -121,7 +121,7 @@ export function ListingWizard() {
     <div>
       <Breadcrumbs items={[{ label: 'Host', href: '/host' }, { label: editId ? 'Edit listing' : 'List your car' }]} />
       <h1 className="page-title" style={{ marginBottom: 24 }}>
-        List your <em>car.</em>
+        List your car.
       </h1>
 
       <ol className="row" aria-label="Steps" style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', gap: 8 }}>
@@ -274,7 +274,7 @@ export function ListingWizard() {
               <h2 id="h-price" style={{ fontSize: '1.3rem' }}>Set your price</h2>
               <p className="muted">
                 Similar {pluralType(d.body)}{d.city ? ` in ${cities.find((c) => c.slug === d.city)?.name}` : ''} go for about{' '}
-                <strong style={{ color: 'var(--lime)' }}>{money(suggested)}</strong> a day.{' '}
+                <strong>{money(suggested)}</strong> a day.{' '}
                 <button type="button" className="link" onClick={() => set('dailyRateCents', suggested)}>
                   Use that
                 </button>
@@ -305,7 +305,7 @@ export function ListingWizard() {
                   <Icon name="sparkle" size={18} />
                   <div>
                     At {money(d.dailyRateCents)}/day and 12 booked days a month you&apos;d keep about{' '}
-                    <strong style={{ color: 'var(--lime)' }}>{money(hostMonthlyEstimate(d.dailyRateCents, 12, HOST_SHARE_PCT))}</strong>. This rate puts the car in the{' '}
+                    <strong>{money(hostMonthlyEstimate(d.dailyRateCents, 12, HOST_SHARE_PCT))}</strong>. This rate puts the car in the{' '}
                     {VALUE_TIERS[tier].label} class. {VALUE_TIERS[tier].blurb}
                   </div>
                 </div>

@@ -1,6 +1,5 @@
 {
   "landed": [
-    "hero",
     "sedan",
     "suv",
     "truck",
@@ -11,8 +10,6 @@
     "wagon",
     "keys",
     "coast",
-    "driver",
-    "test-low",
-    "test-medium"
+    "driver"
   ]
 }

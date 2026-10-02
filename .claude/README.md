@@ -27,6 +27,8 @@ nothing under `.claude/` is built, served, or linted.
 | claudex-loop, claudex-route, codex-build, codex-review | github.com/chaseai-yt/claudex-loop | v2.1.0 | MIT |
 | ux-designer (+ 26 references) | github.com/szilu/ux-designer-skill | main @ 2026-09-23 | (repo README; no LICENSE file upstream) |
 | design-taste-frontend, high-end-visual-design, redesign-existing-projects (3 of 13) | github.com/Leonxlnx/taste-skill | main @ 2026-09-23 | see upstream |
+| frontend-design, webapp-testing (2 of 19) | github.com/anthropics/skills (`skills/*`) | 3337550 | Apache-2.0 |
+| web-design-guidelines, react-best-practices, composition-patterns (3 of 9) | github.com/vercel-labs/agent-skills (`skills/*`) | 063bee9 | MIT |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need

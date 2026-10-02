@@ -17,7 +17,7 @@ import type { Car, City } from '@/lib/types'
 import { CarCard, displayDaily } from './CarCard'
 import { useLocal } from '@/lib/store'
 
-const STYLE = 'https://tiles.openfreemap.org/styles/dark'
+const STYLE = 'https://tiles.openfreemap.org/styles/positron'
 
 type MapLib = typeof import('maplibre-gl')
 
@@ -174,7 +174,7 @@ export function PriceMap({
       <span className="map-note">{mode === 'schematic' ? `Schematic of ${city?.name}. ` : ''}Exact pickup spot shared after booking.</span>
       {preview ? (
         <div className="map-preview">
-          <button type="button" className="icon-btn" style={{ position: 'absolute', right: 6, top: 6, zIndex: 3, background: 'rgba(7,8,10,.7)' }} aria-label="Close preview" onClick={() => setPreview(null)}>
+          <button type="button" className="icon-btn" style={{ position: 'absolute', right: 6, top: 6, zIndex: 3, background: 'rgba(255,255,255,.95)' }} aria-label="Close preview" onClick={() => setPreview(null)}>
             ×
           </button>
           <CarCard car={preview} />
@@ -206,7 +206,7 @@ function Schematic({
       <svg aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100">
         <defs>
           <pattern id="g" width="5" height="5" patternUnits="userSpaceOnUse">
-            <path d="M5 0H0V5" fill="none" stroke="rgba(242,242,238,.05)" strokeWidth=".2" />
+            <path d="M5 0H0V5" fill="none" stroke="rgba(28,31,36,.06)" strokeWidth=".2" />
           </pattern>
         </defs>
         <rect width="100" height="100" fill="url(#g)" />

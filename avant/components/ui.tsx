@@ -70,7 +70,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
     <span
       className="avatar"
       aria-hidden="true"
-      style={{ width: size, height: size, fontSize: size * 0.36, background: `hsl(${h % 360} 30% 22%)`, color: `hsl(${h % 360} 70% 80%)` }}
+      style={{ width: size, height: size, fontSize: size * 0.36, background: `hsl(${h % 360} 45% 90%)`, color: `hsl(${h % 360} 45% 28%)` }}
     >
       {initials}
     </span>

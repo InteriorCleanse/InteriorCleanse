@@ -17,4 +17,4 @@ export const NAV: NavItem[] = [
   { label: 'Trust & safety', href: '/security', icon: 'lock', key: 'p' },
 ]
 
-export const TOP_NAV = NAV.slice(0, 4)
+export const TOP_NAV = NAV.slice(0, 4).map((n) => (n.href === '/host' ? { ...n, label: 'Become a host' } : n))

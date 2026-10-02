@@ -11,12 +11,15 @@ import { CarArt } from './CarArt'
  */
 export function CarImage({
   body,
+  slug,
   color,
   alt,
   priority = false,
   className = '',
 }: {
   body: BodyType
+  /** The car's slug, for its own photo; omit for the body-type photo. */
+  slug?: string
   color: string
   alt: string
   priority?: boolean
@@ -42,7 +45,7 @@ export function CarImage({
       </div>
       <img
         ref={img}
-        src={carImage(body)}
+        src={carImage(body, slug)}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"

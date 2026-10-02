@@ -30,11 +30,11 @@ export function Estimator() {
         </label>
         <label className="field">
           <span className="label">Shared {days} days a month</span>
-          <input type="range" min={2} max={28} value={days} onChange={(e) => setDays(Number(e.target.value))} style={{ accentColor: 'var(--lime)', marginTop: 14 }} />
+          <input type="range" min={2} max={28} value={days} onChange={(e) => setDays(Number(e.target.value))} style={{ accentColor: 'var(--text)', marginTop: 14 }} />
         </label>
       </div>
       <div className="row" style={{ alignItems: 'baseline', marginTop: 24, gap: 14 }}>
-        <span className="display" style={{ fontSize: 'clamp(3.4rem,8vw,6rem)', color: 'var(--lime)' }}>{money(monthly)}</span>
+        <span className="display" style={{ fontSize: 'clamp(3.4rem,8vw,6rem)', }}>{money(monthly)}</span>
         <span className="muted">a month, estimated</span>
       </div>
       <p className="small dim" style={{ marginTop: 8 }}>

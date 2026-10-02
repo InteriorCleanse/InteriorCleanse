@@ -20,26 +20,25 @@ export default function HostPage() {
   return (
     <div className="page">
       <div className="wrap">
-        <div className="bento">
-          <div className="b-span-3" style={{ justifyContent: 'center', minHeight: 380 }}>
-            <p className="eyebrow">Hosting</p>
-            <h1 className="display" style={{ fontSize: 'clamp(2.8rem,6vw,4.6rem)' }}>
-              Your car could <em>pay for itself.</em>
+        <div className="band">
+          <div className="band-body">
+            <h1 className="display" style={{ fontSize: 'clamp(2.4rem,5vw,3.8rem)' }}>
+              Your car could pay for itself.
             </h1>
             <p>Share it when you&apos;re not using it. You set the price, the rules and the days.</p>
-            <div className="row" style={{ marginTop: 14 }}>
+            <div className="row" style={{ marginTop: 6 }}>
               <ButtonLink href="/host/new" icon="plus">List your car</ButtonLink>
               <ButtonLink href="/host/listings" variant="secondary">My listings</ButtonLink>
             </div>
           </div>
-          <div className="b-span-3 b-photo" style={{ minHeight: 380 }}>
+          <div className="band-media">
             <HeroImage src={keys.src} alt="" />
           </div>
         </div>
 
         <section className="section" aria-labelledby="est">
           <div className="section-head">
-            <h2 id="est">What could you <em>earn?</em></h2>
+            <h2 id="est">What could you earn?</h2>
             <p>Built from the median rates of cars listed today.</p>
           </div>
           <Estimator />
@@ -47,7 +46,7 @@ export default function HostPage() {
 
         <section className="section" aria-labelledby="why">
           <div className="section-head">
-            <h2 id="why">Why hosts <em>choose AVANT.</em></h2>
+            <h2 id="why">Why hosts choose AVANT.</h2>
           </div>
           <div className="grid-2">
             {WHY.map(([icon, t, b]) => (

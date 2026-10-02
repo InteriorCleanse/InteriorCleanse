@@ -13,7 +13,7 @@ export default function VerifyPage() {
     <div className="page page-narrow">
       <p className="eyebrow">Driver Pass</p>
       <h1 className="page-title" style={{ margin: '10px 0 14px' }}>
-        Verify once. <em>Book forever.</em>
+        Verify once. Book forever.
       </h1>
       <p className="lead" style={{ marginBottom: 28 }}>
         A photo of your licence and a quick selfie, about two minutes. After that every car you qualify for is one tap away.

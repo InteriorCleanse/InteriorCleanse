@@ -26,7 +26,7 @@ export default function SecurityPage() {
     <div className="page page-narrow">
       <p className="eyebrow">Trust &amp; safety</p>
       <h1 className="page-title" style={{ margin: '10px 0 16px' }}>
-        Safe by <em>design,</em> not by promise.
+        Safe by design, not by promise.
       </h1>
       <p className="lead">Every layer below is in the code today. Where something is still in preview, this page says so.</p>
       <div className="grid-2" style={{ marginTop: 32 }}>
