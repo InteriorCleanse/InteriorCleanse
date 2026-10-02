@@ -59,3 +59,7 @@ the waitlist form with that vote preselected.
 - The left label on the home page is a composite of common clear-whey
   ingredients and says so. Never put a named competitor's label there.
 - Customer-facing copy uses US spelling: flavor, color.
+- Every pouch, stick, display, and shaker image carries a visible "concept"
+  caption, and AI mood photos say so. Keep both until real photography exists.
+- Once lot lab results exist, ask the label consultant whether California
+  Prop 65 needs a warning on the product page and at checkout.

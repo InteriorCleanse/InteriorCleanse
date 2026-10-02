@@ -59,15 +59,18 @@
           <input id="email-hero" name="email" type="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="help-hero">
           <button class="btn" type="submit">Join the waitlist</button>
         </div>
-        <p class="help" id="help-hero">Founding members get 20% off their first pouch and a free shaker.</p>
+        <p class="help" id="help-hero">Founding members get 20% off their first pouch and a free shaker. A few emails while we make it: the founding offer, the flavor vote, a monthly note from the bench, and the ship date. Unsubscribe anytime.</p>
         <p class="status" role="status" aria-live="polite"></p>
       </form>
     </div>
+    <figure class="hero-fig">
     <div class="hero-art">
-      <img class="photo" src="assets/img/strawberry-glass.png" alt="A glass of pink strawberry drink with ice beside halved strawberries" width="896" height="1120" fetchpriority="high" onerror="this.remove()">
+      <img class="photo" src="assets/img/strawberry-glass.png" alt="Illustration: strawberries and a pink fruit drink. Not the Picked product." width="896" height="1120" fetchpriority="high" onerror="this.remove()">
       <img class="pouch" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch" width="300" height="430">
       <img class="pouch-solo" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch" width="420" height="602">
     </div>
+    <figcaption class="concept">Concept pouch, not final packaging.<span class="ai-note"> Photo is AI-generated mood imagery, not our drink.</span></figcaption>
+    </figure>
   </div>
 </section>
 
@@ -75,7 +78,7 @@
   <div class="wrap">
     <div>
       <h2 id="flavors-h">If it says mango, there's mango in it.</h2>
-      <p>Each scoop is flavored mainly by freeze-dried fruit, and the pack prints how many grams. Strawberry ships first. You pick what's next.</p>
+      <p>Each scoop will be flavored mainly by freeze-dried fruit, and the pack will print how many grams. Strawberry ships first. You pick what's next.</p>
       <div class="tabs" role="tablist" aria-label="Flavors">
         <button class="tab" role="tab" id="tab-strawberry" data-flavor="strawberry" aria-selected="true" aria-controls="flavor-panel">Strawberry</button>
         <button class="tab" role="tab" id="tab-mango" data-flavor="mango" aria-selected="false" aria-controls="flavor-panel" tabindex="-1">Mango</button>
@@ -86,15 +89,16 @@
         <dl class="facts" style="margin-top:24px">
           <div><dt>Flavored by</dt><dd data-flavor-fruit>Freeze-dried strawberries</dd></div>
           <div><dt>Status</dt><dd data-flavor-status>First batch</dd></div>
-          <div><dt>Protein</dt><dd>20g whey isolate</dd></div>
-          <div><dt>Sweetened with</dt><dd>Monk fruit, no sucralose</dd></div>
+          <div><dt>Protein</dt><dd>20g whey isolate (planned)</dd></div>
+          <div><dt>Sweetened with</dt><dd>Monk fruit and/or stevia. No sucralose.</dd></div>
         </dl>
         <div class="actions"><button class="btn" type="button" data-flavor-vote hidden></button></div>
       </div>
     </div>
-    <div class="stage">
+    <figure class="stage">
       <img data-flavor-pouch data-base="assets/" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch" width="400" height="573">
-    </div>
+      <figcaption class="concept">Concept art, not final packaging.</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -118,7 +122,7 @@
         <span class="panel-tag">Picked Strawberry, as designed</span>
         <div class="panel ours">
           <div class="t">Other ingredients</div>
-          <p>Whey protein isolate (milk), <mark>freeze-dried strawberry ([x]%)</mark>, citric acid, <mark>monk fruit extract</mark>.</p>
+          <p>Whey protein isolate (milk), <mark>freeze-dried strawberry ([x]%)</mark>, citric acid, <mark>monk fruit and/or stevia extract</mark>.</p>
           <p class="cap">Final list comes from the finished formula. The fruit number goes on the front of the pack.</p>
         </div>
       </div>
@@ -134,21 +138,25 @@
   <div class="wrap">
     <div>
       <h2 id="ritual-h"><span>Scoop.</span><span>Pour.</span><span>Shake.</span></h2>
-      <p>One scoop, 10 to 12 oz of cold water, ten seconds in a shaker. It looks like juice because there's fruit in it.</p>
+      <p>One scoop, 10 to 12 oz of cold water, about 10 seconds in a shaker. It looks like juice because there's fruit in it.</p>
     </div>
     <figure>
-      <img class="photo" src="assets/img/runner-shaker.png" alt="A runner holds a shaker of pink fruit drink after a morning run" width="896" height="1120" loading="lazy" onerror="this.remove()">
+      <img class="photo" src="assets/img/runner-shaker.png" alt="Illustration: a runner after a morning run. Not the Picked product." width="896" height="1120" onerror="this.remove()">
       <img class="shaker" src="assets/shaker.svg" alt="Concept of the Picked shaker" width="180" height="360">
+      <figcaption class="concept">Concept shaker.<span class="ai-note"> Photo is AI-generated mood imagery.</span></figcaption>
     </figure>
   </div>
 </section>
 
 <section class="stock" aria-labelledby="stock-h">
   <div class="wrap">
-    <img src="assets/counter-display.svg" alt="Concept of a Picked counter display holding single-serve sticks" width="900" height="760">
+    <figure class="display-fig">
+      <img src="assets/counter-display.svg" alt="Concept of a Picked counter display holding single-serve sticks" width="900" height="760">
+      <figcaption class="concept">Concept art, not final packaging.</figcaption>
+    </figure>
     <div>
       <h2 id="stock-h">Run a gym, studio or café?</h2>
-      <p>Single-serve sticks sell at the counter for $3.99. We bring cold samples, run the first tasting, and take back anything that doesn't move in 30 days.</p>
+      <p>Single-serve sticks at the counter for $3.99. We bring cold samples and run the first tasting with your members.</p>
       <p class="email">Email <code>hello@pickedprotein.com</code></p>
     </div>
   </div>
@@ -159,11 +167,11 @@
     <h2 id="faq-h">Questions, answered.</h2>
     <div>
       <details><summary>When can I buy it?</summary><p>We plan to ship the first Strawberry batch in early 2027. The waitlist hears first and gets founding pricing.</p></details>
-      <details><summary>Is it a clear protein?</summary><p>It mixes like a clear whey: light, juice-like, not milky. It's a little cloudy, because real fruit is.</p></details>
-      <details><summary>How is it sweetened?</summary><p>With the fruit, plus monk fruit or stevia. No sucralose, no acesulfame potassium, no aspartame.</p></details>
+      <details><summary>Is it a clear protein?</summary><p>It's designed to mix like a clear whey: light, juice-like, not milky. It's a little cloudy, because real fruit is.</p></details>
+      <details><summary>How is it sweetened?</summary><p>With the fruit, plus monk fruit and/or stevia. No sucralose, no acesulfame potassium, no aspartame.</p></details>
       <details><summary>What's in it besides fruit?</summary><p>Whey protein isolate, so it contains milk. The full ingredient list goes up here when the recipe is final.</p></details>
-      <details><summary>How do you test it?</summary><p>Every batch goes to a lab for heavy metals. A QR code on the pack opens that batch's results.</p></details>
-      <details><summary>How much does it cost?</summary><p>The plan is $54.99 for a 20-serving pouch, or 15% less on subscription. Founding members get 20% off their first pouch.</p></details>
+      <details><summary>How do you test it?</summary><p>Every batch will be lab tested for heavy metals, and a QR code on the pack will open that batch's results. First results post when the first batch is made.</p></details>
+      <details><summary>How much does it cost?</summary><p>The plan is $54.99 for a 20-serving pouch, or 15% less on subscription. Founding members get 20% off their first pouch. Founding pricing runs for a set window once pre-orders open, and the waitlist gets the date first.</p></details>
     </div>
   </div>
 </section>
@@ -182,7 +190,7 @@
         <label class="chip"><input type="radio" name="next_flavor" value="mango" id="vote-mango"><span>Mango</span></label>
         <label class="chip"><input type="radio" name="next_flavor" value="raspberry-lemon" id="vote-raspberry-lemon"><span>Raspberry Lemon</span></label>
       </fieldset>
-      <p class="help" id="help-join">A few emails while we make it: the founding offer, the flavor vote, and the ship date. Unsubscribe anytime.</p>
+      <p class="help" id="help-join">A few emails while we make it: the founding offer, the flavor vote, a monthly note from the bench, and the ship date. Unsubscribe anytime.</p>
       <p class="status" role="status" aria-live="polite"></p>
     </form>
   </div>

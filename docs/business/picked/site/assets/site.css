@@ -118,6 +118,10 @@ p { margin: 0; max-width: 62ch; }
   @keyframes settle { from { translate: 0 18px; rotate: 6deg; } to { translate: 0 0; rotate: 0deg; } }
 }
 
+.hero-fig { margin: 0; display: grid; gap: 14px; min-width: 0; }
+.concept { font-size: .85rem; color: var(--muted); }
+.hero-fig:not(:has(.photo)) .ai-note, .ritual figure:not(:has(.photo)) .ai-note { display: none; }
+
 /* flavor switcher band */
 .band { background: var(--band); color: var(--band-fg); padding-block: clamp(56px, 8vw, 104px); transition: background-color .45s var(--ease), color .45s var(--ease); }
 .band .wrap { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(28px, 5vw, 72px); align-items: center; }
@@ -134,7 +138,8 @@ p { margin: 0; max-width: 62ch; }
 .band .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
 .band .btn { background: var(--band-fg); color: var(--band); border-color: var(--band-fg); }
 .band .btn:hover { background: transparent; color: var(--band-fg); }
-.stage { position: relative; display: grid; place-items: center; min-height: 420px; }
+.stage { position: relative; display: grid; place-items: center; min-height: 420px; margin: 0; }
+.stage .concept { position: relative; color: inherit; opacity: .85; margin-top: 10px; }
 .stage::before { content: ""; position: absolute; width: min(88%, 520px); aspect-ratio: 1; border-radius: 50%; background: var(--band-soft); opacity: .45; }
 .stage img { position: relative; width: min(74%, 400px); filter: drop-shadow(0 30px 40px rgba(30, 26, 23, .3)); transition: transform .5s var(--ease), opacity .25s; }
 .stage img.is-swapping { opacity: 0; transform: translateY(14px) rotate(-4deg); }
@@ -163,6 +168,8 @@ p { margin: 0; max-width: 62ch; }
 .ritual figure { margin: 0; position: relative; aspect-ratio: 4 / 5; border-radius: var(--frame); background: #2A5E39; overflow: hidden; display: grid; place-items: center; }
 .ritual figure img.photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ritual figure .shaker { width: 46%; }
+.ritual figure .concept { position: absolute; left: 16px; bottom: 12px; color: var(--cream); background: rgba(20,17,14,.55); padding: 4px 10px; border-radius: 999px; }
+.display-fig { margin: 0; display: grid; gap: 10px; }
 
 /* stockists */
 .stock { padding-block: clamp(56px, 8vw, 104px); }
@@ -221,7 +228,7 @@ details p { margin-top: 10px; color: var(--muted); }
 @media (max-width: 480px) { .site-head nav .hide-xs { display: none; } }
 @media (max-width: 860px) {
   .hero .wrap, .band .wrap, .ritual .wrap, .stock .wrap, .faq .wrap, .label-pair { grid-template-columns: 1fr; }
-  .hero-art { max-width: 420px; width: 100%; justify-self: center; }
+  .hero-fig { max-width: 420px; width: 100%; justify-self: center; }
   .stage { min-height: 320px; order: -1; }
   .ritual figure { max-width: 420px; }
   .site-head nav .hide-sm { display: none; }
