@@ -23,7 +23,7 @@ nothing under `.claude/` is built, served, or linted.
 | harness-engineering templates (references, not skills) | github.com/ulises-jeremias/awesome-harness-engineering | 1e12fda | CC0 |
 | ponytail, -audit, -debt, -gain, -help, -review | github.com/DietrichGebert/ponytail | e3ba2aa | MIT |
 | graphify | pypi `graphifyy` 0.9.65 / github.com/Graphify-Labs/graphify | 0.9.65 | Apache-2.0 + MIT |
-| 25 lifecycle skills + 4 agents + 9 commands | github.com/addyosmani/agent-skills | dc27a9c | MIT |
+| 25 lifecycle skills + 4 agents + 9 commands | github.com/addyosmani/agent-skills | dc27a9c (skills synced to 9d0c60d on 2026-10-02) | MIT |
 | claudex-loop, claudex-route, codex-build, codex-review | github.com/chaseai-yt/claudex-loop | v2.1.0 | MIT |
 | ux-designer (+ 26 references) | github.com/szilu/ux-designer-skill | main @ 2026-09-23 | (repo README; no LICENSE file upstream) |
 | design-taste-frontend, high-end-visual-design, redesign-existing-projects (3 of 13) | github.com/Leonxlnx/taste-skill | main @ 2026-09-23 | see upstream |
