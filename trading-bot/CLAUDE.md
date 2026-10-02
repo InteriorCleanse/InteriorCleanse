@@ -71,6 +71,16 @@ data directory, never against `data/`.
 - `docs/` runbooks and contracts. Start with `PAPER_SOAK_RUNBOOK.md`,
   `FIRST_FILL_ACCEPTANCE.md`, `SIGNAL_CORE.md`, `QUANT_LAB.md`, `SECURITY.md`.
 
+## Development skills
+
+Ponytail, Graphify and Addy Osmani's agent-skills are available from the
+repository's shared `.claude/` (details, versions and commands in
+`docs/DEV_TOOLS.md`). They serve Kestrel and never outrank the rules above.
+Use `/ponytail lite` here, never `ultra`; its review and audit findings are
+reports, and nothing in the protected areas above changes because a skill
+suggested it. For "where is X / what calls Y", `graphify query` over
+`graphify-out/` (build it with `graphify update .`) is cheaper than grepping.
+
 ## Reporting
 
 Separate what the software verified from what the market has shown. With
