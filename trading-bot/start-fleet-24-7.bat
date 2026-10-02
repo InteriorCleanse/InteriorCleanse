@@ -8,7 +8,7 @@ cd /d "%~dp0"
 set MRCASH_SYMBOLS=ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT
 set MRCASH_PORT=4174
 set MRCASH_DATA_DIR=data-fleet
-REM The BTC window already runs the all-markets scan.
+REM The BTC window already runs the all-markets scan, the prediction desk and the stock desk.
 set MRCASH_MARKETS=0
 echo.
 echo   Kestrel fleet - 24/7 paper trading on %MRCASH_SYMBOLS% (close this window to stop)
