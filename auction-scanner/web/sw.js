@@ -1,7 +1,7 @@
 // Gavel's service worker. It makes Gavel installable and shows a plain notice
 // when the phone is offline. It never serves an old copy of the app while the
 // network works, and never touches /api/: every price is fetched live.
-const CACHE = 'gavel-offline-v1'
+const CACHE = 'gavel-offline-v2'
 const OFFLINE = ['/offline.html', '/css/app.css', '/icon.svg']
 
 self.addEventListener('install', (event) => {

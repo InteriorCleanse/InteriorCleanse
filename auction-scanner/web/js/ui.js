@@ -10,7 +10,7 @@ export function toast(text, tone = '') {
   t.textContent = text
   // One message at a time: a fixed mistake's warning never lingers next to what happened since.
   root.replaceChildren(t)
-  setTimeout(() => t.remove(), 6000)
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), reducedMotion() ? 0 : 200) }, 6000)
 }
 
 /** A bottom sheet (phone) or centred dialog (desktop). Returns close(). */
@@ -20,7 +20,20 @@ export function sheet(html, { label = 'Dialog' } = {}) {
   const scrim = root.firstElementChild
   const dlg = scrim.firstElementChild
   const previous = document.activeElement
-  const close = () => { root.innerHTML = ''; if (previous && previous.focus) previous.focus() }
+  let closed = false
+  const close = () => {
+    if (closed) return
+    closed = true
+    const done = () => {
+      // A new sheet opened in the meantime stays open.
+      if (root.firstElementChild === scrim) { root.classList.remove('closing'); root.innerHTML = '' }
+      if (previous && previous.focus) previous.focus()
+    }
+    // The sheet slides away before it goes; with reduced motion it simply goes.
+    if (reducedMotion()) return done()
+    root.classList.add('closing')
+    setTimeout(done, 200)
+  }
   scrim.addEventListener('click', (e) => { if (e.target === scrim) close() })
   dlg.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') close()
@@ -41,6 +54,11 @@ export function sheet(html, { label = 'Dialog' } = {}) {
 const GRADE_TONE = { steal: 'go', 'good deal': 'go', fair: 'wait', pass: '', unpriced: 'hollow' }
 const GRADE_WORD = { steal: 'Steal', 'good deal': 'Good deal', fair: 'Fair', pass: 'Pass', unpriced: 'Unpriced' }
 
+/** A car's name, escaped, with hyphenated model names (MX-5, F-150) kept on one line. */
+export function carName(title) {
+  return esc(title).replace(/(\S+-\S+)/g, '<span class="nw">$1</span>')
+}
+
 export function stamp(word, tone = '', extra = '') {
   return `<span class="stamp ${tone} ${extra}">${esc(word)}</span>`
 }
@@ -50,7 +68,7 @@ export function stub(score, { big = false } = {}) {
   const g = score.grade
   const n = g === 'unpriced' ? '—' : String(score.total)
   const filled = g === 'unpriced' ? 0 : Math.round(score.total / 10)
-  const ticks = Array.from({ length: 10 }, (_, i) => `<i class="${i < filled ? 'on' : ''}"></i>`).join('')
+  const ticks = Array.from({ length: 10 }, (_, i) => `<i class="${i < filled ? 'on' : ''}" style="--k:${i}"></i>`).join('')
   const disc = typeof score.discount === 'number' ? `<span class="mono dim">${esc(pct(score.discount))} under comps</span>` : ''
   const sr = g === 'unpriced' ? 'Not scored: not enough comparable cars.' : `Steal score ${score.total} out of 100, ${GRADE_WORD[g]}${typeof score.discount === 'number' ? `, ${pct(score.discount)} under comparable listings` : ''}.`
   return `<div class="stub" role="img" aria-label="${esc(sr)}">
@@ -131,7 +149,7 @@ export function cardHtml(card, opts = {}) {
     <div class="photo">${photoHtml}${lot}${sample ? stamp('Sample', 'hot') : ''}</div>
     <div class="tagbody">
       <div class="body">
-        <h3 class="title">${esc(l.title)}</h3>
+        <h3 class="title">${carName(l.title)}</h3>
         <div class="subline mono">${esc(sub || '')}</div>
         <div class="money">
           <div><span class="k mono">${priceLabel}</span><div class="now">${esc(money(asking))}</div><div class="receipt mono">${esc(bidsNote)}</div></div>

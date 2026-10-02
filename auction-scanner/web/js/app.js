@@ -16,6 +16,7 @@ import * as garage from './garage.js'
 import * as setup from './setup.js'
 import * as importer from './import.js'
 import * as connect from './connect.js'
+import { startMotion, newVisit } from './motion.js'
 
 const SCREENS = { home, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup, import: importer, connect }
 const ctx = { me: null, feedKind: null, installPrompt: null }
@@ -36,6 +37,7 @@ function route() {
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current')
   })
   const root = document.getElementById('screen-' + screen)
+  newVisit()
   SCREENS[screen].render(root, ctx, rest.map(decodeURIComponent))
   window.scrollTo({ top: 0, behavior: 'auto' })
   const main = document.getElementById('main')
@@ -125,6 +127,7 @@ async function boot() {
   const names = live.map((s) => s.name).concat(ctx.me.hasImports ? ['your imports'] : [])
   setMode(names.length ? 'LIVE' : ctx.me.allowSample ? 'SAMPLE' : 'EMPTY', names.join(', '))
   accountMenu()
+  startMotion()
   window.addEventListener('hashchange', route)
   route()
   pollAlerts()

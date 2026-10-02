@@ -16,7 +16,7 @@ instead of icon soup and a feed whose colour grows with the quality of the deals
 
 ## What we refuse to do
 
-No gradients, no glassmorphism, no blur shadows, no purple, no 16px-radius white
+No colour gradients (the ruled photo plate is a pattern, not a fade), no glassmorphism, no floating blur-only shadows (a hard offset always anchors the tag; a soft warm fall-off may sit under it), no purple, no 16px-radius white
 cards floating on grey, no Inter/Roboto, no icon library, no emoji, no AI
 sparkle, no hero illustrations, no stock car photographs (a missing photo is a
 plate that says so), no donut gauges, no skeleton shimmer, no blinking
@@ -27,15 +27,17 @@ success confetti. Red is never decorative.
 
 | Variable | Light (default) | Night (`prefers-color-scheme: dark`) | Use |
 |---|---|---|---|
-| `--paper` | `#EDE4CF` | `#15130F` | page background |
-| `--tag` | `#F8F3E7` | `#F8F3E7` | card, sheet, input surface (cards stay cream at night) |
+| `--paper` | `#E6DBC2` | `#14120E` | page background: kraft, a step darker than the tags so a tag reads as a tag |
+| `--paper-2` | `#DCCFB2` | `#1E1B16` | wells on the paper |
+| `--tag` | `#FBF7EE` | `#FBF7EE` | card, sheet, input surface (cards stay cream at night) |
+| `--line` | ink at 16% | ink at 16% | soft hairlines; panels and tiles use ink at 24%, lot tags keep the full ink edge |
 | `--ink` | `#1C1A16` | `#1C1A16` on tag; `#EDE4CF` for text on paper | primary text, borders, primary button |
 | `--ink-2` | `#5A554B` | `#5A554B` on tag; `#B8AE9A` on paper | secondary text (6.69:1 on tag) |
 | `--ink-3` | `#B8AE9A` | `#B8AE9A` | hairlines, perforations, unfilled ticks — never text |
 | `--hot` | `#B3261E` | `#B3261E` | SAMPLE, PAPER, red flags, ending soon (5.90:1 on tag as text; cream on hot 5.90:1) |
 | `--hot-deep` | `#8E1B14` | `#8E1B14` | pressed hot |
 | `--go` | `#1F6B3A` | `#1F6B3A` | STEAL and GOOD DEAL stamps, "in budget" (5.9:1 on tag) |
-| `--wait` | `#8A5A00` | `#8A5A00` | FAIR stamp, cautions, "over budget" (5.7:1 on tag) |
+| `--wait` | `#7D5200` | `#7D5200` | FAIR stamp, cautions, "over budget" (6.4:1 on tag, 5.0:1 on paper) |
 | `--focus` | `#1C1A16` | `#EDE4CF` | 2px focus ring, offset 2px |
 
 Colour is never the only signal: every stamp carries its word; every badge is a
@@ -59,7 +61,15 @@ Fallbacks: "Arial Narrow", Arial, sans-serif · system-ui, sans-serif · ui-mono
 ## Spacing and shape
 
 4px grid: 4/8/12/16/24/32/48. Radius 6px on tags, 4px on chips, 0 on stamps.
-Borders 1px ink. A tag lying on another: `box-shadow: 2px 2px 0 rgba(28,26,22,.12)` — hard, no blur.
+Lot tags (the car cards) keep a 1px ink edge; panels, tiles and sheets take a
+softer edge (ink at 24%) so a screen reads as tags on a desk, not a grid of
+boxes. One light source, top left: `--shadow` is a hard 2px offset where the tag
+touches the paper plus a soft warm fall-off below; `--shadow-lift` is the same
+tag picked up 3px on hover.
+
+Type: headlines are Barlow 800 at `clamp(34px, 5.2vw, 52px)`, line-height .92,
+balanced wrapping; paragraphs wrap `pretty`. A hyphenated model name (MX-5,
+F-150) never breaks at its hyphen.
 
 ## Shell
 
@@ -136,11 +146,40 @@ Three stamp words only: SAMPLE, PAPER, and the grade. Double rule (2px outer,
 
 ## Motion
 
-Paper being handled, never UI flying. Card settle 120ms (first six only);
-stamp press 180ms scale 1.12→1; watch pin 80ms; sheets 220ms ease-out.
-Countdowns update once a minute. `prefers-reduced-motion: reduce` sets every
-duration to 0.01ms and removes transforms; JS reads matchMedia and skips the
-stamp press.
+Paper being handled, never UI flying. One signature curve and three durations:
+
+| Token | Value | Use |
+|---|---|---|
+| `--ease` | `cubic-bezier(.2, 0, 0, 1)` | everything on screen: hovers, presses, colour |
+| `--ease-emph` | `cubic-bezier(.05, .7, .1, 1)` | entrances: headers, sheets, toasts, menus |
+| `--ease-in` | `cubic-bezier(.3, 0, 1, 1)` | exits |
+| `--ease-paper` | `cubic-bezier(.34, 1.26, .64, 1)` | a tag landing: about 3% overshoot, as paper does |
+| `--t-quick` / `--t-std` / `--t-slow` | 140 / 260 / 480ms | press / state change / entrance |
+
+`web/js/motion.js` watches `<main>`, so screens only render HTML:
+
+- **Tags settle.** New cards rise 16px with a half-degree turn and settle with
+  the paper curve, 45ms apart, at most seven staggered (under 350ms in all).
+  Only cards on screen move; a card already shown on this visit does not move
+  again when a screen re-renders.
+- **The stamp lands after its card** (280ms later): pressed down from 1.55×
+  and −10°, settling at −3°. The score ticks fill left to right as it lands.
+- **Numbers count up** to their value (scores, prices, tile figures) in 720ms;
+  the text at rest is exactly what the server sent.
+- **NEVER BID ABOVE** counts from the old number to the new one when the plan
+  changes, with a brief green wash, so a changed repair estimate is seen.
+- **Sheets** rise 40px (phone) or pop from .97 (desktop) over a fading scrim,
+  and slide away before they close; **toasts** rise in and drop out; the
+  account **menu** drops from its corner.
+- **Hover** lifts a tag 3px onto `--shadow-lift`; **press** puts it back down.
+  Buttons rise 1px on hover and sink on press.
+- **Login**: the tag swings once on its string and comes to rest (1.9s).
+- The phone tab bar's indicator grows from the centre; on desktop the current
+  screen is a cream tag with its own eyelet, hung on the rail.
+
+Countdowns update once a minute; nothing blinks. `prefers-reduced-motion:
+reduce` turns every animation off (CSS) and motion.js does not start: cards,
+stamps and numbers appear at rest, sheets close at once.
 
 ## Icon
 

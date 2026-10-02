@@ -1,37 +1,51 @@
 /* Gavel — the "Lot Tag" design (docs/DESIGN.md). Paper, ink, one hot red, go/wait stamps. */
 
 :root {
-  --paper: #EDE4CF;
-  --tag: #F8F3E7;
+  /* Kraft paper under bright cream tags: the gap between the two is what makes a tag read as a tag. */
+  --paper: #E6DBC2;
+  --paper-2: #DCCFB2;
+  --tag: #FBF7EE;
   --ink: #1C1A16;
   --ink-2: #5A554B;
   --ink-3: #B8AE9A;
+  --line: rgba(28, 26, 22, .16);
   --hot: #B3261E;
   --hot-deep: #8E1B14;
   --go: #1F6B3A;
-  --wait: #8A5A00;
+  --wait: #7D5200;
   --focus: #1C1A16;
   --on-paper: var(--ink);
   --on-paper-2: var(--ink-2);
   --rail: var(--ink);
-  --rail-text: var(--paper);
-  --shadow: 2px 2px 0 rgba(28, 26, 22, .12), 0 8px 24px -12px rgba(28, 26, 22, .18);
+  --rail-text: #EDE4CF;
+  /* One light source, top left: a hard offset where the tag touches the paper, a soft warm fall-off below. */
+  --shadow: 0 1px 0 rgba(70, 50, 20, .06), 2px 2px 0 rgba(70, 50, 20, .10), 0 12px 24px -16px rgba(70, 45, 10, .38);
+  --shadow-lift: 0 1px 0 rgba(70, 50, 20, .06), 3px 4px 0 rgba(70, 50, 20, .12), 0 22px 34px -18px rgba(70, 45, 10, .45);
   --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --dur: 180ms;
-  --ease: cubic-bezier(.2, .8, .2, 1);
+  /* Motion: paper being handled. One signature curve, one with a 3% paper overshoot, three durations. */
+  --ease: cubic-bezier(.2, 0, 0, 1);
+  --ease-emph: cubic-bezier(.05, .7, .1, 1);
+  --ease-in: cubic-bezier(.3, 0, 1, 1);
+  --ease-paper: cubic-bezier(.34, 1.26, .64, 1);
+  --t-quick: 140ms;
+  --t-std: 260ms;
+  --t-slow: 480ms;
+  --dur: var(--t-quick);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #15130F;
+    --paper: #14120E;
+    --paper-2: #1E1B16;
     --on-paper: #EDE4CF;
     --on-paper-2: #B8AE9A;
     --focus: #EDE4CF;
-    --rail: #0E0D0A;
+    --rail: #0B0A08;
     --rail-text: #EDE4CF;
-    --shadow: 2px 2px 0 rgba(0, 0, 0, .5), 0 8px 24px -12px rgba(0, 0, 0, .6);
+    --shadow: 0 1px 0 rgba(0, 0, 0, .4), 2px 2px 0 rgba(0, 0, 0, .55), 0 14px 28px -14px rgba(0, 0, 0, .8);
+    --shadow-lift: 0 1px 0 rgba(0, 0, 0, .4), 3px 4px 0 rgba(0, 0, 0, .6), 0 24px 40px -16px rgba(0, 0, 0, .9);
     color-scheme: dark;
   }
 }
@@ -54,14 +68,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- type ---------- */
-h1, h2, h3 { font-family: var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; line-height: 1; }
-h1 { font-weight: 800; font-size: 32px; }
+h1, h2, h3 { font-family: var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; line-height: 1; text-wrap: balance; }
+h1 { font-weight: 800; font-size: clamp(34px, 5.2vw, 52px); line-height: .92; letter-spacing: 0; }
 h2 { font-weight: 700; font-size: 18px; letter-spacing: .06em; }
 h3 { font-weight: 700; font-size: 20px; }
 .mono { font-family: var(--mono); font-weight: 500; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
 .dim { color: var(--on-paper-2); }
 .tag .dim, .sheet .dim { color: var(--ink-2); }
-p { margin: 0 0 12px; }
+p { margin: 0 0 12px; text-wrap: pretty; }
 .lead { font-size: 17px; }
 
 /* ---------- shell ---------- */
@@ -257,7 +271,7 @@ textarea { min-height: 80px; }
 .panel + .panel { margin-top: 16px; }
 .panel h2 { margin-bottom: 10px; }
 .strip { border-left: 3px solid var(--hot); background: rgba(179, 38, 30, .08); padding: 10px 12px; margin: 0 0 12px; color: var(--on-paper); }
-.strip.wait { border-color: var(--wait); background: rgba(138, 90, 0, .10); }
+.strip.wait { border-color: var(--wait); background: rgba(125, 82, 0, .10); }
 .strip.go { border-color: var(--go); background: rgba(31, 107, 58, .10); }
 .tag .strip, .panel .strip { color: var(--ink); }
 .loading { border: 2px dashed var(--on-paper-2); border-radius: 6px; padding: 24px; text-align: center; color: var(--on-paper-2); }
@@ -480,6 +494,138 @@ body.in-setup .tabs, body.in-setup #mode-chip { visibility: hidden; }
 .conn code, .strip code { background: var(--paper); border: 1px solid var(--ink-3); padding: 1px 6px; border-radius: 3px; font-size: 13px; color: var(--ink); }
 #bm { cursor: grab; }
 @media (min-width: 960px) { .tabs a { flex: 0 0 46px; } }
+
+/* ==========================================================================
+   Lot Tag, refined: surfaces, states and motion (docs/DESIGN.md, "Motion").
+   ========================================================================== */
+
+/* ---------- surfaces: tags carry the ink edge; panels and tiles a softer one ---------- */
+.panel, .tile, .choice, .menu, .sheet { border-color: rgba(28, 26, 22, .24); }
+.tile { background: color-mix(in srgb, var(--tag) 55%, transparent); }
+.panel .tile { background: transparent; border-color: var(--line); }
+.topbar { border-bottom-color: color-mix(in srgb, var(--on-paper) 22%, transparent); transition: box-shadow var(--t-std) var(--ease), border-color var(--t-std) var(--ease); }
+body.scrolled .topbar { box-shadow: 0 12px 24px -20px rgba(40, 28, 8, .55); }
+.screen > .head { margin: 14px 0 22px; }
+.screen > .head p:not(.mono) { font-size: 17px; }
+.grid2 > .panel + .panel, .guides > .panel + .panel { margin-top: 0; }
+/* Cream surfaces keep dark text in night mode too. */
+.panel .dim, .tile .dim, .choice .dim, .menu .dim, .toast .dim { color: var(--ink-2); }
+/* A whole card that is a link reads as a card, not as underlined text. */
+a.panel, a.tag, a.tile { text-decoration: none; color: var(--ink); }
+.guide h3 { text-underline-offset: 3px; text-decoration-thickness: 2px; }
+@media (hover: hover) { .guide:hover h3 { text-decoration: underline; } }
+.badge { border-color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.list .item, .ledger .line, th, td, .steps li, .check li, .path li a, .policy { border-bottom-color: color-mix(in srgb, var(--ink-3) 85%, transparent); }
+.strip { border-radius: 0 4px 4px 0; }
+.title { text-wrap: balance; }
+.nw { white-space: nowrap; }
+
+/* ---------- states: everything you can touch answers ---------- */
+.btn { transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease), transform var(--t-quick) var(--ease), box-shadow var(--t-quick) var(--ease); }
+.btn:not(.outline):not(:disabled) { box-shadow: 0 1px 0 rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .07); }
+@media (hover: hover) { .btn:hover:not(:disabled) { transform: translateY(-1px); } }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(.985); box-shadow: none; }
+.btn.outline:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.on-paper .btn.outline:hover { background: color-mix(in srgb, var(--on-paper) 8%, transparent); }
+.chip { transition: background-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), transform var(--t-quick) var(--ease); }
+@media (hover: hover) { .chip:not([aria-pressed="true"]):not(.on):not(.hot):not(.go):not(:disabled):hover { background: color-mix(in srgb, var(--on-paper) 9%, transparent); } }
+.chip:active:not(:disabled) { transform: scale(.96); }
+.ring { transition: background-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease); }
+.ring:hover, .ring[aria-expanded="true"] { background: var(--on-paper); color: var(--paper); }
+a.tag, .feed > .tag, .nextup, a.tile.big, .choice, .guide { transition: transform var(--t-std) var(--ease), box-shadow var(--t-std) var(--ease); }
+@media (hover: hover) {
+  .feed > .tag:hover, .nextup:hover, a.tile.big:hover, .choice:hover, .guide:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+}
+.nextup:active, a.tile.big:active, .choice:active, .guide:active { transform: translateY(0); box-shadow: var(--shadow); transition-duration: var(--t-quick); }
+input, select, textarea { transition: border-color var(--t-quick) var(--ease), box-shadow var(--t-quick) var(--ease); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--tag), 0 0 0 4px var(--ink); }
+.switch .track::after { transition: transform var(--t-std) var(--ease-paper), background-color var(--t-quick) var(--ease); }
+.switch .track { transition: background-color var(--t-quick) var(--ease); }
+.more, .status .lnk, .row-link b { transition: color var(--t-quick) var(--ease); }
+details > summary { transition: color var(--t-quick) var(--ease); }
+
+/* ---------- the rail ---------- */
+.tabs a::after { content: ""; position: absolute; top: 0; left: 24%; right: 24%; height: 3px; background: var(--rail-text); transform: scaleX(0); transition: transform var(--t-std) var(--ease-emph); }
+.tabs a[aria-current="page"] { box-shadow: none; }
+.tabs a[aria-current="page"]::after { transform: scaleX(1); }
+.tabs a, .tabs button { transition: opacity var(--t-quick) var(--ease), background-color var(--t-std) var(--ease), color var(--t-std) var(--ease); }
+.tabs .rail-brand { display: none; }
+@media (min-width: 960px) {
+  .tabs { padding-top: 18px; gap: 2px; }
+  .tabs .rail-brand { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; margin: 0 12px 22px; padding: 6px 12px 16px; opacity: 1; border-bottom: 1px solid color-mix(in srgb, var(--rail-text) 18%, transparent); font-weight: 800; font-size: 26px; letter-spacing: .06em; }
+  .tabs .rail-brand .eyelet { border-color: var(--rail-text); width: 16px; height: 16px; }
+  .tabs a:not(.rail-brand) { flex: 0 0 42px; margin: 0 12px; padding-left: 14px; border-radius: 4px; font-size: 16px; }
+  .tabs a::after { display: none; }
+  @media (hover: hover) { .tabs a:not(.rail-brand):not([aria-current="page"]):hover { opacity: 1; background: color-mix(in srgb, var(--rail-text) 8%, transparent); } }
+  /* The screen you are on is a tag of its own, hung on the rail. */
+  .tabs a[aria-current="page"] { background: var(--tag); color: var(--ink); box-shadow: 2px 2px 0 rgba(0, 0, 0, .4); padding-left: 32px; }
+  .tabs a[aria-current="page"]::before { content: ""; position: absolute; left: 12px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border: 2px solid var(--ink); border-radius: 50%; }
+  .topbar .brand { visibility: hidden; }
+}
+
+/* ---------- the photo plate: a ruled card where a photo would be ---------- */
+.photo:has(.plate) { aspect-ratio: 16 / 7; }
+.photo .plate {
+  background-color: #E9DFC7;
+  background-image: repeating-linear-gradient(0deg, transparent 0 21px, rgba(28, 26, 22, .07) 21px 22px), repeating-linear-gradient(90deg, transparent 0 21px, rgba(28, 26, 22, .045) 21px 22px);
+  color: transparent; -webkit-text-stroke: 2px color-mix(in srgb, var(--ink) 30%, transparent); font-size: clamp(84px, 16vw, 132px); line-height: .85;
+}
+.photo .plate small { -webkit-text-stroke: 0; margin-top: 10px; }
+
+/* ---------- motion: entrances ---------- */
+/* motion.js adds .rise and a --d delay to the first cards on screen; the stamp lands after its card. */
+.rise { animation: rise var(--t-slow) var(--ease-paper) both; animation-delay: var(--d, 0ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(16px) rotate(-.5deg); } to { opacity: 1; transform: none; } }
+.rise-head { animation: rise-head var(--t-slow) var(--ease-emph) both; }
+@keyframes rise-head { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.rise .stamp { animation: stamp-in 360ms var(--ease-paper) both; animation-delay: calc(var(--d, 0ms) + 280ms); }
+@keyframes stamp-in { 0% { opacity: 0; transform: rotate(-10deg) scale(1.55); } 55% { opacity: 1; transform: rotate(-2deg) scale(.94); } 100% { opacity: 1; transform: rotate(-3deg) scale(1); } }
+.rise .stub .ticks i.on { animation: tick var(--t-std) var(--ease-emph) both; animation-delay: calc(var(--d, 0ms) + 160ms + var(--k, 0) * 26ms); transform-origin: bottom; }
+@keyframes tick { from { transform: scaleY(0); } to { transform: none; } }
+/* The number you must never pass flashes when it changes. */
+.never { transition: background-color var(--t-slow) var(--ease); }
+.never.flip { animation: flip 620ms var(--ease) both; }
+@keyframes flip { 0% { background-color: color-mix(in srgb, var(--go) 18%, var(--tag)); } 100% { background-color: transparent; } }
+.never.flip .n { animation: nudge 320ms var(--ease-paper) both; }
+@keyframes nudge { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
+
+/* ---------- motion: sheets, toasts, menu ---------- */
+.scrim { animation: fade var(--t-std) var(--ease) both; }
+.sheet { animation: sheet-up 380ms var(--ease-emph) both; }
+@media (min-width: 720px) { .sheet { animation-name: sheet-pop; } }
+#sheet-root.closing .scrim { animation: fade-out 180ms var(--ease-in) both; }
+#sheet-root.closing .sheet { animation: sheet-down 200ms var(--ease-in) both; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-pop { from { transform: translateY(12px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-down { from { transform: none; opacity: 1; } to { transform: translateY(24px); opacity: 0; } }
+.toast { animation: toast-in 320ms var(--ease-emph) both; }
+.toast.out { animation: toast-out 200ms var(--ease-in) both; }
+@keyframes toast-in { from { transform: translateY(16px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toast-out { to { transform: translateY(10px); opacity: 0; } }
+.menu:not([hidden]) { animation: menu-in 200ms var(--ease-emph) both; transform-origin: top right; }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* ---------- login: the tag swings on its string, once ---------- */
+.login .tag { transform-origin: 50% -60px; animation: swing 1900ms cubic-bezier(.36, 0, .3, 1) both; }
+@keyframes swing {
+  0% { opacity: 0; transform: translateY(-14px) rotate(4deg); }
+  14% { opacity: 1; transform: translateY(0) rotate(-2.4deg); }
+  34% { transform: rotate(1.4deg); }
+  54% { transform: rotate(-.7deg); }
+  74% { transform: rotate(.3deg); }
+  100% { transform: rotate(0); }
+}
+.seg button { transition: background-color var(--t-std) var(--ease), color var(--t-std) var(--ease); }
+
+/* ---------- small fixes ---------- */
+@media (max-width: 719px) { #p-print { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .rise-head, .rise .stamp, .rise .stub .ticks i.on, .login .tag, .sheet, .scrim, .toast, .menu:not([hidden]), .never.flip, .never.flip .n { animation: none !important; }
+  .rise .stamp { transform: rotate(-3deg); }
+}
 
 /* ---------- print ---------- */
 @media print {
