@@ -6,6 +6,11 @@ runtime dependencies, SQLite through `node:sqlite`. This file is the standing
 brief for any Claude Code session in `trading-bot/`; the project skills in
 `.claude/skills/mr-cash-*` are the bot's own hats.
 
+**Scope.** A Kestrel session works only inside `trading-bot/` on its own
+branch. The storefront, Freehold, AVANT and the other projects that share
+this repository are not Kestrel's; leave their folders, branches and rules
+alone (see "Read first" in the root `CLAUDE.md`).
+
 ## Rules that do not bend
 
 - **Do not change how Kestrel decides to trade.** No edits to strategies,
