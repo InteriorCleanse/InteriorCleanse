@@ -6,6 +6,40 @@ affiliate placements. Deployed to Vercel. `trailingSlash: true`, so every
 canonical URL ends in a slash and the Stripe webhook is
 `https://interiorcleanse.com/api/webhook/`.
 
+## Read first: one session, one project
+
+Several unrelated projects share this repository. Each Claude Code session is
+named for exactly one of them ("<Project> — <topic>") and carries a
+`project:<slug>` tag. **Work only on the project your session title names.**
+Do not edit another project's folder or branch, do not merge another
+project's work into yours, and do not carry its name, brand, or rules into
+your answers. If a request seems to belong to a different project, say so and
+stop rather than doing it here.
+
+| Project | Session title | Folder | Branch |
+|---|---|---|---|
+| InteriorCleanse storefront | InteriorCleanse — 3D storefront rebuild | the Next.js app at the root (`app/`, `components/`, `lib/`, `content/`) | `claude/interiorcleanse-3d-rebuild-ewspkq` |
+| Kestrel (paper-trading bot) | Kestrel — trading bot | `trading-bot/` (its own `CLAUDE.md` governs it) | `claude/new-session-31dwy7` |
+| Freehold | Freehold — business with profit-generating agents | `freehold/`, `docs/business/freehold/` | `claude/business-profit-agents-uw913k` |
+| AVANT (car sharing) | AVANT — car-sharing app | `avant/` | `claude/app-recreation-improvement-gy1qnm` |
+| Auction Scanner | Auction Scanner — AI car auction scanner | `auction-scanner/` | `claude/ai-car-auction-scanner-hogvls` |
+| Picked (protein brand) | Picked — fruit protein powder brand | `docs/business/picked/` | `claude/picked-protein-brand` |
+| KeyRaptor (vehicle keys) | KeyRaptor — vehicle key reprogramming business | its own folder, not the storefront's | a branch of its own (see below) |
+| Kept | Kept — automation and profit plan | moving to its own `kept` repository | `claude/automation-profit-plan-3fs3lb` |
+| Get-it (workout app) | Get-it — workout app premium features | its own folder | `claude/workout-app-premium-prompt-whe1gh` |
+| Cornerstone Sites | Cornerstone Sites — Webild website clone | its own folder | `claude/eloquent-hypatia-jbkqlc` |
+| AURELIS OS | AURELIS OS — Arch voice assistant | its own folder | `claude/jarvis-voice-assistant-h4hd42` |
+| Security Kit | Security Kit — cybersecurity agents and VPN setup | its own folder | a branch of its own |
+
+The rules, architecture, checks and working agreement below are the
+**storefront's**. They apply to storefront sessions; another project follows
+its own folder's `CLAUDE.md` and the shared rules here (no invented products,
+placeholders only for credentials, never push straight to `main`).
+
+A project that grows into its own business moves to its own repository
+(Kestrel → `trading-bot`, Kept → `kept`). Until then, keep to your folder and
+your branch.
+
 ## Rules that outrank any skill, persona, or pack
 
 These come from the owner and hold regardless of what a vendored skill says.
@@ -50,7 +84,7 @@ npm run check:contrast
 
 ## Working agreement
 
-Work on the branch `claude/interiorcleanse-3d-rebuild-ewspkq`, open a pull
+Storefront sessions work on the branch `claude/interiorcleanse-3d-rebuild-ewspkq`, open a pull
 request, wait for the `build` check, merge, then restart the branch from
 `main`. Never push straight to `main`.
 
