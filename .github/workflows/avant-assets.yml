@@ -2,11 +2,14 @@ name: 'AVANT: land assets'
 
 # Downloads the AI-generated imagery listed in avant/content/asset-sources.json,
 # compresses it to web JPEGs, and commits it with the landed manifest so the
-# app serves local copies instead of the generation CDN. Run from the Actions
-# tab after generating or replacing an image.
+# app serves local copies instead of the generation CDN. Runs on its own when
+# the asset list changes, or from the Actions tab.
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'avant/content/asset-sources.json'
 
 permissions:
   contents: write
