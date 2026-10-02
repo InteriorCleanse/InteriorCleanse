@@ -4,7 +4,7 @@
  * a web-sized JPEG when sharp is available, and records it as landed.
  * Run where the generation CDN is reachable (your machine or CI).
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -21,13 +21,20 @@ const landed = []
 for (const [name, a] of Object.entries(sources.assets)) {
   const url = `${sources.cdn}/${a.file}`
   const out = resolve(root, 'public' + a.local)
+  // Already landed from the same source file: keep it, skip the download.
+  const marker = out + '.src'
+  if (existsSync(out) && existsSync(marker) && readFileSync(marker, 'utf8') === a.file) {
+    landed.push(name)
+    continue
+  }
   try {
     const res = await fetch(url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const buf = Buffer.from(await res.arrayBuffer())
     mkdirSync(dirname(out), { recursive: true })
-    const bytes = sharp ? await sharp(buf).resize({ width: name === 'hero' || name === 'coast' ? 2400 : 1400, withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer() : buf
+    const bytes = sharp ? await sharp(buf).resize({ width: name === 'hero' || name === 'coast' ? 2400 : 1200, withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer() : buf
     writeFileSync(out, bytes)
+    writeFileSync(marker, a.file)
     landed.push(name)
     console.log(`landed ${name} → public${a.local} (${Math.round(bytes.length / 1024)} KB)`)
   } catch (err) {
