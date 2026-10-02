@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * List your car in five short steps. Everything is checked against the same
+ * List your car in six short steps. Everything is checked against the same
  * rules the tests cover (lib/listing.ts), the price suggestion comes from
  * live local medians, and a draft is saved on this device at every step.
  */
@@ -14,15 +14,18 @@ import { cities, medianRateCents } from '@/lib/data'
 import { money, shortId } from '@/lib/format'
 import { checkVin, MAX_MILES, MAX_VEHICLE_AGE_YEARS, normaliseVin, problemsFor, validateListing, type Listing, type ListingDraft, type ListingStep } from '@/lib/listing'
 import { hostMonthlyEstimate } from '@/lib/pricing'
+import { deleteListingPhotos } from '@/lib/listing-photos-db'
 import { actions, useLocal } from '@/lib/store'
 import type { BodyType, Fuel, Transmission } from '@/lib/types'
 import { CarImage } from './CarImage'
+import { ListingPhotos, useListingPhotoUrl } from './ListingPhotos'
 import { Icon } from './Icons'
 import { useToast } from './Toast'
 import { Breadcrumbs } from './ui'
 
 const STEPS: { id: ListingStep | 'review'; label: string }[] = [
   { id: 'car', label: 'Car' },
+  { id: 'photos', label: 'Photos' },
   { id: 'location', label: 'Where' },
   { id: 'price', label: 'Price' },
   { id: 'safety', label: 'Safety' },
@@ -48,6 +51,7 @@ const EMPTY: ListingDraft = {
   instantBook: true,
   noOpenRecalls: false,
   insuredAndRegistered: false,
+  photos: [],
 }
 
 const PREVIEW_TINT = '#d4ff3a'
@@ -76,7 +80,7 @@ export function ListingWizard() {
     const existing = editId ? listings.find((l) => l.id === editId) : undefined
     if (existing) {
       const { id: _i, status: _s, updatedAt: _u, ...rest } = existing
-      setD(rest)
+      setD({ ...EMPTY, ...rest })
     }
     setLoaded(true)
   }, [hydrated, loaded, editId, listings])
@@ -87,6 +91,7 @@ export function ListingWizard() {
   const suggested = medianRateCents(d.body, d.city || undefined)
   const tier = d.dailyRateCents ? tierForRate(d.dailyRateCents) : null
   const vin = checkVin(d.vin)
+  const cover = useListingPhotoUrl((d.photos.find((p) => p.angle === 'front') ?? d.photos[0])?.id)
   const set = <K extends keyof ListingDraft>(k: K, v: ListingDraft[K]) => setD((prev) => ({ ...prev, [k]: v }))
   const err = (field: keyof ListingDraft) => (touched ? stepProblems.find((p) => p.field === field)?.message : undefined)
 
@@ -228,6 +233,23 @@ export function ListingWizard() {
             </section>
           ) : null}
 
+          {current === 'photos' ? (
+            <section className="panel stack" aria-labelledby="h-photos">
+              <h2 id="h-photos" style={{ fontSize: '1.3rem' }}>Photograph your car</h2>
+              <p className="muted">
+                Six photos, taken by you, of this car. Daylight, clean car, whole car in frame. Guests book on photos, so these are the most important part
+                of your listing. Location data is removed from every photo before it&apos;s saved.
+              </p>
+              <ListingPhotos listingId={id} photos={d.photos} onChange={(next) => set('photos', next)} />
+              {err('photos') ? (
+                <p className="error" role="alert">
+                  {err('photos')}
+                </p>
+              ) : null}
+              <p className="small dim">No stock photos, renders or pictures from the internet. Listings that use them are removed.</p>
+            </section>
+          ) : null}
+
           {current === 'location' ? (
             <section className="panel stack" aria-labelledby="h-loc">
               <h2 id="h-loc" style={{ fontSize: '1.3rem' }}>Where do guests pick it up?</h2>
@@ -272,13 +294,17 @@ export function ListingWizard() {
           {current === 'price' ? (
             <section className="panel stack" aria-labelledby="h-price">
               <h2 id="h-price" style={{ fontSize: '1.3rem' }}>Set your price</h2>
-              <p className="muted">
-                Similar {pluralType(d.body)}{d.city ? ` in ${cities.find((c) => c.slug === d.city)?.name}` : ''} go for about{' '}
-                <strong>{money(suggested)}</strong> a day.{' '}
-                <button type="button" className="link" onClick={() => set('dailyRateCents', suggested)}>
-                  Use that
-                </button>
-              </p>
+              {suggested !== null ? (
+                <p className="muted">
+                  Similar {pluralType(d.body)}{d.city ? ` in ${cities.find((c) => c.slug === d.city)?.name}` : ''} go for about{' '}
+                  <strong>{money(suggested)}</strong> a day.{' '}
+                  <button type="button" className="link" onClick={() => set('dailyRateCents', suggested)}>
+                    Use that
+                  </button>
+                </p>
+              ) : (
+                <p className="muted">Set the daily rate you want. You can change it any time.</p>
+              )}
               <div className="grid-2">
                 <label className="field">
                   <span className="label">Daily rate ($)</span>
@@ -439,7 +465,7 @@ export function ListingWizard() {
               ) : null}
               {d.fuel === 'electric' ? <span className="badge badge-glass">EV</span> : null}
             </div>
-            <CarImage body={d.body} color={PREVIEW_TINT} alt="" />
+            <CarImage body={d.body} color={PREVIEW_TINT} photo={cover} alt="" />
             <div className="carcard-body">
               <div className="carcard-title">
                 <h3>{d.make || d.model ? `${d.year} ${d.make} ${d.model}`.trim() : 'Your car'}</h3>
@@ -465,6 +491,12 @@ export function ListingWizard() {
   )
 }
 
+function ListingCover({ listing }: { listing: Listing }) {
+  const photos = listing.photos ?? []
+  const url = useListingPhotoUrl((photos.find((p) => p.angle === 'front') ?? photos[0])?.id)
+  return <CarImage body={listing.body} color={PREVIEW_TINT} photo={url} alt="" />
+}
+
 export function MyListings() {
   const { listings, hydrated } = useLocal()
   const toast = useToast()
@@ -475,7 +507,7 @@ export function MyListings() {
       <div className="empty">
         <Icon name="key" size={30} className="dim" />
         <h2>No listings yet</h2>
-        <p>Five short steps. Drafts save on this device as you go.</p>
+        <p>Six short steps, starting with photos of your car. Drafts save on this device as you go.</p>
         <Link href="/host/new" className="btn btn-primary btn-md">
           <Icon name="plus" size={16} /> List your car
         </Link>
@@ -487,7 +519,7 @@ export function MyListings() {
       {listings.map((l) => (
         <li key={l.id} className="panel row" style={{ gap: 18, alignItems: 'center' }}>
           <div style={{ width: 140, borderRadius: 14, overflow: 'hidden', flex: 'none' }}>
-            <CarImage body={l.body} color={PREVIEW_TINT} alt="" />
+            <ListingCover listing={l} />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div className="row">
@@ -513,6 +545,7 @@ export function MyListings() {
                   className="btn btn-danger btn-sm"
                   onClick={() => {
                     actions.deleteListing(l.id)
+                    void deleteListingPhotos(l.id)
                     setConfirm(null)
                     toast('Listing deleted')
                   }}

@@ -26,14 +26,14 @@ charges, and a banner that says so.
 
 | Area | Files |
 | --- | --- |
-| Pages | `app/` — home, search with live price map, car, one-page checkout, Driver Pass, coverage, trips, host (estimator, five-step listing wizard, my listings), account, trust & safety, concierge |
+| Pages | `app/` — home, search with live price map, car, one-page checkout, Driver Pass, coverage, trips, host (estimator, six-step listing wizard with required host photos, my listings), account, trust & safety, concierge |
 | Host listing rules | `lib/listing.ts` (VIN check digit, vehicle age and mileage limits, recall attestation) |
 | Pricing, coverage, age rules | `lib/pricing.ts`, `lib/catalog.ts`, `lib/eligibility.ts`, `lib/checkout.ts` |
 | AI concierge | `lib/ai/` (Claude with read-only tools; rules-based fallback) |
 | Security | `lib/security/`, `middleware.ts`, `SECURITY.md` |
 | Licence verification | `lib/verification/`, `app/api/verify/` |
 | Privacy vault | `services/vault/` (Cloudflare Workers or self-hosted open-compute) |
-| Imagery | AI-generated, listed in `content/asset-sources.json`, landed by the "AVANT: land assets" workflow |
+| Photos | Only the host's own photos of the actual car (six required angles, re-encoded on the device to strip location data). No stock, generated or illustrative car photos anywhere. Sample listings have no photos and are labelled |
 
 ## Founder docs
 

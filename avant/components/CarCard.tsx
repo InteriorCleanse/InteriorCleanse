@@ -69,6 +69,7 @@ export function CarCard({
     >
       <Link href={href ?? `/cars/${car.slug}`} className="carcard-link">
         <div className="carcard-badges">
+          {car.sample ? <span className="badge badge-glass">Sample</span> : null}
           {car.instantBook ? (
             <span className="badge badge-glass">
               <Icon name="bolt" size={12} /> Instant
@@ -76,7 +77,7 @@ export function CarCard({
           ) : null}
           {car.fuel === 'electric' ? <span className="badge badge-glass">EV</span> : null}
         </div>
-        <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt="" priority={priority} />
+        <CarImage body={car.body} color={car.color.hex} photo={car.photos[0]} sample={car.sample} alt="" priority={priority} />
         <div className="carcard-body">
           <div className="carcard-title">
             <h3>{carTitle(car)}</h3>

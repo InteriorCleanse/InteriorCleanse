@@ -11,7 +11,8 @@ export function toCardData(c: Car) {
     title: carTitle(c),
     city: cityName(c.city),
     body: c.body,
-    image: c.image,
+    photo: c.photos[0] ?? null,
+    sample: Boolean(c.sample),
     rating: c.rating,
     allInDailyCents: allInDaily(c.dailyRateCents, plan.pctOfTrip, plan.minPerDayCents),
   }

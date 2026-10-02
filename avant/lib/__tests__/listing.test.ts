@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { checkVin, normaliseVin, validateListing, vinCheckDigit, type ListingDraft } from '../listing.ts'
+import { checkVin, MIN_PHOTO_EDGE, normaliseVin, PHOTO_ANGLES, validateListing, vinCheckDigit, type ListingDraft, type ListingPhoto } from '../listing.ts'
 
 // 1M8GDM9AXKP042788 is the standard worked example for the check digit.
 const GOOD_VIN = '1M8GDM9AXKP042788'
@@ -39,6 +39,9 @@ const base: ListingDraft = {
   instantBook: true,
   noOpenRecalls: true,
   insuredAndRegistered: true,
+  photos: PHOTO_ANGLES.map(
+    (a, i): ListingPhoto => ({ id: `p${i}`, angle: a.id, sha256: 'x'.repeat(64), width: 1600, height: 1200, bytes: 200_000, addedAt: '2026-10-01T00:00:00Z' }),
+  ),
 }
 
 describe('validateListing', () => {
@@ -55,5 +58,21 @@ describe('validateListing', () => {
   it('requires the safety attestations and points at the right step', () => {
     const p = validateListing({ ...base, noOpenRecalls: false, insuredAndRegistered: false }, 2026)
     assert.deepEqual(p.map((x) => x.step), ['safety', 'safety'])
+  })
+})
+
+describe('listing photos', () => {
+  it('needs the host’s own photo of every angle', () => {
+    const p = validateListing({ ...base, photos: base.photos.filter((x) => x.angle !== 'rear' && x.angle !== 'dash') }, 2026)
+    assert.equal(p.length, 1)
+    assert.equal(p[0].step, 'photos')
+    assert.match(p[0].message, /rear three-quarter, front seats and dash/)
+    assert.equal(validateListing({ ...base, photos: [] }, 2026)[0].field, 'photos')
+  })
+  it('rejects photos too small to look sharp on a listing', () => {
+    const small = base.photos.map((x, i) => (i === 0 ? { ...x, width: 640, height: MIN_PHOTO_EDGE - 1 } : x))
+    const p = validateListing({ ...base, photos: small }, 2026)
+    assert.deepEqual(p.map((x) => x.field), ['photos'])
+    assert.match(p[0].message, /Retake one photo/)
   })
 })

@@ -1,22 +1,36 @@
 import Link from 'next/link'
 import { CarArt } from '@/components/CarArt'
 import { CarCard } from '@/components/CarCard'
-import { HeroImage } from '@/components/HeroImage'
 import { Icon } from '@/components/Icons'
+import { PriceBreakdown } from '@/components/PriceBreakdown'
 import { SearchBar } from '@/components/SearchBar'
 import { ButtonLink } from '@/components/ui'
-import { asset, hasAsset } from '@/lib/assets'
-import { BODY_TYPES, COVERAGE_PLANS, DEFAULT_COVERAGE, TRIP_FEE_PCT, YOUNG_DRIVER_FEES } from '@/lib/catalog'
-import { cars, cities, countByBody, featuredCars } from '@/lib/data'
+import { BODY_TYPES, COVERAGE_PLANS, DEFAULT_COVERAGE, getPlan, HOST_SHARE_PCT, TRIP_FEE_PCT, YOUNG_DRIVER_FEES } from '@/lib/catalog'
+import { cars, cities, countByBody, featuredCars, SAMPLE_FLEET } from '@/lib/data'
 import { money } from '@/lib/format'
+import { quote } from '@/lib/pricing'
 import { searchHref } from '@/lib/search'
+
+// The hero shows the product's promise rather than a photo: what a trip
+// really costs, broken down the way checkout shows it. Clearly an example.
+const EXAMPLE = { rate: 8000, days: 3 }
+const exampleQuote = quote({
+  dailyRateCents: EXAMPLE.rate,
+  days: EXAMPLE.days,
+  weeklyDiscountPct: 0,
+  monthlyDiscountPct: 0,
+  plan: getPlan(DEFAULT_COVERAGE),
+  delivery: false,
+  deliveryFeeCents: 0,
+  extras: [],
+  taxRate: 0,
+  youngDriverFeeCents: 0,
+})
 
 // Neutral paint for the vehicle-type drawings, so the row reads as one set.
 const TYPE_PAINT = '#9aa0aa'
 
 export default function Home() {
-  const hero = asset('hero')
-  const keys = asset('keys')
   const counts = countByBody()
   const young = YOUNG_DRIVER_FEES[1]
   const perCity = (slug: string) => cars.filter((c) => c.city === slug).length
@@ -25,9 +39,6 @@ export default function Home() {
     <>
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-frame">
-          <div className="hero-media" aria-hidden="true">
-            <HeroImage src={hero.src} alt="" />
-          </div>
           <div className="hero-inner">
             <h1 id="hero-title" className="display">
               Arrive differently.
@@ -36,6 +47,13 @@ export default function Home() {
               Book the exact car you want from a local host. The whole price before you tap, coverage in one number, your licence checked once.
             </p>
           </div>
+          <figure className="hero-quote" aria-label="Example of an all-in price">
+            <figcaption>
+              <span className="badge badge-lime">All-in</span>
+              <span className="small muted">Example: {EXAMPLE.days} days at {money(EXAMPLE.rate)}/day, before tax</span>
+            </figcaption>
+            <PriceBreakdown quote={{ ...exampleQuote, lines: exampleQuote.lines.filter((l) => l.cents !== 0) }} notes={false} />
+          </figure>
         </div>
         <div className="hero-search">
           <SearchBar presets />
@@ -60,11 +78,16 @@ export default function Home() {
           </div>
         </section>
 
+        {cars.length ? (
         <section className="section" aria-labelledby="top">
           <div className="section-head">
             <div>
-              <h2 id="top">Top rated in every city</h2>
-              <p style={{ marginTop: 6 }}>Prices include the trip fee and standard coverage, before tax.</p>
+              <h2 id="top">{SAMPLE_FLEET ? 'Sample listings' : 'Top rated in every city'}</h2>
+              <p style={{ marginTop: 6 }}>
+                {SAMPLE_FLEET
+                  ? 'Demonstration cars that show how listings work. Real listings, with their hosts’ own photos, replace them at launch.'
+                  : 'Prices include the trip fee and standard coverage, before tax.'}
+              </p>
             </div>
             <ButtonLink href={searchHref({ sort: 'rating' })} variant="secondary">
               See all cars
@@ -76,6 +99,7 @@ export default function Home() {
             ))}
           </div>
         </section>
+        ) : null}
 
         <section className="section" aria-labelledby="how">
           <div className="section-head">
@@ -164,34 +188,36 @@ export default function Home() {
             <h2 id="cities">Browse by city</h2>
           </div>
           <div className="cities">
-            {cities.map((c) => {
-              const photo = hasAsset(`city-${c.slug}`) ? asset(`city-${c.slug}`) : null
-              return (
-                <Link key={c.slug} href={searchHref({ city: c.slug })} className="city-tile" data-photo={photo ? undefined : 'none'}>
-                  {photo ? <HeroImage src={photo.src} alt="" /> : null}
-                  <div>
-                    <strong>{c.name}</strong>
-                    <span>{perCity(c.slug)} cars</span>
-                  </div>
-                </Link>
-              )
-            })}
+            {cities.map((c) => (
+              <Link key={c.slug} href={searchHref({ city: c.slug })} className="city-tile">
+                <strong>{c.name}</strong>
+                <span>
+                  {c.state}
+                  {perCity(c.slug) ? `, ${perCity(c.slug)} cars` : ''}
+                </span>
+                <Icon name="chevron-right" size={18} />
+              </Link>
+            ))}
           </div>
         </section>
 
         <section className="section" aria-labelledby="host">
           <div className="band band-ink">
-            <div className="band-media">
-              <HeroImage src={keys.src} alt="" />
-            </div>
             <div className="band-body">
               <h2 id="host">Your car could pay for itself</h2>
-              <p>Keep 80% of every trip. Guests are verified before they can book, every trip carries protection, and payouts land weekly.</p>
+              <p>Keep {HOST_SHARE_PCT}% of every trip. Guests are verified before they can book, every trip carries protection, and payouts land weekly.</p>
               <div className="row" style={{ marginTop: 8 }}>
                 <ButtonLink href="/host" variant="secondary">
                   See what you&apos;d earn
                 </ButtonLink>
               </div>
+            </div>
+            <div className="band-body band-steps">
+              <ol>
+                <li>Photograph your car: six angles, your own photos.</li>
+                <li>Set your price, rules and the days it&apos;s free.</li>
+                <li>Approve verified guests and get paid weekly.</li>
+              </ol>
             </div>
           </div>
         </section>

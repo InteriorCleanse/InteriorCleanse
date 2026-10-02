@@ -108,8 +108,10 @@ export interface Car {
   blockedOffsets: [number, number][]
   reviews: Review[]
   valueTier: ValueTier
-  /** Illustrative photo for the body type (AI-generated, unbadged). */
-  image: string
+  /** The host's own photos of this car, first is the cover. Never stock or generated. */
+  photos: string[]
+  /** Demonstration listing: invented car, host and reviews. Always labelled. */
+  sample?: boolean
 }
 
 export interface CoveragePlan {

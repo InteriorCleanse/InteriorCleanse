@@ -13,7 +13,7 @@ import { FilterSheet } from './Filters'
 import { Icon } from './Icons'
 import { PriceMap } from './PriceMap'
 import { SearchBar } from './SearchBar'
-import { Empty } from './ui'
+import { ButtonLink, Empty } from './ui'
 
 const PAGE = 12
 
@@ -106,7 +106,14 @@ export function SearchExperience() {
             </div>
           </div>
 
-          {today && results.length === 0 ? (
+          {today && fleet.length === 0 ? (
+            <Empty
+              icon="key"
+              title="No cars listed here yet"
+              body="AVANT is just opening. If you have a car, you could be the first host in your city."
+              action={<ButtonLink href="/host/new" icon="plus">List your car</ButtonLink>}
+            />
+          ) : today && results.length === 0 ? (
             <Empty
               icon="search"
               title="Nothing here yet"

@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { IMAGE_ORIGINS } from '@/lib/assets'
 
 /**
  * Per-request Content-Security-Policy with a nonce. Next.js reads the nonce
@@ -16,7 +15,7 @@ export function middleware(req: NextRequest) {
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: blob: ${[...IMAGE_ORIGINS, ...MAP_ORIGINS].join(' ')}`,
+    `img-src 'self' data: blob: ${MAP_ORIGINS.join(' ')}`,
     `font-src 'self' data:`,
     `connect-src 'self' ${MAP_ORIGINS.join(' ')}`,
     `worker-src 'self' blob:`,

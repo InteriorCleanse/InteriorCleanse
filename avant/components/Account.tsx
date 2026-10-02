@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { clearEvidence } from '@/lib/evidence-db'
+import { clearListingPhotos } from '@/lib/listing-photos-db'
 import { actions, useLocal } from '@/lib/store'
 import { useDriver } from './DriverProvider'
 import { Icon } from './Icons'
@@ -86,7 +87,7 @@ export function Account() {
           </div>
         ) : confirm === 'local' ? (
           <div className="row">
-            <button type="button" className="btn btn-danger btn-md" onClick={async () => { actions.clear(); await clearEvidence(); toast('Cleared from this device'); setConfirm(null) }}>Clear trips, photos &amp; saved</button>
+            <button type="button" className="btn btn-danger btn-md" onClick={async () => { actions.clear(); await clearEvidence(); await clearListingPhotos(); toast('Cleared from this device'); setConfirm(null) }}>Clear trips, photos &amp; saved</button>
             <button type="button" className="btn btn-ghost btn-md" onClick={() => setConfirm(null)}>Keep them</button>
           </div>
         ) : (

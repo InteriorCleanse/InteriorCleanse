@@ -108,7 +108,7 @@ export function ChatView({ onNavigate, autoFocus }: { onNavigate?: () => void; a
               <div className="ai-cards" style={{ maxWidth: '100%' }}>
                 {m.cars.map((c) => (
                   <Link key={c.slug} href={`/cars/${c.slug}`} className="ai-card" onClick={onNavigate}>
-                    <CarImage body={c.body as BodyType} slug={c.slug} color="#9aa0aa" alt="" />
+                    <CarImage body={c.body as BodyType} color="#9aa0aa" photo={c.photo} sample={c.sample} alt="" />
                     <div>
                       <strong>{c.title}</strong>
                       <div className="muted">

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { SAMPLE_FLEET } from '@/lib/data'
 import { LocalProvider, useLocal } from '@/lib/store'
 import { CommandPalette } from './CommandPalette'
 import { ConciergeProvider, useConcierge } from './Concierge'
@@ -34,7 +35,7 @@ function DemoRibbon() {
   if (!modes || (modes.payments && modes.identity && !modes.demoKeys)) return null
   return (
     <div className="demo-ribbon" role="note">
-      Preview mode: sample cars, no real charges{modes.identity ? '' : ', simulated licence checks'}. <Link href="/security#modes">What this means</Link>
+      Preview mode: {SAMPLE_FLEET ? 'sample cars, ' : ''}no real charges{modes.identity ? '' : ', simulated licence checks'}. <Link href="/security#modes">What this means</Link>
     </div>
   )
 }

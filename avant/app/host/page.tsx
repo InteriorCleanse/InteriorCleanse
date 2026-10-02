@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import { Estimator } from '@/components/Host'
-import { HeroImage } from '@/components/HeroImage'
 import { Icon, type IconName } from '@/components/Icons'
 import { ButtonLink } from '@/components/ui'
-import { asset } from '@/lib/assets'
 import { HOST_SHARE_PCT } from '@/lib/catalog'
 
 export const metadata: Metadata = { title: 'Host your car', description: 'Estimate what your car could earn on AVANT, keep 80% of every trip, and host verified guests only.' }
@@ -16,11 +14,10 @@ const WHY: [IconName, string, string][] = [
 ]
 
 export default function HostPage() {
-  const keys = asset('keys')
   return (
     <div className="page">
       <div className="wrap">
-        <div className="band">
+        <div className="band band-ink">
           <div className="band-body">
             <h1 className="display" style={{ fontSize: 'clamp(2.4rem,5vw,3.8rem)' }}>
               Your car could pay for itself.
@@ -31,8 +28,12 @@ export default function HostPage() {
               <ButtonLink href="/host/listings" variant="secondary">My listings</ButtonLink>
             </div>
           </div>
-          <div className="band-media">
-            <HeroImage src={keys.src} alt="" />
+          <div className="band-body band-steps">
+            <ol>
+              <li>Photograph your car: six angles, your own photos.</li>
+              <li>Set your price, rules and the days it&apos;s free.</li>
+              <li>Approve verified guests and get paid weekly.</li>
+            </ol>
           </div>
         </div>
 
@@ -58,7 +59,7 @@ export default function HostPage() {
             ))}
           </div>
           <div className="row" style={{ marginTop: 24 }}>
-            <ButtonLink href="/host/new" iconAfter="arrow-right">List your car in five steps</ButtonLink>
+            <ButtonLink href="/host/new" iconAfter="arrow-right">List your car in six steps</ButtonLink>
             <ButtonLink href="/concierge" variant="secondary">Ask the concierge</ButtonLink>
           </div>
           <p className="small dim" style={{ marginTop: 12 }}>Hosting opens city by city. Vehicles must be under 12 years old, under 130,000 miles, with no open safety recalls.</p>

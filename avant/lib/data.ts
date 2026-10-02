@@ -1,11 +1,20 @@
-/** Typed read access to the sample fleet. */
+/**
+ * Typed read access to listings.
+ *
+ * Until the listings service exists, the only cars are the sample fleet in
+ * content/fleet.json: invented cars, hosts and reviews, with no photos,
+ * labelled "Sample" wherever they appear. Set
+ * NEXT_PUBLIC_AVANT_SAMPLE_FLEET=0 to hide them entirely (production does).
+ */
 
 import fleet from '@/content/fleet.json'
 import type { Car, City, Host } from './types'
 
+export const SAMPLE_FLEET = process.env.NEXT_PUBLIC_AVANT_SAMPLE_FLEET !== '0'
+
 export const cities = fleet.cities as City[]
-export const hosts = fleet.hosts as Host[]
-export const cars = fleet.cars as Car[]
+export const hosts: Host[] = SAMPLE_FLEET ? (fleet.hosts as Host[]) : []
+export const cars: Car[] = SAMPLE_FLEET ? (fleet.cars as unknown as Car[]) : []
 
 const carBySlug = new Map(cars.map((c) => [c.slug, c]))
 const carById = new Map(cars.map((c) => [c.id, c]))
@@ -41,10 +50,11 @@ export function similarCars(car: Car, limit = 4): Car[] {
     .slice(0, limit)
 }
 
-export function medianRateCents(body?: Car['body'], city?: string): number {
+/** Median daily rate of listed cars like this one, or null with nothing to compare. */
+export function medianRateCents(body?: Car['body'], city?: string): number | null {
   const pool = cars.filter((c) => (!body || c.body === body) && (!city || c.city === city))
   const rates = (pool.length ? pool : cars).map((c) => c.dailyRateCents).sort((a, b) => a - b)
-  return rates[Math.floor(rates.length / 2)]
+  return rates.length ? rates[Math.floor(rates.length / 2)] : null
 }
 
 export function countByBody(): Record<string, number> {

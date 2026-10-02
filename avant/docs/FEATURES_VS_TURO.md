@@ -20,7 +20,7 @@ this codebase does today unless marked *planned*.
 | Loyalty | — | AVANT Miles with tiers that unlock free delivery and waived deposits (*earning live; perks planned*) |
 | Long-term | Multi-month rentals since October 2025 ([Wikipedia](https://en.wikipedia.org/wiki/Turo_(company))) | Weekly and monthly discounts set by hosts; months-long trips *planned* |
 | Remote unlock | Turo Go ([Wikipedia](https://en.wikipedia.org/wiki/Turo_(company))) | Keyless pickup is the default promise; hardware integration *planned* |
-| Listing a car | Multi-screen host onboarding | Five steps with a live guest-view preview, VIN check-digit validation that catches typos instantly, a price suggestion from local medians, and a recall check linked to NHTSA |
+| Listing a car | Multi-screen host onboarding | Six steps, starting with six required photos the host takes of their own car (location data stripped on the device), a live guest-view preview, VIN check-digit validation that catches typos instantly, a price suggestion from local medians, and a recall check linked to NHTSA |
 
 ## Next features worth building
 

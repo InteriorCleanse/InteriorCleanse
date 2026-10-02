@@ -38,7 +38,8 @@ ocd wrangler deploy
   it to the repository and deploy the branch; if not, create it with the
   same settings. Rotate both keys before real users arrive.
 - Set `NEXT_PUBLIC_SITE_URL` to the real domain.
-- Run the "AVANT: land assets" workflow once so images are served locally.
+- Set `NEXT_PUBLIC_AVANT_SAMPLE_FLEET=0` in production so only real listings show.
+- Choose where host photos are stored (object storage behind the listings service) and add its origin to `img-src` in `middleware.ts`.
 - Keep `AVANT_INDEXABLE=0` until listings and legal review are real.
 
 ## 4. Business

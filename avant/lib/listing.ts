@@ -10,6 +10,32 @@ export const MAX_MILES = 130_000
 export const MIN_RATE_CENTS = 2_000
 export const MAX_RATE_CENTS = 100_000
 
+/** The angles every listing needs, in the order guests see them. */
+export const PHOTO_ANGLES = [
+  { id: 'front', label: 'Front three-quarter', hint: 'Stand at a front corner so the front and one side show. This is the cover photo.' },
+  { id: 'rear', label: 'Rear three-quarter', hint: 'The opposite back corner.' },
+  { id: 'driver', label: 'Driver side', hint: 'Straight on, the whole car in frame.' },
+  { id: 'passenger', label: 'Passenger side', hint: 'Straight on, the whole car in frame.' },
+  { id: 'dash', label: 'Front seats and dash', hint: 'From the open driver door.' },
+  { id: 'rear-seats', label: 'Back seats or cargo', hint: 'Whatever guests will use most.' },
+] as const
+
+export type PhotoAngle = (typeof PHOTO_ANGLES)[number]['id']
+
+/** Shorter edge, in pixels, below which a photo looks soft on a listing. */
+export const MIN_PHOTO_EDGE = 720
+
+/** A photo the host took of the car. The image itself is stored separately. */
+export interface ListingPhoto {
+  id: string
+  angle: PhotoAngle
+  sha256: string
+  width: number
+  height: number
+  bytes: number
+  addedAt: string
+}
+
 export interface ListingDraft {
   vin: string
   year: number
@@ -29,6 +55,7 @@ export interface ListingDraft {
   instantBook: boolean
   noOpenRecalls: boolean
   insuredAndRegistered: boolean
+  photos: ListingPhoto[]
 }
 
 export interface Listing extends ListingDraft {
@@ -77,7 +104,7 @@ export function checkVin(vin: string): VinCheck {
 
 // ── Eligibility and completeness ───────────────────────────────────────
 
-export type ListingStep = 'car' | 'location' | 'price' | 'safety'
+export type ListingStep = 'car' | 'photos' | 'location' | 'price' | 'safety'
 
 export interface ListingProblem {
   step: ListingStep
@@ -98,6 +125,11 @@ export function validateListing(d: ListingDraft, currentYear: number): ListingPr
   if (!Number.isInteger(d.seats) || d.seats < 2 || d.seats > 15) out.push({ step: 'car', field: 'seats', message: 'Seats must be between 2 and 15.' })
   if (!Number.isFinite(d.miles) || d.miles < 0) out.push({ step: 'car', field: 'miles', message: 'Add the current mileage.' })
   else if (d.miles >= MAX_MILES) out.push({ step: 'car', field: 'miles', message: `Cars under ${MAX_MILES.toLocaleString('en-US')} miles can be listed.` })
+  const photos = d.photos ?? []
+  const missing = PHOTO_ANGLES.filter((a) => !photos.some((p) => p.angle === a.id))
+  if (missing.length) out.push({ step: 'photos', field: 'photos', message: `Add your own photo of the ${missing.map((a) => a.label.toLowerCase()).join(', ')}.` })
+  const soft = photos.filter((p) => Math.min(p.width, p.height) < MIN_PHOTO_EDGE)
+  if (soft.length) out.push({ step: 'photos', field: 'photos', message: `Retake ${soft.length === 1 ? 'one photo' : `${soft.length} photos`}: each needs to be at least ${MIN_PHOTO_EDGE}px on its shorter side.` })
   if (!d.city) out.push({ step: 'location', field: 'city', message: 'Choose a city.' })
   if (d.neighborhood.trim().length < 2) out.push({ step: 'location', field: 'neighborhood', message: 'Add the neighbourhood guests will see.' })
   if (d.deliveryOffered && (d.deliveryFeeCents < 0 || d.deliveryFeeCents > 50_000)) out.push({ step: 'location', field: 'deliveryFeeCents', message: 'Delivery fee must be between $0 and $500.' })

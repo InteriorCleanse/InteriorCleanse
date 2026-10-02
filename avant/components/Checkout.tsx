@@ -271,7 +271,7 @@ export function Checkout({ car }: { car: Car }) {
           <div className="bookcard">
             <div className="row" style={{ gap: 12 }}>
               <div style={{ width: 96, borderRadius: 12, overflow: 'hidden', flex: 'none' }}>
-                <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt="" />
+                <CarImage body={car.body} color={car.color.hex} photo={car.photos[0]} sample={car.sample} alt="" />
               </div>
               <div>
                 <strong>{carTitle(car)}</strong>

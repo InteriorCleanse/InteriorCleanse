@@ -11,27 +11,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ANGLES, buildManifest, coverage, current, sha256Hex, type AngleId, type EvidenceMeta, type EvidencePhase } from '@/lib/evidence'
 import { getEvidenceBlob, listEvidence, putEvidence } from '@/lib/evidence-db'
 import { shortId } from '@/lib/format'
+import { reencodePhoto } from '@/lib/photo'
 import { Icon } from './Icons'
 import { useToast } from './Toast'
-
-const MAX_EDGE = 1600
-
-async function reencode(file: File): Promise<{ blob: Blob; width: number; height: number }> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
-  const width = Math.round(bitmap.width * scale)
-  const height = Math.round(bitmap.height * scale)
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('no canvas')
-  ctx.drawImage(bitmap, 0, 0, width, height)
-  bitmap.close()
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.82))
-  if (!blob) throw new Error('encode failed')
-  return { blob, width, height }
-}
 
 function Thumb({ meta }: { meta: EvidenceMeta }) {
   const [url, setUrl] = useState<string | null>(null)
@@ -74,7 +56,7 @@ export function EvidenceCapture({ tripId, defaultPhase = 'check-in' }: { tripId:
     if (!file.type.startsWith('image/')) return toast('That isn’t a photo')
     setBusy(angle)
     try {
-      const { blob, width, height } = await reencode(file)
+      const { blob, width, height } = await reencodePhoto(file)
       const meta: EvidenceMeta = {
         id: shortId('ev'),
         tripId,

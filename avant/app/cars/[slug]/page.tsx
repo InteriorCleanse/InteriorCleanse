@@ -5,7 +5,7 @@ import { AvailabilityCalendar, BookingCard } from '@/components/BookingCard'
 import { CarCard, SaveButton } from '@/components/CarCard'
 import { CarImage } from '@/components/CarImage'
 import { Icon } from '@/components/Icons'
-import { Avatar, Breadcrumbs, Stars } from '@/components/ui'
+import { Avatar, Breadcrumbs, Notice, Stars } from '@/components/ui'
 import { BODY_TYPES, FEATURES, VALUE_TIERS } from '@/lib/catalog'
 import { carTitle, cityName, getCar, getHost, similarCars } from '@/lib/data'
 import { formatDate } from '@/lib/dates'
@@ -28,8 +28,16 @@ export default async function CarPage({ params }: Props) {
   return (
     <div className="wrap page">
       <Breadcrumbs items={[{ label: 'Search', href: '/search' }, { label: cityName(car.city), href: searchHref({ city: car.city }) }, { label: carTitle(car) }]} />
+      {car.sample ? (
+        <div style={{ marginBottom: 16 }}>
+          <Notice tone="warn">
+            <strong>Sample listing.</strong> This car, its host and its reviews are invented to show how AVANT works, so there are no photos. Real listings
+            show the host&apos;s own photos of the actual car.
+          </Notice>
+        </div>
+      ) : null}
       <div className="car-hero">
-        <CarImage body={car.body} slug={car.slug} color={car.color.hex} alt={`Illustrative photo of a ${car.color.name.toLowerCase()} ${body?.label.toLowerCase()}`} priority />
+        <CarImage body={car.body} color={car.color.hex} photo={car.photos[0]} sample={car.sample} alt={`${carTitle(car)}, photo by the host`} priority />
         <div className="car-hero-badges">
           {car.instantBook ? (
             <span className="badge badge-lime">
@@ -38,7 +46,7 @@ export default async function CarPage({ params }: Props) {
           ) : null}
           {host.allStar ? <span className="badge badge-glass">All-star host</span> : null}
           <span className="badge badge-glass">{VALUE_TIERS[car.valueTier].label}</span>
-          <span className="badge badge-glass">Photo is illustrative</span>
+          {car.sample ? <span className="badge badge-warn">Sample listing</span> : null}
         </div>
       </div>
 

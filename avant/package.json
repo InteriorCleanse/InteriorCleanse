@@ -11,7 +11,6 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test \"lib/**/*.test.ts\"",
     "seed": "node scripts/seed-fleet.mjs",
-    "assets:pull": "node scripts/pull-assets.mjs",
     "postinstall": "node scripts/copy-map-worker.mjs",
     "predev": "node scripts/copy-map-worker.mjs",
     "prebuild": "node scripts/copy-map-worker.mjs"
