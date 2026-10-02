@@ -43,7 +43,7 @@ function bestHtml(p) {
   return `<a class="tag nextup best" href="#plan/${encodeURIComponent(l.id)}"><div class="body" style="padding:16px 18px">
       <div class="mono dim">Your best pick${l.kind === 'SAMPLE' ? ' · sample, for practice' : ''}${l.endsAt ? ' · ' + countdown(l.endsAt, l.endsAtDateOnly) : ''}</div>
       <h2 class="nt">${carName(l.title)}</h2>
-      <div class="row" style="gap:18px;margin:6px 0 2px"><div><span class="k mono">Price now</span><div class="bn">${esc(money(now))}</div></div><div><span class="k mono">Never bid above</span><div class="bn" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div>${p.plan.feeUnknown ? '<span class="feenote">before the buyer fee</span>' : ''}</div></div>
+      <div class="row" style="gap:18px;margin:6px 0 2px"><div><span class="k mono">Price now</span><div class="bn">${esc(money(now))}</div></div><div><span class="k mono">Never bid above</span><div class="bn" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div>${p.plan.feeUnknown && l.kind !== 'SAMPLE' ? '<span class="feenote">before the buyer fee</span>' : ''}</div></div>
       ${why ? `<p style="margin:4px 0 0">${esc(why)}</p>` : ''}
     </div><span class="go-arrow" aria-hidden="true">→</span></a>`
 }

@@ -69,10 +69,10 @@ export function stub(score, { big = false } = {}) {
   const n = g === 'unpriced' ? '—' : String(score.total)
   const filled = g === 'unpriced' ? 0 : Math.round(score.total / 10)
   const ticks = Array.from({ length: 10 }, (_, i) => `<i class="${i < filled ? 'on' : ''}" style="--k:${i}"></i>`).join('')
-  const disc = typeof score.discount === 'number' ? `<span class="mono dim">${esc(pct(score.discount))} under comps</span>` : ''
-  const sr = g === 'unpriced' ? 'Not scored: not enough comparable cars.' : `Steal score ${score.total} out of 100, ${GRADE_WORD[g]}${typeof score.discount === 'number' ? `, ${pct(score.discount)} under comparable listings` : ''}.`
+  const disc = typeof score.discount === 'number' ? `<span class="mono dim">${esc(pct(score.discount))} under similar cars</span>` : ''
+  const sr = g === 'unpriced' ? 'Not scored: not enough comparable cars.' : `Deal score ${score.total} out of 100, ${GRADE_WORD[g]}${typeof score.discount === 'number' ? `, ${pct(score.discount)} under comparable listings` : ''}.`
   return `<div class="stub" role="img" aria-label="${esc(sr)}">
-    <span class="mono dim">Steal score</span>${disc}
+    <span class="mono dim">Deal score</span>${disc}
     <span class="n${big ? ' stub-n' : ''}" aria-hidden="true">${n}</span><span class="mono dim" aria-hidden="true">/100</span>
     <span class="ticks" aria-hidden="true">${ticks}</span>
     ${stamp(GRADE_WORD[g], GRADE_TONE[g], reducedMotion() ? '' : 'press')}
@@ -85,25 +85,25 @@ function initials(l) {
 }
 
 function titleStatusBadge(t) {
-  if (t === 'clean') return `<span class="badge go">Clean title</span>`
-  if (t === 'unknown') return `<span class="badge wait">Title not stated</span>`
-  return `<span class="badge hot">${esc(t)} title</span>`
+  if (t === 'clean') return `<span class="badge go">✓ Clean title</span>`
+  if (t === 'unknown') return `<span class="badge wait">? Title not stated</span>`
+  return `<span class="badge hot">✕ ${esc(t[0].toUpperCase() + t.slice(1))} title</span>`
 }
 function damageBadge(d) {
-  if (d === 'none') return `<span class="badge go">No damage</span>`
+  if (d === 'none') return `<span class="badge go">✓ No damage</span>`
   if (d === 'minor') return `<span class="badge">Minor damage</span>`
-  if (d === 'unknown') return `<span class="badge wait">Damage not stated</span>`
-  return `<span class="badge hot">${esc(d)} damage</span>`
+  if (d === 'unknown') return `<span class="badge wait">? Damage not stated</span>`
+  return `<span class="badge hot">✕ ${esc(d[0].toUpperCase() + d.slice(1))} damage</span>`
 }
 function runsBadge(r) {
-  if (r === true) return `<span class="badge go">Runs &amp; drives</span>`
-  if (r === false) return `<span class="badge hot">Does not run</span>`
-  return `<span class="badge wait">Runs? not stated</span>`
+  if (r === true) return `<span class="badge go">✓ Runs &amp; drives</span>`
+  if (r === false) return `<span class="badge hot">✕ Does not run</span>`
+  return `<span class="badge wait">? Runs: not stated</span>`
 }
 
 export function badges(l, now = Date.now(), { clock = true } = {}) {
   const out = [titleStatusBadge(l.titleStatus), damageBadge(l.damage), runsBadge(l.runsAndDrives)]
-  if (l.hasKeys === true) out.push('<span class="badge">Keys</span>')
+  if (l.hasKeys === true) out.push('<span class="badge go">✓ Keys</span>')
   const t = clock ? closesText(l, now) : null
   if (t) out.push(`<span class="badge ${t.tone === 'dim' ? '' : t.tone}">${esc(t.text)}</span>`)
   else if (l.saleType === 'buy-now') out.push('<span class="badge">Buy now</span>')
@@ -123,17 +123,18 @@ export function cardHtml(card, opts = {}) {
   const sample = l.kind === 'SAMPLE'
   const photo = safeUrl(l.photos && l.photos[0])
   const t = closesText(l)
-  const lot = `<span class="lot mono">${esc(sourceName(l.source))}${t ? ' · ' + esc(t.text.replace('Ends in ', '')) : ''}</span>`
+  // One SAMPLE label per card is the band at the top; the chip just says where and when.
+  const lot = `<span class="lot mono">${esc([sample ? '' : sourceName(l.source), t ? t.text.replace('Ends in ', 'Ends ') : ''].filter(Boolean).join(' · '))}</span>`
   const photoHtml = photo
     ? `<img src="${esc(photo)}" alt="" loading="lazy" />`
-    : `<div class="plate" aria-hidden="true">${esc(initials(l))}<small>${sample ? 'Sample — no photo' : 'No photo from the source'}</small></div>`
+    : `<div class="plate" aria-hidden="true">${esc(initials(l))}<small>${sample ? 'No photo' : 'No photo from the source'}</small></div>`
   const asking = typeof l.currentBidUsd === 'number' ? l.currentBidUsd : l.buyNowUsd
   const priceLabel = typeof l.currentBidUsd === 'number' ? 'Current bid' : typeof l.buyNowUsd === 'number' ? 'Buy now' : 'Price'
   const bidsNote = typeof l.currentBidUsd === 'number' ? `${typeof l.bidCount === 'number' ? l.bidCount + ' bids · ' : ''}not the final price` : (typeof l.buyNowUsd === 'number' && typeof l.currentBidUsd === 'number' ? `or buy now ${money(l.buyNowUsd)}` : '')
   const est = card.estimate
   const compsHtml = est.ok
-    ? `<div><span class="k mono">Comps</span><div class="comps">${esc(money(est.valueUsd))}</div><div class="receipt mono">${esc(moneyK(est.low))}–${esc(moneyK(est.high))} · ${est.comps} comps</div></div>`
-    : `<div><span class="k mono">Comps</span><div class="comps nocomps">Not enough comps</div><div class="receipt mono">${esc(String(est.comps))} found · 3 needed${sample ? '' : ` · <a href="#plan/${encodeURIComponent(l.id)}">price it yourself</a>`}</div></div>`
+    ? `<div><span class="k mono">Similar cars sell for</span><div class="comps">${esc(money(est.valueUsd))}</div><div class="receipt mono">${esc(moneyK(est.low))}–${esc(moneyK(est.high))} · ${est.comps} cars</div></div>`
+    : `<div><span class="k mono">Similar cars</span><div class="comps nocomps">Not enough comps</div><div class="receipt mono">${esc(String(est.comps))} found · 3 needed${sample ? '' : ` · <a href="#plan/${encodeURIComponent(l.id)}">price it yourself</a>`}</div></div>`
   const sub = [miles(l.mileage), l.location && [l.location.city, l.location.state].filter(Boolean).join(', '), l.vin ? 'VIN ' + l.vin.slice(-6) : null].filter(Boolean).join(' · ')
   // The badges and the price line already say these; the card shows the rest, and every reason stays one tap away.
   const said = /^(Clean title|No damage|Seller says it runs|Current bid, not the final|How the score works|On the demand list)/
@@ -153,7 +154,7 @@ export function cardHtml(card, opts = {}) {
     : safeUrl(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''
   return `<article class="tag settle" data-id="${esc(l.id)}">
     ${sample ? '<div class="band">Sample. Not a real car.</div>' : ''}
-    <div class="photo">${photoHtml}${lot}${sample ? stamp('Sample', 'hot') : ''}</div>
+    <div class="photo">${photoHtml}${lot}</div>
     <div class="tagbody">
       <div class="body">
         <h3 class="title">${carName(l.title)}</h3>

@@ -4,7 +4,7 @@ import { getJson, postJson, del, esc, money, when, closesText } from './api.js'
 import { stub, badges, stamp, toast, loading, errorStrip, sheet, sourceName, carName } from './ui.js'
 
 let catalog = null
-const METHOD = { snipe: ['go', 'Snipe in the last seconds'], proxy: ['', 'Proxy bid early'], 'live-lane': ['', 'Pre-bid before the lane'], 'buy-now': ['wait', 'Fixed price'], unknown: ['wait', 'Check the auction'] }
+const METHOD = { snipe: ['go', 'Snipe in the last seconds'], proxy: ['', 'Proxy bid early'], 'live-lane': ['', 'Pre-bid before the lane'], 'buy-now': ['wait', 'Fixed price'], unknown: ['wait', 'How to bid'] }
 
 function targetForm(t = {}) {
   const makes = catalog.makes
@@ -28,11 +28,11 @@ function targetForm(t = {}) {
       <label class="f">Last year <select name="yearMax">${yearOpts(t.yearMax)}</select></label>
       <label class="f">Mileage cap <input type="number" name="maxMileage" min="0" step="any" value="${esc(t.maxMileage || '')}" placeholder="Any" /></label>
       <label class="f">States (two letters, comma separated) <input type="text" name="states" value="${esc((t.states || []).join(', '))}" placeholder="Anywhere" /></label>
-      <label class="f">Minimum Steal score <input type="number" name="minScore" min="0" max="100" step="any" value="${esc(t.minScore ?? 60)}" /><small>60 is a good deal, 80 is a steal.</small></label>
+      <label class="f">Lowest deal score <input type="number" name="minScore" min="0" max="100" step="any" value="${esc(t.minScore ?? 60)}" /><small>60 is a good deal, 80 is a steal.</small></label>
     </div>
     <div class="row" style="margin-top:12px">
       <label class="switch"><input type="checkbox" name="starterOnly" ${t.starterOnly !== false ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Starter rules only</span></label>
-      <label class="switch"><input type="checkbox" name="armed" ${t.armed ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Armed: fire PAPER bids automatically</span></label>
+      <label class="switch"><input type="checkbox" name="armed" ${t.armed ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Practise for me: record a PAPER bid automatically</span></label>
     </div>
     <p class="dim" style="font-size:14px;margin:8px 0 0">Armed means: the moment a pick appears, Gavel records a PAPER bid at the plan's number and alerts you. Nothing is ever sent to an auction from here.</p>
     <div class="row" style="margin-top:14px"><button class="btn" type="submit">${t.id ? 'Save target' : 'Start hunting'}</button><button class="btn outline" type="button" data-close>Cancel</button></div>
@@ -75,12 +75,12 @@ function pickHtml(p) {
   return `<article class="tag pick" data-id="${esc(l.id)}">
     ${l.kind === 'SAMPLE' ? '<div class="band">Sample. Not a real car.</div>' : ''}
     <div class="tagbody"><div class="body">
-      <div class="mono dim">For ${esc((p.targetNames || [p.targetName]).join(' + '))} · ${p.fit}/100 match${p.named ? ' · the model you asked for, so it comes first' : ''}</div>
+      <div class="mono dim">For ${esc((p.targetNames || [p.targetName]).join(' + '))} · ${p.named ? ' · the model you asked for' : ''}</div>
       <h3 class="title">${carName(l.title)}</h3>
       <div class="subline mono">${esc([l.mileage ? l.mileage.toLocaleString('en-US') + ' mi' : null, l.location && l.location.state, sourceName(l.source), t && t.text].filter(Boolean).join(' · '))}</div>
       <div class="money"><div><span class="k mono">Price now</span><div class="now">${esc(money(l.currentBidUsd ?? l.buyNowUsd))}</div></div><div><span class="k mono">Never bid above</span><div class="now" style="color:var(--go)">${esc(money(p.fire.maxBidUsd))}</div>${p.plan.feeUnknown ? '<span class="feenote">before the buyer fee: open the plan and type it</span>' : ''}</div></div>
       ${badges(l)}
-      <div class="fire"><span class="pill ${tone}">${word}</span>${p.fire.fireAt ? `<span class="mono dim">fire at ${esc(when(p.fire.fireAt))}</span>` : ''}<p style="margin:8px 0 0">${esc(p.fire.why)}</p><ol class="fire-steps">${p.fire.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></div>
+      <div class="fire"><span class="k mono fire-k ${tone}">${word}</span>${p.fire.fireAt ? `<span class="mono dim">fire at ${esc(when(p.fire.fireAt))}</span>` : ''}<p style="margin:8px 0 0">${esc(p.fire.why)}</p><ol class="fire-steps">${p.fire.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></div>
       <div class="actions"><a class="btn sm" href="#plan/${encodeURIComponent(l.id)}">Open the plan</a>${l.kind !== 'SAMPLE' && /^https?:/.test(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''}</div>
     </div>${stub(p.card.score)}</div>
   </article>`

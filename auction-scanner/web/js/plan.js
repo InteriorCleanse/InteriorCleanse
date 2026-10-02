@@ -6,7 +6,9 @@ import { HOUSES } from './houses.js'
 let current = null
 
 /** One plain line for what the number is still missing, instead of a warning per field. */
-function missingLine(feeUnknown, plan) {
+function missingLine(feeUnknown, plan, sample) {
+  // A practice car has no auction, so no fee to look up.
+  if (sample) feeUnknown = false
   const missing = [feeUnknown ? 'the buyer fee' : '', plan.taxTitleUsd === undefined ? 'tax and title' : ''].filter(Boolean)
   if (!missing.length) return ''
   const tooHigh = feeUnknown || plan.cashUsd !== undefined
@@ -32,7 +34,7 @@ function ledgerHtml(plan, inputs, listing) {
     ${row(flip ? '− Your margin' : '− Under market by', money(plan.marginUsd), `<input type="number" id="p-margin" min="0" max="90" step="any" value="${shown('marginPct', Math.round(plan.marginFraction * 100))}" placeholder="%" aria-label="${flip ? 'Margin' : 'Discount to market'} percent" />`, `<b>${esc(money(plan.marginUsd))}.</b> ${flip ? 'Percent of the resale price you want left over.' : 'Percent under market value you insist on, so you never pay retail.'}`)}
   </div>
   <div class="never"><span class="k mono">Never bid above</span><div class="n">${esc(money(plan.maxBidUsd))}</div>
-    ${missingLine(feeUnknown, plan)}
+    ${missingLine(feeUnknown, plan, listing.kind === 'SAMPLE')}
     <div class="mono ${typeof plan.cashUsd === 'number' && plan.cashNeededUsd > plan.cashUsd ? 'nocomps' : 'dim'}">Cash you need on the day: about ${esc(money(plan.cashNeededUsd))}${typeof plan.cashUsd === 'number' ? ` of your ${esc(money(plan.cashUsd))}` : ''}${plan.taxTitleUsd === undefined ? ', plus tax and title' : ', tax and title included'}.</div>
     ${plan.limitedBy === 'cash' ? '<div class="mono dim">Lowered to fit your cash.</div>' : ''}
     ${typeof plan.headroomUsd === 'number' ? `<div class="mono ${plan.headroomUsd < 0 ? 'nocomps' : 'dim'}">${plan.headroomUsd < 0 ? `The price is already ${esc(money(-plan.headroomUsd))} over your number. Not your car.` : `${esc(money(plan.headroomUsd))} of room above the price now.`}</div>` : ''}
@@ -94,11 +96,13 @@ function priceItHtml(l, est) {
     </form></div>`
 }
 
-function walkthroughHtml(w) {
+function walkthroughHtml(w, sample = false) {
+  // The SAMPLE strip at the top of the plan already says it; the warnings keep what is new.
+  const warnings = (w.warnings || []).filter((x) => !(sample && /SAMPLE/.test(x)))
   return `<div class="mono dim">Explained by: ${esc(w.source === 'ai' ? 'AI · checked against the rules' : 'the rules')}</div>
     <h2 style="margin:6px 0 8px">${esc(w.title)}</h2>
     <ol class="steps">${w.steps.map((s) => { const [first, rest] = splitFirst(s.body); return `<li><div><b>${esc(s.title)}</b><p>${esc(first)}</p>${rest ? `<details class="more"><summary>Read more</summary><p>${esc(rest)}</p></details>` : ''}</div></li>` }).join('')}</ol>
-    ${w.warnings && w.warnings.length ? `<div class="warnings"><span class="k mono">Warnings</span><ul>${w.warnings.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${warnings.length ? `<div class="warnings"><span class="k mono">Warnings</span><ul>${warnings.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${w.note ? `<p class="dim" style="margin-top:8px;font-size:14px">${esc(w.note)}</p>` : ''}`
 }
 
@@ -119,7 +123,7 @@ export async function render(el, ctx, [id]) {
     <div class="plan">
       <div>
         <div class="tag" style="display:grid;grid-template-columns:1fr 132px"><div class="body" style="padding-left:14px"><div class="mono dim">The car</div><div class="money"><div><span class="k mono">${typeof l.currentBidUsd === 'number' ? 'Current bid' : 'Buy now'}</span><div class="now">${esc(money(typeof l.currentBidUsd === 'number' ? l.currentBidUsd : l.buyNowUsd))}</div></div>
-          <div><span class="k mono">Comps</span><div class="comps ${card.estimate.ok ? '' : 'nocomps'}">${card.estimate.ok ? esc(money(card.estimate.valueUsd)) : 'Not enough comps'}</div><div class="receipt mono">${card.estimate.ok ? esc(card.estimate.method) : esc(card.estimate.reason)}</div></div></div>${badges(l)}</div>${stub(card.score, { big: true })}</div>
+          <div><span class="k mono">${card.estimate.ok ? 'Similar cars sell for' : 'Similar cars'}</span><div class="comps ${card.estimate.ok ? '' : 'nocomps'}">${card.estimate.ok ? esc(money(card.estimate.valueUsd)) : 'Not enough comps'}</div><div class="receipt mono">${card.estimate.ok ? esc(card.estimate.method) : esc(card.estimate.reason)}</div></div></div>${badges(l)}</div>${stub(card.score, { big: true })}</div>
         ${priceItHtml(l, card.estimate)}
         ${whyHtml(card)}
         <div class="panel" style="margin-top:16px"><h2>The number</h2><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
@@ -132,8 +136,10 @@ export async function render(el, ctx, [id]) {
           <div id="p-receipt"></div>
         </div>
       </div>
-      <div class="panel" id="p-walk">${walkthroughHtml(card.walkthrough)}
-        <div class="row" style="margin-top:12px"><button class="btn outline sm" type="button" id="p-ai">${ctx.me.ai && ctx.me.ai.available ? 'Explain it again with AI' : 'Explain it again'}</button><span class="dim" style="font-size:14px">${esc(ctx.me.ai && ctx.me.ai.available ? '' : ctx.me.ai ? ctx.me.ai.reason : '')}</span></div>
+      <div class="panel" id="p-walk">${walkthroughHtml(card.walkthrough, sample)}
+        ${ctx.me.ai && ctx.me.ai.available
+          ? '<div class="row" style="margin-top:12px"><button class="btn outline sm" type="button" id="p-ai">Explain it again with AI</button></div>'
+          : ctx.me.role === 'owner' && ctx.me.ai ? `<p class="dim" style="font-size:14px;margin-top:12px">${esc(ctx.me.ai.reason)}</p>` : ''}
       </div>
     </div>`
 
@@ -178,12 +184,13 @@ export async function render(el, ctx, [id]) {
       if (back) back.scrollIntoView({ block: 'center' })
     } catch (err) { toast(err.message, 'hot') }
   })
-  el.querySelector('#p-ai').addEventListener('click', async (e) => {
+  const aiBtn = el.querySelector('#p-ai')
+  if (aiBtn) aiBtn.addEventListener('click', async (e) => {
     e.target.disabled = true
     const walk = el.querySelector('#p-walk')
     try {
       const w = await postJson('/api/explain', { listingId: l.id })
-      walk.innerHTML = walkthroughHtml(w)
+      walk.innerHTML = walkthroughHtml(w, sample)
     } catch (err) { toast(err.message, 'hot') } finally { e.target.disabled = false }
   })
   el.querySelector('#p-bid').addEventListener('click', async () => {

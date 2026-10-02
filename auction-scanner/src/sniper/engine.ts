@@ -83,7 +83,7 @@ export function firePlan(l: Listing, plan: BidPlan, target: Target, now = Date.n
   const capped = plan.maxBidUsd > target.maxBudgetUsd
   const capNote = capped ? ` Your budget of $${target.maxBudgetUsd.toLocaleString('en-US')} caps it below the plan's $${plan.maxBidUsd.toLocaleString('en-US')}.` : ''
   if (l.kind === 'SAMPLE') {
-    return { method: 'unknown', maxBidUsd, why: `This is a SAMPLE car with no real auction behind it. A real lot would follow its house's closing rule.${capNote}`, steps: [`Practise: the number here would be $${maxBidUsd.toLocaleString('en-US')}. On a real eBay lot you would snipe it in the last seconds; on Cars & Bids or Bring a Trailer you would place it early; at Copart or IAA you would pre-bid it.`] }
+    return { method: 'unknown', maxBidUsd, why: `Practice car: no real auction behind it.${capNote}`, steps: [`Practise: the number here would be $${maxBidUsd.toLocaleString('en-US')}. On a real eBay lot you would snipe it in the last seconds; on Cars & Bids or Bring a Trailer you would place it early; at Copart or IAA you would pre-bid it.`] }
   }
   if (l.saleType === 'buy-now' && l.buyNowUsd !== undefined) {
     return { method: 'buy-now', maxBidUsd, why: `It is a fixed price of $${l.buyNowUsd.toLocaleString('en-US')}; there is nothing to snipe.${capNote}`, steps: [l.buyNowUsd <= maxBidUsd ? `The price is at or under your number. Verify the car, then buy it on the site.` : `The price is above your number by $${(l.buyNowUsd - maxBidUsd).toLocaleString('en-US')}. Make an offer at your number if the listing allows offers; otherwise pass.`] }

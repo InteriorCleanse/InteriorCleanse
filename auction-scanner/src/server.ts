@@ -712,6 +712,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         console.error('[explain] AI failed; serving the rules walkthrough.', e instanceof Error ? e.message : e)
         note = 'The AI explainer did not answer this time. This is the rules walkthrough.'
       }
+      // A member cannot change the server; the setup words are the owner's.
+      if (session.role !== 'owner' && /ANTHROPIC_|\.env\b|npm /.test(note)) note = 'Explained by the rules.'
       return json(res, 200, { ...out, note })
     }
 

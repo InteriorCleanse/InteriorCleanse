@@ -30,13 +30,16 @@ export async function render(el, ctx) {
     <div class="panel"><h2>Data</h2>
       <label class="switch"><input type="checkbox" name="allowSample" ${s.allowSample ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Show SAMPLE cars when no source is connected <small class="dim" style="display:block;font-weight:400">Sample cars are not real and are labelled on every card. They never mix with live data.</small></span></label>
       <div class="grid2" style="margin-top:12px"><label class="f">Home state <select name="homeState"><option value="">Not set</option>${Object.entries(STATES).sort((a, b) => a[1].replace(/^the /, '').localeCompare(b[1].replace(/^the /, ''))).map(([code, name]) => `<option value="${code}" ${s.homeState === code ? 'selected' : ''}>${esc(name.replace(/^the /, ''))}</option>`).join('')}</select></label><label class="f">Home ZIP <input type="text" name="homeZip" maxlength="10" value="${esc(s.homeZip || '')}" /></label></div></div>
-    <div class="panel"><h2>Buyer fee overrides</h2><p class="dim">Some houses use a sliding scale, so Gavel does not guess. When you have looked the fee up, type the percent here and every plan for that house uses it.</p>
+    <details class="panel adv"><summary><h2>Advanced</h2><span class="dim">Buyer fees you looked up, and cars you want favoured. Most people never need these.</span></summary>
+    <div class="adv-part"><h3>Buyer fees you looked up</h3><p class="dim">Some houses use a sliding scale, so Gavel does not guess. When you have looked the fee up, type the percent here and every plan for that house uses it.</p>
       <div class="grid2">${HOUSES.filter(([h]) => h !== 'marketcheck').map(([h, name]) => `<label class="f">${esc(name)} (%) <input type="number" name="fee:${h}" min="0" max="30" step="0.5" value="${s.feeOverrides && s.feeOverrides[h] !== undefined ? s.feeOverrides[h] : ''}" placeholder="published" /></label>`).join('')}</div></div>
-    <div class="panel"><h2>Your demand list additions</h2><p class="dim">Cars you want a small score bonus for, with the reason. One per line: <code>Make | Model, Model | tier | why</code>. Tier is supercar, enthusiast, holds-value or rental.</p>
+    <div class="adv-part"><h3>Cars you want favoured</h3><p class="dim">Cars you want a small score bonus for, with the reason. One per line: <code>Make | Model, Model | tier | why</code>. Tier is supercar, enthusiast, holds-value or rental.</p>
       <textarea name="demandExtra" rows="4" placeholder="Toyota | Land Cruiser | holds-value | Sells in days where I live">${esc((s.demandExtra || []).map((d) => `${d.make} | ${d.models.join(', ')} | ${d.tier} | ${d.why}`).join('\n'))}</textarea></div>
-    <div class="row" style="margin:12px 0 24px"><button class="btn" type="submit">Save settings</button><span class="dim" id="s-status"></span></div>
+    </details>
+    <div class="row savebar"><button class="btn" type="submit">Save settings</button><span class="dim" id="s-status" role="status">Changes save as you make them.</span></div>
     </form>
-    <div class="panel"><h2>Sources</h2>${me.role === 'owner' ? '<p class="dim" style="font-size:14px">To connect one, open <a href="#connect">Connect</a>.</p>' : ''}${src.map((x) => `<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--ink-3)"><div><b>${esc(x.name)}</b><div class="dim" style="font-size:14px">${esc(x.reason)}</div></div><span class="pill ${x.connected ? 'go' : x.kind === 'api' ? 'wait' : ''}">${x.connected ? 'Connected' : x.kind === 'api' ? 'Not connected' : 'Directory only'}</span></div>`).join('')}</div>
+    ${me.role !== 'owner' ? `<div class="panel"><h2>Where the cars come from</h2><p style="margin:0">${src.some((x) => x.kind === 'api' && x.connected) ? `Live cars come from ${esc(src.filter((x) => x.kind === 'api' && x.connected).map((x) => x.name).join(', '))}.` : 'The owner has not connected a live auction yet.'} For any other auction, bring the lot in with <a href="#import">Import</a>.</p></div>` : ''}
+    ${me.role !== 'owner' ? '' : `<div class="panel"><h2>Sources</h2><p class="dim" style="font-size:14px">To connect one, open <a href="#connect">Connect</a>.</p>${src.map((x) => `<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--ink-3)"><div><b>${esc(x.name)}</b><div class="dim" style="font-size:14px">${esc(x.reason)}</div></div><span class="pill ${x.connected ? 'go' : x.kind === 'api' ? 'wait' : ''}">${x.connected ? 'Connected' : x.kind === 'api' ? 'Not connected' : 'Directory only'}</span></div>`).join('')}</div>`}
     <div class="panel"><h2>Live bidding</h2><p><span class="pill ${me.liveBidding ? 'wait' : ''}">${me.liveBidding ? 'Switch is on' : 'Off'}</span></p><p>Every bid in Gavel is a <b>PAPER</b> bid unless two things are true at once: ${me.role === 'owner' ? 'the switch <code>GAVEL_LIVE_BIDDING=1</code> is set on the server' : 'the owner has switched live bidding on'}, and the listing's source can take a bid by API. No connected source can today: eBay's public API is read-only and the other houses publish no API. So the Bid button prepares your number and opens the lot on the auction's own site.</p></div>
     <div class="panel"><h2>AI explainer</h2><p><span class="pill ${me.ai && me.ai.available ? 'go' : ''}">${me.ai && me.ai.available ? 'On' : 'Off'}</span> ${esc(me.ai ? me.ai.reason : '')}</p></div>
     <div class="panel"><h2>Decode a VIN</h2><p class="dim">Free, from the US government's vehicle database. It tells you what the factory built, not the car's history.</p><form id="v-form" class="row"><input type="text" name="vin" maxlength="17" placeholder="17 characters" style="flex:1;min-width:220px;font-family:var(--mono)" aria-label="VIN" /><button class="btn outline" type="submit">Decode</button></form><div id="v-out"></div></div>
@@ -47,7 +50,11 @@ export async function render(el, ctx) {
     <div class="panel"><h2>Backup</h2><p class="dim" style="font-size:14px">Your watchlist, paper bids, Sniper targets, alerts, settings, garage, imported lots and sold prices in one file. Keep a copy; restore it here or on another install.</p><div class="row"><a class="btn outline" href="/api/backup" download>Download a backup</a><label class="btn outline" style="cursor:pointer">Restore from a file<input type="file" id="b-file" accept="application/json,.json" hidden /></label></div></div>
     <div class="panel"><h2>Account</h2><p>${esc(me.email)} · ${esc(me.role)}${me.dataDir ? `<br /><span class="mono dim">Data: ${esc(me.dataDir)}</span>` : ''}</p></div>`
 
-  el.querySelector('#s-form').addEventListener('submit', async (e) => {
+  const form = el.querySelector('#s-form')
+  // Every change saves itself, so nobody has to find a button six screens down.
+  let saveTimer = null
+  form.addEventListener('change', () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => form.requestSubmit(), 250) })
+  form.addEventListener('submit', async (e) => {
     e.preventDefault()
     const f = new FormData(e.target)
     const num = (k) => { const v = f.get(k); return v === '' || v === null ? undefined : Number(v) }
@@ -69,7 +76,7 @@ export async function render(el, ctx) {
       demandExtra,
     }
     const st = el.querySelector('#s-status')
-    try { await postJson('/api/settings', patch); st.textContent = 'Saved.'; toast('Settings saved.') } catch (err) { st.textContent = ''; toast(err.message, 'hot') }
+    try { await postJson('/api/settings', patch); st.textContent = `Saved at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.` } catch (err) { st.textContent = 'Not saved: ' + err.message; toast(err.message, 'hot') }
   })
   const nState = el.querySelector('#n-state')
   const showN = () => { nState.textContent = !('Notification' in window) ? 'This browser does not support notifications.' : Notification.permission === 'granted' ? 'On for this device.' : Notification.permission === 'denied' ? 'Blocked in the browser settings for this site.' : 'Off.' }

@@ -609,6 +609,11 @@ test('a member sees no server setup: no Connect, no variable names; the owner is
   assert.ok(!(await api('/api/home', { asMember: c })).body.next.some((n: any) => n.id === 'members' || n.id === 'source'))
   const feed = await api('/api/feed?starter=0', { asMember: c })
   assert.doesNotMatch(JSON.stringify(feed.body.errors), /GAVEL_|ANTHROPIC_|\.env/)
+  const car = (await api('/api/feed?starter=0&sample=1', { asMember: c })).body.cards[0]
+  assert.ok(car, 'a sample car to explain')
+  const explained = await api('/api/explain', { method: 'POST', json: { listingId: car.listing.id }, asMember: c, headers: { 'x-gavel-csrf': r.body.csrf } })
+  assert.equal(explained.status, 200)
+  assert.doesNotMatch(explained.body.note, /ANTHROPIC_|\.env|npm /, 'the explain note names no setup step for a member')
   // The owner still gets the exact steps.
   const ownerMe = await api('/api/me')
   assert.match(JSON.stringify(ownerMe.body.sources), /GAVEL_/)

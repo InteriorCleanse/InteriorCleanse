@@ -13,16 +13,26 @@ let seq = 0
 function chipsHtml() {
   return `<div class="rail" id="rail">
     <div class="chips wrap tiers" role="toolbar" aria-label="Kind of car">${TIERS.map(([k, v]) => `<button class="chip" type="button" data-tier="${k}" aria-pressed="${state.tier === k}">${v}</button>`).join('')}</div>
-    <div class="chips" role="toolbar" aria-label="Filters">
+    <div class="chips" role="toolbar" aria-label="Search">
+      <input type="search" id="f-q" placeholder="Search a make or model" aria-label="Search" value="${esc(state.q)}" />
+      <details class="filters" id="f-more"><summary class="chip" id="f-more-sum">${filterSummary()}</summary>
+        <div class="filters-body">
       <label class="switch" title="Hides salvage titles, damage beyond minor, cars that do not run, and cars over your price, mileage or age caps (Settings)."><input type="checkbox" id="f-starter" ${state.starter ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Starter mode</span></label>
-      <input type="search" id="f-q" placeholder="Search a car" aria-label="Search" value="${esc(state.q)}" />
       <label class="inl mono">Max $<input type="number" id="f-max" placeholder="any" aria-label="Maximum price in dollars" min="0" step="any" value="${esc(state.maxPrice)}" /></label>
       <input type="search" id="f-state" placeholder="State" aria-label="US state, two letters" maxlength="2" style="width:80px" value="${esc(state.state)}" />
       <select id="f-sort" aria-label="Sort"><option value="score" ${state.sort === 'score' ? 'selected' : ''}>Best score</option><option value="ending" ${state.sort === 'ending' ? 'selected' : ''}>Ending soonest</option><option value="price" ${state.sort === 'price' ? 'selected' : ''}>Price low to high</option></select>
       <label class="switch" id="f-sample-wrap" hidden title="Sample cars are not real. They show what the app does until a source is connected."><input type="checkbox" id="f-sample" ${state.sample ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Show sample cars</span></label>
+        </div>
+      </details>
     </div>
     <div class="status mono" id="f-status"></div>
   </div>`
+}
+
+/** "Filters · 2 on": Starter mode, a price cap, a state and a sort other than best score each count. */
+function filterSummary() {
+  const on = [state.starter, !!state.maxPrice, !!state.state, state.sort !== 'score'].filter(Boolean).length
+  return `Filters${on ? ` · ${on} on` : ''}`
 }
 
 function params() {
@@ -106,8 +116,8 @@ export async function render(el, ctx) {
     state.seeded = true
     store('gavel-feed', state)
   }
-  el.innerHTML = `<div class="head"><div><h1>Feed</h1><p>Clean cars priced under what similar cars list for. The score says how big the gap is; the three lines say why.</p></div></div>${chipsHtml()}<div id="f-list"></div>`
-  const save = () => store('gavel-feed', state)
+  el.innerHTML = `<div class="head"><div><h1>Feed</h1><p>Clean cars priced under what similar cars list for. The score says how big the gap is; the lines under it say why.</p></div></div>${chipsHtml()}<div id="f-list"></div>`
+  const save = () => { store('gavel-feed', state); const sum = el.querySelector('#f-more-sum'); if (sum) sum.textContent = filterSummary() }
   const reload = debounce(() => { save(); load() }, 350)
   el.querySelector('#f-starter').addEventListener('change', (e) => { state.starter = e.target.checked; state.showHidden = false; save(); load() })
   el.querySelector('#f-sample').addEventListener('change', (e) => { state.sample = e.target.checked; save(); load() })

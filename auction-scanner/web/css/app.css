@@ -630,6 +630,43 @@ details > summary { transition: color var(--t-quick) var(--ease); }
 .why-panel[open] > summary .mono { display: none; }
 .more-steps > summary { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); min-height: 36px; display: flex; align-items: center; }
 
+details.adv > summary { list-style: none; cursor: pointer; display: grid; gap: 2px; }
+details.adv > summary::-webkit-details-marker { display: none; }
+details.adv > summary h2 { margin: 0; }
+details.adv > summary h2::after { content: " +"; }
+details.adv[open] > summary h2::after { content: " −"; }
+details.adv > summary .dim { font-size: 14px; font-weight: 400; }
+.adv-part { margin-top: 18px; }
+.adv-part h3 { font-size: 18px; margin-bottom: 4px; }
+/* Saving: always in reach on a long form. */
+.savebar { position: sticky; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 5; margin: 12px 0 24px; padding: 10px 12px; background: var(--tag); color: var(--ink); border: 1px solid rgba(28, 26, 22, .24); border-radius: 6px; box-shadow: var(--shadow); }
+@media (min-width: 960px) { .savebar { bottom: 16px; } }
+.savebar .dim { color: var(--ink-2); }
+
+/* Feed: the kind chips and search stay out; the rest folds under one button. */
+.filters { position: relative; }
+.filters > summary { list-style: none; }
+.filters > summary::-webkit-details-marker { display: none; }
+.filters > summary::after { content: "+"; margin-left: 6px; }
+.filters[open] > summary { background: var(--on-paper); color: var(--paper); }
+.filters[open] > summary::after { content: "−"; }
+.filters-body { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 0 4px; }
+.filters[open] { flex-basis: 100%; }
+.filters-body > * { max-width: 100%; }
+.rail .chips { align-items: center; }
+.rail .chips:has(.filters) { overflow: visible; flex-wrap: wrap; }
+
+/* Facts about the car read as words with a mark, not as buttons. */
+.badges { gap: 4px 14px; }
+.badge { border: 0; padding: 0; background: none; font: 600 14px/1.4 var(--sans); letter-spacing: 0; text-transform: none; color: var(--ink); }
+.badge.go { color: var(--go); }
+.badge.wait { color: var(--wait); }
+.badge.hot { color: var(--hot); }
+.fire-k { display: block; color: var(--ink); }
+.fire-k.go { color: var(--go); }
+.fire-k.wait { color: var(--wait); }
+.more { min-height: 44px; display: inline-flex; align-items: center; }
+
 /* ---------- small fixes ---------- */
 @media (max-width: 719px) { #p-print { display: none; } }
 
