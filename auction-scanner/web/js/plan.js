@@ -17,7 +17,7 @@ function ledgerHtml(plan, inputs, listing) {
   return `<div class="ledger">
     ${row(flip ? 'Resale target' : 'Market value', money(plan.resaleUsd), `<input type="number" id="p-resale" min="0" step="any" value="${shown('resaleUsd', plan.resaleUsd)}" aria-label="${flip ? 'Resale target' : 'Market value'} in dollars" />`, flip ? 'What you believe it sells for after fixes. Starts from the comps estimate.' : 'What cars like it sell for. Starts from the comps estimate.')}
     ${row('− Buyer fee', money(plan.buyerFeeUsd), `<input type="number" id="p-fee" min="0" max="30" step="any" placeholder="%" value="${esc(inputs.feePct ?? '')}" aria-label="Buyer fee percent" />`, feeHelp)}
-    ${plan.cashUsd !== undefined ? row('− Tax and title', plan.taxTitleUsd !== undefined ? money(plan.taxTitleUsd) : 'not set', `<input type="number" id="p-tax" min="0" max="20" step="any" placeholder="%" value="${shown('taxTitlePct', plan.taxTitlePct)}" aria-label="Tax and title percent" />`, plan.taxTitleUsd !== undefined ? `<b>${esc(money(plan.taxTitleUsd))}.</b> Sales tax plus title in your state and county. Remembered for every plan.` : 'Sales tax on a car plus the title fee in your state and county, as a percent. Look it up once; Gavel remembers it.') : ''}
+    ${row(plan.cashUsd !== undefined ? '− Tax and title' : 'Tax and title', plan.taxTitleUsd !== undefined ? money(plan.taxTitleUsd) : 'not set', `<input type="number" id="p-tax" min="0" max="20" step="any" placeholder="%" value="${shown('taxTitlePct', plan.taxTitlePct)}" aria-label="Tax and title percent" />`, `${plan.taxTitleUsd !== undefined ? `<b>${esc(money(plan.taxTitleUsd))}.</b> ` : ''}Sales tax on a car plus the title fee in your state and county, as a percent. ${plan.cashUsd !== undefined ? 'Paid from your cash, so it counts inside it.' : 'Paid at the DMV; it does not change what the car is worth.'} ${plan.taxTitleUsd !== undefined ? 'Remembered for every plan.' : 'Look it up once; Gavel remembers it.'}`)}
     ${row('− Transport', money(plan.transportUsd), `<input type="number" id="p-dist" min="0" step="any" value="${shown('distanceMiles', plan.distanceMiles)}" placeholder="miles" aria-label="Distance in miles" />`, `<b>${esc(money(plan.transportUsd))}.</b> ${plan.distanceAssumed && inputs.distanceMiles === undefined ? 'Assumed ' + esc(plan.distanceMiles) + ' miles: type the real distance. ' : 'Miles from the car to you. '}A typical open-carrier rate; get a real quote before you bid.`)}
     ${row('− Repairs', money(plan.repairsUsd), `<input type="number" id="p-rep" min="0" step="any" value="${esc(inputs.repairsUsd ?? '')}" placeholder="$" aria-label="Repairs in dollars" />`, 'Tyres, brakes, detail, whatever the photos and the inspection say.')}
     ${row('− Cushion for surprises', money(plan.reserveUsd))}
@@ -25,12 +25,35 @@ function ledgerHtml(plan, inputs, listing) {
   </div>
   <div class="never"><span class="k mono">Never bid above</span><div class="n">${esc(money(plan.maxBidUsd))}</div>
     ${feeUnknown ? '<div class="warn-line">Buyer fee not set: this number is too high. Look up the fee and type the percent above.</div>' : ''}
-    ${plan.limitedBy === 'cash' && plan.taxTitleUsd === undefined ? '<div class="warn-line">Tax and title not set: they come out of the same cash. Type your percent above.</div>' : ''}
+    ${plan.taxTitleUsd === undefined ? `<div class="warn-line">Tax and title not set${plan.cashUsd !== undefined ? ': they come out of the same cash' : ''}. Type your percent above.</div>` : ''}
     <div class="mono ${typeof plan.cashUsd === 'number' && plan.cashNeededUsd > plan.cashUsd ? 'nocomps' : 'dim'}">Cash you need on the day: about ${esc(money(plan.cashNeededUsd))}${typeof plan.cashUsd === 'number' ? ` of your ${esc(money(plan.cashUsd))}` : ''}${plan.taxTitleUsd === undefined ? ', plus tax and title' : ', tax and title included'}.</div>
     ${plan.limitedBy === 'cash' ? '<div class="mono dim">Lowered to fit your cash.</div>' : ''}
     ${typeof plan.headroomUsd === 'number' ? `<div class="mono ${plan.headroomUsd < 0 ? 'nocomps' : 'dim'}">${plan.headroomUsd < 0 ? `The price is already ${esc(money(-plan.headroomUsd))} over your number. Not your car.` : `${esc(money(plan.headroomUsd))} of room above the price now.`}</div>` : ''}
   </div>
   <details style="margin-top:10px"><summary>Every line, in words</summary><ul class="why">${plan.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`
+}
+
+/** Why the car scores what it does: the score's own reasons and red flags, in full. */
+function whyHtml(card) {
+  const reasons = card.score.reasons || []
+  const flags = (card.score.redFlags || []).filter((f) => !/^SAMPLE/.test(f))
+  if (!reasons.length && !flags.length) return ''
+  return `<div class="panel" style="margin-top:16px"><h2>Why it scores ${esc(card.score.total)}</h2>
+    ${card.demand ? `<p class="mono dim">Kind: ${esc(card.demand.tags.map(tierName).join(' · '))}</p>` : ''}
+    ${reasons.length ? `<ul class="why">${reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+    ${flags.length ? `<div class="flags"><span class="k mono">Red flags</span><ul>${flags.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}</div>`
+}
+
+function tierName(t) {
+  return t === 'holds-value' ? 'Holds value' : t[0].toUpperCase() + t.slice(1)
+}
+
+/** A supercar's checks before bidding. Shown above the bid button, because they decide whether to bid at all. */
+function supercarHtml(plan) {
+  if (!plan.supercar) return ''
+  return `<div class="panel sc" style="margin-top:16px"><h2>Before you bid on a supercar</h2>
+    <p>The number above already keeps a bigger cushion (${esc(money(plan.reserveUsd))}). These decide whether to bid at all. <a href="#playbook/supercar">Read the supercar guide</a>.</p>
+    <ol class="fire-steps">${plan.supercar.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ol></div>`
 }
 
 /** The first sentence, and the rest. A step shows its first sentence; the rest waits behind Read more. */
@@ -91,7 +114,9 @@ export async function render(el, ctx, [id]) {
         <div class="tag" style="display:grid;grid-template-columns:1fr 132px"><div class="body" style="padding-left:14px"><div class="mono dim">The car</div><div class="money"><div><span class="k mono">${typeof l.currentBidUsd === 'number' ? 'Current bid' : 'Buy now'}</span><div class="now">${esc(money(typeof l.currentBidUsd === 'number' ? l.currentBidUsd : l.buyNowUsd))}</div></div>
           <div><span class="k mono">Comps</span><div class="comps ${card.estimate.ok ? '' : 'nocomps'}">${card.estimate.ok ? esc(money(card.estimate.valueUsd)) : 'Not enough comps'}</div><div class="receipt mono">${card.estimate.ok ? esc(card.estimate.method) : esc(card.estimate.reason)}</div></div></div>${badges(l)}</div>${stub(card.score, { big: true })}</div>
         ${priceItHtml(l, card.estimate)}
+        ${whyHtml(card)}
         <div class="panel" style="margin-top:16px"><h2>The number</h2><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
+        ${supercarHtml(card.plan)}
         <div class="panel"><h2>Bid</h2>
           <p>Paper means nothing was sent to the auction. Practise here, then place the real bid on the auction's own site, and never go above your number.</p>
           <div class="row"><label class="f" style="flex:1;min-width:160px">Your max bid <input type="number" id="p-max" min="1" step="any" value="${card.plan.maxBidUsd || ''}" /></label>

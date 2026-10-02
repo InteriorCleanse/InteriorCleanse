@@ -54,6 +54,12 @@ export const config = {
     targetMarginByGoal: { flip: 0.15, rental: 0.05, keep: 0.05 },
     /** A cushion for surprises found after the car arrives. */
     surpriseReserveUsd: 750,
+    /**
+     * For a supercar the cushion is this share of its value instead, when that
+     * is more: one repair on these cars can cost more than the whole usual
+     * cushion. Gavel's working choice; the member sees it on the plan.
+     */
+    supercarReservePct: 0.05,
     /** Typical transport cost per mile for an open carrier. Verify with a quote. */
     transportPerMileUsd: 0.9,
     /** Miles to assume when the listing has no location. */

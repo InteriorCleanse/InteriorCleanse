@@ -221,3 +221,21 @@ test('the cash cap never asks for more than the cash, even at extreme fee and ta
     assert.ok(Number.isFinite(plan.maxBidUsd) && plan.maxBidUsd >= 0)
   }
 })
+
+test('a supercar plan keeps a cushion sized to the car and lists the checks before bidding', () => {
+  const est: Estimate = { ok: true, valueUsd: 200_000, low: 190_000, high: 210_000, comps: 3, method: 'median of 3 comparable listings' }
+  const car = fx({ title: 'TEST FIXTURE 2017 Ferrari 488', make: 'Ferrari', model: '488', currentBidUsd: 150_000 })
+  const plain = buildPlan(car, est, { distanceMiles: 0, repairsUsd: 0 })
+  const sc = buildPlan(car, est, { distanceMiles: 0, repairsUsd: 0, supercar: true })
+  assert.equal(plain.reserveUsd, config.plan.surpriseReserveUsd)
+  assert.equal(plain.supercar, undefined)
+  assert.equal(sc.reserveUsd, 200_000 * config.plan.supercarReservePct)
+  const extra = sc.reserveUsd - plain.reserveUsd
+  const drop = plain.maxBidUsd - sc.maxBidUsd
+  assert.ok(drop >= extra - 100 && drop <= extra + 100, `the bigger cushion comes off the max bid (${drop} vs ${extra})`)
+  assert.ok(sc.supercar && sc.supercar.checks.some((c) => /specialist/i.test(c)) && sc.supercar.checks.some((c) => /insurance/i.test(c)))
+  assert.ok(sc.lines.some((l) => /Gavel's rule for supercars/.test(l)), sc.lines.join('\n'))
+  // A cheap car tagged supercar never gets a cushion below the usual one.
+  const cheap = buildPlan(car, { ...est, valueUsd: 8_000, low: 7_000, high: 9_000 }, { distanceMiles: 0, supercar: true })
+  assert.equal(cheap.reserveUsd, config.plan.surpriseReserveUsd)
+})

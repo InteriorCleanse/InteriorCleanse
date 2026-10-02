@@ -37,7 +37,18 @@ export type PlanInputs = {
   goal?: 'rental' | 'flip' | 'keep'
   /** Sales tax plus title as a percent of the price (7 means 7%). Paid from your cash, so it counts inside the cash cap. */
   taxTitlePct?: number
+  /** The car is on the demand list as a supercar: a bigger cushion and the checks before bidding. */
+  supercar?: boolean
 }
+
+/** What to do before bidding on a supercar. Plain steps; no prices, because they vary by car and shop. */
+export const SUPERCAR_CHECKS = [
+  'A pre-purchase inspection by a specialist in this make, not a general mechanic. If the auction will not allow one, lower your number or pass.',
+  'An insurance quote before you bid. Some insurers ask for an inspection, a garage address or a clean driving record for a car like this; know the yearly cost first.',
+  'The service records. Missed major services are expensive on these cars, and buyers pay less for one without the paperwork.',
+  'The tyres and brakes. Both cost far more than on an ordinary car, and tyres past their age should be replaced even with tread left.',
+  'A history report on the VIN: accidents, title brands and the mileage record.',
+]
 
 function pct(fraction: number): string {
   return `${Math.round(fraction * 100)}%`
@@ -106,9 +117,14 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
     lines.push(`Repairs: ${money(repairsUsd)} (your estimate for fixes and detailing).`)
   }
 
-  // Cushion.
-  const reserveUsd = config.plan.surpriseReserveUsd
-  lines.push(`Cushion for surprises: ${money(reserveUsd)} (for the things you only find after the car arrives).`)
+  // Cushion. A supercar's is a share of its value: one repair can cost more than the usual cushion.
+  const supercar = inputs.supercar === true
+  const supercarReserve = Math.round((resaleUsd * config.plan.supercarReservePct) / 50) * 50
+  const reserveUsd = supercar ? Math.max(config.plan.surpriseReserveUsd, supercarReserve) : config.plan.surpriseReserveUsd
+  lines.push(supercar && reserveUsd > config.plan.surpriseReserveUsd
+    ? `Cushion for surprises: ${money(reserveUsd)} (${pct(config.plan.supercarReservePct)} of the value, Gavel's rule for supercars, instead of the usual ${money(config.plan.surpriseReserveUsd)}: one repair on a car like this can cost more than that).`
+    : `Cushion for surprises: ${money(reserveUsd)} (for the things you only find after the car arrives).`)
+  if (supercar) lines.push('Supercar: get a specialist inspection and an insurance quote before you bid. The checklist is on this page.')
 
   // Margin: for a flip, what you want left after selling; otherwise how far under market you buy.
   const marginFraction = nonNeg(inputs.margin, config.plan.targetMarginByGoal[goal] ?? config.plan.targetMargin)
@@ -175,5 +191,5 @@ export function buildPlan(l: Listing, est: Estimate, inputs: PlanInputs = {}): B
 
   if (l.kind === 'SAMPLE') lines.push('SAMPLE — not a real car. These numbers show the method, nothing more.')
 
-  return { resaleUsd, buyerFeeUsd, transportUsd, repairsUsd, reserveUsd, marginUsd, maxBidUsd, headroomUsd, cashNeededUsd, taxTitleUsd, taxTitlePct: taxPct, cashUsd, limitedBy, feeUnknown, distanceMiles: distance, distanceAssumed, marginFraction, goal, lines }
+  return { resaleUsd, buyerFeeUsd, transportUsd, repairsUsd, reserveUsd, marginUsd, maxBidUsd, headroomUsd, cashNeededUsd, taxTitleUsd, taxTitlePct: taxPct, cashUsd, limitedBy, feeUnknown, distanceMiles: distance, distanceAssumed, marginFraction, goal, supercar: supercar ? { checks: SUPERCAR_CHECKS } : undefined, lines }
 }

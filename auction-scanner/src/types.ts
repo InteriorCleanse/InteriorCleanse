@@ -128,6 +128,8 @@ export type BidPlan = {
   /** The margin used, as a fraction (0.15 = 15%). */
   marginFraction: number
   goal: 'rental' | 'flip' | 'keep'
+  /** A supercar: a bigger cushion, and the checks to do before bidding. */
+  supercar?: { checks: string[] }
   lines: string[]
 }
 

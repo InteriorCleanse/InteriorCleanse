@@ -104,3 +104,18 @@ test('alerts dedupe paper fires and mark read', () => {
   assert.equal(markAlertsRead(), 1)
   assert.equal(markAlertsRead(), 0)
 })
+
+test('a car asked for by model ranks ahead of a broad target\'s find, even with a lower fit', async () => {
+  const { byPriority } = await import('../src/sniper/engine.ts')
+  const broad = validateTarget({ maxBudgetUsd: 20_000, minScore: 0 })
+  const named = validateTarget({ makes: ['Honda'], models: ['Civic'], maxBudgetUsd: 20_000, minScore: 0 })
+  const cheap = card(fx({ id: 'broad', currentBidUsd: 6_000 }))
+  const asked = card(fx({ id: 'asked', currentBidUsd: 11_000 }))
+  const plan = (c: Card) => buildPlan(c.listing, EST, { houseId: 'ebay', distanceMiles: 0 })
+  const a = pickFor(broad, cheap, plan(cheap), NOW)!
+  const b = pickFor(named, asked, plan(asked), NOW)!
+  assert.ok(a.fit > b.fit, 'the broad find fits better on numbers')
+  assert.equal(b.named, true)
+  assert.equal(a.named, false)
+  assert.deepEqual([a, b].sort(byPriority).map((p) => p.card.listing.id), ['asked', 'broad'])
+})

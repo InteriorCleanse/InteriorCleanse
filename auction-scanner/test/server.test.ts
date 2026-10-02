@@ -142,7 +142,12 @@ test('the feed shows SAMPLE cars, labelled, when no source is connected', async 
   const prices = sorted.body.cards.map((c: any) => c.listing.currentBidUsd ?? c.listing.buyNowUsd)
   assert.deepEqual(prices, [...prices].sort((a: number, b: number) => a - b))
   const tier = await api('/api/feed?sample=1&starter=0&tier=supercar')
-  assert.ok(tier.body.cards.length > 0 && tier.body.cards.every((c: any) => c.demand?.tier === 'supercar'))
+  assert.ok(tier.body.cards.length > 0 && tier.body.cards.every((c: any) => c.demand?.tags.includes('supercar')))
+  // A car can be more than one kind: a 911 is found under Supercar and under Holds value.
+  for (const t of ['supercar', 'holds-value', 'enthusiast']) {
+    const r = await api(`/api/feed?sample=1&starter=0&tier=${t}`)
+    assert.ok(r.body.cards.some((c: any) => c.listing.make === 'Porsche' && /^911/.test(c.listing.model)), `a 911 under ${t}`)
+  }
 })
 
 let listingId = ''

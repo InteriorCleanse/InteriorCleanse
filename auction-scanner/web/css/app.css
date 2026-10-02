@@ -112,8 +112,11 @@ p { margin: 0 0 12px; }
 main { max-width: 1120px; margin: 0 auto; overflow-wrap: anywhere; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
 @media (min-width: 960px) {
   body { padding-left: 220px; }
+  /* The sign-in page has no sidebar. */
+  body.door { padding-left: 0; }
   .tabs { top: 0; bottom: 0; right: auto; width: 220px; flex-direction: column; height: auto; border-top: 0; border-right: 1px solid var(--rail-text); padding: 72px 0 0; justify-content: flex-start; }
-  .tabs a { flex: 0 0 52px; justify-items: start; padding-left: 24px; font-size: 16px; }
+  /* One line: the name, then the unread badge beside it. */
+  .tabs a { flex: 0 0 52px; grid-auto-flow: column; justify-content: start; align-items: center; padding-left: 24px; font-size: 16px; }
   .tabs a[aria-current="page"] { box-shadow: inset 4px 0 0 var(--rail-text); }
   .tabs a.desk-only { display: grid; }
   .topbar { z-index: 31; }
@@ -414,6 +417,8 @@ a.tile.big:hover { transform: translateY(-2px); }
 .tile.hot .v { color: var(--hot); }
 .nextup { display: flex; align-items: center; text-decoration: none; margin-bottom: 20px; border-left: 6px solid var(--hot); }
 .nextup .body::before { display: none; }
+/* No eyelet on these cards, so no room kept for one. */
+.nextup .body > :first-child { margin-left: 0; }
 .nextup .nt { font-size: 24px; margin-top: 4px; }
 .nextup .go-arrow { font-family: var(--display); font-weight: 800; font-size: 36px; padding: 0 20px; transition: transform var(--dur) var(--ease); }
 .nextup:hover .go-arrow { transform: translateX(4px); }

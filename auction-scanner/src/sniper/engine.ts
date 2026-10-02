@@ -34,7 +34,14 @@ export type Pick = {
   fire: FirePlan
   /** 0–100 fit for this target: score, budget headroom, freshness. */
   fit: number
+  /** The target names a model, so this is a car the member asked for by name. */
+  named: boolean
   reasons: string[]
+}
+
+/** Best first: a car the member asked for by model comes ahead of a broad target's find, then by fit. */
+export function byPriority(a: Pick, b: Pick): number {
+  return Number(b.named) - Number(a.named) || b.fit - a.fit
 }
 
 const HARD_END = new Set(['ebay'])
@@ -140,5 +147,5 @@ export function pickFor(target: Target, card: Card, plan: BidPlan, now = Date.no
   if (price !== undefined && price >= fire.maxBidUsd && card.listing.saleType !== 'buy-now') return null
   const fit = fitScore(card, plan, target, now)
   const reasons = [...m.why, `Never bid above $${fire.maxBidUsd.toLocaleString('en-US')} (${fire.method === 'snipe' ? 'snipe in the last seconds' : fire.method === 'proxy' ? 'proxy bid early' : fire.method === 'live-lane' ? 'pre-bid before the lane' : fire.method === 'buy-now' ? 'fixed price' : 'see the plan'}).`]
-  return { targetId: target.id, targetName: target.name, card, plan, fire, fit, reasons }
+  return { targetId: target.id, targetName: target.name, card, plan, fire, fit, named: target.models.length > 0, reasons }
 }

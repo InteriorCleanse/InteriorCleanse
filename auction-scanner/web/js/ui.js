@@ -122,7 +122,7 @@ export function cardHtml(card, opts = {}) {
   const flags = (card.score.redFlags || []).filter((f) => !/^SAMPLE/.test(f))
   const flagsHtml = flags.length ? `<div class="flags"><span class="k mono">Red flags</span><ul>${flags.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''
   const blocks = opts.showBlocks && !card.score.starterOk ? `<div class="strip wait" style="margin:12px 0 0">Starter mode would hide this: ${esc(card.score.starterBlocks.join(' '))}</div>` : ''
-  const demand = card.demand ? `<li><b>${esc(card.demand.tier === 'holds-value' ? 'Holds value' : card.demand.tier[0].toUpperCase() + card.demand.tier.slice(1))}:</b> ${esc(card.demand.why)}</li>` : ''
+  const demand = card.demand ? `<li><b>${esc((card.demand.tags || [card.demand.tier]).map((t) => t === 'holds-value' ? 'Holds value' : t[0].toUpperCase() + t.slice(1)).join(' · '))}:</b> ${esc(card.demand.why)}</li>` : ''
   const openBtn = sample
     ? `<button class="btn outline sm" type="button" disabled title="SAMPLE — there is no real lot to open">Open the lot ↗</button>`
     : safeUrl(l.url) ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''

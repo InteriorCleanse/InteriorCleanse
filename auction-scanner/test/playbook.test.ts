@@ -41,3 +41,13 @@ test('the guides never state a single national per-year sale limit', () => {
   assert.ok(/varies by state/i.test(text))
   assert.ok(!/\b(?:sell|selling) (?:up to )?\d+ cars? (?:a|per) year\b/i.test(text))
 })
+
+test('the supercar guide puts the inspection and the insurance first, with no prices it cannot know', () => {
+  const g = guideById('supercar')!
+  assert.ok(g)
+  const text = JSON.stringify(g)
+  assert.match(text, /specialist in the make/i)
+  assert.match(text, /insurance/i)
+  assert.ok(g.sections.some((s) => /No inspection, no bid/.test(s.warning ?? '')))
+  assert.ok(!/\$\d/.test(text), 'no dollar figures: they vary by car and shop')
+})

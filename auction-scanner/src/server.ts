@@ -64,7 +64,7 @@ import { researchAvailable, webResearch } from './research/web.ts'
 import { CATALOG } from './catalog.ts'
 import { listTargets, saveTarget, removeTarget } from './sniper/targets.ts'
 import type { Target } from './sniper/targets.ts'
-import { pickFor } from './sniper/engine.ts'
+import { byPriority, pickFor } from './sniper/engine.ts'
 import type { Pick } from './sniper/engine.ts'
 import { addAlert, alreadyFired, firedOnCar, listAlerts, markAlertsRead } from './sniper/alerts.ts'
 import { money } from './ui.ts'
@@ -80,7 +80,7 @@ const SCAN_CACHE_MS = 60_000
 /** The owner's session email and the name of the owner's data folder. */
 const OWNER_EMAIL = 'owner'
 
-export type Card = { listing: Listing; estimate: Estimate; score: Score; demand?: { tier: DemandEntry['tier']; why: string } }
+export type Card = { listing: Listing; estimate: Estimate; score: Score; demand?: { tier: DemandEntry['tier']; tags: Array<DemandEntry['tier']>; why: string } }
 export type Feed = { kind: ScanResult['kind']; scannedAt: number; errors: string[]; hidden: number; cards: Card[] }
 
 export type ServerOptions = {
@@ -326,7 +326,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     const estimate = !fromComps.ok && opts.fallback?.ok ? opts.fallback : fromComps
     const demand = demandFor(l.make, l.model, settings.demandExtra)
     const score = scoreListing(l, estimate, demand, settings.starter, now())
-    return { listing: l, estimate, score, demand: demand ? { tier: demand.tier, why: demand.why } : undefined }
+    return { listing: l, estimate, score, demand: demand ? { tier: demand.tier, tags: [demand.tier, ...(demand.also ?? [])], why: demand.why } : undefined }
   }
 
   async function buildFeed(params: URLSearchParams): Promise<Feed> {
@@ -361,7 +361,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     if (make) cards = cards.filter((c) => (c.listing.make ?? '').toLowerCase() === make.toLowerCase())
     if (state) cards = cards.filter((c) => (c.listing.location?.state ?? '').toUpperCase() === state)
     if (maxPrice !== undefined) cards = cards.filter((c) => (askingPrice(c.listing) ?? 0) <= maxPrice)
-    if (tier && tier !== 'all') cards = cards.filter((c) => c.demand?.tier === tier)
+    // A car can be more than one kind: a 911 shows under Enthusiast, Supercar and Holds value.
+    if (tier && tier !== 'all') cards = cards.filter((c) => c.demand?.tags.includes(tier as DemandEntry['tier']))
     if (q && result.kind === 'SAMPLE') {
       const needle = q.toLowerCase()
       cards = cards.filter((c) => c.listing.title.toLowerCase().includes(needle))
@@ -444,7 +445,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
           }
         }
       }
-      picks.sort((a, b) => b.fit - a.fit)
+      picks.sort(byPriority)
       st.picks = picks
       st.lastRun = now()
       return { picks, fired }
@@ -473,13 +474,13 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   }
 
   function serialisePick(p: Pick & { targetNames?: string[] }): Record<string, unknown> {
-    return { targetId: p.targetId, targetName: p.targetName, targetNames: p.targetNames ?? [p.targetName], card: p.card, plan: p.plan, fire: p.fire, fit: p.fit, reasons: p.reasons }
+    return { targetId: p.targetId, targetName: p.targetName, targetNames: p.targetNames ?? [p.targetName], card: p.card, plan: p.plan, fire: p.fire, fit: p.fit, named: p.named, reasons: p.reasons }
   }
 
-  /** One entry per car, best match first: a car that suits two targets shows once, naming both. */
+  /** One entry per car, best first (asked for by model, then fit): a car that suits two targets shows once, naming both. */
   function uniquePicks(picks: Pick[]): Array<Pick & { targetNames: string[] }> {
     const byId = new Map<string, Pick & { targetNames: string[] }>()
-    for (const p of [...picks].sort((a, b) => b.fit - a.fit)) {
+    for (const p of [...picks].sort(byPriority)) {
       const have = byId.get(p.card.listing.id)
       if (!have) byId.set(p.card.listing.id, { ...p, targetNames: [p.targetName] })
       else if (!have.targetNames.includes(p.targetName)) have.targetNames.push(p.targetName)
@@ -501,7 +502,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   function planFor(l: Listing, estimate: Estimate, inputs: PlanInputs, settings: Settings): BidPlan {
     const houseId = inputs.houseId ?? l.source
     const feePct = inputs.feePct ?? settings.feeOverrides[houseId]
-    return buildPlan(l, estimate, { cashUsd: settings.cashUsd, goal: settings.goal, taxTitlePct: settings.taxTitlePct, ...inputs, houseId, feePct })
+    // A supercar by its main kind or as a second one (a 911 is both): it gets the bigger cushion and the checks.
+    const d = demandFor(l.make, l.model, settings.demandExtra)
+    const supercar = !!d && (d.tier === 'supercar' || (d.also ?? []).includes('supercar'))
+    return buildPlan(l, estimate, { cashUsd: settings.cashUsd, goal: settings.goal, taxTitlePct: settings.taxTitlePct, ...inputs, houseId, feePct, supercar })
   }
 
   function planInputs(body: Record<string, unknown>): PlanInputs {

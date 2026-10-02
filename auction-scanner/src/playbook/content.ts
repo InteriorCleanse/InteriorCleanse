@@ -558,6 +558,74 @@ export const GUIDES: Guide[] = [
       'I walk away from the run-away phrases',
     ],
   },
+  {
+    id: 'supercar',
+    title: 'Buying a sports car or supercar at auction',
+    tagline: 'The cars that are the most fun to own, and the ones that punish a careless buyer hardest.',
+    level: 'later',
+    minutes: 10,
+    sections: [
+      {
+        title: 'Start below the top',
+        body: 'Begin with a sports car that holds its value before an exotic: a Porsche 911 or Cayman, a Corvette, a BMW M car. They have big pools of buyers, specialists in most cities, and parts you can price. Move up to a Ferrari, Lamborghini or McLaren once you have bought and sold a few cars and know what your own mistakes cost.',
+        tip: 'In Gavel, a 911 shows under Enthusiast, Supercar and Holds value: it is all three.',
+      },
+      {
+        title: 'Where they sell',
+        steps: [
+          'Bring a Trailer and Cars & Bids: online, about a week long, with comments from owners and specialists.',
+          'PCARMARKET for Porsches; Collecting Cars and duPont REGISTRY Live for performance and exotic cars.',
+          'RM Sotheby\'s, Gooding Christie\'s and Bonhams: live auctions at the high end, with larger buyer premiums.',
+          'Gavel\'s Auctions screen lists each one with its fee and how its clock ends.',
+        ],
+        tip: 'Read every comment on an online lot. Specialists often point out a problem in public, and the seller\'s answers tell you a lot.',
+      },
+      {
+        title: 'What decides the price',
+        steps: [
+          'Service records: complete, dated and from shops that know the make. Missing records cost more than missing miles.',
+          'Mileage, compared with sold cars of the same year and model.',
+          'Originality: factory paint, original parts, no modifications. Most buyers pay less for a modified car.',
+          'History: owners, accidents and title. Run the VIN.',
+          'Specification: on some models one gearbox or option changes the price a great deal. Compare sold results for the exact spec, never asking prices.',
+        ],
+      },
+      {
+        title: 'The inspection',
+        body: 'Pay a specialist in the make, not a general mechanic, for a pre-purchase inspection with a written report. Ask for a scan of the fault codes, a check of the service history against the maker\'s schedule, and a look underneath for leaks and old repairs. Many specialists will travel to the car or send someone local for a fee.',
+        warning: 'No inspection, no bid. If the auction or the seller will not allow one, lower your number to cover the worst case, or walk away.',
+      },
+      {
+        title: 'Costs after the hammer',
+        steps: [
+          'The buyer premium. Gavel\'s plan adds it; check the house\'s current rate.',
+          'Enclosed transport, which usually costs more than an open carrier. Get two quotes.',
+          'Insurance. Ask for a quote before you bid; collector and agreed-value policies exist for cars like these.',
+          'Tyres and brakes, which cost far more than on an ordinary car. Old tyres need replacing even with tread left.',
+          'The next major service, if the records show it is due.',
+          'Somewhere dry and secure to keep it.',
+        ],
+        warning: 'Never collect the car uninsured. Have the insurance policy in force before it leaves the auction.',
+      },
+      {
+        title: 'How Gavel plans a supercar',
+        body: 'When a car is on the demand list as a supercar, its plan keeps a bigger cushion for surprises (a share of the car\'s value instead of the usual flat amount) and shows the checks to do before bidding. Type the real repair and transport quotes into the plan and the number moves with them.',
+      },
+      {
+        title: 'Selling it on',
+        body: 'The same auctions sell these cars. Good photos, every record and an honest description matter more than the starting price. Expect it to take longer to sell than an everyday car, because fewer people buy at this price, and count the weeks of insurance and storage in your sum.',
+      },
+    ],
+    checklist: [
+      'I start with a sports car that holds value before an exotic',
+      'I compare sold results for the exact spec, not asking prices',
+      'A specialist in the make inspects the car before I bid',
+      'I have an insurance quote before I bid',
+      'I add enclosed transport, tyres and the next major service to the plan',
+      'I read the lot\'s comments and the VIN history',
+      'I walk away if the seller will not allow an inspection',
+    ],
+  },
 ]
 
 export function guideById(id: string): Guide | undefined {
