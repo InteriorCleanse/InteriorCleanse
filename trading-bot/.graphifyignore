@@ -1,0 +1,2 @@
+# Graphify: vendored skill docs are not Kestrel code; keep them out of the graph.
+.claude/
