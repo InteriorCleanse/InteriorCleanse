@@ -13,5 +13,6 @@ until Picked has its own repository; then move this folder there.
 | `RESEARCH.md` | Competitors, manufacturers, regulations, channels, with sources |
 | `BRIEF.md` | The business brief, with each assumption marked |
 | `outreach/` | Manufacturer quote request, store pitch, sell sheet, creator note |
-| `brand/` | Wordmark, mark, favicon, pouch concepts (SVG), and the scripts that drew them |
-| `site/` | Static waitlist page, ready to deploy (see `site/README.md`) |
+| `brand/` | Logo files and PNG exports, pouch fronts and back panel, stick packs, counter display, shaker, design tokens, social templates, mood photo links, and the scripts that drew them |
+| `marketing/` | TikTok scripts, Instagram plan, email flows, and the Real Fruit Test |
+| `site/` | Static site: home with flavor switcher, the Real Fruit Test, privacy draft. Ready to deploy (see `site/README.md`) |

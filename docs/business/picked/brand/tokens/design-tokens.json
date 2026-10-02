@@ -1,0 +1,68 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "Picked design tokens. Three layers: primitive (raw values), semantic (meaning), component (usage). Contrast ratios are WCAG 2 against the paired surface.",
+  "primitive": {
+    "color": {
+      "ink":            { "$type": "color", "$value": "#1E1A17" },
+      "cream":          { "$type": "color", "$value": "#FFF7EC" },
+      "paper":          { "$type": "color", "$value": "#FFFDF8" },
+      "leaf":           { "$type": "color", "$value": "#2F7D3A" },
+      "deep-leaf":      { "$type": "color", "$value": "#1F4D2C" },
+      "sprout":         { "$type": "color", "$value": "#9BD36A" },
+      "strawberry":     { "$type": "color", "$value": "#F0505E" },
+      "strawberry-deep":{ "$type": "color", "$value": "#C81E3A" },
+      "strawberry-soft":{ "$type": "color", "$value": "#FFD3D9" },
+      "mango":          { "$type": "color", "$value": "#FFB01F" },
+      "mango-deep":     { "$type": "color", "$value": "#E5482B" },
+      "mango-soft":     { "$type": "color", "$value": "#FFF0C7" },
+      "raspberry":      { "$type": "color", "$value": "#B8185A" },
+      "raspberry-soft": { "$type": "color", "$value": "#F9C6DA" },
+      "lemon":          { "$type": "color", "$value": "#F6DD3D" }
+    },
+    "font": {
+      "display": { "$type": "fontFamily", "$value": ["Bricolage Grotesque", "Arial Black", "system-ui", "sans-serif"] },
+      "body":    { "$type": "fontFamily", "$value": ["Libre Franklin", "Helvetica Neue", "Arial", "sans-serif"] }
+    },
+    "size": {
+      "xs": { "$type": "dimension", "$value": "0.78rem" },
+      "sm": { "$type": "dimension", "$value": "0.92rem" },
+      "md": { "$type": "dimension", "$value": "1.0625rem" },
+      "lg": { "$type": "dimension", "$value": "1.25rem" },
+      "xl": { "$type": "dimension", "$value": "clamp(2.1rem, 5vw, 3.6rem)" },
+      "hero": { "$type": "dimension", "$value": "clamp(2.8rem, 8vw, 6.2rem)" }
+    },
+    "space": {
+      "1": { "$type": "dimension", "$value": "4px" }, "2": { "$type": "dimension", "$value": "8px" },
+      "3": { "$type": "dimension", "$value": "12px" }, "4": { "$type": "dimension", "$value": "16px" },
+      "6": { "$type": "dimension", "$value": "24px" }, "8": { "$type": "dimension", "$value": "32px" },
+      "12": { "$type": "dimension", "$value": "48px" }, "16": { "$type": "dimension", "$value": "64px" },
+      "24": { "$type": "dimension", "$value": "96px" }
+    },
+    "radius": {
+      "sm": { "$type": "dimension", "$value": "8px" }, "md": { "$type": "dimension", "$value": "14px" },
+      "lg": { "$type": "dimension", "$value": "22px" }, "pill": { "$type": "dimension", "$value": "999px" }
+    }
+  },
+  "semantic": {
+    "surface":        { "$value": "{primitive.color.cream}" },
+    "surface-raised": { "$value": "{primitive.color.paper}" },
+    "surface-dark":   { "$value": "{primitive.color.deep-leaf}" },
+    "text":           { "$value": "{primitive.color.ink}", "$description": "16.3:1 on cream" },
+    "text-on-dark":   { "$value": "{primitive.color.cream}", "$description": "9.2:1 on deep leaf" },
+    "link":           { "$value": "{primitive.color.leaf}", "$description": "4.8:1 on cream" },
+    "accent":         { "$value": "{primitive.color.strawberry-deep}", "$description": "5.3:1 on cream" },
+    "focus":          { "$value": "{primitive.color.leaf}" },
+    "flavour": {
+      "strawberry":      { "bg": "{primitive.color.strawberry}", "fg": "{primitive.color.ink}", "soft": "{primitive.color.strawberry-soft}", "$description": "ink on strawberry 4.95:1" },
+      "mango":           { "bg": "{primitive.color.mango}", "fg": "{primitive.color.ink}", "soft": "{primitive.color.mango-soft}", "$description": "ink on mango 9.4:1" },
+      "raspberry-lemon": { "bg": "{primitive.color.raspberry}", "fg": "{primitive.color.cream}", "soft": "{primitive.color.raspberry-soft}", "$description": "cream on raspberry 6.0:1" }
+    }
+  },
+  "component": {
+    "button": { "bg": "{primitive.color.ink}", "fg": "{primitive.color.cream}", "radius": "{primitive.radius.pill}", "padding": "16px 24px", "font": "700 1.05rem {primitive.font.body}" },
+    "input":  { "border": "2px solid {primitive.color.ink}", "radius": "{primitive.radius.pill}", "padding": "16px 18px" },
+    "label":  { "font": "700 0.78rem {primitive.font.body}", "letterSpacing": "0.16em", "textTransform": "uppercase" },
+    "heading":{ "font": "800 {primitive.font.display}", "letterSpacing": "-0.03em", "lineHeight": "0.98" },
+    "protein-badge": { "border": "3px solid currentColor", "radius": "{primitive.radius.pill}" }
+  }
+}

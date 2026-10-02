@@ -1,36 +1,65 @@
 # Picked waitlist site
 
-One static page with no build step: `index.html` plus `assets/`. It runs on
-any static host.
+A static site with no build step. It runs on any static host.
 
-## Put it live this week
+| Path | What it is |
+| --- | --- |
+| `index.html` | Home: hero and waitlist, flavor switcher, label comparison, how it mixes, stockist pitch, FAQ, waitlist with flavor vote |
+| `real-fruit-test/` | The lead magnet: how to read a protein label in 60 seconds |
+| `privacy/` | Draft privacy page, marked for owner review, not indexed |
+| `assets/site.css`, `assets/site.js` | All styles and behavior. Light and dark themes, reduced-motion support |
+| `assets/fonts/` | Bricolage Grotesque and Libre Franklin, self-hosted WOFF2 (Open Font License) |
+| `assets/img/` | Empty until you add the mood photos (see below) |
+| `robots.txt`, `sitemap.xml`, `llms.txt`, `site.webmanifest` | Search and AI-crawler files |
+| `assets/og-image.png` | 1200×630 link preview |
+
+## Put it live
 
 1. Create a new GitHub repository named `picked` and copy this folder's
    contents to its root. Do not deploy it from the InteriorCleanse repository.
-2. In Vercel, choose Add New, then Project. Import the repository and use
-   framework preset "Other" with no build command. Netlify or Cloudflare
-   Pages work the same way.
-3. Add the domain pickedprotein.com in the project's domain settings once you own it.
-4. Create a free Klaviyo account and a list called "Waitlist". In
-   `index.html`, replace `REPLACE_WITH_PUBLIC_SITE_KEY` with your public site
-   key (6 characters, under Settings, Account, API keys) and
-   `REPLACE_WITH_LIST_ID` with the list's ID. Both are public identifiers, not
-   secret keys. Turn on double opt-in for the list.
-5. Sign up with your own email and confirm it lands in the list, with the
-   flavour vote saved as `next_flavour`.
+2. In Vercel, Add New, Project, import the repository, framework preset
+   "Other", no build command.
+3. Add pickedprotein.com in the project's domain settings once you own it.
+4. Klaviyo: create a "Waitlist" list with double opt-in on. In
+   `assets/site.js`, replace `REPLACE_WITH_PUBLIC_SITE_KEY` and
+   `REPLACE_WITH_LIST_ID`. Both are public identifiers, not secret keys.
+   Signups carry `waitlist_terms: "updates"`, `next_flavour`, and
+   `signup_page`, which the flows in `../marketing/EMAIL.md` use.
+5. Sign up with your own email and check it lands in the list with the vote.
+6. Set up the hello@pickedprotein.com mailbox. The form points people there
+   until step 4 is done.
 
-Until step 4 is done, the form tells visitors to email hello@pickedprotein.com,
-so set up that mailbox too.
+## Add the photos
 
-## Before the store opens
+Download the mood images listed in `../brand/mood/MOOD.md` and save these
+two into `assets/img/`:
 
-Move to Shopify for the shop itself, using these colours, fonts, and assets.
-Keep this page as the waitlist until pre-orders open, then point the domain
-at Shopify.
+- `strawberry-glass.png` for the hero. With it, the pouch sits in front of
+  the photo. Without it, the pouch shows alone on a strawberry panel.
+- `runner-shaker.png` for the "Scoop. Pour. Shake." section. Without it, the
+  shaker concept shows instead.
 
-## Rules for this page
+Compress both to WebP or high-quality JPEG under 250 KB before launch, and
+update the file names in `index.html` if you change the format.
 
-- The pouches shown are design concepts. Replace them with photos of the real
-  pouch once it exists, and never show a generated photo as the product.
-- Do not add health, weight-loss, or GLP-1 claims.
-- The "20g" and fruit-content lines must match the final Supplement Facts panel.
+## How the flavor switcher works
+
+The tabs set `data-flavor` on the page root. That one attribute recolors the
+accent, the flavor band, and the closing waitlist band, and swaps the pouch.
+The choice is remembered in the visitor's browser. "Vote for Mango" scrolls to
+the waitlist form with that vote preselected.
+
+## Rules for this site
+
+- The pouches, sticks, display, and shaker are design concepts. Replace them
+  with photos of the real product once it exists, and never present a
+  generated image as the product.
+- No health, weight-loss, or GLP-1 claims.
+- The "20g" and fruit lines must match the final Supplement Facts panel.
+- The left label on the home page is a composite of common clear-whey
+  ingredients and says so. Never put a named competitor's label there.
+- Customer-facing copy uses US spelling: flavor, color.
+- Every pouch, stick, display, and shaker image carries a visible "concept"
+  caption, and AI mood photos say so. Keep both until real photography exists.
+- Once lot lab results exist, ask the label consultant whether California
+  Prop 65 needs a warning on the product page and at checkout.

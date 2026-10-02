@@ -41,6 +41,15 @@ Why $54.99: Ghost is $44.99 and RYSE $49.99 with artificial sweeteners;
 Clean Simple Eats is $54.99 and Just Ingredients $59.99 with cleaner labels.
 Picked sits with the clean brands. The cost of whey below sets the floor.
 
+## Proposed store terms (owner to confirm)
+
+- Stick pack wholesale $2.00 against $3.99 SRP (keystone, 50% retailer margin).
+- Pouch wholesale $27.50.
+- First counter box sold or returned within 30 days.
+- In-store tasting in the first two weeks.
+
+These are proposals, not commitments, until the owner confirms them.
+
 ## Unit economics (estimates until quotes arrive)
 
 Replace each estimate with the manufacturer's quote. Only the whey price is
