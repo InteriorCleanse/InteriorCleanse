@@ -17,7 +17,9 @@ Who actually attacks something like this, in rough order of likelihood:
 1. **A malicious web page you have open in another tab.** It cannot read your
    dashboard (same-origin policy), but it can try to *send* requests to it —
    cross-site request forgery — or frame it and trick a click onto the kill
-   switch.
+   switch. A cleverer page points its own domain at 127.0.0.1 (DNS rebinding)
+   so the browser treats Kestrel as that page's origin; the Host header check
+   below is what stops it.
 2. **Another device on your wifi.** A guest, a compromised smart TV, a
    neighbour who guessed the password. It can reach the port if phone access is
    on, and will meet the PIN gate.
@@ -40,7 +42,9 @@ is not the right tool and no dashboard change would fix it.
 | Made-up PIN drawn from the OS secure random source | `server.ts` (`randomInt`) |
 | `npm run security:audit`: keys in tracked files, `.env` exposure, phone access, 2FA, the live flag | `src/security/audit.ts` |
 | Docker builds exclude `.env` and the data folders; compose publishes on 127.0.0.1 only | `.dockerignore`, `docker-compose.yml` |
-| Loopback detection from the **socket**, never from a header | `server.ts` `isLocal()` |
+| Loopback detection from the **socket**, never from a header; a request a proxy or tunnel forwarded is never loopback | `server.ts` `isLocal()`, `src/security/origin.ts` |
+| Host allowlist on every request: DNS rebinding gets 421, not the app | `src/security/origin.ts`, `server.ts` |
+| Login cap across all devices (50 failures / 15 min) on top of the per-device one | `src/security/login.ts` |
 | Constant-time comparison of every secret | `src/security/harden.ts` `safeEqual` |
 | Content-Security-Policy with a per-request nonce | `src/security/harden.ts` |
 | Clickjacking: `frame-ancestors 'none'` + `X-Frame-Options: DENY` | same |
@@ -112,6 +116,43 @@ whether the vault guards the broker keys, the live flag, runtime
 dependencies, the Node version and the webhook secret. It never prints a
 value, only the file and line. It exits 1 on any FAIL, so it can run in CI or
 a pre-push hook. Tests: `test/security/login.test.ts`.
+
+## Rebinding, proxies and the front door (fourth pass)
+
+An adversarial pass against a running copy found three ways round the gates
+and closed each one. Tests: `test/security/origin.test.ts`,
+`test/security/login.test.ts`, `test/server.test.ts`.
+
+- **DNS rebinding — reproduced, fixed.** A request with
+  `Host: attacker.example:4178` read the CSRF token from `/api/config` and then
+  paused the stock desk with a forged POST that carried a matching Origin and
+  `Sec-Fetch-Site: same-origin`. That is exactly what a page on a rebinding
+  domain can make a browser send. Every request now has to name this computer
+  in its Host header: `localhost`, `127.0.0.1` or `[::1]`, plus the computer's
+  own network addresses and name when phone access is on, plus any names in
+  `MRCASH_ALLOWED_HOSTS` (a tunnel or proxy name, comma separated). Anything
+  else gets `421` and a one-line pointer, before any route runs. The
+  TradingView webhook is the one exception: it arrives under a tunnel's name
+  and carries its own secret.
+- **A proxy or tunnel made the internet look like this computer — fixed.**
+  `isLocal()` trusted any loopback socket, and a local reverse proxy (this file
+  used to recommend one for TLS) or a tunnel (cloudflared, ngrok, Tailscale
+  Funnel) connects from loopback. Everyone it forwarded skipped the PIN and was
+  shown the webhook secret. A request carrying a forwarding header
+  (`Forwarded`, `X-Forwarded-For`/`-Host`/`-Proto`, `X-Real-IP`,
+  `CF-Connecting-IP`, `True-Client-IP`) is now treated as another device.
+- **The webhook secret no longer goes in the URL.** `?secret=` was accepted
+  (undocumented) and a URL lands in every proxy and tunnel log. The body or the
+  `x-mrcash-secret` header still work; the query string gets `403`.
+- **Rotating addresses no longer buys guesses.** The ten-strikes lock is per
+  address, and IPv6 hands a single device millions. Fifty failures from all
+  devices together in fifteen minutes now close the login to everyone until
+  the window clears. This computer never needs the login, so the owner is
+  never locked out of their own machine.
+
+Considered and left alone: the session cookie stays `SameSite=Lax`. Every state
+change is a POST with the CSRF token, so `Strict` would add almost nothing and
+would sign you out whenever you follow a link into the app.
 
 ## Why not Supabase (or another hosted service)?
 
@@ -197,6 +238,14 @@ is the one nobody will notice.
 - **No rate limiting on read endpoints.** A device already past the PIN can
   hammer `/api/*`. It is a denial-of-service against yourself, not a
   confidentiality problem.
+- **A proxy that adds no forwarding header is invisible.** Every common proxy
+  and tunnel adds one, but a hand-rolled TCP forwarder would not, and whoever
+  it forwards would be treated as this computer. Use a real proxy, and set
+  `MRCASH_COOKIE_SECURE=1` behind TLS.
+- **The all-devices login cap can be used to lock you out.** Someone on your
+  network or past your tunnel can spend fifty wrong guesses and close the
+  login for fifteen minutes. That is a denial of service, not a way in; the
+  computer running Kestrel is unaffected.
 - **This has not been penetration tested** by anyone other than its authors.
 
 ## If you are deploying it

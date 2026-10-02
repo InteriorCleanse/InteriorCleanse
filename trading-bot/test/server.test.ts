@@ -7,6 +7,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { request } from 'node:http'
 import { startMockFeeds, startBot, tempDataDir } from './helpers.ts'
 import type { MockFeeds, RunningBot } from './helpers.ts'
 
@@ -202,6 +203,46 @@ test('the TradingView webhook uses its own secret, logs a hit, and raises an eve
   const events = await getJson<{ data: { events: Array<{ kind: string }> } }>('/api/events')
   assert.ok(events.data.events.some((e) => e.kind === 'tradingview'))
   assert.match(readFileSync(join(tmp.dir, 'tv-alerts.csv'), 'utf8'), /low swept/)
+})
+
+// Raw HTTP so the Host header can be forged; fetch() always sends the real one.
+function raw(path: string, opts: { method?: string; headers?: Record<string, string>; body?: string } = {}): Promise<{ status: number; body: string }> {
+  const u = new URL(bot.base)
+  return new Promise((resolve, reject) => {
+    const req = request({ host: u.hostname, port: u.port, path, method: opts.method ?? 'GET', headers: opts.headers }, (res) => {
+      let body = ''
+      res.on('data', (d) => { body += String(d) })
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, body }))
+    })
+    req.on('error', reject)
+    req.end(opts.body)
+  })
+}
+
+test('DNS rebinding: a foreign Host gets neither the CSRF token nor a state change', async () => {
+  const port = new URL(bot.base).port
+  const evil = `attacker.example:${port}`
+  const cfg = await raw('/api/config', { headers: { host: evil } })
+  assert.equal(cfg.status, 421)
+  assert.equal(cfg.body.includes(await bot.token()), false)
+  const pause = await raw('/api/stop', { method: 'POST', headers: { host: evil, origin: `http://${evil}`, 'sec-fetch-site': 'same-origin', 'x-mrcash-csrf': await bot.token(), 'content-type': 'application/json' }, body: '{}' })
+  assert.equal(pause.status, 421)
+  assert.equal((await getJson<{ data: { stop: { stopped: boolean } } }>('/api/health')).data.stop.stopped, false)
+  assert.equal((await raw('/api/config', { headers: { host: `localhost:${port}` } })).status, 200)
+})
+
+test('a request forwarded by a proxy or tunnel is not this computer: it meets the PIN', async () => {
+  const r = await raw('/api/config', { headers: { host: new URL(bot.base).host, 'x-forwarded-for': '203.0.113.9' } })
+  assert.equal(r.status, 401)
+  assert.equal(r.body.includes('secret'), false)
+})
+
+test('the TradingView webhook refuses a secret in the URL, and still works under a tunnel name', async () => {
+  const cfg = await getJson<{ app: { webhook: { secret: string } } }>('/api/config')
+  const viaQuery = await fetch(`${bot.base}/api/tv-alert?secret=${cfg.app.webhook.secret}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event: 'x' }) })
+  assert.equal(viaQuery.status, 403)
+  const tunnel = await raw('/api/tv-alert', { method: 'POST', headers: { host: 'kestrel.example.trycloudflare.com', 'x-forwarded-for': '203.0.113.9', 'content-type': 'application/json' }, body: JSON.stringify({ secret: cfg.app.webhook.secret, event: 'tunnel hit' }) })
+  assert.equal(tunnel.status, 200)
 })
 
 test('memory reset works with the token and empties the ledger', async () => {
