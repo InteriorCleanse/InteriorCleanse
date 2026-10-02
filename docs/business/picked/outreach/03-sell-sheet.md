@@ -19,10 +19,12 @@ Tastes like the fruit on the label, because the fruit on the label is in it.
 
 **Why it sells**
 
-- [x]g real strawberry in every scoop. Nobody else prints the number.
+- [x]g real strawberry in every scoop. We haven't found another protein that prints the number.
 - 20g whey protein isolate per serving, mixed with water, juice-style.
-- No sucralose, no Ace-K, no artificial colours or flavours.
+- No sucralose, no Ace-K, no artificial colors or flavors.
 - Every lot tested for heavy metals, with results online by QR code.
+
+**Allergens:** Contains: Milk (whey).
 
 **What we do to sell through:** in-store tastings, local social posts that
 tag your store, and a shelf talker and counter display.

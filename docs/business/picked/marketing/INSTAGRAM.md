@@ -2,7 +2,7 @@
 
 Pre-launch. The product isn't made yet, so nothing here shows or describes a
 finished drink. Every visual is real fruit, type, or the pouch **concept art**
-in `brand/`, labelled as concept art. Customer-facing copy uses US spelling
+in `brand/`, labeled as concept art. Customer-facing copy uses US spelling
 (flavor, color) to match US label wording.
 
 **Before anything posts, check it against these:**
@@ -10,11 +10,11 @@ in `brand/`, labelled as concept art. Customer-facing copy uses US spelling
 - No health, weight-loss, disease, or GLP-1 claims. Not in captions, not in replies, not in reposts.
 - No invented numbers, reviews, ratings, or testimonials. `[x]g` stays `[x]g` until the formula is final. "20g protein" is always "planned" until the final label exists.
 - No stock photos of the product. No AI-generated product images. No shirtless gym shots.
-- Colour pairings from `BRAND.md`: ink on cream, strawberry, mango, or lemon; cream on raspberry, deep leaf, or ink. Never cream on strawberry or mango. Never ink on raspberry.
+- Color pairings from `BRAND.md`: ink on cream, strawberry, mango, or lemon; cream on raspberry, deep leaf, or ink. Never cream on strawberry or mango. Never ink on raspberry.
 - Never say: guilt-free, detox, cleanse, superfood, skinny, gains, shred, "the best protein ever".
 
 **Specs.** Feed posts 1080 x 1350 (4:5). The profile grid previews a 3:4
-crop, so keep headlines inside the centre. Reels and stories 1080 x 1920; keep
+crop, so keep headlines inside the center. Reels and stories 1080 x 1920; keep
 text out of the top 250 px and bottom 340 px. Display type Bricolage Grotesque
 800, body Libre Franklin 500/700.
 
@@ -75,7 +75,7 @@ Suggested pace: three a week, so the grid fills in four weeks. Pin 12, 3, and 11
 
 ### Post 1. Single. "hi. we're Picked."
 
-**Visual:** Cream ground. `brand/picked-wordmark.svg` centred, large, ink with
+**Visual:** Cream ground. `brand/picked-wordmark.svg` centered, large, ink with
 the leaf-green leaf. Below it in Libre Franklin 700 small caps, ink: REAL
 FRUIT. REAL PROTEIN. Nothing else.
 
@@ -138,7 +138,7 @@ competitor's pack. Slide 7: "the full one-page guide is free. link in bio."
 
 ### Post 4. Single. First look at the pouch (concept art)
 
-**Visual:** Cream ground. `brand/pouch-strawberry.svg` flat and upright, centred,
+**Visual:** Cream ground. `brand/pouch-strawberry.svg` flat and upright, centered,
 with soft shadow only. Top-right corner tag in ink small caps on lemon:
 CONCEPT ART. Two or three real strawberries beside the pouch base (shot real,
 composited flat; do not render the pouch as a photo).
@@ -282,7 +282,7 @@ Slide 5: "first results post when the first lot is made."
 **Visual:** Split vertically. Left half mango ground with
 `brand/pouch-mango.svg`, ink label "MANGO". Right half raspberry ground with
 `brand/pouch-raspberry-lemon.svg`, cream label "RASPBERRY LEMON". Small
-CONCEPT ART tag on each half. Centre seam: lemon disc, ink text "vs".
+CONCEPT ART tag on each half. Center seam: lemon disc, ink text "vs".
 
 **Caption:**
 
@@ -321,7 +321,7 @@ Post on the day post 12 goes live. Save all seven to the **waitlist** highlight.
 
 | Frame | Ground and visual | Text | Sticker |
 | --- | --- | --- | --- |
-| 1 | Cream. `picked-wordmark.svg`, centred. | "something's ripening." | None |
+| 1 | Cream. `picked-wordmark.svg`, centered. | "something's ripening." | None |
 | 2 | Real video: hands halving strawberries by a window. | "a protein drink flavored mainly with real fruit." | None |
 | 3 | Strawberry ground, ink type. | "strawberry, from strawberries. [x]g of fruit per scoop, printed on the front." | None |
 | 4 | Lemon ground, ink type. | "quick one. what does WONF on a protein label mean?" | Quiz: "With Other Natural Flavor" (correct) / "Wow, Only Natural Fruit" / "Whey Of Nice Flavor" |
@@ -354,12 +354,12 @@ Before launch there's no product to review, so UGC means label-test posts,
 fruit photos, vote answers, and waitlist shares. The same rules hold after
 launch.
 
-1. **Ask first, in writing.** Comment or DM: "Love this. Can we share it on @picked, with credit?" Repost only after a clear yes. Screenshot the yes and file it with the post date.
+1. **Ask first, in writing.** Comment or DM: "Love this. Can we share it on @pickedprotein, with credit?" Repost only after a clear yes. Screenshot the yes and file it with the post date.
 2. **Credit in the first line.** "via @handle" at the top of the caption and a tag on the image.
 3. **Don't change the meaning.** Crop for size only. No edits to words, no added claims, no filters that change the fruit's color.
 4. **Their words become our claims.** Never repost anything with health, weight-loss, disease, GLP-1, or medical language, or before-and-after body photos, even if the person wrote it themselves.
 5. **No reviews before there's a product.** Excitement is fine ("can't wait to try mango"). Anything that reads as a taste review or rating isn't, until real customers have real pouches.
-6. **Disclose the connection.** If the person got anything from Picked (a free shaker, a sample, a discount code, payment), the repost says so plainly, and so must their original post, under the FTC Endorsement Guides.
-7. **Keep it kind.** No reposts that mock a named competitor or another customer. Dry humour about fake fruit, yes. Dunking on people, no.
+6. **Disclose the connection.** If the person got anything from Picked (a free shaker, a sample, a discount code, payment), the repost says so plainly (#ad or "gifted by @pickedprotein"), and so must their original post, under the FTC Endorsement Guides.
+7. **Keep it kind.** No reposts that mock a named competitor or another customer. Dry humor about fake fruit, yes. Dunking on people, no.
 8. **Adults only, and on-brand settings.** No content featuring minors. No shirtless gym shots.
 9. **Remove on request.** If someone asks us to take their post down, it comes down the same day.

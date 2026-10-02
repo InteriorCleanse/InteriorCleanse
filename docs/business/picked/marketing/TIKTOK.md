@@ -1,6 +1,6 @@
 # Picked on TikTok
 
-Account: **@pickedprotein**. Site: **pickedprotein.com**. Voice, colours, and the
+Account: **@pickedprotein**. Site: **pickedprotein.com**. Voice, colors, and the
 never-say list are in `../BRAND.md`. Every number used here comes from
 `../STRATEGY.md`, `../LAUNCH_GUIDE.md`, or `../RESEARCH.md`. Anything else is a
 bracketed placeholder, such as `[x]g`, to be filled with a real figure.
@@ -27,7 +27,7 @@ and a free shaker.
 | **A. Build in public** (founder diary) | 30% | Viewers follow a person before they'll trust a brand. A series with a cliffhanger ("now we wait for samples") gives people a reason to follow, and it's the only thing worth posting before a product exists. It's also cheap: a phone and the work that's already happening. |
 | **B. Label literacy** (The Real Fruit Test) | 35% | It teaches something people can use on any tub in their kitchen, so they save it and share it. It also gives viewers the yardstick that makes Picked's one proof point, grams of fruit on the front, mean something. It doesn't need the product and doesn't need us to say anything about a competitor beyond what's printed on its label. |
 | **C. Fruit first** (sensory and kitchen) | 20% | Freeze-dried fruit crunching, red powder, and a ripe mango being cut make a good hook without any words. It shows the ingredient that sets Picked apart, keeps the feed bright and on brand, and can be filmed at a kitchen counter today. |
-| **D. Taste tests and votes** | 15% | Blind tests give people a result to wait for, and the Mango vs Raspberry Lemon vote turns viewers into co-owners of the range. Before launch this pillar is the flavour vote and the panel. After launch it's strangers at run clubs. |
+| **D. Taste tests and votes** | 15% | Blind tests give people a result to wait for, and the Mango vs Raspberry Lemon vote turns viewers into co-owners of the range. Before launch this pillar is the flavor vote and the panel. After launch it's strangers at run clubs. |
 
 Selling comes only in the CTA. A pure "buy now" video happens once, when
 pre-orders open (#30).
@@ -43,7 +43,7 @@ pre-orders open (#30).
 - **CTAs:** "Join the waitlist, link in bio" assumes the waitlist page is live (Launch Guide, week 1). Until it is, use "follow to see what happens next."
 - **Audio:** this is a business account, so use original voice or TikTok's Commercial Music Library only.
 - **Captions:** use 5 to 8 hashtags. Base set: `#pickedprotein #proteinpowder #wheyprotein #buildinpublic #smallbusiness`, plus 1 to 3 that fit the video (`#foodlabels #readthelabel #strawberry #mango #runclub #pilates #tastetest`).
-- **Creators (HOLD-UNTIL-LIVE):** gift product only, using `../outreach/04-creator-dm.md`. Every post needs `#gifted` (or the paid-partnership tag) in the caption and TikTok's content disclosure setting turned on. Don't script them, and don't ask for a positive review.
+- **Creators (HOLD-UNTIL-LIVE):** gift product only, using `../outreach/04-creator-dm.md`. Every post needs `#ad` or "gifted by @pickedprotein" (or the paid-partnership tag) in the caption and TikTok's content disclosure setting turned on. Don't script them, and don't ask for a positive review.
 - **Tags:** **PRE-LAUNCH** can be posted before anyone can buy. **HOLD-UNTIL-LIVE** needs the finished product or a live shop link. **This week** means it can be filmed now with no product: just the founder, fruit, labels, a kitchen counter, and the concept art.
 
 ---
@@ -55,14 +55,14 @@ pre-orders open (#30).
 **01. Day one** · PRE-LAUNCH · this week · 25s
 - Hook. Text: `day 1 of making a protein powder that tastes like actual fruit` / Says: "I'm making a protein powder, and the fruit on the label is going to be in it."
 - Beats:
-  - Founder at a kitchen counter, a punnet of strawberries in frame.
-  - Bites a strawberry. "This is the flavour. Not 'strawberry flavour'. This."
+  - Founder at a kitchen counter, a basket of strawberries in frame.
+  - Bites a strawberry. "This is the flavor. Not 'strawberry flavor'. This."
   - Text card: `the rule: grams of fruit printed on the front`
   - "I'm filming every step. The good bits and the bits that go wrong."
 - CTA: "Follow for day two." Pin this video.
 
 **02. Five emails** · PRE-LAUNCH · this week · 30s
-- Hook. Text: `i just emailed 5 factories asking for something nobody prints` / Says: "I just asked five protein factories for one number."
+- Hook. Text: `i just emailed 5 factories asking for something we can't find anyone printing` / Says: "I just asked five protein factories for one number."
 - Beats:
   - Screen recording of the formula brief scrolling, with manufacturer names blurred.
   - Zoom: "state grams of fruit solids per serving".
@@ -81,28 +81,28 @@ pre-orders open (#30).
 **04. The pouch, as a drawing** · PRE-LAUNCH · this week · 30s
 - Hook. Text: `concept art. not a real pouch yet.` / Says: "This is what the pouch might look like, and the line I'm not giving up."
 - Beats:
-  - Strawberry concept on screen or printed on paper, labelled `CONCEPT, NOT FINAL PACKAGING` throughout.
+  - Strawberry concept on screen or printed on paper, labeled `CONCEPT, NOT FINAL PACKAGING` throughout.
   - Point at "made with real strawberries": "This becomes '[x]g real strawberry in every scoop' when the recipe's locked."
   - Point at the 20g badge: "20 grams of protein is the plan. The final label decides."
   - Read: "mix with cold water. no sucralose. no fake fruit."
 - CTA: "What would you change before it goes to print?"
 
-**05. What one flavour costs to launch** · PRE-LAUNCH · this week · 40s
-- Hook. Text: `what it costs to launch one protein flavour (estimates)` / Says: "Here's the real budget for launching one protein powder flavour."
+**05. What one flavor costs to launch** · PRE-LAUNCH · this week · 40s
+- Hook. Text: `what it costs to launch one protein flavor (estimates)` / Says: "Here's the real budget for launching one protein powder flavor."
 - Beats:
-  - Whiteboard or notes app, one line at a time, every figure labelled "estimate": flavour development $3–6k; 1,000 pouches about $23k; label review $1.5–3k; insurance $1.5–3k.
-  - Total: `about $35–45k`
-  - "That's why we're starting with one flavour: strawberry."
+  - Whiteboard or notes app, one line at a time, every figure labeled "estimate": flavor development $3k to $6k; label review $1.5k to $3k; insurance $1.5k to $3k.
+  - Total, including the first production run: `about $35k to $45k`
+  - "That's why we're starting with one flavor: strawberry."
   - "Mango and Raspberry Lemon come after, and you pick which goes first."
 - CTA: "Join the waitlist to vote. Link in bio."
-- Note: share only the figures the owner is comfortable making public.
+- Note: share only the figures the owner is comfortable making public. Never show the per-pouch cost or the production-run line; the total range is the only production figure on screen.
 
 **06. Why $2.75 a scoop** · PRE-LAUNCH · this week · 35s
 - Hook. Text: `why our protein will cost $2.75 a scoop` / Says: "Let's talk about the price before anyone asks."
 - Beats:
   - Text: `whey isolate: about $14/lb (USDA, Sept 2026)`
   - "One 20-scoop pouch needs about a pound of it."
-  - Freeze-dried strawberries pour into a bowl: "Real fruit costs more than flavouring."
+  - Freeze-dried strawberries pour into a bowl: "Real fruit costs more than flavoring."
   - "Every batch gets lab tested before it ships. That costs money too."
   - Text: `$54.99 for 20 scoops (planned)` / `waitlist: 20% off your first pouch + a free shaker`
 - CTA: "Founding price is on the waitlist. Link in bio."
@@ -116,7 +116,7 @@ pre-orders open (#30).
   - "If a batch doesn't have its report, it doesn't ship."
 - CTA: "Ask me anything about testing in the comments."
 
-**08. Round one samples** · PRE-LAUNCH · needs bench samples (weeks 2–8) · 40s
+**08. Round one samples** · PRE-LAUNCH · needs bench samples (weeks 2 to 8) · 40s
 - Hook. Text: `round 1 samples. honest first sip.` / Says: "First samples from the factory. I haven't tasted them yet."
 - Beats:
   - Unbranded sample bags on the counter.
@@ -131,18 +131,18 @@ pre-orders open (#30).
 **09. Find the strawberry** · PRE-LAUNCH · this week · 35s
 - Hook. Text: `strawberry on the front. now find the strawberry.` / Says: "Let's find the strawberry in this strawberry protein."
 - Beats:
-  - A fruit-flavoured protein tub with the brand taped over.
+  - A fruit-flavored protein tub with the brand taped over.
   - Flip it over. Trace the ingredients list with a finger and read it exactly as printed.
-  - Stop on "natural flavors": "That tells you the flavour has a natural source. It doesn't have to say which one, or how much fruit."
+  - Stop on "natural flavors": "That tells you the flavor has a natural source. It doesn't have to say which one, or how much fruit."
   - Cut to strawberries on the counter: "Picked will print the grams of fruit on the front."
-- CTA: "Comment a protein flavour and I'll read its label next."
+- CTA: "Comment a protein flavor and I'll read its label next."
 
 **10. Four labels, four meanings** · PRE-LAUNCH · this week · 30s
 - Hook. Text: `these 4 labels mean 4 different things` / Says: "These four phrases look the same and mean different things."
 - Beats:
   - Card 1: `"Strawberry"`: enough real strawberry to carry the taste.
-  - Card 2: `"Natural strawberry flavored"`: natural flavour from strawberry, without enough strawberry to carry it.
-  - Card 3: `"...with other natural flavors"`: strawberry, plus other natural flavours helping it out.
+  - Card 2: `"Natural strawberry flavored"`: natural flavor from strawberry, without enough strawberry to carry it.
+  - Card 3: `"...with other natural flavors"`: strawberry, plus other natural flavors helping it out.
   - Card 4: `"Artificially flavored"`: says what it means.
   - Source on screen: `FDA rule: 21 CFR 101.22(i)`
 - CTA: "Save this for the supplement aisle."
@@ -151,8 +151,8 @@ pre-orders open (#30).
 - Hook. Text: `WONF. you've had it. here's what it means.` / Says: "W-O-N-F. It's on a lot of labels. Here's what it stands for."
 - Beats:
   - Text: `With Other Natural Flavors`
-  - "It means the named fruit has help from other natural flavours."
-  - "Our first choice is no added flavour at all. Second choice is natural flavour from the named fruit only."
+  - "It means the named fruit has help from other natural flavors."
+  - "Our first choice is no added flavor at all. Second choice is natural flavor from the named fruit only."
   - "Whatever the final recipe needs, it'll be on the label, and the fruit grams stay on the front."
 - CTA: "Follow for the rest of the label series."
 
@@ -186,7 +186,7 @@ pre-orders open (#30).
 - Hook: a reply-to-comment sticker, plus Text: `you asked me to read this one` / Says: "You asked, so let's read it."
 - Beats:
   - Hold the product, or a screenshot of its label, with the brand covered.
-  - Read only what's printed: where the fruit is, which flavour words, which sweetener.
+  - Read only what's printed: where the fruit is, which flavor words, which sweetener.
   - Say one fair, good thing about it if there is one.
   - "Your call. I just want you to be able to read it."
 - CTA: "Drop the next one in the comments."
@@ -203,7 +203,7 @@ pre-orders open (#30).
 
 ### C. Fruit first
 
-**17. The crunch** · PRE-LAUNCH · this week · 12–15s
+**17. The crunch** · PRE-LAUNCH · this week · 12 to 15s
 - Hook. Text: `this is what strawberry protein should taste like` / No voice for the first 2 seconds, just the crunch.
 - Beats:
   - Macro shot of a freeze-dried strawberry snapped in half.
@@ -215,7 +215,7 @@ pre-orders open (#30).
 **18. How much fruit does it take?** · PRE-LAUNCH · this week · 45s
 - Hook. Text: `how much strawberry does it take to taste like strawberry?` / Says: "Kitchen experiment: how much fruit before it actually tastes like fruit?"
 - Beats:
-  - Unflavoured whey isolate (brand covered) and freeze-dried strawberries blitzed to powder.
+  - Unflavored whey isolate (brand covered) and freeze-dried strawberries blitzed to powder.
   - Three glasses on a kitchen scale. Show the real grams you add to each: a little, more, a lot.
   - Cold water, shake, taste each. Give honest reactions. Expect it to be tart because nothing is sweetened.
   - Text: `kitchen test. not our recipe. the factory does this properly.`
@@ -269,16 +269,17 @@ pre-orders open (#30).
 ### D. Taste tests and votes
 
 **24. The waitlist panel** · PRE-LAUNCH · needs final bench samples · 45s
-- Hook. Text: `30 people. blind. 3 cups. one question.` / Says: "Thirty people from the waitlist, three unmarked cups, one question: which tastes like real fruit?"
+- Hook. Text: `[30] people. blind. 3 cups. one question.` / Says: "[Thirty] people from the waitlist, three unmarked cups, one question: which tastes like real fruit?"
 - Beats:
   - Cups A, B, C: Picked and two popular clear wheys, labels hidden.
+  - Before anyone tastes: "Heads up, they all contain milk."
   - Quick cuts of tasters choosing. Get consent to film everyone shown.
-  - Show the real tally on screen: `[n]/30`.
-  - "We only ship if we win. If we lose, you'll see that video too."
+  - Show the real tally on screen: `[n]/[30]`.
+  - "If the panel says it doesn't taste like real fruit, it goes back to the bench. You'll see the result either way."
 - CTA: "Join the waitlist to be on the next panel. Link in bio."
 
 **25. The vote is in** · PRE-LAUNCH · needs real vote results · 20s
-- Hook. Text: `you picked the next flavour` / Says: "The waitlist voted. Here's the next flavour."
+- Hook. Text: `you picked the next flavor` / Says: "The waitlist voted. Here's the next flavor."
 - Beats:
   - Mango and Raspberry Lemon side by side.
   - Show the real split: `[n]% / [n]%`.
@@ -290,6 +291,7 @@ pre-orders open (#30).
 - Hook. Text: `blind taste test: which one tastes like real strawberry?` / Says: "Two cups. Which one tastes like real strawberry?"
 - Beats:
   - Cups A and B: Picked and "a popular clear whey", labels hidden.
+  - Before anyone tastes: "Heads up, it contains milk."
   - Real people (with consent) taste and choose.
   - Show every answer, including the ones that go against Picked.
   - Reveal the cups.
@@ -299,8 +301,9 @@ pre-orders open (#30).
 - Hook. Text: `handing out cold strawberry protein at a run club finish line` / Says: "Ten minutes after a run, would you drink this?"
 - Beats:
   - Cooler, cups, and the real pouch. Get the club's permission first.
+  - Hand each cup over with a spoken "Heads up, it contains milk."
   - Runners take a cup. Use only unprompted reactions, from people who agreed to be filmed.
-  - Close-up of the drink against the sky, juice-coloured.
+  - Close-up of the drink against the sky, juice-colored.
 - CTA: "Want us at your club? Comment your city."
 
 **28. The 10-second shaker test** · HOLD-UNTIL-LIVE · 15s
@@ -351,7 +354,7 @@ isn't live yet.
 | 9 | Tue 10/13 | #18 How much fruit does it take? | C | |
 | 10 | Wed 10/14 | #04 The pouch, as a drawing | A | Repost the best comment answer as a #15 reply |
 | 11 | Thu 10/15 | #12 The aftertaste has a name | B | |
-| 12 | Fri 10/16 | #21 Mango | C | Launch the flavour vote |
+| 12 | Fri 10/16 | #21 Mango | C | Launch the flavor vote |
 | 13 | Sat 10/17 | #20 Real strawberry or candy? | C | |
 | 14 | Sun 10/18 | #06 Why $2.75 a scoop | A | Weekly review |
 
@@ -373,7 +376,7 @@ only.
 
 **1. "Too expensive."**
 > Fair question. The planned price is $54.99 for 20 scoops, about $2.75 each.
-> Real freeze-dried fruit costs more than flavouring, and every batch gets lab
+> Real freeze-dried fruit costs more than flavoring, and every batch gets lab
 > tested before it ships. The waitlist gets 20% off the first pouch and a free
 > shaker. If it doesn't taste like fruit it isn't worth it, and we'd want you
 > to tell us.
@@ -381,7 +384,7 @@ only.
 **2. "Just eat fruit."**
 > Honestly, yes, eat the fruit. Picked is for people who already drink a
 > protein shake and want it to taste like the fruit on the label. There's [x]g
-> of fruit in a scoop. It's a better-tasting shake, not a fruit bowl.
+> of fruit in a scoop. It's a shake that tastes like fruit, not a fruit bowl.
 
 **3. "Is it clear?"**
 > Not quite. It's juice-style and a little cloudy, because there's real fruit
@@ -390,11 +393,11 @@ only.
 
 **4. "What's it sweetened with?"**
 > Monk fruit and/or stevia. No sucralose, no Ace-K. That's a taste choice:
-> the aftertaste is what people told us they were tired of. The full
+> that aftertaste is a common complaint in public reviews of fruity proteins. The full
 > ingredient list will be up before anyone can buy, so you can decide.
 
 **5. "Natural flavors are fine."**
 > Agreed, we're not saying they're unsafe. Our point is narrower: "natural
 > flavor" doesn't tell you how much of the fruit on the front is in the scoop.
-> We print the grams. If our final recipe needs any natural flavour, it'll be
+> We print the grams. If our final recipe needs any natural flavor, it'll be
 > on the ingredient list, and the fruit number stays on the front.

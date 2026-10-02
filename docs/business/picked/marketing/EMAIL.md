@@ -12,24 +12,23 @@ yet.
 - `[x]g`: grams of fruit per scoop. Use the manufacturer's number, given in writing.
 - `[20]g`: protein per scoop. Use the number on the final Supplement Facts panel.
 
-The copy spells it "flavour" to match the site and the `next_flavour`
-property. If you switch to US "flavor", change the site and the emails
-together.
+Customer copy uses US spelling (flavor). The Klaviyo property stays
+`next_flavour`; it is never shown to readers.
 
 ---
 
 ## 0. Fix these before the first email sends
 
-1. **The signup form promises too little.** `site/index.html` says *"One email
-   when it ships, nothing else."* That rules out the welcome series and the
-   newsletter. Change it before the site goes live to: *"A few emails while
-   we make it: the founding offer, the flavour vote, and the ship date.
-   Unsubscribe anytime."* Also have the form send
-   `waitlist_terms: "updates"` next to `next_flavour`. Anyone who signed up
-   under the old wording gets `waitlist_terms: "ship-only"` (bulk update by
-   signup date). They receive one email, P1 (doors open), and nothing else
-   unless they click its "keep me posted" link. If the form copy changes
-   before anyone signs up, delete the ship-only segment.
+1. **The signup form promise.** The site copy is already updated. It now
+   reads: *"A few emails while we make it: the founding offer, the flavor
+   vote, a monthly note from the bench, and the ship date. Unsubscribe
+   anytime."* Have the form send `waitlist_terms: "updates"` next to
+   `next_flavour`. The ship-only segment is only needed if anyone signed up
+   before that wording went live, under the old *"One email when it ships,
+   nothing else."* Those people get `waitlist_terms: "ship-only"` (bulk
+   update by signup date). They receive one email, P1 (doors open), and
+   nothing else unless they click its "keep me posted" link. If nobody signed
+   up under the old wording, delete the ship-only segment.
 2. **Sending setup.** Set up a branded sending domain in Klaviyo (for example
    `send.pickedprotein.com`) with SPF and DKIM. Publish DMARC at `p=none`
    with a `rua=` report address, and move to `p=quarantine` after 30 clean
@@ -42,12 +41,22 @@ together.
    for 120 to 300 words. The form does not collect first names, so open with
    "Hi," and use no name tag.
 5. **Footer.** Every marketing email ends with this block (CAN-SPAM needs a
-   real postal address and a working opt-out, honoured within 10 business
-   days):
+   real postal address and a working opt-out, honored within 10 business
+   days). Waitlist variant, for the welcome flow, pre-order campaigns, and
+   From the bench:
 
 ```
-—
+
 You're getting this because you joined the Picked waitlist at pickedprotein.com.
+[Picked LLC legal name] · [physical postal address or USPS-registered PO box]
+Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
+```
+
+   Buyer variant, for post-purchase (PP1 to PP3) and win-back (WB1):
+
+```
+
+You're getting this because you bought Picked at pickedprotein.com.
 [Picked LLC legal name] · [physical postal address or USPS-registered PO box]
 Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 ```
@@ -58,11 +67,11 @@ Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 
 | Flow | Trigger | Emails | Timing | Goal | Klaviyo setup notes |
 | --- | --- | --- | --- | --- | --- |
-| **Waitlist welcome** | Added to list: Waitlist (after double opt-in) | 3 (W1–W3) | Day 0, day 4, day 10 | Trust, a flavour vote from everyone, replies | Flow filter: `waitlist_terms` is not `ship-only`. Exit: unsubscribed, hard bounce, spam complaint, Placed Order since starting flow. W1 and W3 show or hide blocks on `next_flavour` (`mango` / `raspberry-lemon` / blank, because the top form has no vote). |
-| **Pre-order launch** | Campaigns, not a flow. Sent when the production sample is approved and the ship date is firm. | 3 (P1–P3) | Day 0, day 5, and 24 h before founding pricing closes | Founding pre-orders | P1 goes to everyone on Waitlist, ship-only included. P2 and P3 go to WL-NotPurchased only. Founding codes are Shopify **unique coupon codes** issued through Klaviyo, one per profile, expiring at the deadline. The system enforces the deadline, so the email can state it honestly. Smart Sending on. |
+| **Waitlist welcome** | Added to list: Waitlist (after double opt-in) | 3 (W1 to W3) | Day 0, day 4, day 10 | Trust, a flavor vote from everyone, replies | Flow filter: `waitlist_terms` is not `ship-only`. Exit: unsubscribed, hard bounce, spam complaint, Placed Order since starting flow. W1 and W3 show or hide blocks on `next_flavour` (`mango` / `raspberry-lemon` / blank, because the top form has no vote). |
+| **Pre-order launch** | Campaigns, not a flow. Sent when the production sample is approved and the ship date is firm. | 3 (P1 to P3) | Day 0, day 5, and 24 h before founding pricing closes | Founding pre-orders | P1 goes to everyone on Waitlist, ship-only included. P2 and P3 go to WL-NotPurchased only. Founding codes are Shopify **unique coupon codes** issued through Klaviyo, one per profile, expiring at the deadline. The system enforces the deadline, so the email can state it honestly. Smart Sending on. |
 | **Pre-order delay notice** | Ship date will be missed | 1 (D1), as needed | Before the promised date passes | Legal and honest | Required by the FTC Mail Order Rule: a revised date plus the option to cancel for a full refund. Send to everyone with an unfulfilled pre-order. Transactional, no promotion. |
-| **Post-purchase** | Fulfilled Order (Shopify). **Not** Placed Order: pre-orders sit for months before they ship. | 3 (PP1–PP3) | On fulfilment, day 7, day 25 | Good first drink, honest feedback, second order | PP1 is how-to with no promotion, so it can go to every buyer. Ask Klaviyo for transactional status on that message if needed. PP2 and PP3 go to email-marketing-consented buyers only. Exit: refunded or cancelled order, unsubscribed, bounce, complaint. PP3 also exits on an active subscription (Loop event) or Placed Order since starting flow. |
-| **Win-back** | Placed Order at least once, and 60 days since the last Fulfilled Order | 1 (WB1) | Day 60 after last fulfilment | Learn why they stopped, and win some back | Filters: not an active subscriber, Placed Order zero times since starting flow, not in post-purchase flow. No click within 90 days of WB1: move to Sunset and stop newsletters. |
+| **Post-purchase** | Fulfilled Order (Shopify). **Not** Placed Order: pre-orders sit for months before they ship. | 3 (PP1 to PP3) | On fulfillment, day 7, day 25 | Good first drink, honest feedback, second order | PP1 is how-to with no promotion, so it can go to every buyer. Ask Klaviyo for transactional status on that message if needed. PP2 and PP3 go to email-marketing-consented buyers only. Exit: refunded or canceled order, unsubscribed, bounce, complaint. PP3 also exits on an active subscription (Loop event) or Placed Order since starting flow. |
+| **Win-back** | Placed Order at least once, and 60 days since the last Fulfilled Order | 1 (WB1) | Day 60 after last fulfillment | Learn why they stopped, and win some back | Filters: not an active subscriber, Placed Order zero times since starting flow, not in post-purchase flow. No click within 90 days of WB1: move to Sunset and stop newsletters. |
 | **From the bench** | Monthly campaign | 1 a month | First [Tuesday] of the month, [10:00] recipient local time | Keep the list warm until launch, so the P1 spike doesn't hit cold inboxes | Send to Engaged-180, excluding ship-only and Sunset. |
 
 ### Properties and segments
@@ -100,13 +109,13 @@ Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 > borrow one.]
 >
 > So here's what I'm making. A light whey protein drink you mix with cold
-> water, flavoured mainly with freeze-dried fruit. Not "natural flavors"
+> water, flavored mainly with freeze-dried fruit. Not "natural flavors"
 > doing an impression of a strawberry. Strawberries. The pack will say how
 > many grams of fruit are in every scoop, on the front, where you can't miss it.
 >
 > A few things are already decided:
 >
-> - Sweetened with monk fruit or stevia. No sucralose.
+> - Sweetened with monk fruit and/or stevia. No sucralose.
 > - Every lot tested for heavy metals, with that lot's results behind a QR code on the pouch.
 > - Strawberry first. You help pick what comes second.
 >
@@ -120,8 +129,10 @@ Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 > *[Show if `next_flavour` is blank]* One question while you're here: mango or
 > raspberry lemon next? Hit reply with one word.
 >
-> *[Show if `next_flavour` is set]* You voted {{ person|lookup:'next_flavour' }}
-> for the second flavour. Counted.
+> *[Show if `next_flavour` = `mango`]* You voted mango. Counted.
+>
+> *[Show if `next_flavour` = `raspberry-lemon`]* You voted raspberry lemon.
+> Counted.
 >
 > [Founder name]
 > Founder, Picked
@@ -129,6 +140,13 @@ Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 > P.S. This comes from my own inbox. Reply and I'll read it.
 
 **CTA:** reply. W1 has no links on purpose. Replies help deliverability more than clicks do.
+
+**Klaviyo setup for the vote lines:** never print the raw property (it would
+show `raspberry-lemon`). Build each line as its own text block with display
+logic, or use one conditional in the template:
+`{% if person|lookup:'next_flavour' == 'mango' %}You voted mango.{% elif person|lookup:'next_flavour' == 'raspberry-lemon' %}You voted raspberry lemon.{% endif %}`.
+A blank property shows neither line, so the "mango or raspberry lemon?"
+question block (display logic: `next_flavour` is not set) covers that case.
 
 #### W2 · Day 4 · The real-fruit label lesson
 
@@ -138,27 +156,27 @@ Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 
 > Hi,
 >
-> Grab whatever fruit-flavoured protein is in your cupboard and turn it
+> Grab whatever fruit-flavored protein is in your cupboard and turn it
 > around. Three questions:
 >
 > **1. Is the fruit actually in the ingredients?** Look for the fruit by name:
 > "strawberry powder", "freeze-dried mango". If all you find is "natural
 > flavors", the taste may come from something other than the fruit on the
-> front. The label doesn't have to say what the flavour was made from.
+> front. The label doesn't have to say what the flavor was made from.
 >
 > **2. Where is it in the list?** Ingredients are listed from most to least
 > by weight. Fruit sitting after the sweetener means there isn't much of it.
 >
-> **3. Does the pack say how much?** "Made with real fruit" has no required
-> minimum behind it. It can mean a lot of fruit or a dusting.
+> **3. Does the pack say how much?** "Made with real fruit" doesn't have to
+> come with a number. It can mean a lot of fruit or a dusting.
 >
 > One more code word: **WONF**, short for "with other natural flavors". Some of
 > the strawberry taste comes from strawberry, and some comes from other
-> natural flavourings built to taste like it.
+> natural flavorings built to taste like it.
 >
 > Picked's answer to question 3 will be on the front of the pouch: [x]g of
 > fruit per scoop. I won't guess that number here. It goes on the pack once the
-> recipe is locked. If the final recipe needs a little natural flavour to back
+> recipe is locked. If the final recipe needs a little natural flavor to back
 > the fruit up, the label will say so, and you'll hear it from me first.
 >
 > Try it on your tub and reply with what you find. I collect these.
@@ -167,7 +185,7 @@ Unsubscribe: {% unsubscribe %} · Preferences: {% manage_preferences %}
 
 **CTA:** reply with what you find. Secondary: "The Real Fruit Test, one page you can keep: [link]" **HOLD-UNTIL-LIVE** (the guide doesn't exist yet).
 
-#### W3 · Day 10 · Flavour vote and behind the scenes
+#### W3 · Day 10 · Flavor vote and behind the scenes
 
 Two versions. Run **Vote open** until the vote closes, then swap in **Vote closed**.
 
@@ -180,7 +198,7 @@ Two versions. Run **Vote open** until the vote closes, then swap in **Vote close
 >
 > Quick look at where things are. [Real current stage, one or two sentences.
 > For example: "Quotes are back from [n] manufacturers and we're choosing on
-> flavour skill and lot testing, not just price." Or: "Bench sample round
+> flavor skill and lot testing, not just price." Or: "Bench sample round
 > [n] arrived. Too sweet. Round [n+1] is on its way." Only what actually
 > happened.]
 >
@@ -205,12 +223,13 @@ Two versions. Run **Vote open** until the vote closes, then swap in **Vote close
 >
 > **Optional, only if the panel is really running:** I'm picking [30] people
 > from this list for a blind taste test against two clear proteins already on
-> the shelf. If Picked doesn't win on "tastes like real fruit", it doesn't
-> ship. Reply "panel" if you're in [city/region, or "we'll post samples"].
+> the shelf. If the panel says it doesn't taste like real fruit, it goes
+> back to the bench. You'll see the result either way. Reply "panel" if
+> you're in [city/region, or "we'll post samples"].
 >
 > [Founder name]
 
-**CTA:** reply (vote, or join the panel). Use counts taken straight from the Vote-Mango and Vote-RL segments on the closing date. Never round them in your favour.
+**CTA:** reply (vote, or join the panel). Use counts taken straight from the Vote-Mango and Vote-RL segments on the closing date. Never round them in your favor.
 
 ---
 
@@ -237,8 +256,8 @@ reasonable basis, and the founding deadline is set in Shopify.
 > - Sweetened with [monk fruit / stevia / both]. No sucralose.
 > - Lot [number] heavy-metal results: [COA link]
 >
-> **Your founding price:** $43.99 for your first pouch (normally $54.99), plus
-> a free shaker. Your code: {% coupon_code '[Klaviyo coupon name]' %}. It works
+> **Your founding price:** $43.99 for your first pouch, 20% off the $54.99
+> regular price, plus a free shaker. Your code: {% coupon_code '[Klaviyo coupon name]' %}. It works
 > once, for you.
 >
 > **Ships:** [date range]. You're charged [at checkout / when it ships]. If the
@@ -272,11 +291,11 @@ reasonable basis, and the founding deadline is set in Shopify.
 > Three decisions make Picked what it is. Each one costs more than the easy
 > version.
 >
-> **The fruit.** Freeze-dried strawberry is the main flavour, [x]g a scoop, and
-> the number is on the front. Flavouring is cheaper. It also tastes like
-> flavouring.
+> **The fruit.** Freeze-dried strawberry is the main flavor, [x]g a scoop, and
+> the number is on the front. Flavoring is cheaper. It also tastes like
+> flavoring.
 >
-> **The sweetener.** Monk fruit or stevia, no sucralose. If you've ever
+> **The sweetener.** Monk fruit and/or stevia, no sucralose. If you've ever
 > finished a shake and tasted it for the next hour, you know why.
 >
 > **The testing.** Every lot is tested for heavy metals before it ships, and
@@ -298,7 +317,7 @@ reasonable basis, and the founding deadline is set in Shopify.
 #### P3 · 24 h before close · Last call · WL-NotPurchased
 
 **Send only if the deadline is real, the coupon really expires then, and you
-won't reopen founding pricing afterwards.** If any of those is false, don't
+won't reopen founding pricing afterward.** If any of those is false, don't
 send P3.
 
 - **Subject A:** founding pricing closes tomorrow
@@ -312,7 +331,7 @@ send P3.
 > $54.99. This is the last email about it.
 >
 > If now isn't the time, that's fine. You stay on the list and you'll hear
-> when [next flavour] is ready.
+> when [next flavor] is ready.
 >
 > Pre-order Strawberry: [link]
 >
@@ -344,7 +363,7 @@ or stock count unless it reflects real inventory.
 
 ### Post-purchase
 
-#### PP1 · On fulfilment · Shipping and how to mix
+#### PP1 · On fulfillment · Shipping and how to mix
 
 - **Subject A:** how to make it taste right
 - **Subject B:** your strawberries are on the way
@@ -359,7 +378,7 @@ or stock count unless it reflects real inventory.
 > 1. One scoop.
 > 2. 10 to 12 oz of cold water. Use 10 for a stronger taste and 12 for a
 >    lighter one. Ice if you like it like a juice box.
-> 3. Shake hard for 10 to 15 seconds. If there's foam, give it a minute.
+> 3. Shake hard for about 10 seconds. If there's foam, give it a minute.
 >
 > It'll look a little cloudy. That's the fruit.
 >
@@ -432,7 +451,7 @@ tied to the rating (FTC rule on reviews, 16 CFR Part 465).
 
 ### Win-back
 
-#### WB1 · Day 60 after last fulfilment
+#### WB1 · Day 60 after last fulfillment
 
 - **Subject A:** did we get it wrong?
 - **Subject B:** one question, then I'll leave you be
@@ -457,7 +476,7 @@ tied to the rating (FTC rule on reviews, 16 CFR Part 465).
 > [Founder name]
 
 **CTA:** reply. Secondary: shop link, **HOLD-UNTIL-LIVE**. [Optional: an offer,
-only if you'll honour it for everyone in this flow and can afford it at about
+only if you'll honor it for everyone in this flow and can afford it at about
 $22 margin a pouch.]
 
 ---
@@ -511,7 +530,7 @@ Open rate is left out on purpose: Apple Mail Privacy Protection inflates it.
 | --- | --- | --- | --- | --- |
 | 1 | **Click rate** (unique clicks ÷ delivered) | Per campaign and per flow message | Campaigns 2%+, flows 4%+ | Campaigns under 1%: the subject or content isn't earning the click |
 | 2 | **Waitlist to pre-order conversion** | WL-NotPurchased shrinkage, or Placed Order with the founding code ÷ Waitlist size, over the founding window | 10%+ | Under 5%: check price, ship date, or list quality before more P-emails |
-| 3 | **Repeat order within 45 days** of first fulfilment | Customers with 2+ orders ÷ first-time customers fulfilled 45+ days ago | 25%+ | Under 15%: read the PP2 replies. It's taste or price, and they'll tell you which. |
+| 3 | **Repeat order within 45 days** of first fulfillment | Customers with 2+ orders ÷ first-time customers fulfilled 45+ days ago | 25%+ | Under 15%: read the PP2 replies. It's taste or price, and they'll tell you which. |
 | 4 | **Unsubscribe rate** per send | Per campaign | Under 0.3% | Over 0.5%: too frequent, or the segment is wrong |
 | 5 | **Spam complaint rate** per send | Per campaign, plus Google Postmaster Tools | Under 0.1% | 0.1% or more: pause campaigns and check the source of the list. **0.3% is Google's published enforcement line (a fact, not a rule of thumb).** |
 
