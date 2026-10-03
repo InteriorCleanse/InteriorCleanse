@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" role="img" aria-label="GCode Keys">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6bffbb"/><stop offset=".55" stop-color="#15e37a"/><stop offset="1" stop-color="#06a957"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- icon -->
+  <g transform="translate(8,11)">
+    <path d="M20 6 H108 L122 20 V108 L108 122 H20 L6 108 V20 Z" fill="#04100b" stroke="rgba(21,227,122,0.35)" stroke-width="2"/>
+    <g filter="url(#glow)">
+      <circle cx="54" cy="52" r="26" fill="none" stroke="url(#g)" stroke-width="11"/>
+      <rect x="54" y="45" width="40" height="14" fill="#04100b"/>
+      <rect x="58" y="46" width="20" height="11" rx="1" fill="url(#g)"/>
+      <rect x="48" y="74" width="12" height="40" rx="2" fill="url(#g)"/>
+      <rect x="59" y="86" width="13" height="7" fill="#04100b"/>
+      <rect x="59" y="99" width="9" height="7" fill="#04100b"/>
+      <rect x="92" y="30" width="12" height="17" rx="1" fill="#6bffbb"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <g font-family="'Chakra Petch','Segoe UI',monospace">
+    <text x="150" y="80" font-size="52" font-weight="700" letter-spacing="1" fill="#eafff4">G<tspan fill="url(#g)" filter="url(#glow)">CODE</tspan><tspan fill="#eafff4"> KEYS</tspan></text>
+    <text x="152" y="112" font-family="'JetBrains Mono',monospace" font-size="15" letter-spacing="6" fill="rgba(21,227,122,0.85)">&gt;_ THE CODE THAT CUTS</text>
+  </g>
+</svg>
