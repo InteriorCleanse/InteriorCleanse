@@ -1,6 +1,8 @@
 # Request for quote email to a contract manufacturer
 
-Attach `FORMULA_BRIEF.md` as a PDF. Send to five manufacturers on the same day.
+Tailored versions for each of the six manufacturers, plus a follow-up and a
+tracking sheet, are in `manufacturer-emails.md`. Use this generic version for
+any other manufacturer. Attach `formula-brief.pdf`.
 
 ---
 
