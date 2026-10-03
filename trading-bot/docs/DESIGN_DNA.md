@@ -2,11 +2,47 @@
 
 The app's design identity, written down in the three dimensions of the
 `design-dna` skill so every new screen starts from the same rules. Tokens
-live in `web/css/app.css` (`:root`); this file says what they are for.
+live in `web/css/tokens.css` (new) and `web/css/app.css` (older layers); this file says what they are for.
+
+## 0. Current system (October 2026)
+
+The default theme is **Linen** (warm stone, deep teal actions, ochre accent);
+Daylight and four dark rooms (Midnight, Plum, Slate, Onyx) are one tap away
+in More. Audit and roadmap: `docs/DESIGN_AUDIT.md`.
+
+**Tokens live in `web/css/tokens.css`**, loaded before `app.css`. New rules
+take their numbers from there; the older `:root` layers further down `app.css`
+are retired one component family at a time.
+
+| Family | Tokens | Rule |
+|---|---|---|
+| Type | `--type-ui` Instrument Sans, `--type-voice` Instrument Serif, `--type-figure` Geist Mono; `--fs-2xs` 11 → `--fs-3xl` 40 | Serif only for the one sentence of what Kestrel thinks; figures in tables use the mono with tabular numerals |
+| Space | `--sp-1` 4 px → `--sp-12` 48 px | a 4 px grid |
+| Radius | `--rad-1` 4, `--rad-2` 8, `--rad-3` 14, `--rad-pill` | bigger container, softer corner; pills for buttons and the PAPER pill only |
+| Density | `--row-compact` 32, `--row-cozy` 40, `--tap-min` 44 | |
+| Motion | `--dur-fast` 120, `--dur-std` 200, `--dur-data` 320, `--dur-panel` 280, `--dur-scene` 460; `--ease-std`, `--ease-enter`, `--ease-exit`, `--ease-strike` | still by default; a change of state gets one decisive move; all durations go to 0 under reduced motion |
+| State | `--state-ok/warn/bad/info/idle` | always paired with a word and a shape: circle ok, triangle warn, square bad, diamond info, ring idle |
+| Chart | `--chart-up/down/grid/axis/event/1–4` | up and down colours mean up and down only |
+| Focus | `--focus-ring` | one visible ring everywhere |
+
+**Home is a command center** (`web/js/overview.js`):
+1. A status rail: mode and live-gate count, operations, data source and candle
+   age, engine, open paper positions.
+2. The core and its one sentence.
+3. Every desk as one row of a dense table, each with its own paper book, never
+   summed.
+4. The markets, the models and the pipeline.
+5. "What happened", the event log as a timeline, beside a quiet launcher.
+
+On a phone the rail goes to two columns, and the table keeps its rows but drops
+the schedule columns. The launcher hides, because the bottom bar's More holds
+every page.
+
+The sections below are the history that led here.
 
 ## 1. Design system (measurable)
 
-**Colour — current (dark, "Night Lab", September 2026).** It replaced the
+**Colour — previous (dark, "Night Lab", September 2026).** It replaced the
 earlier mint-on-black palette, which the `frontend-design` skill names as one
 of the commonest generated-looking defaults (near-black with one acid-green
 accent), and which also made the accent and "up" the same colour.

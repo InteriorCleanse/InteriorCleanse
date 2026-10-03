@@ -1,0 +1,75 @@
+/*
+ * KESTREL DESIGN TOKENS: the one place a new rule takes its numbers from.
+ *
+ * Loaded before app.css. The names here are new, so the older :root layers in
+ * app.css keep working while components move over one family at a time (see
+ * docs/DESIGN_AUDIT.md). Colours are roles, not hues: each one points at the
+ * theme variables that html[data-theme] sets, so every role follows Linen,
+ * Daylight and the dark rooms without a second definition.
+ *
+ * The idea, from the brand: a kestrel holds still, watches, and moves once when
+ * the target is clear. Screens are still by default; a change of state gets one
+ * decisive move (--ease-strike) and nothing drifts on its own.
+ */
+:root {
+  /* Type: three voices, each with one job. */
+  --type-ui: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --type-voice: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; /* what Kestrel thinks, one sentence per screen */
+  --type-figure: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; /* prices, counts, times in tables */
+
+  /* Type scale (px). Dense screens live between xs and md. */
+  --fs-2xs: 11px; --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px; --fs-3xl: 40px;
+  --lh-tight: 1.15; --lh-ui: 1.4; --lh-read: 1.55;
+
+  /* Space: a 4 px grid. */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+  /* Radius follows hierarchy: the bigger the container, the softer the corner. */
+  --rad-1: 4px;     /* chips, state tags, inline code */
+  --rad-2: 8px;     /* controls, rows, inputs */
+  --rad-3: 14px;    /* panels */
+  --rad-pill: 999px; /* buttons and the PAPER pill only */
+
+  /* Density */
+  --row-compact: 32px; --row-cozy: 40px; --tap-min: 44px;
+
+  /* Lines */
+  --rule: 1px solid var(--line);
+  --rule-soft: 1px solid var(--edge);
+
+  /* Motion: five speeds, named for what they carry. */
+  --dur-fast: 120ms;   /* hover, press, focus */
+  --dur-std: 200ms;    /* a control changing state */
+  --dur-data: 320ms;   /* a number or bar taking its new value */
+  --dur-panel: 280ms;  /* a panel opening or closing */
+  --dur-scene: 460ms;  /* a tab entrance */
+  --ease-std: cubic-bezier(.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(.05, .7, .1, 1);
+  --ease-exit: cubic-bezier(.3, 0, 1, 1);
+  --ease-strike: cubic-bezier(.16, 1, .3, 1); /* the drop: fast, decided, no overshoot */
+
+  /* Layers */
+  --z-raised: 1; --z-sticky: 20; --z-nav: 30; --z-overlay: 60; --z-toast: 80;
+
+  /* State roles. Never the only signal: each is paired with a word and a glyph. */
+  --state-ok: var(--green);
+  --state-warn: var(--amber);
+  --state-bad: var(--red);
+  --state-info: var(--brand);
+  --state-idle: var(--faint);
+
+  /* Chart roles */
+  --chart-up: var(--green); --chart-down: var(--red);
+  --chart-grid: var(--line); --chart-axis: var(--dim);
+  --chart-event: var(--amber); --chart-1: var(--brand); --chart-2: var(--accent); --chart-3: var(--blue); --chart-4: var(--purple);
+
+  /* Focus: a visible ring in the brand colour, offset from the surface. */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(var(--brand-rgb), .6);
+
+  /* Breakpoints (for reference; media queries cannot read variables):
+     phone < 640, tablet 640-1023, laptop 1024-1439, desktop >= 1440. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-std: 0ms; --dur-data: 0ms; --dur-panel: 0ms; --dur-scene: 0ms; }
+}
