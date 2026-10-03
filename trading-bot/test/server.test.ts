@@ -245,6 +245,18 @@ test('the TradingView webhook refuses a secret in the URL, and still works under
   assert.equal(tunnel.status, 200)
 })
 
+test('web research is off without a key, needs the CSRF token, and never trades', async () => {
+  const st = await getJson<{ data: { status: { available: boolean; reason: string }; label: string } }>('/api/web')
+  assert.equal(st.data.status.available, false)
+  assert.match(st.data.status.reason, /PERPLEXITY_API_KEY/)
+  assert.match(st.data.label, /not a signal/)
+  const noToken = await fetch(`${bot.base}/api/web/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ preset: 'macro' }) })
+  assert.equal(noToken.status, 403)
+  const r = await (await bot.post('/api/web/ask', { preset: 'macro' })).json() as { ok: boolean; error: string }
+  assert.equal(r.ok, false)
+  assert.match(r.error, /PERPLEXITY_API_KEY/)
+})
+
 test('memory reset works with the token and empties the ledger', async () => {
   const r = await (await bot.post('/api/memory/reset')).json() as { ok: boolean }
   assert.equal(r.ok, true)

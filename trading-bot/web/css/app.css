@@ -3201,3 +3201,34 @@ button.cc-cell:focus-visible { box-shadow:inset var(--focus-ring); outline:none;
   .cc-tag { padding:4px 6px; letter-spacing:.02em; gap:5px; }
   .cc-lower .home-go { display:none; } /* the bottom bar's More holds every page on a phone */
 }
+
+/* ============================================================
+   WEB RESEARCH (js/web.js): Perplexity answers with their sources.
+   ============================================================ */
+.wr { margin:var(--sp-6) 0 var(--sp-4); border-top:var(--rule); padding-top:var(--sp-5); }
+.wr-head { display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap; }
+.wr-head h2 { font:600 var(--fs-lg)/1.2 var(--type-ui); margin:0; color:var(--text); text-transform:none; letter-spacing:-.005em; }
+.wr-head .badge { margin:0; }
+.wr-meta { font-size:var(--fs-xs); color:var(--dim); }
+.wr-lede { font-size:var(--fs-sm); color:var(--dim); max-width:72ch; margin:var(--sp-2) 0 var(--sp-3); }
+.wr-form { display:grid; gap:var(--sp-2); margin-bottom:var(--sp-3); }
+.wr-row { display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; }
+.wr-row button.ghost { border-radius:var(--rad-pill); padding:7px 12px; font-size:var(--fs-sm); cursor:pointer; font-family:inherit; }
+.wr-sym { width:170px; text-transform:uppercase; font-family:var(--type-figure); }
+.wr-sym::placeholder { text-transform:none; font-family:var(--type-ui); }
+.wr-q { flex:1 1 260px; min-width:0; }
+.wr-list { display:grid; gap:var(--sp-3); }
+.wr-ans { border:var(--rule); border-radius:var(--rad-3); background:var(--panel); padding:var(--sp-4); }
+.wr-ans header { display:flex; justify-content:space-between; gap:var(--sp-3); flex-wrap:wrap; position:static; background:none; border:0; padding:0; margin-bottom:var(--sp-2); }
+.wr-ans header b { font:600 var(--fs-sm)/1.35 var(--type-ui); color:var(--text); max-width:70ch; }
+.wr-ans header span { font-size:var(--fs-2xs); color:var(--faint); white-space:nowrap; }
+.wr-text { white-space:pre-wrap; font-size:var(--fs-sm); line-height:var(--lh-read); color:var(--text); max-width:78ch; }
+.wr-src { margin:var(--sp-3) 0 0; padding-left:var(--sp-5); font-size:var(--fs-xs); color:var(--dim); display:grid; gap:2px; }
+.wr-src a { color:var(--brand); text-decoration:none; }
+.wr-src a:hover { text-decoration:underline; text-underline-offset:3px; }
+.wr-src a:focus-visible { box-shadow:var(--focus-ring); outline:none; border-radius:var(--rad-1); }
+.wr-src span { color:var(--faint); }
+.wr-nosrc { font-size:var(--fs-xs); color:var(--state-warn); margin:var(--sp-2) 0 0; }
+.web-check { all:unset; cursor:pointer; font:500 var(--fs-2xs)/1 var(--type-ui); color:var(--brand); padding:4px 6px; border-radius:var(--rad-1); white-space:nowrap; }
+.web-check:hover { text-decoration:underline; text-underline-offset:3px; }
+.web-check:focus-visible { box-shadow:var(--focus-ring); }

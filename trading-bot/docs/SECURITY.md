@@ -50,6 +50,7 @@ is not the right tool and no dashboard change would fix it.
 | Clickjacking: `frame-ancestors 'none'` + `X-Frame-Options: DENY` | same |
 | `nosniff`, `no-referrer`, `Permissions-Policy`, COOP/CORP | same |
 | Per-route request body caps (4–256 KB) | `server.ts` |
+| Web research (Perplexity): key only in `.env` and the auth header, one fixed host, daily cap, answers escaped and labelled AI RESEARCH, never read by the engine | `src/ai/perplexity.ts`, `docs/WEB_RESEARCH.md` |
 | Read-only exchange client; withdrawal-capable keys refused | `src/exchange/` |
 | Static file serving constrained to `web/` by a strict pattern | `server.ts` |
 | **Zero runtime dependencies** | `package.json` |
