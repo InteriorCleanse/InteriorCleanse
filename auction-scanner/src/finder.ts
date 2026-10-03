@@ -57,13 +57,18 @@ export type Deal = DealCard & {
   comps: number
   /** "firmer" at 6 or more similar cars, "thin" below. */
   confidence: 'firmer' | 'thin'
+  /** "confirmed" when the value rests on enough sold or asking prices; "bids only" when mostly on bids still running. */
+  evidence: 'confirmed' | 'bids only'
   cautions: string[]
 }
 
 export type ExclusionReason = 'sample' | 'ended' | 'sold' | 'no price' | 'title' | 'damage' | 'does not run' | 'could not price' | 'over budget' | 'no room'
 
 export type FinderResult = {
+  /** Every check passed and the value rests on sold or asking prices. */
   deals: Deal[]
+  /** Every check passed, but the value rests mostly on bids still running: a lead to check, not a deal. */
+  leads: Deal[]
   considered: number
   excluded: Record<ExclusionReason, number>
 }
@@ -79,6 +84,7 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
   const damageOk = DAMAGE_OK[opts.maxDamage ?? 'minor']
   const excluded: Record<ExclusionReason, number> = { sample: 0, ended: 0, sold: 0, 'no price': 0, title: 0, damage: 0, 'does not run': 0, 'could not price': 0, 'over budget': 0, 'no room': 0 }
   const deals: Deal[] = []
+  const leads: Deal[] = []
   for (const card of cards) {
     const l = card.listing
     const est = card.estimate
@@ -115,7 +121,11 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
     if (l.saleType !== 'buy-now') cautions.push(`Current bid, not the final price. Stop at ${moneyText(plan.maxBidUsd)}.`)
     cautions.push(`Transport assumed for ${config.plan.defaultDistanceMiles} miles; get a quote.`)
 
-    deals.push({
+    // Bids on auctions still running finish higher, so they cannot confirm a resale value on their own.
+    const firm = est.basis ? est.basis.sold + est.basis.asks : est.comps
+    const evidence: Deal['evidence'] = firm >= config.scoring.minComps ? 'confirmed' : 'bids only'
+    if (evidence === 'bids only') cautions.unshift(`Value rests mostly on bids still running (${est.basis?.bids ?? 0} of ${est.comps}); they usually finish higher. Check sold prices before you trust the profit.`)
+    ;(evidence === 'confirmed' ? deals : leads).push({
       ...card,
       priceUsd: price,
       buyerFeeUsd: fee.usd,
@@ -130,12 +140,15 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
       ceilingUsd: plan.maxBidUsd,
       comps: est.comps,
       confidence: est.comps >= 6 ? 'firmer' : 'thin',
+      evidence,
       cautions,
     })
   }
   // Biggest estimated profit first; a firmer estimate wins a tie.
-  deals.sort((a, b) => b.spreadUsd - a.spreadUsd || (a.confidence === b.confidence ? 0 : a.confidence === 'firmer' ? -1 : 1))
-  return { deals, considered: cards.length, excluded }
+  const order = (a: Deal, b: Deal) => b.spreadUsd - a.spreadUsd || (a.confidence === b.confidence ? 0 : a.confidence === 'firmer' ? -1 : 1)
+  deals.sort(order)
+  leads.sort(order)
+  return { deals, leads, considered: cards.length, excluded }
 }
 
 function moneyText(n: number): string {

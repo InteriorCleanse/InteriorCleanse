@@ -10,7 +10,7 @@
  * LIVE listings are only ever compared with LIVE listings, and SAMPLE with
  * SAMPLE. A sample car is not evidence of anything real.
  */
-import type { Estimate, Listing, TitleStatus } from './types.ts'
+import type { CompRef, Estimate, Listing, TitleStatus } from './types.ts'
 import { config } from '../config.ts'
 
 /**
@@ -113,6 +113,12 @@ export function estimateValue(target: Listing, pool: Listing[], minComps = confi
     .sort((a, b) => a - b)
 
   const sold = comps.filter((c) => c.soldUsd !== undefined).length
+  const asks = comps.filter((c) => c.soldUsd === undefined && c.buyNowUsd !== undefined).length
+  const bids = comps.length - sold - asks
+  const used: CompRef[] = [...comps]
+    .sort((a, b) => Math.abs((a.year ?? 0) - (target.year ?? 0)) - Math.abs((b.year ?? 0) - (target.year ?? 0)) || Math.abs((a.mileage ?? 0) - (target.mileage ?? 0)) - Math.abs((b.mileage ?? 0) - (target.mileage ?? 0)))
+    .slice(0, 8)
+    .map((c) => ({ id: c.id, title: c.title, year: c.year, mileage: c.mileage, priceUsd: compPrice(c) as number, priceKind: c.soldUsd !== undefined ? 'sold' as const : c.buyNowUsd !== undefined ? 'ask' as const : 'bid' as const, source: c.source, url: c.url, state: c.location?.state }))
   const what = sold === 0 ? `${comps.length} comparable listings` : sold === comps.length ? `${comps.length} sold prices` : `${comps.length} comparables (${sold} of them sold prices)`
   return {
     ok: true,
@@ -121,5 +127,7 @@ export function estimateValue(target: Listing, pool: Listing[], minComps = confi
     high: Math.round(adjusted[adjusted.length - 1]),
     comps: comps.length,
     method: `median of ${what}, mileage-adjusted`,
+    basis: { sold, asks, bids },
+    used,
   }
 }

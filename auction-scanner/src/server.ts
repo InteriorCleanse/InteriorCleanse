@@ -71,6 +71,7 @@ import { money } from './ui.ts'
 import { autodevComps, autodevConfigured } from './sources/autodev.ts'
 import { vinauditConfigured, vinauditEstimate, vinauditValue } from './sources/vinaudit.ts'
 import { isStateCode } from './states.ts'
+import { findDeals } from './finder.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = resolve(HERE, '..', 'web')
@@ -79,6 +80,8 @@ const WEBHOOK_LIMIT = 1024 * 1024
 const SCAN_CACHE_MS = 60_000
 /** The owner's session email and the name of the owner's data folder. */
 const OWNER_EMAIL = 'owner'
+/** Searched for the deal finder when the member has no Sniper makes of their own. */
+const DEAL_MAKES = ['Toyota', 'Honda', 'Lexus', 'Ford', 'Chevrolet', 'Jeep', 'Subaru', 'Mazda']
 
 export type Card = { listing: Listing; estimate: Estimate; score: Score; demand?: { tier: DemandEntry['tier']; tags: Array<DemandEntry['tier']>; why: string } }
 export type Feed = { kind: ScanResult['kind']; scannedAt: number; errors: string[]; hidden: number; cards: Card[] }
@@ -653,6 +656,28 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         cashUsd: getSettings().cashUsd ?? null,
         dataDir: session.role === 'owner' ? DATA_DIR : undefined,
       })
+    }
+
+    if (path === '/api/deals' && method === 'GET') {
+      // Budget in, real deals out (src/finder.ts). Searched by make so each car meets its own kind.
+      const settings = getSettings()
+      const budget = num(url.searchParams.get('budget') ?? '', 'budget', { min: 500, max: 5_000_000 })!
+      const maxDamage = url.searchParams.get('damage') === 'none' ? 'none' as const : 'minor' as const
+      const asked = str(url.searchParams.get('makes') ?? '', 300).split(',').map((m) => m.trim()).filter(Boolean).slice(0, 8)
+      const fromTargets = [...new Set(listTargets().flatMap((t) => t.makes))]
+      const makes = asked.length ? asked : fromTargets.length ? fromTargets.slice(0, 8) : DEAL_MAKES
+      const byId = new Map<string, Card>()
+      let kind: ScanResult['kind'] = 'EMPTY'
+      const errors = new Set<string>()
+      for (const make of makes) {
+        const r = await scanCards(make, settings)
+        if (r.kind === 'LIVE') kind = 'LIVE'
+        else if (r.kind === 'SAMPLE' && kind === 'EMPTY') kind = 'SAMPLE'
+        for (const c of r.cards) byId.set(c.listing.id, c)
+        for (const e of r.errors) errors.add(e)
+      }
+      const result = findDeals([...byId.values()], { budgetUsd: budget, maxDamage, feeOverrides: settings.feeOverrides, taxTitlePct: settings.taxTitlePct, allowSample: kind === 'SAMPLE', now: now() })
+      return json(res, 200, { kind, budget, maxDamage, makes, ...result, deals: result.deals.slice(0, 40), leads: result.leads.slice(0, 20), errors: session.role === 'owner' ? [...errors] : memberErrors([...errors]) })
     }
 
     if (path === '/api/feed' && method === 'GET') {

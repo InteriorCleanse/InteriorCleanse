@@ -83,8 +83,22 @@ export type SourceStatus = {
   capabilities: SourceCapabilities
 }
 
+/** One comparable car behind an estimate. */
+export type CompRef = { id: string; title: string; year?: number; mileage?: number; priceUsd: number; priceKind: 'sold' | 'ask' | 'bid'; source: string; url: string; state?: string }
+
 export type Estimate =
-  | { ok: true; valueUsd: number; low: number; high: number; comps: number; method: string }
+  | {
+      ok: true
+      valueUsd: number
+      low: number
+      high: number
+      comps: number
+      method: string
+      /** What the comparable prices are: money that changed hands, asking prices, or bids on auctions still running. */
+      basis?: { sold: number; asks: number; bids: number }
+      /** The comparables behind the value, closest first (at most eight), so a person can check them. */
+      used?: CompRef[]
+    }
   | { ok: false; comps: number; reason: string }
 
 export type Score = {

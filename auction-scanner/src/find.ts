@@ -72,20 +72,30 @@ out(`Read ${listings.size} live cars and ${comps.length} prices to compare again
 const ex = Object.entries(r.excluded).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ')
 out(`Left out: ${ex || 'nothing'}.`)
 out()
-if (!r.deals.length) {
-  out(`No car passed every check at ${money(budget)} right now. The most common reason above is what to change: a bigger budget, more sources (eBay, auto.dev), or minor damage allowed.`)
-  process.exit(0)
+function print(list: typeof r.deals, start = 1): void {
+  list.slice(0, top).forEach((d, i) => {
+    const l = d.listing
+    const where = [l.location?.city, l.location?.state].filter(Boolean).join(', ') || 'location not stated'
+    const ends = l.endsAt ? (l.endsAtDateOnly ? `closes ${new Date(l.endsAt).toISOString().slice(0, 10)}` : `ends ${new Date(l.endsAt).toISOString().replace('T', ' ').slice(0, 16)} UTC`) : l.saleType === 'buy-now' ? 'buy now' : 'no end time'
+    const basis = d.estimate.ok && d.estimate.basis ? `${d.estimate.basis.sold} sold, ${d.estimate.basis.asks} asking, ${d.estimate.basis.bids} open bids` : `${d.comps} cars`
+    out(`${String(start + i).padStart(2)}. ${l.title}`)
+    out(`    ${l.mileage !== undefined ? l.mileage.toLocaleString('en-US') + ' mi' : 'miles not stated'} · ${where} · ${l.source} · ${ends}`)
+    out(`    Price now ${money(d.priceUsd)} · all-in ${money(d.allInUsd)}${d.feeKnown ? '' : ' (fee not counted)'} · similar cars ${money(d.resaleUsd)} (${basis})`)
+    out(`    Est. profit ${money(d.spreadUsd)} (${Math.round(d.spreadPct * 100)}%) at today's price · never bid above ${money(d.ceilingUsd)}`)
+    out(`    Title clean · damage ${l.damage} · runs: ${l.runsAndDrives === true ? 'yes (seller)' : 'not stated'} · ${l.url}`)
+    if (d.evidence === 'bids only') out(`    ⚠ ${d.cautions[0]}`)
+  })
 }
-out(`${r.deals.length} deal${r.deals.length === 1 ? '' : 's'} fit ${money(budget)}. Biggest estimated profit first.`)
 out('Profit = what similar cars go for, minus price + buyer fee + transport + $750 cushion, before selling costs. An estimate, not a promise.')
 out()
-r.deals.slice(0, top).forEach((d, i) => {
-  const l = d.listing
-  const where = [l.location?.city, l.location?.state].filter(Boolean).join(', ') || 'location not stated'
-  const ends = l.endsAt ? (l.endsAtDateOnly ? `closes ${new Date(l.endsAt).toISOString().slice(0, 10)}` : `ends ${new Date(l.endsAt).toISOString().replace('T', ' ').slice(0, 16)} UTC`) : l.saleType === 'buy-now' ? 'buy now' : 'no end time'
-  out(`${String(i + 1).padStart(2)}. ${l.title}`)
-  out(`    ${l.mileage !== undefined ? l.mileage.toLocaleString('en-US') + ' mi' : 'miles not stated'} · ${where} · ${l.source} · ${ends}`)
-  out(`    Price now ${money(d.priceUsd)} · all-in ${money(d.allInUsd)}${d.feeKnown ? '' : ' (fee not counted)'} · similar cars ${money(d.resaleUsd)} from ${d.comps} (${d.confidence})`)
-  out(`    Est. profit ${money(d.spreadUsd)} (${Math.round(d.spreadPct * 100)}%) at today's price · never bid above ${money(d.ceilingUsd)}`)
-  out(`    Title clean · damage ${l.damage} · runs: ${l.runsAndDrives === true ? 'yes (seller)' : 'not stated'} · ${l.url}`)
-})
+if (r.deals.length) {
+  out(`DEALS: ${r.deals.length} fit ${money(budget)}, valued on sold or asking prices. Biggest estimated profit first.`)
+  print(r.deals)
+} else {
+  out(`DEALS: none confirmed at ${money(budget)} right now. A confirmed deal needs at least 3 sold or asking prices for the same car; connect eBay (free) or auto.dev (free tier) for asking prices.`)
+}
+if (r.leads.length) {
+  out()
+  out(`LEADS: ${r.leads.length} passed every check, but their value rests mostly on bids still running. Check sold prices before you bid.`)
+  print(r.leads)
+}

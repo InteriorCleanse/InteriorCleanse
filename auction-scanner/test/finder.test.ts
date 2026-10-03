@@ -60,3 +60,31 @@ test('thin evidence is labelled; an unknown sliding-scale fee is called out, nev
   const copart = findDeals([card(fx({ source: 'copart' }))], { budgetUsd: 15_000, now: NOW }).deals[0]
   if (copart && !copart.feeKnown) assert.ok(copart.cautions.some((c) => /sliding scale/.test(c)))
 })
+
+test('a value that rests on bids still running makes a lead, never a deal', () => {
+  const bidsOnly: Estimate = { ok: true, valueUsd: 15_000, low: 13_000, high: 17_000, comps: 4, method: 'test fixture', basis: { sold: 0, asks: 1, bids: 3 } }
+  const asks: Estimate = { ...bidsOnly, basis: { sold: 1, asks: 2, bids: 1 } }
+  const r = findDeals([card(fx(), bidsOnly), card(fx(), asks)], { budgetUsd: 15_000, now: NOW })
+  assert.equal(r.deals.length, 1)
+  assert.equal(r.deals[0].evidence, 'confirmed')
+  assert.equal(r.leads.length, 1)
+  assert.equal(r.leads[0].evidence, 'bids only')
+  assert.match(r.leads[0].cautions[0], /bids still running/)
+})
+
+test('the estimator says what its comparables are and lists them, closest first', async () => {
+  const { estimateValue } = await import('../src/valuation.ts')
+  const target = fx({ id: 't', year: 2018, mileage: 60_000 })
+  const pool = [
+    fx({ id: 'c1', year: 2018, mileage: 61_000, currentBidUsd: undefined, buyNowUsd: 14_000 }),
+    fx({ id: 'c2', year: 2017, mileage: 80_000, currentBidUsd: 9_000 }),
+    fx({ id: 'c3', year: 2019, mileage: 40_000, currentBidUsd: undefined, soldUsd: 16_000 }),
+  ]
+  const e = estimateValue(target, pool)
+  assert.ok(e.ok)
+  if (!e.ok) return
+  assert.deepEqual(e.basis, { sold: 1, asks: 1, bids: 1 })
+  assert.equal(e.used?.length, 3)
+  assert.equal(e.used?.[0].id, 'c1', 'same year and nearest miles first')
+  assert.deepEqual(e.used?.map((u) => u.priceKind).sort(), ['ask', 'bid', 'sold'])
+})

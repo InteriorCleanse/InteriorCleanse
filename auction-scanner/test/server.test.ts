@@ -618,3 +618,24 @@ test('a member sees no server setup: no Connect, no variable names; the owner is
   const ownerMe = await api('/api/me')
   assert.match(JSON.stringify(ownerMe.body.sources), /GAVEL_/)
 })
+
+test('the deal finder answers with a budget, says when the cars are samples, and refuses a silly budget', async () => {
+  const owner = await api('/api/login', { method: 'POST', json: { pin: PIN }, noCsrf: true })
+  cookie = (owner.headers.get('set-cookie') ?? '').split(';')[0]
+  csrf = owner.body.csrf
+  const r = await api('/api/deals?budget=15000')
+  assert.equal(r.status, 200)
+  assert.ok(['LIVE', 'SAMPLE'].includes(r.body.kind))
+  // Imported lots count as live; once anything is live, no practice car is ever ranked.
+  if (r.body.kind === 'LIVE') assert.ok(r.body.deals.every((d: any) => d.listing.kind === 'LIVE'))
+  assert.ok(Array.isArray(r.body.deals))
+  for (const d of r.body.deals) {
+    assert.equal(d.listing.titleStatus, 'clean')
+    assert.ok(['none', 'minor'].includes(d.listing.damage))
+    assert.ok(d.allInUsd <= 15000)
+    assert.ok(d.spreadUsd > 0)
+  }
+  const clean = await api('/api/deals?budget=15000&damage=none')
+  assert.ok(clean.body.deals.every((d: any) => d.listing.damage === 'none'))
+  assert.equal((await api('/api/deals?budget=10')).status, 400)
+})
