@@ -25,6 +25,8 @@ are retired one component family at a time.
 | Chart | `--chart-up/down/grid/axis/event/1–4` | up and down colours mean up and down only |
 | Focus | `--focus-ring` | one visible ring everywhere |
 
+**Living, not looping.** Motion answers state. On Home, a desk figure or the engine cell that changes gets one soft highlight (`.cc-fresh`), and the backdrop follows the lean, the volatility and data freshness (section 3). Nothing pulses forever.
+
 **Home is a command center** (`web/js/overview.js`):
 1. A status rail: mode and live-gate count, operations, data source and candle
    age, engine, open paper positions.
@@ -130,7 +132,7 @@ the text colour. No emoji in navigation.
 | Effect | Where | Technique |
 |---|---|---|
 | The core | Home | A sci-fi reactor drawn on a 2D canvas (`web/js/core.js`, no library). The eye in the middle holds the agreement score, with its arc and the act-at tick, inside a plasma corona in the fused direction's colour. Around it, a 3D gimbal of three tilted rings spins in perspective, and each strategy rides a ring as a satellite, coloured by its vote, sized by its confidence and hollow when the regime switches it off, firing pulses into the core. The desk agents are hexagonal ports round the edge, feeding conduits coloured by what they can see. An outer gauge repeats the score at room scale. Dressing: plasma filaments and flares, an accretion disk spiralling inward, shockwaves as votes land, graduated HUD rings and a radar sweep. Drag to turn the gimbal (it keeps a little momentum), point at a satellite or port for a card, click to jump to its row. Seeded; paused off-screen and still under reduced motion. Pointing at a model in the list lights its satellite, and pointing at a satellite lights its row |
-| Ambient light | page background | four slow colour fields in the palette's own hues (`web/js/bg.js`), plus 3.5% SVG grain |
+| Ambient light | page background | a living backdrop (`web/js/bg.js`): four colour fields per theme (Midnight aurora, Plum, Slate, Onyx, Daylight, Linen), plus a **lean field**, mint for a long lean and coral for a short one, stronger as agreement rises. Fields drift faster when volatility is high, the room **dims when the candle feed is stale**, and **one wave crosses it per new candle check**. Every change eases over about two seconds. Under reduced motion it draws still frames that keep the tint. Dark themes let it glow through slightly translucent panels (no blur). Plus 3.5% SVG grain |
 | Glass | header, nav, bottom bar | `backdrop-filter`, switched off under reduced transparency |
 | Mascot | header | SMIL-animated SVG |
 
