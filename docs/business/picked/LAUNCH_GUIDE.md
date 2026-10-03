@@ -4,17 +4,18 @@
 sell it on your own site, sample it in person, then climb the store ladder one
 rung at a time as the numbers allow.
 
-Dates assume you start the week of 2026-10-05. Estimates are marked; sources
+Dates assume you start the week of 2026-10-05. Exact target dates are in
+`TIMELINE.md`. Estimates are marked; sources
 are in `RESEARCH.md`.
 
 ## Week 1: set up and start the clock
 
 The manufacturer is the long pole, so the request for quotes goes out first.
 
-- [ ] Email the request for quotes (`outreach/01-manufacturer-rfq.md` plus `FORMULA_BRIEF.md`) to five manufacturers: NutraSeller, Makers Nutrition, Nutrablend Foods, Nutracap, Cpack.
+- [ ] Email the request for quotes (`outreach/01-manufacturer-rfq.md` plus `FORMULA_BRIEF.md`) to six manufacturers. **Pure Private Label first**: its 144-unit minimum and $695 custom samples make a small test run possible. Then NutraSeller, Makers Nutrition, Nutrablend Foods, Nutracap, Cpack.
 - [ ] Search "PICKED" at tmsearch.uspto.gov, then book a trademark attorney for a clearance opinion.
 - [ ] Register pickedprotein.com and drinkpicked.com. Claim @pickedprotein on Instagram and TikTok.
-- [ ] Form an LLC, get an EIN (free, online, same day), and open a business bank account.
+- [ ] Form the company (an LLC if you're bootstrapping, a Delaware C-corp if you plan to raise money; see `LEGAL.md`), get an EIN (free, online, same day), open a business bank account, and get a home-state sales tax permit.
 - [ ] Put the waitlist site live (`site/`, see `site/README.md`) with a Klaviyo signup form.
 - [ ] Download the six mood photos (`brand/mood/MOOD.md`) and drop two into `site/assets/img/`.
 - [ ] Set up Klaviyo's sending domain and the waitlist welcome flow (`marketing/EMAIL.md`, section 0 first).
@@ -69,6 +70,12 @@ Retailers buy what you prove you can move.
 
 ## Budget (estimates)
 
+**The lean path:** if Pure Private Label can make the formula, a 144-pouch
+first run cuts the cash needed to about $15k to $25k through May 2027,
+including hydration sticks and a second flavor. See `TIMELINE.md`. The table
+below is the standard path with 1,000-pouch runs.
+
+
 | Item | Strawberry only | All three flavours |
 | --- | --- | --- |
 | LLC, trademark (2 classes), GS1, domain | $1,500 | $1,500 |
@@ -82,6 +89,16 @@ Retailers buy what you prove you can move.
 
 **Recommendation:** launch Strawberry only. Fund Mango and Raspberry Lemon
 from the first run's sales, and use the waitlist vote to pick which comes next.
+
+## Growing past protein
+
+- **Products:** `EXPANSION.md` sets the order: real-fruit hydration sticks,
+  the second and third protein flavors, creatine, greens or collagen with
+  fruit, then a ready-to-drink clear protein water. Each wave has a gate.
+- **Running it:** `OPERATIONS.md` covers the $39-a-month store, the nine
+  automations, and when to hand packing to a fulfillment warehouse.
+- **Legal:** `LEGAL.md` is the checklist, and `legal/` has the drafts for a
+  lawyer to review.
 
 ## Never do these
 

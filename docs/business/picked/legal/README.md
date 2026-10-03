@@ -10,6 +10,7 @@ before you use it. Brackets mark facts only you can supply.
 | `privacy-policy.md` | What the store collects and why | First email signup |
 | `shipping-and-returns.md` | Shipping times, damaged orders, refunds | First sale |
 | `subscription-terms.md` | Auto-renewing orders and how to cancel | First subscription |
+| `consumer-health-data-policy.md` | Washington's My Health My Data Act and similar laws | First sale |
 | `wholesale-terms.md` | Terms for stores buying direct | First store account |
 | `mutual-nda.md` | Talking formulas with a manufacturer | First manufacturer call |
 | `supply-agreement-term-sheet.md` | What the manufacturing contract must cover | Before the first deposit |

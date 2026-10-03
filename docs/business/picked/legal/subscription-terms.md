@@ -8,6 +8,13 @@ before and after you subscribe. [Lawyer: confirm the layout meets the
 California Automatic Renewal Law and other state auto-renewal laws, and
 ROSCA.]
 
+## How you sign up
+
+At checkout, next to the subscribe option, you see the price, how often you
+are charged, that it renews until you cancel, and how to cancel. You confirm
+by ticking a separate box that is not pre-ticked and is not bundled with any
+other terms. We keep a record of that consent for at least 3 years.
+
 ## What you agree to
 
 - Your subscription **renews automatically** and we charge the card on file
@@ -22,7 +29,8 @@ ROSCA.]
 - **Online, any time:** log in at pickedprotein.com/account, choose
   Subscriptions, then Cancel. Cancelling takes [two] clicks and no phone
   call or chat.
-- **By email:** hello@pickedprotein.com.
+- **By email:** hello@pickedprotein.com. Cancelling is as easy as signing up
+  and works the same way you signed up.
 - Cancel at least [1] day before your next charge date to avoid that charge.
   We will confirm every cancellation by email.
 
@@ -30,9 +38,12 @@ ROSCA.]
 
 - We will email you [3 to 7] days before each charge with the date, the
   amount, and a link to skip or cancel.
-- We will give you at least [7] days' notice of any price change, with a
-  link to cancel. [Lawyer: some states require express consent for price
-  changes. Confirm what applies.]
+- We will give you between 7 and 30 days' notice of any price change, with a
+  link to cancel. [Lawyer: confirm whether any state requires fresh consent
+  for a price change.]
+- For plans that renew for longer than [one month at a time], we send a
+  renewal reminder 15 to 45 days before renewal. [Lawyer: confirm which plans
+  trigger New York's reminder rule.]
 - If your subscription runs for a year, we will send an annual reminder of
   its terms and how to cancel.
 
