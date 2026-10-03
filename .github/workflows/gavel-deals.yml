@@ -18,12 +18,21 @@ on:
         description: 'Most damage allowed: none or minor'
         required: true
         default: 'minor'
+      min_year:
+        description: 'Oldest model year wanted (blank = any year)'
+        required: false
+        default: ''
+      min_profit:
+        description: 'Leave out cars with an estimated profit under this (dollars, blank = any)'
+        required: false
+        default: ''
       makes:
         description: 'Makes to search, comma separated (blank = 20 popular makes)'
         required: false
         default: ''
 
-  # Also when the finder changes, so a change is seen on real lots: three budgets.
+  # Also when the finder changes, so a change is seen on real lots: the owner's
+  # starting budget ($3,000 to $5,000), any year and 2014 or newer.
   push:
     paths: ['auction-scanner/src/finder.ts', 'auction-scanner/src/find.ts', '.github/workflows/gavel-deals.yml']
 
@@ -36,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        budget: ${{ fromJSON(inputs.budget && format('["{0}"]', inputs.budget) || '["10000", "20000", "40000"]') }}
+        include: ${{ fromJSON(inputs.budget && format('[{{"budget":"{0}","min_year":"{1}"}}]', inputs.budget, inputs.min_year) || '[{"budget":"3000","min_year":""},{"budget":"5000","min_year":""},{"budget":"5000","min_year":"2014"}]') }}
     defaults:
       run:
         working-directory: auction-scanner
@@ -51,6 +60,8 @@ jobs:
         env:
           BUDGET: ${{ matrix.budget }}
           DAMAGE: ${{ inputs.damage || 'minor' }}
+          MIN_YEAR: ${{ matrix.min_year }}
+          MIN_PROFIT: ${{ inputs.min_profit }}
           MAKES: ${{ inputs.makes }}
           GAVEL_GSA: '1'
           GAVEL_GSA_API_KEY: ${{ secrets.GAVEL_GSA_API_KEY }}

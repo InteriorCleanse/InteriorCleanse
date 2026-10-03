@@ -1,5 +1,5 @@
 /**
- * `npm run find -- --budget 15000 [--damage none|minor] [--makes "Toyota,Honda"] [--top 25]`
+ * `npm run find -- --budget 15000 [--damage none|minor] [--min-year 2015] [--min-profit 2500] [--makes "Toyota,Honda"] [--top 25]`
  *
  * Reads every connected live source now, prices each car against similar cars
  * from the same scan, and prints the deals that fit the budget: clean title,
@@ -33,6 +33,10 @@ if (!Number.isFinite(budget) || budget < 500) {
   process.exit(2)
 }
 const maxDamage = (arg('damage') ?? process.env.DAMAGE ?? 'minor') === 'none' ? 'none' : 'minor'
+const minYearRaw = Number(arg('min-year') ?? process.env.MIN_YEAR ?? '')
+const minYear = Number.isInteger(minYearRaw) && minYearRaw >= 1950 && minYearRaw <= 2050 ? minYearRaw : undefined
+const minProfitRaw = Number(arg('min-profit') ?? process.env.MIN_PROFIT ?? '')
+const minProfitUsd = Number.isFinite(minProfitRaw) && minProfitRaw > 0 ? minProfitRaw : undefined
 const top = Math.max(1, Math.min(100, Number(arg('top') ?? 25) || 25))
 // Searched one make at a time so each car meets enough of its own kind to be priced.
 const DEFAULT_MAKES = ['Toyota', 'Honda', 'Lexus', 'Ford', 'Chevrolet', 'Jeep', 'Subaru', 'Mazda', 'Nissan', 'Hyundai', 'Kia', 'BMW', 'Mercedes-Benz', 'Audi', 'Porsche', 'Tesla', 'Ram', 'GMC', 'Dodge', 'Volkswagen']
@@ -44,7 +48,7 @@ function out(line = ''): void {
 }
 
 const live = sourceStatuses().filter((s) => s.kind === 'api' && s.connected).map((s) => s.name)
-out(`Gavel deal finder · budget ${money(budget)} · damage: ${maxDamage === 'none' ? 'none' : 'none or minor'} · ${new Date().toISOString()}`)
+out(`Gavel deal finder · budget ${money(budget)} · damage: ${maxDamage === 'none' ? 'none' : 'none or minor'}${minYear ? ` · ${minYear} or newer` : ''}${minProfitUsd ? ` · profit at least ${money(minProfitUsd)}` : ''} · ${new Date().toISOString()}`)
 out(`Live sources: ${live.length ? live.join(', ') : 'none connected'}`)
 if (!live.length) {
   out('No live source is connected, so there are no real cars to rank. Set GAVEL_GSA=1 (free) or add eBay keys, then run again.')
@@ -66,7 +70,7 @@ const cards: DealCard[] = [...listings.values()].map((l) => {
   const estimate = estimateValue(l, comps)
   return { listing: l, estimate, score: scoreListing(l, estimate, demandFor(l.make, l.model)) }
 })
-const r = findDeals(cards, { budgetUsd: budget, maxDamage })
+const r = findDeals(cards, { budgetUsd: budget, maxDamage, minYear, minProfitUsd })
 
 out(`Read ${listings.size} live cars and ${comps.length} prices to compare against.${notes.size ? ` Notes: ${[...notes].join(' | ')}` : ''}`)
 const ex = Object.entries(r.excluded).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ')
@@ -80,13 +84,13 @@ function print(list: typeof r.deals, start = 1): void {
     const basis = d.estimate.ok && d.estimate.basis ? `${d.estimate.basis.sold} sold, ${d.estimate.basis.asks} asking, ${d.estimate.basis.bids} open bids` : `${d.comps} cars`
     out(`${String(start + i).padStart(2)}. ${l.title}`)
     out(`    ${l.mileage !== undefined ? l.mileage.toLocaleString('en-US') + ' mi' : 'miles not stated'} · ${where} · ${l.source} · ${ends}`)
-    out(`    Price now ${money(d.priceUsd)} · all-in ${money(d.allInUsd)}${d.feeKnown ? '' : ' (fee not counted)'} · similar cars ${money(d.resaleUsd)} (${basis})`)
+    out(`    Price now ${money(d.priceUsd)} · all-in ${money(d.allInUsd)}${d.feeKnown ? '' : ' (fee not counted)'} incl. ${money(d.materialsUsd)} materials · similar cars ${money(d.resaleUsd)} (${basis})`)
     out(`    Est. profit ${money(d.spreadUsd)} (${Math.round(d.spreadPct * 100)}%) at today's price · never bid above ${money(d.ceilingUsd)}`)
     out(`    Title clean · damage ${l.damage} · runs: ${l.runsAndDrives === true ? 'yes (seller)' : 'not stated'} · ${l.url}`)
     if (d.evidence === 'bids only') out(`    ⚠ ${d.cautions[0]}`)
   })
 }
-out('Profit = what similar cars go for, minus price + buyer fee + transport + $750 cushion, before selling costs. An estimate, not a promise.')
+out('Profit = what similar cars go for, minus price + buyer fee + transport + likely materials + $750 cushion, before selling costs. An estimate, not a promise.')
 out()
 if (r.deals.length) {
   out(`DEALS: ${r.deals.length} fit ${money(budget)}, valued on sold or asking prices. Biggest estimated profit first.`)

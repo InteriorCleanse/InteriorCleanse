@@ -34,7 +34,7 @@ import { buildPlan } from './bidplan.ts'
 import type { PlanInputs } from './bidplan.ts'
 import { walkthrough } from './explain.ts'
 import type { Walkthrough } from './explain.ts'
-import { aiStatus, aiWalkthrough } from './ai.ts'
+import { aiAdvise, aiStatus, aiWalkthrough } from './ai.ts'
 import { addWatch, listPaper, listWatch, paperSummary, placePaperBid, removeWatch, setOutcome } from './paper.ts'
 import { getSettings, updateSettings } from './settings.ts'
 import type { Settings } from './settings.ts'
@@ -50,7 +50,7 @@ import { MemberGate, handleStripeEvent, verifyStripeSignature } from './security
 import type { StripeEvent } from './security/members.ts'
 import { Throttle } from './security/throttle.ts'
 import { DATA_DIR, PERSONAL_FILES, adoptLegacyFiles, currentUser, ensureDataDir, listUserScopes, readJson, userFile, withUser, writeJson } from './store.ts'
-import { addCar, addCost, addIncome, garageSummary, listGarage, removeCar, removeEntry, totalsFor, updateCar, validateGarageFile } from './garage.ts'
+import { addCar, addCost, addIncome, garageSummary, listGarage, removeCar, removeEntry, totalsFor, unassignCompany, updateCar, validateGarageFile } from './garage.ts'
 import { validateTarget } from './sniper/targets.ts'
 import { listImports, removeImport, saveImports } from './imports.ts'
 import { listSold, recentSold, removeSold, saveSold } from './sold.ts'
@@ -72,6 +72,16 @@ import { autodevComps, autodevConfigured } from './sources/autodev.ts'
 import { vinauditConfigured, vinauditEstimate, vinauditValue } from './sources/vinaudit.ts'
 import { isStateCode } from './states.ts'
 import { findDeals } from './finder.ts'
+import { addCompany, addOverhead, listCompanies, removeCompany, removeOverhead, updateCompany, validateCompaniesFile } from './companies.ts'
+import { businessReport } from './business.ts'
+import { answerFromBooks, briefing } from './advisor.ts'
+import type { BriefingInput } from './advisor.ts'
+import { materialsFor } from './materials.ts'
+import { estimatePnl, pnlInputFrom } from './pnl.ts'
+import type { PnlInput } from './pnl.ts'
+import { cleanQuery, partCategories, partLinks, vehicleFrom } from './parts.ts'
+import { ebayConfigured, searchEbayParts } from './sources/ebay.ts'
+import { splitTitle } from './sources/normalize.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = resolve(HERE, '..', 'web')
@@ -663,6 +673,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const settings = getSettings()
       const budget = num(url.searchParams.get('budget') ?? '', 'budget', { min: 500, max: 5_000_000 })!
       const maxDamage = url.searchParams.get('damage') === 'none' ? 'none' as const : 'minor' as const
+      const minYearN = Number(url.searchParams.get('minYear') ?? '')
+      const minYear = Number.isInteger(minYearN) && minYearN >= 1950 && minYearN <= 2050 ? minYearN : undefined
+      const minProfitN = Number(url.searchParams.get('minProfit') ?? '')
+      const minProfitUsd = Number.isFinite(minProfitN) && minProfitN > 0 && minProfitN <= 1_000_000 ? minProfitN : undefined
       const asked = str(url.searchParams.get('makes') ?? '', 300).split(',').map((m) => m.trim()).filter(Boolean).slice(0, 8)
       const fromTargets = [...new Set(listTargets().flatMap((t) => t.makes))]
       const makes = asked.length ? asked : fromTargets.length ? fromTargets.slice(0, 8) : DEAL_MAKES
@@ -676,8 +690,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         for (const c of r.cards) byId.set(c.listing.id, c)
         for (const e of r.errors) errors.add(e)
       }
-      const result = findDeals([...byId.values()], { budgetUsd: budget, maxDamage, feeOverrides: settings.feeOverrides, taxTitlePct: settings.taxTitlePct, allowSample: kind === 'SAMPLE', now: now() })
-      return json(res, 200, { kind, budget, maxDamage, makes, ...result, deals: result.deals.slice(0, 40), leads: result.leads.slice(0, 20), errors: session.role === 'owner' ? [...errors] : memberErrors([...errors]) })
+      const result = findDeals([...byId.values()], { budgetUsd: budget, maxDamage, minYear, minProfitUsd, feeOverrides: settings.feeOverrides, taxTitlePct: settings.taxTitlePct, allowSample: kind === 'SAMPLE', now: now() })
+      return json(res, 200, { kind, budget, maxDamage, minYear: minYear ?? null, minProfitUsd: minProfitUsd ?? null, makes, ...result, deals: result.deals.slice(0, 40), leads: result.leads.slice(0, 20), errors: session.role === 'owner' ? [...errors] : memberErrors([...errors]) })
     }
 
     if (path === '/api/feed' && method === 'GET') {
@@ -966,6 +980,27 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       return json(res, 200, { items, done: items.filter((i) => i.done).length, total: items.length })
     }
 
+    const carsWithTotals = (t: number) => listGarage().map((c) => ({ ...c, totals: totalsFor(c, t) }))
+    const briefingFor = (t: number): BriefingInput => {
+      const settings = getSettings()
+      const cars = carsWithTotals(t)
+      const companies = listCompanies()
+      const endingSoon = uniquePicks(sniperFor(session.email).picks)
+        .filter((p) => p.card.listing.endsAt && p.card.listing.endsAt > t && !p.card.listing.endsAtDateOnly)
+        .sort((a, b) => (a.card.listing.endsAt ?? 0) - (b.card.listing.endsAt ?? 0))
+        .slice(0, 3)
+        .map((p) => ({ listingId: p.card.listing.id, title: p.card.listing.title, endsAt: p.card.listing.endsAt as number, maxBidUsd: p.fire.maxBidUsd }))
+      return {
+        report: businessReport(cars, companies, t), cars, companies, cashUsd: settings.cashUsd, goal: settings.goal, taxTitlePctSet: settings.taxTitlePct !== undefined,
+        endingSoon, unreadAlerts: listAlerts().filter((a) => !a.read).length, paperBids: listPaper().length,
+        liveSource: sourceStatuses().some((x) => x.kind === 'api' && x.connected), now: t,
+      }
+    }
+    const carVehicle = (c: { year?: number; make?: string; model?: string; title: string; vin?: string }) => {
+      const t = splitTitle(c.title)
+      return { year: c.year ?? t.year, make: c.make ?? t.make, model: c.model ?? t.model, vin: c.vin }
+    }
+
     if (path === '/api/home' && method === 'GET') {
       const settings = getSettings()
       const st = sniperFor(session.email)
@@ -996,7 +1031,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         { id: 'learn', title: 'Read "Your first auction car"', body: 'Twelve minutes that save you from the expensive mistakes.', href: '#playbook/first-car', done: (settings.readGuides ?? []).includes('first-car') },
         { id: 'paper', title: 'Place three PAPER bids', body: 'Practise the number before you spend a dollar. Record how each one ended.', href: '#feed', done: paper.length >= 3 },
         { id: 'import', title: 'Bring in a lot from Copart, IAA or any auction', body: 'Add the Send to Gavel button once, then one click on any lot page scores it and plans your bid.', href: '#import', done: listImports().length > 0 },
-        { id: 'garage', title: settings.goal === 'rental' ? 'Log your first rental car in the Garage' : 'Log your first car in the Garage', body: 'Every cost in, every dollar out. The ledger tells you if the business works.', href: '#garage', done: garage.cars > 0 },
+        { id: 'garage', title: settings.goal === 'rental' ? 'Log your first rental car in Business' : 'Log your first car in Business', body: 'Every cost in, every dollar out, per company. The books tell you if the business works.', href: '#business', done: garage.cars > 0 },
       ]
       return json(res, 200, {
         goal: settings.goal ?? null,
@@ -1007,6 +1042,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         watch: watch.slice(0, 6).map((w) => ({ listingId: w.listingId, title: w.title, endsAt: w.snapshot?.endsAt ?? null, priceUsd: w.snapshot ? (w.snapshot.currentBidUsd ?? w.snapshot.buyNowUsd ?? null) : null, kind: w.snapshot?.kind ?? null })),
         paper: paperSummary(),
         garage,
+        partner: briefing(briefingFor(t)),
         next,
       })
     }
@@ -1038,6 +1074,115 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       } catch (e) {
         throw new HttpError(400, e instanceof Error ? e.message : 'Setup was not saved.')
       }
+    }
+
+    // ---- The business: companies, books, the partner, materials, P/L, parts ----
+    if (path === '/api/business' && method === 'GET') {
+      const t = now()
+      const input = briefingFor(t)
+      return json(res, 200, {
+        report: input.report,
+        briefing: briefing(input),
+        companies: input.companies,
+        cars: input.cars.map((c) => ({ ...c, materials: materialsFor({ ...carVehicle(c), mileage: c.mileage }, t) })),
+      })
+    }
+
+    if (parts[1] === 'companies') {
+      const t = now()
+      const id = parts[2] ? decodeURIComponent(parts[2]) : ''
+      try {
+        if (path === '/api/companies' && method === 'POST') return json(res, 200, addCompany(await readJsonBody(req), t))
+        if (id && parts.length === 3 && method === 'POST') return json(res, 200, updateCompany(id, await readJsonBody(req), t))
+        if (id && parts.length === 3 && method === 'DELETE') {
+          if (!removeCompany(id)) throw new HttpError(404, 'No company with that id.')
+          return json(res, 200, { ok: true, carsUnassigned: unassignCompany(id) })
+        }
+        if (id && parts[3] === 'overhead' && parts.length === 4 && method === 'POST') return json(res, 200, addOverhead(id, await readJsonBody(req), t))
+        if (id && parts[3] === 'overhead' && parts[4] && method === 'DELETE') return json(res, 200, removeOverhead(id, decodeURIComponent(parts[4]), t))
+      } catch (e) {
+        if (e instanceof HttpError) throw e
+        throw new HttpError(/No company|No entry/.test(e instanceof Error ? e.message : '') ? 404 : 400, e instanceof Error ? e.message : 'That was not saved.')
+      }
+    }
+
+    if (path === '/api/assistant/ask' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const question = str(body.question, 1000).trim()
+      if (!question) throw new HttpError(400, 'Ask a question about your business.')
+      const input = briefingFor(now())
+      const brief = briefing(input)
+      const context = { settings: { cashUsd: input.cashUsd ?? null, goal: input.goal ?? null }, report: input.report, briefing: brief, companies: input.companies.map((c) => ({ ...c, notes: undefined })), cars: input.cars.map((c) => ({ title: c.title, company: c.companyId ?? null, status: c.status, boughtAt: c.boughtAt, purchaseUsd: c.purchaseUsd, costs: c.costs, income: c.income, totals: c.totals, targetSaleUsd: c.targetSaleUsd ?? null })) }
+      const ai = await aiAdvise(question, context)
+      return json(res, 200, ai ? { answer: ai, source: 'ai' } : answerFromBooks(question, input, brief))
+    }
+
+    if (path === '/api/materials' && method === 'GET') {
+      const listingId = str(url.searchParams.get('listingId') ?? '', 200)
+      if (listingId) {
+        const l = await ensureKnown(listingId)
+        return json(res, 200, { title: l.title, ...materialsFor(l, now()) })
+      }
+      const carId = str(url.searchParams.get('carId') ?? '', 80)
+      const car = carId ? listGarage().find((c) => c.id === carId) : undefined
+      if (!car) throw new HttpError(404, 'Give a listing or a car from your books.')
+      return json(res, 200, { title: car.title, done: car.materialsDone ?? [], ...materialsFor({ ...carVehicle(car), mileage: car.mileage }, now()) })
+    }
+
+    if (path === '/api/pnl/prefill' && method === 'GET') {
+      // What Gavel already knows about the car, so the estimator opens filled in. Every figure keeps its source.
+      const settings = getSettings()
+      const t = now()
+      const listingId = str(url.searchParams.get('listingId') ?? '', 200)
+      const carId = str(url.searchParams.get('carId') ?? '', 80)
+      if (listingId) {
+        const l = await ensureKnown(listingId)
+        const card = await cardWithValue(l, settings)
+        const price = l.currentBidUsd ?? l.buyNowUsd
+        const m = materialsFor(l, t)
+        const input: Partial<PnlInput> = { buyUsd: price, houseId: l.source, feePct: settings.feeOverrides?.[l.source], taxTitlePct: settings.taxTitlePct, materialsUsd: m.expectedUsd, materialsFromRanges: true }
+        if (card.estimate.ok) Object.assign(input, { saleUsd: card.estimate.valueUsd, saleLowUsd: card.estimate.low, saleHighUsd: card.estimate.high })
+        return json(res, 200, { title: l.title, kind: l.kind, input, estimate: card.estimate.ok ? { valueUsd: card.estimate.valueUsd, comps: card.estimate.comps, low: card.estimate.low, high: card.estimate.high } : null, materials: m })
+      }
+      const car = carId ? listGarage().find((c) => c.id === carId) : undefined
+      if (!car) throw new HttpError(404, 'Give a listing or a car from your books.')
+      const totals = totalsFor(car, t)
+      const m = materialsFor({ ...carVehicle(car), mileage: car.mileage }, t)
+      const done = new Set(car.materialsDone ?? [])
+      const left = m.items.filter((x) => x.need !== 'check' && !done.has(x.id)).reduce((s, x) => s + (x.lowUsd + x.highUsd) / 2, 0)
+      const input: Partial<PnlInput> = { buyUsd: car.purchaseUsd, spentUsd: totals.spentUsd, materialsUsd: Math.round(left), materialsFromRanges: true, saleUsd: car.targetSaleUsd }
+      return json(res, 200, { title: car.title, kind: 'BOOKS', input, totals, materials: m })
+    }
+
+    if (path === '/api/pnl' && method === 'POST') {
+      try {
+        return json(res, 200, estimatePnl(pnlInputFrom(await readJsonBody(req))))
+      } catch (e) {
+        throw new HttpError(400, e instanceof Error ? e.message : 'That could not be worked out.')
+      }
+    }
+
+    if (path === '/api/parts' && method === 'GET') {
+      const carId = str(url.searchParams.get('carId') ?? '', 80)
+      const car = carId ? listGarage().find((c) => c.id === carId) : undefined
+      if (carId && !car) throw new HttpError(404, 'No car with that id in your books.')
+      let vehicle
+      try {
+        vehicle = vehicleFrom(car ? carVehicle(car) : { year: url.searchParams.get('year'), make: url.searchParams.get('make'), model: url.searchParams.get('model'), vin: url.searchParams.get('vin') })
+      } catch (e) {
+        throw new HttpError(400, car ? `${car.title}: add its year, make and model in the books first.` : e instanceof Error ? e.message : 'Pick a car.')
+      }
+      const q = url.searchParams.get('q')
+      if (!q) return json(res, 200, { vehicle, categories: partCategories(), ebayConnected: ebayConfigured() })
+      let query: string
+      try { query = cleanQuery(q) } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : 'Say which part.') }
+      let items: Awaited<ReturnType<typeof searchEbayParts>> = []
+      let error: string | null = null
+      if (ebayConfigured()) {
+        const timed: typeof fetch = (input, init) => fetchImpl(input, { ...init, signal: AbortSignal.timeout(8_000) })
+        try { items = await searchEbayParts(vehicle, query, timed) } catch (e) { error = session.role === 'owner' && e instanceof Error ? e.message : 'eBay did not answer just now. The store links below still work.' }
+      }
+      return json(res, 200, { vehicle, query, ebayConnected: ebayConfigured(), items, error, links: partLinks(vehicle, query) })
     }
 
     if (parts[1] === 'garage') {
@@ -1080,6 +1225,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         const targets = list('targets.json')?.map((x) => validateTarget(x, x as never))
         const alerts = list('alerts.json')
         const garage = f['garage.json'] === null || f['garage.json'] === undefined ? undefined : validateGarageFile(f['garage.json'])
+        const companies = f['companies.json'] === null || f['companies.json'] === undefined ? undefined : validateCompaniesFile(f['companies.json'])
         for (const [i, w] of (watch ?? []).entries()) if (!w || typeof (w as { listingId?: unknown }).listingId !== 'string') throw new Error(`watchlist[${i}] is missing its listing id.`)
         for (const [i, b] of (paper ?? []).entries()) if (!b || (b as { mode?: unknown }).mode !== 'PAPER' || typeof (b as { maxBidUsd?: unknown }).maxBidUsd !== 'number') throw new Error(`paper-bids[${i}] is not a paper bid.`)
         // Imports and sold prices are checked exactly like new input, so a hand-edited backup cannot slip anything past.
@@ -1097,6 +1243,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         if (paper) { writeJson(userFile('paper-bids.json'), paper); restored.push('paper-bids.json') }
         if (targets) { writeJson(userFile('targets.json'), targets); restored.push('targets.json') }
         if (alerts) { writeJson(userFile('alerts.json'), alerts.slice(0, 200)); restored.push('alerts.json') }
+        if (companies) { writeJson(userFile('companies.json'), companies); restored.push('companies.json') }
         if (garage) { writeJson(userFile('garage.json'), garage); restored.push('garage.json') }
         if (imports) { writeJson(userFile('imports.json'), imports.slice(0, 500)); restored.push('imports.json') }
         if (soldPrices) { writeJson(userFile('sold.json'), soldPrices.slice(0, 1000)); restored.push('sold.json') }

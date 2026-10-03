@@ -4,9 +4,10 @@
 import { getJson, postJson, del, esc, money, debounce, store, safeUrl, closesText } from './api.js'
 import { loading, errorStrip, toast, carName, sourceName } from './ui.js'
 
-const QUICK = [5000, 10000, 15000, 25000, 40000, 75000]
+const QUICK = [3000, 5000, 10000, 15000, 25000, 40000]
+const YEARS = [['', 'Any year'], ['2012', '2012+'], ['2015', '2015+'], ['2018', '2018+']]
 const REASON = {
-  sample: 'practice cars', ended: 'auction ended', sold: 'already sold', 'no price': 'no price showing',
+  sample: 'practice cars', ended: 'auction ended', sold: 'already sold', 'no price': 'no price showing', 'too old': 'older than you asked for',
   title: 'title not clean', damage: 'too much damage', 'does not run': 'does not run',
   'could not price': 'too few similar cars to price', 'over budget': 'over your budget', 'no room': 'no room under the ceiling',
 }
@@ -15,13 +16,14 @@ const FIX = {
   'could not price': 'Connect eBay (free) or auto.dev (free tier) so more cars have similar cars to price against.',
   damage: 'Allow minor damage to see more, and price the repair first.',
   'no room': 'These already cost close to what similar cars sell for.',
+  'too old': 'Allow older years to see more. Newer cars rarely sell this far under market at small budgets.',
 }
 
 let seq = 0
 
 export async function render(el, ctx) {
   const saved = store('gavel-deals') || {}
-  const state = { budget: Number(saved.budget) || Number(ctx.me.cashUsd) || 15000, damage: saved.damage === 'none' ? 'none' : 'minor' }
+  const state = { budget: Number(saved.budget) || Number(ctx.me.cashUsd) || 15000, damage: saved.damage === 'none' ? 'none' : 'minor', minYear: YEARS.some(([y]) => y === saved.minYear) ? saved.minYear : '' }
   el.innerHTML = `<div class="head"><div><h1>Deals</h1><p>Your budget in, real cars out: clean title, little or no damage, every cost counted, biggest estimated profit first.</p></div></div>
     <section class="budget-dial panel" aria-label="Your budget">
       <div class="bd-top">
@@ -31,6 +33,7 @@ export async function render(el, ctx) {
       <input id="d-range" class="bd-range" type="range" min="2000" max="100000" step="500" value="${Math.min(100000, Math.max(2000, state.budget))}" aria-label="Budget slider" />
       <div class="bd-row">
         <div class="chips wrap" role="group" aria-label="Quick budgets">${QUICK.map((b) => `<button type="button" class="chip" data-b="${b}" aria-pressed="${b === state.budget}">$${b / 1000}k</button>`).join('')}</div>
+        <div class="seg bd-seg" role="group" aria-label="Model year">${YEARS.map(([y, w]) => `<button type="button" data-yr="${y}" aria-pressed="${state.minYear === y}">${w}</button>`).join('')}</div>
         <div class="seg bd-seg" role="group" aria-label="Damage allowed"><button type="button" data-dmg="none" aria-pressed="${state.damage === 'none'}">No damage</button><button type="button" data-dmg="minor" aria-pressed="${state.damage === 'minor'}">Minor ok</button></div>
       </div>
       <p class="dim bd-help" id="d-help">All in means the price, the auction's buyer fee, transport and a $750 cushion. Tax and title count too once you set your percent in Settings.</p>
@@ -55,13 +58,18 @@ export async function render(el, ctx) {
     el.querySelectorAll('[data-dmg]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
     save(); load()
   }))
+  el.querySelectorAll('[data-yr]').forEach((b) => b.addEventListener('click', () => {
+    state.minYear = b.dataset.yr
+    el.querySelectorAll('[data-yr]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+    save(); load()
+  }))
 
   async function load() {
     const my = ++seq
     out.classList.add('busy')
     if (!out.children.length) out.innerHTML = skeleton()
     let r
-    try { r = await getJson(`/api/deals?budget=${encodeURIComponent(state.budget)}&damage=${state.damage}`) } catch (e) { if (my === seq) { out.classList.remove('busy'); out.innerHTML = errorStrip(`Deals could not be loaded: ${e.message} Try again in a moment.`) } return }
+    try { r = await getJson(`/api/deals?budget=${encodeURIComponent(state.budget)}&damage=${state.damage}${state.minYear ? '&minYear=' + state.minYear : ''}`) } catch (e) { if (my === seq) { out.classList.remove('busy'); out.innerHTML = errorStrip(`Deals could not be loaded: ${e.message} Try again in a moment.`) } return }
     if (my !== seq) return
     out.classList.remove('busy')
     out.innerHTML = resultsHtml(r, state, ctx)

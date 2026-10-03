@@ -66,6 +66,20 @@ export const config = {
     defaultDistanceMiles: 300,
   },
 
+  /**
+   * Materials: what a clean auction car usually needs before it sells or
+   * rents, and the price range of the parts and supplies (doing the work
+   * yourself, US, 2026). Gavel's working ranges, not quotes: every screen
+   * that shows one says so, and the member's own receipts replace them in
+   * the Business books. Change a range here to match your local prices.
+   */
+  materials: {
+    oil: [35, 75], engineAir: [15, 35], cabinAir: [15, 35], wipers: [20, 50], detail: [40, 100],
+    scan: [25, 60], brakes: [120, 300], plugs: [30, 120], coolant: [25, 60], transFluid: [50, 130],
+    battery: [130, 260], tyres: [450, 1000], headlights: [15, 35], touchUp: [20, 60], dentRepair: [75, 250],
+    clips: [10, 30], spareKey: [60, 300], mats: [25, 70], twelveVolt: [100, 220],
+  } as Record<string, [number, number]>,
+
   ai: {
     /** The Anthropic model for the optional explainer. */
     model: 'claude-opus-5',

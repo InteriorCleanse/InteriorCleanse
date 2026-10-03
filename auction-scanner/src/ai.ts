@@ -204,3 +204,46 @@ export async function aiWalkthrough(card: WalkthroughCard, house: AuctionHouse |
     return null
   }
 }
+
+const ADVISOR_RULES = `You are Gavel's business partner for one member who buys cars at auction to flip or rent out.
+You answer one question about their business.
+
+Rules you never break:
+1. Use only the CONTEXT: their books (companies, cars, costs, income, the report), the briefing, their settings. Nothing else.
+2. Never invent a number, a sale price, a market value, a law or a tax rule. If the context does not hold it, say so and say where to get it.
+3. Never promise profit. Do not call anything guaranteed, risk-free, a sure thing or the best investment.
+4. Tax, legal and licensing questions: say plainly that a tax adviser or the state decides, then say what records to keep.
+5. Plain English, short sentences, at most 180 words. Lead with the answer. End with one concrete next step.
+6. Gavel never places a bid. Bidding happens on the auction's own site.
+No markdown headings, no tables.`
+
+/** Ask Claude a business question grounded in the member's own books. Null whenever the AI is off or anything fails. */
+export async function aiAdvise(question: string, context: unknown): Promise<string | null> {
+  try {
+    const status = await aiStatus()
+    if (!status.available) return null
+    const Anthropic = await loadSdk()
+    if (!Anthropic) return null
+    const client = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') })
+    const params = {
+      model: config.ai.model,
+      max_tokens: 2000,
+      thinking: { type: 'adaptive' },
+      output_config: { effort: config.ai.effort },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: [
+        { type: 'text', text: ADVISOR_RULES, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: `CONTEXT (the only facts you may use):\n${JSON.stringify(context).slice(0, 60_000)}` },
+      ],
+      messages: [{ role: 'user', content: question.slice(0, 1000) }],
+    } as unknown
+    const msg = await client.beta.messages.stream(params).finalMessage()
+    if (msg.stop_reason === 'refusal') return null
+    const text = msg.content.filter((b) => b.type === 'text' && typeof b.text === 'string').map((b) => b.text as string).join('\n').trim()
+    if (!text || BANNED.test(text)) return null
+    return text.replace(/^#+\s*/gm, '').replace(/\*\*(.*?)\*\*/g, '$1')
+  } catch {
+    return null
+  }
+}

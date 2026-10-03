@@ -90,7 +90,7 @@ export function writeJson(name: string, value: unknown): void {
 }
 
 /** Personal files a member owns. Used by backup and by the one-time move of old top-level files. */
-export const PERSONAL_FILES = ['watchlist.json', 'paper-bids.json', 'targets.json', 'alerts.json', 'settings.json', 'garage.json', 'imports.json', 'sold.json'] as const
+export const PERSONAL_FILES = ['watchlist.json', 'paper-bids.json', 'targets.json', 'alerts.json', 'settings.json', 'garage.json', 'companies.json', 'imports.json', 'sold.json'] as const
 
 /**
  * Before per-member data existed, the owner's files sat at the top of the

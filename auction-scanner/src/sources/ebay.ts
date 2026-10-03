@@ -129,3 +129,51 @@ export async function searchEbay(q: SearchQuery, fetchImpl: typeof fetch = fetch
   const j = (await res.json()) as { itemSummaries?: EbayItemSummary[] }
   return (j.itemSummaries ?? []).map((i) => fromEbayItem(i))
 }
+
+/** eBay category 6030: Parts & Accessories, where eBay's fitment ("compatibility") data lives. */
+const PARTS_CATEGORY = '6030'
+
+export type EbayPart = { itemId: string; title: string; priceUsd?: number; url: string; image?: string; condition?: string; fits: 'exact' | 'possible' | 'not checked'; seller?: string; freeShipping?: boolean }
+
+type EbayPartSummary = EbayItemSummary & { compatibilityMatch?: string; shippingOptions?: Array<{ shippingCost?: { value?: string } }> }
+
+/**
+ * Parts that fit one car, through the Browse API's compatibility filter. eBay
+ * answers EXACT when the seller's fitment table lists this year, make and
+ * model, and POSSIBLE when it matches only some of them. Cheapest first.
+ */
+export function buildPartsUrl(v: { year: number; make: string; model: string }, query: string, limit = 24): string {
+  const u = new URL(BROWSE_URL)
+  u.searchParams.set('category_ids', PARTS_CATEGORY)
+  u.searchParams.set('q', query)
+  u.searchParams.set('compatibility_filter', `Year:${v.year};Make:${v.make};Model:${v.model}`)
+  u.searchParams.set('filter', 'buyingOptions:{FIXED_PRICE},itemLocationCountry:US,priceCurrency:USD')
+  u.searchParams.set('sort', 'price')
+  u.searchParams.set('limit', String(Math.min(Math.max(1, limit), 50)))
+  return u.toString()
+}
+
+export function fromEbayPart(i: EbayPartSummary): EbayPart {
+  const m = (i.compatibilityMatch ?? '').toUpperCase()
+  const ship = i.shippingOptions?.[0]?.shippingCost?.value
+  return {
+    itemId: i.itemId,
+    title: i.title,
+    priceUsd: Number(i.price?.value) || undefined,
+    url: i.itemWebUrl,
+    image: i.image?.imageUrl,
+    condition: i.condition,
+    fits: m === 'EXACT' ? 'exact' : m === 'POSSIBLE' ? 'possible' : 'not checked',
+    seller: i.seller?.username,
+    freeShipping: ship !== undefined ? Number(ship) === 0 : undefined,
+  }
+}
+
+export async function searchEbayParts(v: { year: number; make: string; model: string }, query: string, fetchImpl: typeof fetch = fetch): Promise<EbayPart[]> {
+  if (!ebayConfigured()) return []
+  const tok = await accessToken(fetchImpl)
+  const res = await fetchImpl(buildPartsUrl(v, query), { headers: { authorization: `Bearer ${tok}`, 'x-ebay-c-marketplace-id': 'EBAY_US', accept: 'application/json' } })
+  if (!res.ok) throw new Error(`eBay parts search failed: HTTP ${res.status}`)
+  const j = (await res.json()) as { itemSummaries?: EbayPartSummary[] }
+  return (j.itemSummaries ?? []).map(fromEbayPart)
+}

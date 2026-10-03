@@ -8,6 +8,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { readJson, userFile, writeJson } from './store.ts'
+import { companyExists } from './companies.ts'
 
 export type Money = { id: string; date: number; usd: number; label: string }
 export type CarStatus = 'owned' | 'fixing' | 'listed' | 'rented' | 'sold'
@@ -19,6 +20,13 @@ export type GarageCar = {
   make?: string
   model?: string
   vin?: string
+  /** The company whose books it belongs in (companies.json); none yet when absent. */
+  companyId?: string
+  /** What you planned to sell it for, for the P/L. */
+  targetSaleUsd?: number
+  /** Materials ticked done on its checklist (ids from src/materials.ts). */
+  materialsDone?: string[]
+  mileage?: number
   /** Where it was bought: an auction house id or free text. */
   boughtFrom?: string
   boughtAt: number
@@ -60,6 +68,12 @@ function money(v: unknown, name: string, min = 0, max = 10_000_000): number {
 
 function text(v: unknown, max: number): string | undefined {
   return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined
+}
+
+function company(v: unknown): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined
+  if (typeof v !== 'string' || !companyExists(v)) throw new Error('That company does not exist. Add it under Business first.')
+  return v
 }
 
 function date(v: unknown, fallback: number): number {
@@ -118,6 +132,9 @@ export function addCar(input: unknown, now = Date.now()): GarageCar {
     model: text(p.model, 60),
     vin,
     boughtFrom: text(p.boughtFrom, 80),
+    companyId: company(p.companyId),
+    mileage: p.mileage === undefined || p.mileage === '' ? undefined : money(p.mileage, 'The miles', 0, 2_000_000),
+    targetSaleUsd: p.targetSaleUsd === undefined || p.targetSaleUsd === '' ? undefined : money(p.targetSaleUsd, 'The target sale price', 1),
     boughtAt: date(p.boughtAt, now),
     purchaseUsd: money(p.purchaseUsd, 'The purchase price', 1),
     costs: [],
@@ -158,6 +175,13 @@ export function updateCar(id: string, input: unknown, now = Date.now()): GarageC
     if ('channel' in p) c.channel = text(p.channel, 80)
     if ('notes' in p) c.notes = text(p.notes, 2000)
     if ('purchaseUsd' in p) c.purchaseUsd = money(p.purchaseUsd, 'The purchase price', 1)
+    if ('companyId' in p) c.companyId = company(p.companyId)
+    if ('targetSaleUsd' in p) c.targetSaleUsd = p.targetSaleUsd === null || p.targetSaleUsd === '' ? undefined : money(p.targetSaleUsd, 'The target sale price', 1)
+    if ('mileage' in p) c.mileage = p.mileage === null || p.mileage === '' ? undefined : money(p.mileage, 'The miles', 0, 2_000_000)
+    if ('materialsDone' in p) {
+      if (!Array.isArray(p.materialsDone) || p.materialsDone.length > 50 || !p.materialsDone.every((x) => typeof x === 'string' && /^[a-zA-Z]{1,24}$/.test(x))) throw new Error('The checklist must be a list of material ids.')
+      c.materialsDone = [...new Set(p.materialsDone as string[])]
+    }
   }, now)
 }
 
@@ -191,6 +215,15 @@ export function removeEntry(id: string, entryId: string, now = Date.now()): Gara
     c.income = c.income.filter((m) => m.id !== entryId)
     if (c.costs.length + c.income.length === before) throw new Error('No entry with that id on this car.')
   }, now)
+}
+
+/** A company was removed: its cars stay, with no company. */
+export function unassignCompany(companyId: string): number {
+  const cars = read()
+  let n = 0
+  for (const c of cars) if (c.companyId === companyId) { delete c.companyId; n++ }
+  if (n) write(cars)
+  return n
 }
 
 export function removeCar(id: string): boolean {

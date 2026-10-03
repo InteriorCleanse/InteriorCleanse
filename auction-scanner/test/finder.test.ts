@@ -21,7 +21,8 @@ test('a clean, priced car under the ceiling and inside the budget is a deal, wit
   const d = r.deals[0]
   assert.equal(d.priceUsd, 9_000)
   assert.equal(d.buyerFeeUsd, 0, 'eBay charges no buyer fee on vehicles')
-  assert.equal(d.allInUsd, 9_000 + d.transportUsd + d.cushionUsd)
+  assert.ok(d.materialsUsd > 0, 'materials are counted')
+  assert.equal(d.allInUsd, 9_000 + d.transportUsd + d.materialsUsd + d.cushionUsd)
   assert.equal(d.spreadUsd, 15_000 - d.allInUsd)
   assert.ok(d.ceilingUsd > d.priceUsd)
   assert.equal(d.confidence, 'firmer')
@@ -34,15 +35,17 @@ test('every rule that keeps a car out is counted', () => {
     card(fx({ endsAt: NOW - 1 })),
     card(fx({ soldUsd: 9_000 })),
     card(fx({ currentBidUsd: undefined })),
+    card(fx({ year: 2009 })),
     card(fx({ titleStatus: 'salvage' })),
     card(fx({ damage: 'moderate' })),
     card(fx({ runsAndDrives: false })),
     card(fx(), { ok: false, comps: 1, reason: 'NOT ENOUGH COMPS' }),
     card(fx({ currentBidUsd: 14_800 })),
     card(fx({ currentBidUsd: 12_000 }), est(12_500)),
-  ], { budgetUsd: 15_000, now: NOW })
+    card(fx({ currentBidUsd: 9_000 }), est(13_000)),
+  ], { budgetUsd: 15_000, minYear: 2014, minProfitUsd: 2_500, now: NOW })
   assert.equal(r.deals.length, 0)
-  assert.deepEqual(r.excluded, { sample: 1, ended: 1, sold: 1, 'no price': 1, title: 1, damage: 1, 'does not run': 1, 'could not price': 1, 'over budget': 1, 'no room': 1 })
+  assert.deepEqual(r.excluded, { sample: 1, ended: 1, sold: 1, 'no price': 1, 'too old': 1, title: 1, damage: 1, 'does not run': 1, 'could not price': 1, 'over budget': 1, 'no room': 1, 'small profit': 1 })
 })
 
 test('no damage only, when asked; and the biggest estimated profit comes first', () => {

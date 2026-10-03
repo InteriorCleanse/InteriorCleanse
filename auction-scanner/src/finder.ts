@@ -2,13 +2,16 @@
  * The deal finder: give it a budget, it returns the cars worth a look.
  *
  * A car is a deal here only when all of this is true:
- * - it is a real lot (LIVE), still open, with a price showing;
+ * - it is a real lot (LIVE), still open, with a price showing, and no older
+ *   than the year asked for;
  * - the title is clean, damage is none (or minor, if allowed), and nobody
  *   says it does not run;
  * - Gavel can price it: at least `config.scoring.minComps` similar cars;
- * - everything it costs to get it home (price + buyer fee + tax and title
- *   when known + transport + a cushion) fits inside the budget;
- * - the price today is under the plan's ceiling, so there is room to bid.
+ * - everything it costs to get it home and ready to sell (price + buyer fee +
+ *   tax and title when known + transport + the materials it will likely need
+ *   + a cushion) fits inside the budget;
+ * - the price today is under the plan's ceiling, so there is room to bid;
+ * - the estimated profit clears the member's floor, when they set one.
  *
  * The profit shown is an estimate and says so: what similar cars go for, minus
  * the all-in cost at today's price, before selling costs. Bids usually rise, so
@@ -21,6 +24,7 @@ import { config } from '../config.ts'
 import { buyerFee } from './fees.ts'
 import { buildPlan } from './bidplan.ts'
 import { askingPrice } from './valuation.ts'
+import { materialsFor } from './materials.ts'
 
 export type DealCard = { listing: Listing; estimate: Estimate; score: Score }
 
@@ -28,6 +32,10 @@ export type FinderOptions = {
   budgetUsd: number
   /** Most damage allowed. Default: minor. */
   maxDamage?: 'none' | 'minor'
+  /** Leave out cars whose estimated profit is under this many dollars. */
+  minProfitUsd?: number
+  /** Oldest model year wanted. A car with no year stated is left out when this is set. */
+  minYear?: number
   /** Fee percents the member looked up, by house. */
   feeOverrides?: Record<string, number>
   /** Sales tax plus title, as a percent of the price, when the member has set it. */
@@ -44,6 +52,8 @@ export type Deal = DealCard & {
   feeKnown: boolean
   taxTitleUsd?: number
   transportUsd: number
+  /** The always and likely materials, at the middle of Gavel's working ranges (src/materials.ts). */
+  materialsUsd: number
   cushionUsd: number
   /** Everything it takes to get the car home at today's price. */
   allInUsd: number
@@ -62,7 +72,7 @@ export type Deal = DealCard & {
   cautions: string[]
 }
 
-export type ExclusionReason = 'sample' | 'ended' | 'sold' | 'no price' | 'title' | 'damage' | 'does not run' | 'could not price' | 'over budget' | 'no room'
+export type ExclusionReason = 'sample' | 'ended' | 'sold' | 'no price' | 'too old' | 'title' | 'damage' | 'does not run' | 'could not price' | 'over budget' | 'no room' | 'small profit'
 
 export type FinderResult = {
   /** Every check passed and the value rests on sold or asking prices. */
@@ -82,7 +92,7 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
   const now = opts.now ?? Date.now()
   const budget = Number.isFinite(opts.budgetUsd) && opts.budgetUsd > 0 ? opts.budgetUsd : 0
   const damageOk = DAMAGE_OK[opts.maxDamage ?? 'minor']
-  const excluded: Record<ExclusionReason, number> = { sample: 0, ended: 0, sold: 0, 'no price': 0, title: 0, damage: 0, 'does not run': 0, 'could not price': 0, 'over budget': 0, 'no room': 0 }
+  const excluded: Record<ExclusionReason, number> = { sample: 0, ended: 0, sold: 0, 'no price': 0, 'too old': 0, title: 0, damage: 0, 'does not run': 0, 'could not price': 0, 'over budget': 0, 'no room': 0, 'small profit': 0 }
   const deals: Deal[] = []
   const leads: Deal[] = []
   for (const card of cards) {
@@ -93,6 +103,7 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
     if (l.endsAt !== undefined && l.endsAt <= now) { excluded.ended++; continue }
     const price = askingPrice(l)
     if (price === undefined || price <= 0) { excluded['no price']++; continue }
+    if (opts.minYear !== undefined && (l.year === undefined || l.year < opts.minYear)) { excluded['too old']++; continue }
     if (l.titleStatus !== 'clean') { excluded.title++; continue }
     if (!damageOk.has(l.damage)) { excluded.damage++; continue }
     if (l.runsAndDrives === false) { excluded['does not run']++; continue }
@@ -104,14 +115,16 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
     const taxTitleUsd = opts.taxTitlePct !== undefined ? Math.round((opts.taxTitlePct / 100) * price) : undefined
     const transportUsd = Math.round(config.plan.defaultDistanceMiles * config.plan.transportPerMileUsd)
     const cushionUsd = config.plan.surpriseReserveUsd
-    const allInUsd = price + fee.usd + (taxTitleUsd ?? 0) + transportUsd + cushionUsd
+    const materialsUsd = materialsFor(l, now).expectedUsd
+    const allInUsd = price + fee.usd + (taxTitleUsd ?? 0) + transportUsd + materialsUsd + cushionUsd
     if (allInUsd > budget) { excluded['over budget']++; continue }
 
-    const plan = buildPlan(l, est, { goal: 'flip', cashUsd: budget, taxTitlePct: opts.taxTitlePct, feePct: feeOverride, houseId: l.source })
+    const plan = buildPlan(l, est, { goal: 'flip', cashUsd: budget, taxTitlePct: opts.taxTitlePct, feePct: feeOverride, houseId: l.source, repairsUsd: materialsUsd })
     // At or past the ceiling there is no room to bid and keep a margin.
     if (l.saleType !== 'buy-now' && price >= plan.maxBidUsd) { excluded['no room']++; continue }
     const spreadUsd = est.valueUsd - allInUsd
     if (spreadUsd <= 0) { excluded['no room']++; continue }
+    if (opts.minProfitUsd !== undefined && spreadUsd < opts.minProfitUsd) { excluded['small profit']++; continue }
 
     const cautions: string[] = []
     if (!feeKnown) cautions.push(`Buyer fee not counted: ${l.source} uses a sliding scale. Look it up before you bid.`)
@@ -119,6 +132,7 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
     if (l.damage === 'minor') cautions.push('Minor damage listed: price the repair before you bid.')
     if (l.runsAndDrives === undefined) cautions.push('The listing does not say it runs and drives.')
     if (l.saleType !== 'buy-now') cautions.push(`Current bid, not the final price. Stop at ${moneyText(plan.maxBidUsd)}.`)
+    cautions.push(`Materials counted at ${moneyText(materialsUsd)}, the middle of Gavel's working ranges for what a car like this usually needs; your receipts will differ.`)
     cautions.push(`Transport assumed for ${config.plan.defaultDistanceMiles} miles; get a quote.`)
 
     // Bids on auctions still running finish higher, so they cannot confirm a resale value on their own.
@@ -132,6 +146,7 @@ export function findDeals(cards: DealCard[], opts: FinderOptions): FinderResult 
       feeKnown,
       taxTitleUsd,
       transportUsd,
+      materialsUsd,
       cushionUsd,
       allInUsd,
       resaleUsd: est.valueUsd,
