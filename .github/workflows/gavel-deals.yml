@@ -1,0 +1,61 @@
+name: Gavel deal finder
+
+# Give it a budget; it reads the live auction sources now and lists the cars
+# that fit: clean title, no damage (or minor), priced against similar cars,
+# all-in cost inside the budget, room under the ceiling. Real lots only.
+# Run it from the Actions tab (Run workflow) and read the "Find deals" step.
+# GSA runs with the shared DEMO_KEY; eBay, MarketCheck and auto.dev join when
+# their keys are repository secrets (same names as .env).
+
+on:
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: 'Your budget for one car, all in (dollars)'
+        required: true
+        default: '15000'
+      damage:
+        description: 'Most damage allowed: none or minor'
+        required: true
+        default: 'minor'
+      makes:
+        description: 'Makes to search, comma separated (blank = 20 popular makes)'
+        required: false
+        default: ''
+
+  # Also when the finder changes, so a change is seen on real lots: three budgets.
+  push:
+    paths: ['auction-scanner/src/finder.ts', 'auction-scanner/src/find.ts', '.github/workflows/gavel-deals.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        budget: ${{ fromJSON(inputs.budget && format('["{0}"]', inputs.budget) || '["10000", "20000", "40000"]') }}
+    defaults:
+      run:
+        working-directory: auction-scanner
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Find deals
+        # Inputs go through the environment, never into the command line.
+        run: node src/find.ts
+        env:
+          BUDGET: ${{ matrix.budget }}
+          DAMAGE: ${{ inputs.damage || 'minor' }}
+          MAKES: ${{ inputs.makes }}
+          GAVEL_GSA: '1'
+          GAVEL_GSA_API_KEY: ${{ secrets.GAVEL_GSA_API_KEY }}
+          GAVEL_EBAY_CLIENT_ID: ${{ secrets.GAVEL_EBAY_CLIENT_ID }}
+          GAVEL_EBAY_CLIENT_SECRET: ${{ secrets.GAVEL_EBAY_CLIENT_SECRET }}
+          GAVEL_MARKETCHECK_API_KEY: ${{ secrets.GAVEL_MARKETCHECK_API_KEY }}
+          GAVEL_MARKETCHECK_AUCTION_PATH: ${{ secrets.GAVEL_MARKETCHECK_AUCTION_PATH }}
+          GAVEL_AUTODEV_API_KEY: ${{ secrets.GAVEL_AUTODEV_API_KEY }}
