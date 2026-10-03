@@ -7,6 +7,10 @@
 | `DATABASE_URL` | Any Postgres: Neon or Supabase (free tiers are fine to start), RDS, or your own. Use the pooled connection string. Migrations run on first request. **Required on Vercel**: without it the app runs in memory and forgets every account on each cold start |
 | `AVANT_SESSION_SECRET`, `AVANT_ENCRYPTION_KEY`, `AVANT_VAULT_SIGNING_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`, once each |
 | `STRIPE_SECRET_KEY` | Stripe dashboard. Start with a test key. A restricted key needs Checkout Sessions (write) and Identity Verification Sessions (write, plus read of verified outputs) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → endpoint `https://<domain>/api/webhook/stripe`, events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`. Add `account.updated` with "Listen to events on Connected accounts" |
+| Stripe Connect | Stripe → Connect → get started, platform type **Marketplace**, Express accounts, US. Hosts set up payouts from Earnings; AVANT never sees bank details. The restricted key also needs Accounts, Account Links, Transfers and Refunds (write) |
+| `CRON_SECRET` | Any long random string. `vercel.json` runs `/api/cron` daily (09:17 UTC); on a Pro plan you can make it hourly |
+| `RESEND_API_KEY`, `AVANT_EMAIL_FROM` | resend.com: verify your sending domain, then create a key. Needed for password reset emails |
 | `STRIPE_IDENTITY_WEBHOOK_SECRET` | Stripe → Webhooks → endpoint `https://<domain>/api/verify/webhook`, events `identity.verification_session.*` |
 | `ANTHROPIC_API_KEY` | console.anthropic.com. The concierge uses `claude-opus-5` by default (`AVANT_AI_MODEL` overrides) |
 | `AVANT_VAULT_URL` | After deploying the vault (below) |
@@ -41,7 +45,7 @@ ocd wrangler deploy
 - Set `NEXT_PUBLIC_SITE_URL` to the real domain.
 - Set `NEXT_PUBLIC_AVANT_SAMPLE_FLEET=0` in production so only real listings show.
 - Host photos are stored in Postgres and served from the app's own origin, so no extra `img-src` is needed. Past roughly 10,000 listings, move them to object storage (S3, R2) and add its origin to `img-src` in `middleware.ts`.
-- Add an email provider (Resend, Postmark, SES) for what accounts still lack: email verification, password reset, and email copies of booking notifications. Until then a forgotten password needs support to reset.
+- Set the email variables above: password reset and email copies of notifications use them. Still to add: verifying a new account's email address.
 - Keep `AVANT_INDEXABLE=0` until listings and legal review are real.
 
 ## 4. Business

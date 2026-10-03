@@ -9,7 +9,7 @@ import { CommandPalette } from './CommandPalette'
 import { ConciergeProvider, useConcierge } from './Concierge'
 import { DriverProvider, useDriver } from './DriverProvider'
 import { Icon } from './Icons'
-import { Wordmark } from './Logo'
+import { Lockup } from './Logo'
 import { NAV, TABS } from './nav'
 import { SessionProvider, useSession } from './Session'
 import { Avatar } from './ui'
@@ -94,7 +94,7 @@ function Frame({ children }: { children: ReactNode }) {
       <header className="topbar">
         <div className="topbar-inner">
           <Link href="/" className="wordmark" aria-label="AVANT home">
-            <Wordmark title={null} />
+            <Lockup />
           </Link>
           <nav className="topnav" aria-label="Main">
             {TABS.slice(0, 4).map((n) => (
@@ -125,7 +125,7 @@ function Frame({ children }: { children: ReactNode }) {
           <div className="foot-grid">
             <div>
               <Link href="/" className="wordmark wordmark-lg" aria-label="AVANT home">
-                <Wordmark title={null} />
+                <Lockup tone="platinum" />
               </Link>
               <p className="muted small" style={{ marginTop: 12, maxWidth: '36ch' }}>
                 Book the exact car you want from a neighbour. The whole price up front, coverage in one number, a concierge that never sleeps.

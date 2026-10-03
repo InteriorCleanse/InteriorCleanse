@@ -5,12 +5,16 @@ import { useId } from 'react'
  *
  * Wordmark: wide, extended capitals with knife-edge apexes. Both A's are
  * open chevrons (no crossbar) that mirror the V, so "AVA" reads as one
- * sweeping line. Beneath it a brushed-gold pinstripe tapers away like a
- * coachline. Letters take currentColor, so the same mark works in obsidian
- * on light and pearl on dark; the gold never changes.
+ * sweeping line. Beneath it a gold pinstripe tapers away like a coachline,
+ * and draws itself in once when the page first loads. Obsidian on light;
+ * platinum on dark.
  *
- * Emblem: the open A on obsidian, crossed by the same gold line running
- * edge to edge like a horizon. Used for the app icon and favicon.
+ * Crest: a sculpted shield whose top dips in a shallow V (the wordmark's V),
+ * lacquered obsidian inside a gold double keyline, with the open A in
+ * platinum crossed by the gold horizon line.
+ *
+ * Emblem: the same A and horizon on a square obsidian tile, for app icons
+ * and the favicon, where a shield's point would be lost.
  *
  * Geometry is on a 100-unit cap height. Vertical stems are 9 units; the
  * diagonals are cut so their true thickness matches. The T's crossbar ends
@@ -42,18 +46,41 @@ const LETTERS = (() => {
   return { d: out.join(' '), width: x }
 })()
 
-/** Brushed gold: light catching the top edge, deepening to bronze. */
-function Gilt({ id, vertical = false }: { id: string; vertical?: boolean }) {
+/**
+ * Metals. Gold is brushed: pale where light catches it, deep bronze in the
+ * fall-off, and a last glint at the far edge. Platinum is cool white
+ * settling to warm grey. Lacquer is obsidian with depth.
+ */
+function Metals({ id }: { id: string }) {
   return (
-    <linearGradient id={id} x1="0" y1="0" x2={vertical ? '0' : '1'} y2={vertical ? '1' : '0'}>
-      <stop offset="0" stopColor="#ecd7a6" />
-      <stop offset="0.45" stopColor="#c9a15f" />
-      <stop offset="1" stopColor="#8a6332" />
-    </linearGradient>
+    <>
+      <linearGradient id={`${id}gold`} x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#f3e2b8" />
+        <stop offset="0.32" stopColor="#d2aa66" />
+        <stop offset="0.7" stopColor="#9c7038" />
+        <stop offset="1" stopColor="#d9bb80" />
+      </linearGradient>
+      <linearGradient id={`${id}goldv`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#f3e2b8" />
+        <stop offset="0.4" stopColor="#d2aa66" />
+        <stop offset="0.75" stopColor="#9c7038" />
+        <stop offset="1" stopColor="#d9bb80" />
+      </linearGradient>
+      <linearGradient id={`${id}plat`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#ffffff" />
+        <stop offset="0.55" stopColor="#e9e6df" />
+        <stop offset="1" stopColor="#bdb7ab" />
+      </linearGradient>
+      <linearGradient id={`${id}lac`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#25272c" />
+        <stop offset="0.5" stopColor="#141519" />
+        <stop offset="1" stopColor="#0a0b0d" />
+      </linearGradient>
+    </>
   )
 }
 
-export function Wordmark({ className, title = 'AVANT' }: { className?: string; title?: string | null }) {
+export function Wordmark({ className, title = 'AVANT', tone = 'ink' }: { className?: string; title?: string | null; tone?: 'ink' | 'platinum' }) {
   const id = useId()
   const w = LETTERS.width
   return (
@@ -66,12 +93,50 @@ export function Wordmark({ className, title = 'AVANT' }: { className?: string; t
       focusable="false"
     >
       <defs>
-        <Gilt id={`${id}g`} />
+        <Metals id={id} />
       </defs>
-      <path d={LETTERS.d} fill="currentColor" />
+      <path d={LETTERS.d} fill={tone === 'platinum' ? `url(#${id}plat)` : 'currentColor'} />
       {/* The coachline: full weight under the first A, thinning to a hair at the T. */}
-      <path d={`M0 122 L${w} 126.4 L${w} 126.9 L0 128 Z`} fill={`url(#${id}g)`} />
+      <path className="logo-coach" d={`M0 122 L${w} 126.4 L${w} 126.9 L0 128 Z`} fill={`url(#${id}gold)`} />
     </svg>
+  )
+}
+
+const SHIELD = 'M5 8 L44 16 L83 8 C84.5 30 84 50 80.5 66 C76 87 62 103 44 116 C26 103 12 87 7.5 66 C4 50 3.5 30 5 8 Z'
+const KEYLINE = 'M10.5 14.6 L44 21.6 L77.5 14.6 C78.6 33 78.1 50.5 75 64.6 C71 82.8 59.4 96.6 44 108.4 C28.6 96.6 17 82.8 13 64.6 C9.9 50.5 9.4 33 10.5 14.6 Z'
+
+export function Crest({ height = 40, className, title = null }: { height?: number; className?: string; title?: string | null }) {
+  const id = useId()
+  return (
+    <svg
+      className={className}
+      height={height}
+      width={(height * 88) / 120}
+      viewBox="0 0 88 120"
+      role={title ? 'img' : undefined}
+      aria-label={title ?? undefined}
+      aria-hidden={title ? undefined : true}
+      focusable="false"
+    >
+      <defs>
+        <Metals id={id} />
+      </defs>
+      <path d={SHIELD} fill={`url(#${id}lac)`} stroke={`url(#${id}goldv)`} strokeWidth="2" strokeLinejoin="round" />
+      <path d={KEYLINE} fill="none" stroke={`url(#${id}goldv)`} strokeWidth="0.7" opacity="0.7" />
+      <path d="M26 86 L44 42 L62 86 H58 L44 52.6 L30 86 Z" fill={`url(#${id}plat)`} />
+      <path d="M13 72.6 L44 71.6 L75 72.6 L44 73.6 Z" fill={`url(#${id}gold)`} />
+    </svg>
+  )
+}
+
+/** Crest, a hairline, and the wordmark: the full signature. */
+export function Lockup({ className, tone = 'ink' }: { className?: string; tone?: 'ink' | 'platinum' }) {
+  return (
+    <span className={`lockup ${className ?? ''}`}>
+      <Crest className="lockup-crest" />
+      <span className="lockup-rule" aria-hidden="true" />
+      <Wordmark title={null} tone={tone} className="lockup-word" />
+    </span>
   )
 }
 
@@ -80,13 +145,12 @@ export function Emblem({ size = 40, className }: { size?: number; className?: st
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
       <defs>
-        <Gilt id={`${id}g`} />
-        <Gilt id={`${id}v`} vertical />
+        <Metals id={id} />
       </defs>
-      <rect width="64" height="64" rx="15" fill="#121316" />
-      <rect x="1" y="1" width="62" height="62" rx="14" fill="none" stroke={`url(#${id}v)`} strokeOpacity="0.35" strokeWidth="1" />
-      <path d="M17.5 47 L32 15 L46.5 47 H43.6 L32 21.6 L20.4 47 Z" fill="#f4f2ed" />
-      <path d="M9 37.4 L32 36.6 L55 37.4 L32 38.2 Z" fill={`url(#${id}g)`} />
+      <rect width="64" height="64" rx="15" fill={`url(#${id}lac)`} />
+      <rect x="1" y="1" width="62" height="62" rx="14" fill="none" stroke={`url(#${id}goldv)`} strokeOpacity="0.55" strokeWidth="1" />
+      <path d="M17.5 47 L32 15 L46.5 47 H43.6 L32 21.6 L20.4 47 Z" fill={`url(#${id}plat)`} />
+      <path d="M9 37.4 L32 36.6 L55 37.4 L32 38.2 Z" fill={`url(#${id}gold)`} />
     </svg>
   )
 }

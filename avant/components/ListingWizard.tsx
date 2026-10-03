@@ -730,6 +730,9 @@ function LiveListings() {
               </p>
             </div>
             <div className="row">
+              <Link href={`/host/listings/${l.id}`} className="btn btn-primary btn-sm">
+                Edit
+              </Link>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => void setStatus(l, l.status === 'live' ? 'paused' : 'live')}>
                 {l.status === 'live' ? 'Pause' : 'Resume'}
               </button>

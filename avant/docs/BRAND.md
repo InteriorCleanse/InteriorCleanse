@@ -41,21 +41,35 @@ Urbanist; it is drawn (see The marks).
 
 ## The marks
 
-Both are drawn, not typeset (`components/Logo.tsx`), so no font can change
-them.
+All drawn, not typeset (`components/Logo.tsx`), so no font can change them.
 
 - **Wordmark.** Wide, extended capitals with knife-edge apexes. Both A's
   are open chevrons with no crossbar that mirror the V, so A-V-A reads as
   one sweeping line. The T's crossbar ends are cut at the same angle as
-  the A's legs. Beneath the name a brushed-gold pinstripe runs full weight
-  under the first A and thins to a hair at the T, like a coachline.
-  Obsidian on light, pearl `#f4f2ed` on dark; the gold never changes.
-- **Emblem.** The open A in pearl on an obsidian tile, crossed by the gold
-  line running edge to edge like a horizon. App icon, favicon, sign-in.
-- **Gold.** A brushed gradient, `#ecd7a6` → `#c9a15f` → `#8a6332`, used
-  only in the marks and the coachline rules. Never as a fill behind text.
-- Minimum size: wordmark 14px tall, emblem 16px. Keep clear space of half
-  the wordmark's height on every side.
+  the A's legs. Beneath the name a gold pinstripe runs full weight under
+  the first A and thins to a hair at the T, like a coachline; on first load
+  it draws itself in (still for anyone who prefers reduced motion).
+  Obsidian on light, platinum on dark.
+- **Crest.** A sculpted shield whose top dips in a shallow V (the
+  wordmark's V), lacquered obsidian inside a gold double keyline, with the
+  open A in platinum crossed by the gold horizon line. Sign-in screens, the
+  signature, anywhere the brand introduces itself.
+- **Signature.** Crest, a hairline, wordmark. The site header (obsidian),
+  the footer (platinum on obsidian) and the phone home screen.
+- **Emblem.** The A and horizon on a square obsidian tile: app icon,
+  favicon, home-screen icon, where a shield's point would be lost.
+
+## Metals
+
+| Metal | Stops | Use |
+| --- | --- | --- |
+| Gold | `#f3e2b8` → `#d2aa66` → `#9c7038` → `#d9bb80` | Brushed: pale where light catches it, bronze in the fall-off, a last glint at the edge. Coachline, keylines, horizon line, divider rules, the hairline on the concierge button |
+| Platinum | `#ffffff` → `#e9e6df` → `#bdb7ab` | The wordmark and the A on dark |
+| Lacquer | `#25272c` → `#141519` → `#0a0b0d` | Inside the crest and emblem |
+
+Metals are for the marks only, never behind or inside running text. Clear
+space around any mark: half its height. Minimum sizes: wordmark 14px tall,
+crest 24px, emblem 16px.
 
 ## Form
 

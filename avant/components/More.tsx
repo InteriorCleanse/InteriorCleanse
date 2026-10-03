@@ -67,8 +67,9 @@ export function More() {
       <p className="menu-title">Hosting</p>
       <ul className="menu">
         <Item href="/host/new" icon="plus" label="List your car" />
-        <Item href="/host/listings" icon="key" label="Your listings" />
-        <Item href="/host" icon="card" label="What you could earn" />
+        <Item href="/host/listings" icon="key" label="Your listings" note="Edit price, photos and calendar" />
+        <Item href="/host/earnings" icon="card" label="Earnings and payouts" />
+        <Item href="/host" icon="sparkle" label="What you could earn" />
       </ul>
 
       <p className="menu-title">Help</p>

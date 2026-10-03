@@ -139,8 +139,8 @@ export function Account() {
       <section className="panel" aria-labelledby="data">
         <h2 id="data" style={{ fontSize: '1.2rem' }}>Your data</h2>
         <p className="muted small" style={{ marginTop: 6, marginBottom: 16 }}>
-          Your Driver Pass is encrypted before it is stored{modes?.vault ? ', in the privacy vault' : ''}; we keep facts like your age, never your licence images. Favorites ({saved.length}),
-          recently viewed cars and listing drafts are also kept in this browser.
+          Your Driver Pass is encrypted before it is stored{modes?.vault ? ', in the privacy vault' : ''}; we keep facts like your age, never your licence images. Favorites ({saved.length}) are
+          saved to your account; recently viewed cars and listing drafts stay in this browser.
         </p>
         <div className="row">
           <a href="/api/driver/export" className="btn btn-secondary btn-md"><Icon name="download" size={16} /> Export Driver Pass</a>
@@ -167,6 +167,57 @@ export function Account() {
       <Notice icon="lock">
         Deleting the Driver Pass also asks our verification partner to redact anything it still holds. <Link href="/security" className="link">How we protect your data</Link>
       </Notice>
+      <CloseAccount />
     </div>
+  )
+}
+
+function CloseAccount() {
+  const session = useSession()
+  const toast = useToast()
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const close = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    const res = await fetch('/api/me/delete', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password }) })
+    const json = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok) return setError(json.error ?? 'Couldn’t close the account. Try again.')
+    actions.clear()
+    await session.refresh()
+    toast('Your account is closed')
+    window.location.assign('/')
+  }
+
+  return (
+    <section className="panel" aria-labelledby="close">
+      <h2 id="close" style={{ fontSize: '1.2rem' }}>Close your account</h2>
+      <p className="muted small" style={{ marginTop: 6 }}>
+        Deletes your profile, photo, listings, favorites and Driver Pass, and signs you out everywhere. Past trips stay in the other person&apos;s
+        history under &ldquo;Former member&rdquo;. You can&apos;t close an account with trips still ahead.
+      </p>
+      {open ? (
+        <form method="post" onSubmit={close} className="stack" style={{ gap: 12, marginTop: 14, maxWidth: 420 }}>
+          <label className="field">
+            <span className="label">Your password, to confirm</span>
+            <input className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          </label>
+          {error ? <p className="error-block" role="alert">{error}</p> : null}
+          <div className="row">
+            <button type="submit" className="btn btn-danger btn-md" disabled={busy || !password}>{busy ? 'Closing…' : 'Close my account for good'}</button>
+            <button type="button" className="btn btn-ghost btn-md" onClick={() => setOpen(false)}>Keep it</button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" className="btn btn-ghost btn-md" style={{ marginTop: 12 }} onClick={() => setOpen(true)}>
+          <Icon name="trash" size={16} /> Close account
+        </button>
+      )}
+    </section>
   )
 }

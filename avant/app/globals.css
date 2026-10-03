@@ -606,16 +606,78 @@ p {
   padding: 6px 0;
 }
 
-/* The drawn wordmark (components/Logo.tsx): height sets its size. */
-.wordmark svg {
-  height: 21px;
-  width: auto;
+/* The signature (components/Logo.tsx): crest, hairline, wordmark. */
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lockup svg {
   display: block;
   overflow: visible;
 }
 
-.wordmark-lg svg {
-  height: 26px;
+.lockup-crest {
+  height: 32px;
+  width: auto;
+}
+
+.lockup-rule {
+  width: 1px;
+  height: 24px;
+  background: currentColor;
+  opacity: 0.16;
+}
+
+.lockup-word {
+  height: 19px;
+  width: auto;
+}
+
+.wordmark-lg .lockup {
+  gap: 18px;
+}
+
+.wordmark-lg .lockup-crest {
+  height: 46px;
+}
+
+.wordmark-lg .lockup-rule {
+  height: 34px;
+}
+
+.wordmark-lg .lockup-word {
+  height: 25px;
+}
+
+/* One moment: the gold coachline draws itself under the name on first load. */
+.topbar .logo-coach,
+.brand-mobile .logo-coach {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: coach-draw 1.6s var(--ease) 0.3s both;
+}
+
+@keyframes coach-draw {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar .logo-coach,
+  .brand-mobile .logo-coach {
+    animation: none;
+  }
 }
 
 /* Phones have no top bar; the home screen carries the mark instead. */
@@ -632,8 +694,20 @@ p {
     margin-bottom: 4px;
   }
 
-  .brand-mobile .wordmark svg {
-    height: 17px;
+  .brand-mobile .lockup {
+    gap: 11px;
+  }
+
+  .brand-mobile .lockup-crest {
+    height: 28px;
+  }
+
+  .brand-mobile .lockup-rule {
+    height: 20px;
+  }
+
+  .brand-mobile .lockup-word {
+    height: 15px;
   }
 }
 
@@ -840,10 +914,24 @@ p {
 
 /* ── Footer ──────────────────────────────────────────────────────────── */
 
+/* Obsidian footer: where the platinum signature lives. */
 .site-foot {
-  background: var(--bg-2);
-  padding: 56px 0 40px;
-  margin-top: 64px;
+  background: #0f1013;
+  color: #f4f2ed;
+  padding: 64px 0 44px;
+  margin-top: 72px;
+}
+
+.site-foot .wordmark {
+  color: #f4f2ed;
+}
+
+.site-foot .muted {
+  color: #a39f97;
+}
+
+.site-foot .foot-grid h3 {
+  color: #f4f2ed;
 }
 
 .foot-grid {
@@ -867,19 +955,23 @@ p {
 }
 
 .foot-grid a {
-  color: var(--muted);
+  color: #a39f97;
 }
 
 .foot-grid a:hover {
-  color: var(--text);
+  color: #f4f2ed;
   text-decoration: underline;
 }
 
+.site-foot :focus-visible {
+  outline-color: #d2aa66;
+}
+
 .foot-legal {
-  margin-top: 36px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line-2);
-  color: var(--dim);
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(244, 242, 237, 0.12);
+  color: #8d8981;
   font-size: 0.84rem;
   max-width: 90ch;
 }
@@ -2424,7 +2516,8 @@ p {
   background: var(--text);
   color: #fff;
   font-weight: 700;
-  box-shadow: var(--shadow-2);
+  /* A gold hairline keeps it distinct on the obsidian footer too. */
+  box-shadow: 0 0 0 1px rgba(210, 170, 102, 0.45), var(--shadow-2);
   transition: transform 0.2s var(--ease);
 }
 
@@ -3580,4 +3673,109 @@ p {
 
 .star-input svg {
   fill: currentColor;
+}
+
+/* Host earnings */
+.earn-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.earn-totals > div {
+  padding: 20px 4px;
+  display: grid;
+  gap: 6px;
+}
+
+.earn-totals > div + div {
+  padding-left: 22px;
+  border-left: 1px solid var(--line);
+}
+
+.earn-totals strong {
+  font-size: clamp(1.3rem, 3.4vw, 2rem);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.earn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.earn-list a {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.earn-list .thumb {
+  width: 76px;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  flex: none;
+}
+
+@media (max-width: 560px) {
+  .earn-totals {
+    grid-template-columns: 1fr;
+  }
+
+  .earn-totals > div + div {
+    padding-left: 4px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Listing editor */
+.edit-photos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.edit-photos li {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.edit-photos img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.cal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cal-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 560px) {
+  .edit-photos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

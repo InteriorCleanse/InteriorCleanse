@@ -18,7 +18,7 @@ export default function SecurityPage() {
   const rows: [string, boolean, string][] = [
     ['Payments (Stripe)', m.payments, 'Preview bookings are not charged.'],
     ['Licence verification (Stripe Identity)', m.identity, 'Preview verification checks no document.'],
-    ['Privacy vault', m.vault, 'Records are sealed in an encrypted cookie instead.'],
+    ['Privacy vault', m.vault, 'Records are sealed (encrypted) in the database instead.'],
     ['Production keys', !m.demoKeys, 'Temporary keys: sessions reset when the server restarts.'],
     ['AI concierge', m.ai, 'Built-in answers are used instead.'],
   ]

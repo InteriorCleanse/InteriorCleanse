@@ -14,9 +14,14 @@ export default function ListingsPage() {
         <h1 className="page-title">
           Your listings.
         </h1>
-        <Link href="/host/new" className="btn btn-primary btn-md">
-          <Icon name="plus" size={16} /> Add a car
-        </Link>
+        <div className="row">
+          <Link href="/host/earnings" className="btn btn-secondary btn-md">
+            Earnings
+          </Link>
+          <Link href="/host/new" className="btn btn-primary btn-md">
+            <Icon name="plus" size={16} /> Add a car
+          </Link>
+        </div>
       </div>
       <MyListings />
     </div>

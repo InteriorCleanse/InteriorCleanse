@@ -6,7 +6,8 @@ photos, bookings, message threads, notifications and favorites. Quiet-luxury
 brand (see `docs/BRAND.md`): white and porcelain `#f5f4f2`, obsidian
 `#121316` for text and primary actions, champagne `#b8956a` only for detail
 (bronze `#8a6a43` when it must be text), Urbanist throughout, pill controls,
-hairline dividers, a floating tab bar on phones. Standalone: its own
+hairline dividers, a floating tab bar on phones. The logo (wordmark,
+crest, emblem) is drawn in `components/Logo.tsx`; never replace it with text. Standalone: its own
 package.json, lockfile, PostCSS config and CI.
 
 This is a real marketplace. The only photos of a car are the ones its host

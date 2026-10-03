@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { safeNext } from '@/lib/security/redirect'
 import { useDriver } from './DriverProvider'
-import { Emblem } from './Logo'
+import { Crest } from './Logo'
 import { useSession } from './Session'
 
 export function AuthForm() {
@@ -44,7 +44,7 @@ export function AuthForm() {
 
   return (
     <div className="auth fade-in">
-      <Emblem size={56} />
+      <Crest height={68} />
       <h1 className="greeting" style={{ marginTop: 10 }}>
         {mode === 'up' ? 'Welcome.' : 'Welcome back.'}
       </h1>
@@ -75,7 +75,13 @@ export function AuthForm() {
             minLength={mode === 'up' ? 10 : 1}
             maxLength={200}
           />
-          {mode === 'up' ? <span className="hint">At least 10 characters. A short phrase is easiest to remember.</span> : null}
+          {mode === 'up' ? (
+            <span className="hint">At least 10 characters. A short phrase is easiest to remember.</span>
+          ) : (
+            <Link href="/forgot" className="link small" style={{ justifySelf: 'start' }}>
+              Forgot your password?
+            </Link>
+          )}
         </label>
         {error ? (
           <p className="error-block" role="alert">

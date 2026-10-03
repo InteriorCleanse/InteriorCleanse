@@ -10,7 +10,7 @@ export const runtime = 'nodejs'
 
 /** Closes the signed-in account after re-checking the password. */
 export async function POST(req: NextRequest) {
-  const blocked = await guard(req, { limit: LIMITS.auth, limitKey: 'auth' })
+  const blocked = await guard(req, { limit: LIMITS.auth, limitKey: 'account-close' })
   if (blocked) return blocked
   const user = await currentUser()
   if (!user) return signInRequired()
