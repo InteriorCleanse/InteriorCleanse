@@ -1,9 +1,10 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { after, NextResponse, type NextRequest } from 'next/server'
 import { priceTrip, TripRequest } from '@/lib/checkout'
 import { carTitle } from '@/lib/places'
 import { loadRecord, toFacts } from '@/lib/driver-record'
 import { createBooking, DatesTaken } from '@/lib/server/bookings'
-import { cityNameFor, findCar, taxRateFor } from '@/lib/server/catalog'
+import { cityNameFor, findCar, taxRateFor, tzFor } from '@/lib/server/catalog'
+import { deliverNotificationEmails } from '@/lib/server/email'
 import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
@@ -39,13 +40,16 @@ export async function POST(req: NextRequest) {
 
   let booking: { id: string; status: string }
   try {
-    booking = await createBooking({ guestId: user.id, car: priced.car, cityName: cityNameFor(priced.car), request: body, quote: priced.quote, paid: stripe ? 'stripe' : 'demo' })
+    booking = await createBooking({ guestId: user.id, car: priced.car, cityName: cityNameFor(priced.car), tz: tzFor(priced.car), request: body, quote: priced.quote, paid: stripe ? 'stripe' : 'demo' })
   } catch (err) {
     if (err instanceof DatesTaken) return problem(409, err.message)
     console.error('booking failed')
     return problem(500, 'Couldn’t book that. Nothing was charged.')
   }
-  if (!stripe) return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote })
+  if (!stripe) {
+    after(() => deliverNotificationEmails())
+    return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote })
+  }
 
   const site = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`
   const form = new URLSearchParams({

@@ -113,11 +113,30 @@ export async function sendMessage(userId: string, threadId: string, body: string
   if (!text || !(await member(userId, threadId))) return null
   const q = await db()
   const id = randomId(12)
+  const t = (await member(userId, threadId))!
+  const to = t.guest_id === userId ? t.host_id : t.guest_id
+  // Email the other person only for the first unread message, not every line.
+  const [waiting] = await q.query(
+    `select 1 from messages x where x.thread_id = $1 and x.sender_id = $2
+       and x.created_at > coalesce((select read_at from thread_reads r where r.thread_id = $1 and r.user_id = $3), 'epoch') limit 1`,
+    [threadId, userId, to],
+  )
   const [row] = await q.query<{ created_at: string | Date }>(
     `insert into messages (id, thread_id, sender_id, body) values ($1, $2, $3, $4) returning created_at`,
     [id, threadId, userId, text],
   )
   await q.query(`update threads set last_message_at = $2 where id = $1`, [threadId, row.created_at])
+  if (!waiting) {
+    const sender = await getUser(userId, q)
+    // Born read: it exists to be emailed; the inbox already shows the message.
+    await q.query(`insert into notifications (id, user_id, title, body, href, read_at) values ($1, $2, $3, $4, $5, now())`, [
+      randomId(12),
+      to,
+      `New message from ${sender?.name.split(/\s+/)[0] ?? 'your trip'}`,
+      text.length > 280 ? `${text.slice(0, 277)}…` : text,
+      `/inbox/${threadId}`,
+    ])
+  }
   await q.query(
     `insert into thread_reads (thread_id, user_id, read_at) values ($1, $2, now()) on conflict (thread_id, user_id) do update set read_at = now()`,
     [threadId, userId],
@@ -139,7 +158,7 @@ export async function unreadCounts(userId: string): Promise<{ messages: number; 
 
 export async function notificationsFor(userId: string): Promise<Notification[]> {
   const rows = await (await db()).query<{ id: string; title: string; body: string; href: string; created_at: string | Date; read_at: string | null }>(
-    `select * from notifications where user_id = $1 order by created_at desc limit 100`,
+    `select * from notifications where user_id = $1 and href not like '/inbox/%' order by created_at desc limit 100`,
     [userId],
   )
   return rows.map((r) => ({ id: r.id, title: r.title, body: r.body, href: r.href, at: new Date(r.created_at).toISOString(), read: Boolean(r.read_at) }))

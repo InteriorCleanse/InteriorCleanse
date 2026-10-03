@@ -29,6 +29,10 @@ export function taxRateFor(car: Car): number {
   return getCity(car.city)?.taxRate ?? 0
 }
 
+export function tzFor(car: Car): string {
+  return getCity(car.city)?.tz ?? 'America/Los_Angeles'
+}
+
 export function cityNameFor(car: Car): string {
   return getCity(car.city)?.name ?? car.city
 }

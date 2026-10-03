@@ -134,4 +134,72 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 3,
+    name: 'payments, hosting, reviews, recovery',
+    sql: `
+      -- Refunds. refund_status: none (nothing owed), pending (owed, not yet
+      -- confirmed by Stripe), done, or demo (preview mode, no money moved).
+      alter table bookings add column refund_cents integer not null default 0;
+      alter table bookings add column refund_status text not null default 'none' check (refund_status in ('none', 'pending', 'done', 'demo'));
+      alter table bookings add column refund_ref text;
+      alter table bookings add column cancelled_by text check (cancelled_by in ('guest', 'host', 'system'));
+      alter table bookings drop constraint bookings_status_check;
+      alter table bookings add constraint bookings_status_check check (status in ('pending_payment', 'requested', 'confirmed', 'declined', 'cancelled', 'expired'));
+
+      -- Host payouts through Stripe Connect (Express accounts).
+      alter table users add column stripe_account_id text;
+      alter table users add column payouts_enabled boolean not null default false;
+      alter table users add column deleted_at timestamptz;
+
+      create table payouts (
+        booking_id text primary key references bookings(id),
+        host_id text not null references users(id),
+        amount_cents integer not null check (amount_cents >= 0),
+        status text not null check (status in ('pending', 'paid')),
+        transfer_id text,
+        created_at timestamptz not null default now(),
+        paid_at timestamptz
+      );
+      create index payouts_host on payouts(host_id);
+
+      -- Days a host has taken off the calendar.
+      create table listing_blocks (
+        id text primary key,
+        listing_id text not null references listings(id) on delete cascade,
+        start_date date not null,
+        end_date date not null check (end_date >= start_date),
+        created_at timestamptz not null default now()
+      );
+      create index listing_blocks_listing on listing_blocks(listing_id, start_date);
+
+      -- One review per person per trip: the guest reviews the car and host,
+      -- the host reviews the guest.
+      create table reviews (
+        id text primary key,
+        booking_id text not null references bookings(id) on delete cascade,
+        author_id text not null references users(id),
+        subject text not null check (subject in ('car', 'guest')),
+        subject_user_id text not null references users(id),
+        listing_slug text not null,
+        rating integer not null check (rating between 1 and 5),
+        body text not null,
+        created_at timestamptz not null default now(),
+        unique (booking_id, author_id)
+      );
+      create index reviews_listing on reviews(listing_slug, created_at desc) where subject = 'car';
+      create index reviews_subject on reviews(subject_user_id);
+
+      -- Password reset links: only a SHA-256 of each token is stored.
+      create table password_resets (
+        token_hash text primary key,
+        user_id text not null references users(id) on delete cascade,
+        expires_at timestamptz not null,
+        used_at timestamptz
+      );
+
+      -- Notification emails go out from this table (an outbox).
+      alter table notifications add column emailed_at timestamptz;
+    `,
+  },
 ]

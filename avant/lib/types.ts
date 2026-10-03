@@ -49,6 +49,8 @@ export interface City {
   lng: number
   bounds: [number, number, number, number]
   taxRate: number
+  /** IANA zone; pickup times are local to the city. */
+  tz: string
   landmarks: Landmark[]
 }
 

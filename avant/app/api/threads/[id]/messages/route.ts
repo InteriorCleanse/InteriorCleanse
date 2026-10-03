@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { after as afterResponse, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
+import { deliverNotificationEmails } from '@/lib/server/email'
 import { MAX_MESSAGE, messagesIn, sendMessage } from '@/lib/server/inbox'
 import { currentUser, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
@@ -25,5 +26,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const parsed = z.object({ body: z.string().trim().min(1).max(MAX_MESSAGE) }).strict().safeParse(await readJson(req).catch(() => null))
   if (!parsed.success) return problem(400, 'Write a message first.')
   const message = await sendMessage(user.id, (await params).id, parsed.data.body)
-  return message ? NextResponse.json({ message }) : problem(404, 'Conversation not found.')
+  if (!message) return problem(404, 'Conversation not found.')
+  afterResponse(() => deliverNotificationEmails())
+  return NextResponse.json({ message })
 }

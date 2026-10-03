@@ -12,6 +12,7 @@
       -122.36
     ],
     "taxRate": 0.0863,
+    "tz": "America/Los_Angeles",
     "landmarks": [
       {
         "name": "Golden Gate Bridge",
@@ -53,6 +54,7 @@
       -118.15
     ],
     "taxRate": 0.095,
+    "tz": "America/Los_Angeles",
     "landmarks": [
       {
         "name": "Santa Monica Pier",
@@ -94,6 +96,7 @@
       -97.6
     ],
     "taxRate": 0.0825,
+    "tz": "America/Chicago",
     "landmarks": [
       {
         "name": "State Capitol",
@@ -130,6 +133,7 @@
       -104.8
     ],
     "taxRate": 0.0881,
+    "tz": "America/Denver",
     "landmarks": [
       {
         "name": "Union Station",
@@ -147,7 +151,7 @@
         "lng": -104.954
       },
       {
-        "name": "Sloan’s Lake",
+        "name": "Sloan\u2019s Lake",
         "lat": 39.748,
         "lng": -105.045
       }
@@ -166,6 +170,7 @@
       -80.1
     ],
     "taxRate": 0.07,
+    "tz": "America/New_York",
     "landmarks": [
       {
         "name": "South Beach",
@@ -202,6 +207,7 @@
       -122.24
     ],
     "taxRate": 0.1035,
+    "tz": "America/Los_Angeles",
     "landmarks": [
       {
         "name": "Space Needle",

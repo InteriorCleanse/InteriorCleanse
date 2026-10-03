@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import { bookingOwner, markPaid } from '@/lib/server/bookings'
+import { after, NextResponse, type NextRequest } from 'next/server'
+import { bookingOwner, markPaid, settleRefund } from '@/lib/server/bookings'
+import { deliverNotificationEmails } from '@/lib/server/email'
 import { currentUser, signInRequired } from '@/lib/server/session'
 import { problem } from '@/lib/security/request'
 
@@ -21,6 +22,11 @@ export async function GET(req: NextRequest) {
   const owner = await bookingOwner(s.metadata.booking)
   if (!owner || owner.guestId !== user.id) return problem(404, 'Booking not found.')
   if (s.payment_status !== 'paid') return problem(402, 'Payment not completed.')
-  const status = await markPaid(s.metadata.booking, s.payment_intent ?? id)
+  const booking = s.metadata.booking
+  const status = await markPaid(booking, s.payment_intent ?? id)
+  after(async () => {
+    await settleRefund(booking)
+    await deliverNotificationEmails()
+  })
   return NextResponse.json({ bookingId: s.metadata.booking, status })
 }

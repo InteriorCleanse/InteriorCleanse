@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { deleteRecord, EMPTY_RECORD, loadRecord, toFacts } from '@/lib/driver-record'
+import { EMPTY_RECORD, loadRecord, toFacts } from '@/lib/driver-record'
 import { modes } from '@/lib/modes'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard } from '@/lib/security/request'
 import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
-import { redactLicenceSession, stripeIdentityConfigured } from '@/lib/verification/stripe-identity'
+import { eraseDriverPass } from '@/lib/server/erase'
 
 export const runtime = 'nodejs'
 
@@ -30,16 +30,6 @@ export async function DELETE(req: NextRequest) {
   if (blocked) return blocked
   const user = await currentUser()
   if (!user) return signInRequired()
-  const sid = driverKey(user)
-  const r = await loadRecord(sid)
-  const ref = r.providerRef ?? r.pendingProviderRef
-  if (ref && stripeIdentityConfigured()) {
-    try {
-      await redactLicenceSession(ref)
-    } catch {
-      console.error('driver delete: provider redaction failed; queued for manual follow-up')
-    }
-  }
-  await deleteRecord(sid)
+  await eraseDriverPass(driverKey(user))
   return NextResponse.json({ deleted: true })
 }

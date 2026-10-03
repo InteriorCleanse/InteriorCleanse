@@ -149,3 +149,33 @@ export async function endSession(token: string | undefined): Promise<void> {
 export async function endAllSessions(userId: string): Promise<void> {
   await (await db()).query(`delete from sessions where user_id = $1`, [userId])
 }
+
+export type DeleteResult = 'ok' | 'has-trips'
+
+/**
+ * Closes an account. Refused while trips are upcoming (as guest or host).
+ * Listings, photos, favorites, sessions and notifications are deleted; the
+ * user row stays only as an anonymous "Former member", so the other side of
+ * past trips and conversations keeps a coherent history and payouts or
+ * refunds still owed can be settled. Sign-in becomes impossible.
+ */
+export async function deleteAccount(userId: string): Promise<DeleteResult> {
+  return (await db()).tx(async (t) => {
+    const [busy] = await t.query(
+      `select 1 from bookings where (guest_id = $1 or host_id = $1) and status in ('requested', 'confirmed') and end_date >= current_date limit 1`,
+      [userId],
+    )
+    if (busy) return 'has-trips'
+    await t.query(`delete from listings where host_id = $1`, [userId])
+    await t.query(`delete from photos where owner_id = $1`, [userId])
+    for (const table of ['favorites', 'sessions', 'password_resets', 'notifications', 'thread_reads']) {
+      await t.query(`delete from ${table} where user_id = $1`, [userId])
+    }
+    await t.query(
+      `update users set email = 'deleted-' || id || '@deleted.invalid', name = 'Former member', bio = '', avatar_photo_id = null,
+         password_hash = '!', deleted_at = now() where id = $1`,
+      [userId],
+    )
+    return 'ok'
+  })
+}

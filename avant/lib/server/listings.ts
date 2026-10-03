@@ -12,6 +12,7 @@ import { photoUrl } from './accounts.ts'
 import { db } from './db.ts'
 import { ownListingPhotos } from './photos.ts'
 import { HOLDS_CAR } from './bookings.ts'
+import { reviewsForListing } from './reviews.ts'
 
 export type StoredListing = Omit<ListingDraft, 'photos'> & { photoIds: string[] }
 
@@ -138,14 +139,25 @@ interface CarRow extends ListingRow {
   host_avatar: string | null
   host_created: string | Date
   host_trips: string
+  host_rating: string | null
+  car_rating: string | null
+  car_trips: string
   booked: { start: string; end: string }[] | null
 }
 
+/** Booked and host-blocked days look the same to a guest: unavailable. */
 const LIVE_SELECT = `
   select l.*, u.name as host_name, u.bio as host_bio, u.avatar_photo_id as host_avatar, u.created_at as host_created,
     (select count(*) from bookings b where b.host_id = u.id and b.status = 'confirmed' and b.end_date < current_date) as host_trips,
-    (select json_agg(json_build_object('start', b.start_date::text, 'end', b.end_date::text))
-       from bookings b where b.listing_slug = l.slug and ${HOLDS_CAR} and b.end_date >= current_date) as booked
+    (select avg(r.rating) from reviews r where r.subject_user_id = u.id and r.subject = 'car') as host_rating,
+    (select avg(r.rating) from reviews r where r.listing_slug = l.slug and r.subject = 'car') as car_rating,
+    (select count(*) from bookings b where b.listing_slug = l.slug and b.status = 'confirmed' and b.end_date < current_date) as car_trips,
+    (select json_agg(x) from (
+       select b.start_date::text as start, b.end_date::text as "end" from bookings b
+        where b.listing_slug = l.slug and ${HOLDS_CAR} and b.end_date >= current_date
+       union all
+       select lb.start_date::text, lb.end_date::text from listing_blocks lb
+        where lb.listing_id = l.id and lb.end_date >= current_date) x) as booked
   from listings l join users u on u.id = l.host_id`
 
 export async function liveCars(cities: City[]): Promise<Car[]> {
@@ -155,7 +167,7 @@ export async function liveCars(cities: City[]): Promise<Car[]> {
 
 export async function carBySlug(slug: string, cities: City[], includePaused = false): Promise<Car | null> {
   const [row] = await (await db()).query<CarRow>(`${LIVE_SELECT} where l.slug = $1 ${includePaused ? '' : `and l.status = 'live'`}`, [slug])
-  return row ? toCar(row, cities) : null
+  return row ? { ...toCar(row, cities), reviews: await reviewsForListing(slug) } : null
 }
 
 function toCar(r: CarRow, cities: City[]): Car {
@@ -163,12 +175,14 @@ function toCar(r: CarRow, cities: City[]): Car {
   const city = cities.find((c) => c.slug === r.city)
   const color = COLORS.find((c) => c.name === d.color) ?? COLORS[2]
   const trips = Number(r.host_trips)
+  const hostRating = r.host_rating == null ? 0 : Math.round(Number(r.host_rating) * 100) / 100
   const host: Host = {
     id: r.host_id,
     name: r.host_name,
     joined: new Date(r.host_created).toISOString().slice(0, 10),
-    allStar: false,
-    rating: 0,
+    // The same bar guests know: a near-perfect rating over a real number of trips.
+    allStar: hostRating >= 4.9 && trips >= 10,
+    rating: hostRating,
     trips,
     responseMinutes: null,
     bio: r.host_bio,
@@ -205,8 +219,8 @@ function toCar(r: CarRow, cities: City[]): Car {
     approxLocation: true,
     hostId: r.host_id,
     host,
-    rating: 0,
-    tripCount: 0,
+    rating: r.car_rating == null ? 0 : Math.round(Number(r.car_rating) * 100) / 100,
+    tripCount: Number(r.car_trips),
     listedAt: new Date(r.created_at).toISOString().slice(0, 10),
     description: d.description,
     guidelines: d.rules,
@@ -217,4 +231,129 @@ function toCar(r: CarRow, cities: City[]): Car {
     photos: d.photoIds.map((id) => photoUrl(id) as string),
     sample: false,
   }
+}
+
+// ── Host editing ────────────────────────────────────────────────────────
+
+/** What a host can change on a live listing; the car itself (VIN, model, city) is fixed. */
+export const EDITABLE = [
+  'dailyRateCents',
+  'weeklyDiscountPct',
+  'monthlyDiscountPct',
+  'milesPerDay',
+  'instantBook',
+  'deliveryOffered',
+  'deliveryFeeCents',
+  'description',
+  'features',
+  'rules',
+  'neighborhood',
+  'efficiency',
+  'color',
+] as const satisfies readonly (keyof ListingDraft)[]
+
+export type ListingEdit = Partial<Pick<ListingDraft, (typeof EDITABLE)[number]>>
+
+export interface EditableListing {
+  id: string
+  slug: string
+  status: 'live' | 'paused'
+  title: string
+  city: string
+  data: Omit<StoredListing, 'vin'>
+  photos: { angle: string; url: string }[]
+  blocks: { id: string; start: string; end: string }[]
+  trips: { id: string; start: string; end: string; status: string }[]
+}
+
+const iso = (d: string | Date) => (typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10))
+
+export async function listingForHost(hostId: string, id: string): Promise<EditableListing | null> {
+  const d = await db()
+  const [r] = await d.query<ListingRow>(`select * from listings where id = $1 and host_id = $2`, [id, hostId])
+  if (!r) return null
+  const blocks = await d.query<{ id: string; start_date: string | Date; end_date: string | Date }>(
+    `select id, start_date, end_date from listing_blocks where listing_id = $1 and end_date >= current_date order by start_date`,
+    [id],
+  )
+  const trips = await d.query<{ id: string; start_date: string | Date; end_date: string | Date; status: string }>(
+    `select id, start_date, end_date, status from bookings where listing_slug = $1 and status in ('requested', 'confirmed') and end_date >= current_date order by start_date`,
+    [r.slug],
+  )
+  const { vin: _v, ...data } = r.data
+  return {
+    id: r.id,
+    slug: r.slug,
+    status: r.status,
+    title: `${r.data.year} ${r.data.make} ${r.data.model}`,
+    city: r.city,
+    data,
+    photos: PHOTO_ANGLES.map((a, i) => ({ angle: a.id, url: photoUrl(r.data.photoIds[i]) as string })),
+    blocks: blocks.map((b) => ({ id: b.id, start: iso(b.start_date), end: iso(b.end_date) })),
+    trips: trips.map((t) => ({ id: t.id, start: iso(t.start_date), end: iso(t.end_date), status: t.status })),
+  }
+}
+
+/** Applies a host's edits (and optionally one replacement photo), re-checked by the listing rules. */
+export async function updateListing(hostId: string, id: string, changes: ListingEdit, photo?: { angle: string; photoId: string }): Promise<boolean> {
+  const d = await db()
+  const [r] = await d.query<ListingRow>(`select * from listings where id = $1 and host_id = $2`, [id, hostId])
+  if (!r) return false
+  const editable = Object.fromEntries(Object.entries(changes).filter(([k]) => (EDITABLE as readonly string[]).includes(k)))
+  const next: StoredListing = { ...r.data, ...editable, photoIds: [...r.data.photoIds] }
+  if (photo) {
+    const index = PHOTO_ANGLES.findIndex((a) => a.id === photo.angle)
+    const [fresh] = await d.query<{ id: string }>(
+      `select id from photos where id = $1 and owner_id = $2 and kind = 'listing' and angle = $3 and (listing_id is null or listing_id = $4)`,
+      [photo.photoId, hostId, photo.angle, id],
+    )
+    if (index < 0 || !fresh) throw new ListingRejected([{ step: 'photos', field: 'photos', message: 'That photo can’t be used here. Upload it again.' }])
+    next.photoIds[index] = fresh.id
+  }
+  const photos = await ownListingPhotos(hostId, next.photoIds)
+  const full: ListingDraft = {
+    ...next,
+    photos: photos.map((p) => ({ id: p.id, angle: p.angle!, sha256: p.sha256, width: p.width, height: p.height, bytes: 0, addedAt: '' })),
+  }
+  // Only rules about what can change here; the car's age and mileage were checked at listing.
+  const fields = new Set<string>([...EDITABLE, 'photos'])
+  const problems = validateListing(full, new Date().getFullYear()).filter((p) => fields.has(p.field))
+  if (problems.length) throw new ListingRejected(problems)
+  await d.tx(async (t) => {
+    await t.query(`update listings set data = $3, daily_rate_cents = $4, updated_at = now() where id = $1 and host_id = $2`, [
+      id,
+      hostId,
+      JSON.stringify(next),
+      next.dailyRateCents,
+    ])
+    if (photo) await t.query(`update photos set listing_id = $1 where id = $2 and owner_id = $3`, [id, photo.photoId, hostId])
+  })
+  return true
+}
+
+export type BlockResult = 'ok' | 'not-found' | 'invalid' | 'has-trip'
+
+/** Takes days off the calendar. Days already booked can't be blocked. */
+export async function addBlock(hostId: string, listingId: string, start: string, end: string): Promise<BlockResult> {
+  const valid = /^\d{4}-\d{2}-\d{2}$/
+  const today = new Date().toISOString().slice(0, 10)
+  if (!valid.test(start) || !valid.test(end) || end < start || start < today) return 'invalid'
+  if (Date.parse(end) - Date.parse(start) > 366 * 86_400_000) return 'invalid'
+  return (await db()).tx(async (t) => {
+    const [l] = await t.query<{ slug: string }>(`select slug from listings where id = $1 and host_id = $2`, [listingId, hostId])
+    if (!l) return 'not-found'
+    await t.query(`select pg_advisory_xact_lock(hashtext($1))`, [l.slug])
+    const [busy] = await t.query(`select 1 from bookings where listing_slug = $1 and ${HOLDS_CAR} and start_date <= $3::date and end_date >= $2::date`, [l.slug, start, end])
+    if (busy) return 'has-trip'
+    await t.query(`insert into listing_blocks (id, listing_id, start_date, end_date) values ($1, $2, $3, $4)`, [randomId(12), listingId, start, end])
+    return 'ok'
+  })
+}
+
+export async function removeBlock(hostId: string, listingId: string, blockId: string): Promise<boolean> {
+  const rows = await (await db()).query(
+    `delete from listing_blocks lb using listings l where lb.id = $1 and lb.listing_id = l.id and l.id = $2 and l.host_id = $3 returning lb.id`,
+    [blockId, listingId, hostId],
+  )
+  return rows.length > 0
 }

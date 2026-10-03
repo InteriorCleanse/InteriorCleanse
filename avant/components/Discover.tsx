@@ -16,6 +16,7 @@ import { CarImage } from './CarImage'
 import { displayDaily, SaveButton } from './CarCard'
 import { useConcierge } from './Concierge'
 import { Icon, type IconName } from './Icons'
+import { Wordmark } from './Logo'
 import { useSession } from './Session'
 
 type Cat = 'all' | 'airports' | 'monthly' | 'nearby' | 'delivered' | 'cities'
@@ -167,6 +168,11 @@ export function Discover({ cars }: { cars: Car[] }) {
 
   return (
     <div className="wrap">
+      <div className="brand-mobile">
+        <Link href="/" className="wordmark" aria-label="AVANT home">
+          <Wordmark title={null} />
+        </Link>
+      </div>
       <header className="app-head fade-in">
         <h1 className="greeting">
           {hello}

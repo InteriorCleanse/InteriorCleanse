@@ -87,9 +87,15 @@ describe('marketplace', () => {
     assert.equal(await respond(guest.id, trip.id, true), 'not-found', 'only the host can approve')
     assert.equal(await respond(host.id, trip.id, true), 'ok')
     assert.ok((await notificationsFor(guest.id)).some((n) => n.title === 'Request approved'))
-    assert.equal(await cancel(other.id, trip.id), 'not-found')
-    assert.equal(await cancel(guest.id, trip.id), 'ok')
-    assert.equal((await tripsFor(guest.id)).find((t) => t.id === trip.id)?.status, 'cancelled')
+    const view = (await tripsFor(guest.id)).find((t) => t.id === trip.id)!
+    assert.equal(view.cancelPreview?.free, true, 'years ahead of pickup, cancelling is free')
+    assert.equal((await cancel(other.id, trip.id)).result, 'not-found')
+    const out = await cancel(guest.id, trip.id)
+    assert.deepEqual(out, { result: 'ok', refundCents: trip.quote.totalCents })
+    const after = (await tripsFor(guest.id)).find((t) => t.id === trip.id)!
+    assert.equal(after.status, 'cancelled')
+    assert.deepEqual(after.refund, { cents: trip.quote.totalCents, status: 'demo' }, 'preview mode records the refund without moving money')
+    assert.equal(after.cancelledBy, 'guest')
   })
 
   it('keeps favorites per person and hides paused listings', async () => {

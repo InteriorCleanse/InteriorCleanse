@@ -599,24 +599,42 @@ p {
 }
 
 .wordmark {
-  font-weight: 300;
-  font-size: 1.12rem;
-  letter-spacing: 0.42em;
-  line-height: 1;
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  padding-right: 0.1em;
+  align-items: center;
+  color: var(--text);
+  line-height: 0;
+  padding: 6px 0;
 }
 
-/* The brand mark: a champagne rule beneath the name, like a coachline. */
-.wordmark i {
-  width: 22px;
-  height: 1.5px;
-  border-radius: 1px;
-  background: var(--gold);
+/* The drawn wordmark (components/Logo.tsx): height sets its size. */
+.wordmark svg {
+  height: 21px;
+  width: auto;
   display: block;
+  overflow: visible;
+}
+
+.wordmark-lg svg {
+  height: 26px;
+}
+
+/* Phones have no top bar; the home screen carries the mark instead. */
+.brand-mobile {
+  display: none;
+}
+
+@media (max-width: 920px) {
+  .brand-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 6px;
+    margin-bottom: 4px;
+  }
+
+  .brand-mobile .wordmark svg {
+    height: 17px;
+  }
 }
 
 .topnav {
@@ -3505,9 +3523,9 @@ p {
 }
 
 .coachline {
-  width: 28px;
+  width: 44px;
   height: 1.5px;
-  background: var(--gold);
+  background: linear-gradient(90deg, #ecd7a6, #c9a15f 45%, rgba(138, 99, 50, 0));
   border: 0;
   margin: 14px 0;
 }
@@ -3534,4 +3552,32 @@ p {
 
 .car-media {
   position: relative;
+}
+
+/* Review stars: champagne when chosen, stone otherwise. */
+.star-input {
+  display: flex;
+  gap: 4px;
+}
+
+.star-input button {
+  border: 0;
+  background: none;
+  padding: 4px;
+  color: var(--line-2);
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.15s var(--ease), transform 0.15s var(--ease);
+}
+
+.star-input button[data-on='true'] {
+  color: var(--gold);
+}
+
+.star-input button:hover {
+  transform: scale(1.08);
+}
+
+.star-input svg {
+  fill: currentColor;
 }

@@ -36,9 +36,26 @@ no gradients behind content.
 ## Type
 
 Urbanist, one family. Display sizes at weight 300 with slight negative
-tracking; reading text at 400; labels and small caps-style eyebrows at 600
-with wide tracking. The wordmark is **A V A N T** in wide-tracked capitals
-over a short champagne coachline.
+tracking; reading text at 400; labels at 600. The wordmark is not set in
+Urbanist; it is drawn (see The marks).
+
+## The marks
+
+Both are drawn, not typeset (`components/Logo.tsx`), so no font can change
+them.
+
+- **Wordmark.** Wide, extended capitals with knife-edge apexes. Both A's
+  are open chevrons with no crossbar that mirror the V, so A-V-A reads as
+  one sweeping line. The T's crossbar ends are cut at the same angle as
+  the A's legs. Beneath the name a brushed-gold pinstripe runs full weight
+  under the first A and thins to a hair at the T, like a coachline.
+  Obsidian on light, pearl `#f4f2ed` on dark; the gold never changes.
+- **Emblem.** The open A in pearl on an obsidian tile, crossed by the gold
+  line running edge to edge like a horizon. App icon, favicon, sign-in.
+- **Gold.** A brushed gradient, `#ecd7a6` → `#c9a15f` → `#8a6332`, used
+  only in the marks and the coachline rules. Never as a fill behind text.
+- Minimum size: wordmark 14px tall, emblem 16px. Keep clear space of half
+  the wordmark's height on every side.
 
 ## Form
 

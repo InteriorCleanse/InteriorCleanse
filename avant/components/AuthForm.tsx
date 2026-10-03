@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { safeNext } from '@/lib/security/redirect'
 import { useDriver } from './DriverProvider'
+import { Emblem } from './Logo'
 import { useSession } from './Session'
 
 export function AuthForm() {
@@ -43,7 +44,7 @@ export function AuthForm() {
 
   return (
     <div className="auth fade-in">
-      <p className="eyebrow">AVANT</p>
+      <Emblem size={56} />
       <h1 className="greeting" style={{ marginTop: 10 }}>
         {mode === 'up' ? 'Welcome.' : 'Welcome back.'}
       </h1>

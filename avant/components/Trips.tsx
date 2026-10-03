@@ -10,8 +10,10 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CHECK_IN_ITEMS, FREE_CANCEL_HOURS, getPlan } from '@/lib/catalog'
-import { addDays, formatDate, formatTime, minutesOf, parseIso, todayIso } from '@/lib/dates'
-import type { TripView } from '@/lib/server/bookings'
+import { formatDate, formatTime, parseIso, todayIso } from '@/lib/dates'
+import { moneyExact } from '@/lib/format'
+import { REQUEST_HOURS } from '@/lib/policy'
+import type { PersonStats, TripView } from '@/lib/server/bookings'
 import { actions, useLocal } from '@/lib/store'
 import { CarImage } from './CarImage'
 import { useConcierge } from './Concierge'
@@ -20,7 +22,7 @@ import { Icon } from './Icons'
 import { PriceBreakdown } from './PriceBreakdown'
 import { useSession } from './Session'
 import { useToast } from './Toast'
-import { Avatar, Breadcrumbs, ButtonLink, Empty, Notice } from './ui'
+import { Avatar, Breadcrumbs, ButtonLink, Empty, Notice, Stars } from './ui'
 
 const short = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
@@ -32,6 +34,7 @@ function daysBetween(a: string, b: string) {
 export function tripStatus(t: TripView, today: string): { label: string; tone: 'ink' | 'quiet' | 'gold' | 'bad' } {
   if (t.status === 'cancelled') return { label: 'Cancelled', tone: 'bad' }
   if (t.status === 'declined') return { label: 'Declined', tone: 'bad' }
+  if (t.status === 'expired') return { label: 'Expired', tone: 'quiet' }
   if (t.status === 'requested') return t.role === 'host' ? { label: 'Needs your answer', tone: 'gold' } : { label: 'Request sent', tone: 'gold' }
   if (t.end < today) {
     const ago = daysBetween(t.end, today)
@@ -45,7 +48,15 @@ export function tripStatus(t: TripView, today: string): { label: string; tone: '
   return { label: until === 1 ? 'Starts tomorrow' : `Starts in ${until} days`, tone: 'ink' }
 }
 
-const isPast = (t: TripView, today: string) => t.end < today || t.status === 'cancelled' || t.status === 'declined'
+const isPast = (t: TripView, today: string) => t.end < today || t.status === 'cancelled' || t.status === 'declined' || t.status === 'expired'
+
+function statsLine(s: PersonStats | null, as: 'guest' | 'host'): string {
+  if (!s || (!s.trips && !s.reviews)) return as === 'guest' ? 'New to AVANT' : 'New host'
+  const parts = [s.rating != null ? `★ ${s.rating.toFixed(1)}` : null, s.reviews ? `${s.reviews} review${s.reviews === 1 ? '' : 's'}` : null, `${s.trips} trip${s.trips === 1 ? '' : 's'}`]
+  return parts.filter(Boolean).join(' · ')
+}
+
+const until = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
 
 function useTrips() {
   const { user, loaded } = useSession()
@@ -216,9 +227,9 @@ export function TripDetail({ id }: { id: string }) {
   const s = tripStatus(trip, today)
   const other = trip.role === 'guest' ? trip.host : trip.guest
   const r = trip.request
-  const pickupMs = parseIso(trip.start) + minutesOf(r.startTime) * 60_000
-  const freeCancel = Date.now() < pickupMs - FREE_CANCEL_HOURS * 3_600_000
-  const upcoming = (trip.status === 'confirmed' || trip.status === 'requested') && trip.end >= today
+  const preview = trip.cancelPreview
+  const upcoming = Boolean(preview)
+  const moneyBack = trip.paid === 'demo' ? ' (preview: nothing was charged)' : ''
   const done = checks[trip.id] ?? []
 
   return (
@@ -228,7 +239,8 @@ export function TripDetail({ id }: { id: string }) {
         <Notice tone="ok" icon="check">
           {trip.status === 'requested' ? (
             <>
-              <strong>Request sent.</strong> {other?.firstName ?? 'Your host'} has 8 hours to answer. Nothing is final until they approve.
+              <strong>Request sent.</strong> {other?.firstName ?? 'Your host'} has {REQUEST_HOURS} hours to answer. If they decline or don&apos;t answer, you&apos;re
+              refunded in full.
             </>
           ) : (
             <>
@@ -263,7 +275,9 @@ export function TripDetail({ id }: { id: string }) {
                 <Avatar name={other.name} photo={other.photo} size={64} />
                 <div style={{ flex: 1 }}>
                   <strong style={{ fontSize: '1.1rem' }}>{other.firstName}</strong>
-                  <div className="small muted">On AVANT since {new Date(other.joined).getFullYear()}</div>
+                  <div className="small muted">
+                    {statsLine(trip.otherStats, trip.role === 'guest' ? 'host' : 'guest')} · on AVANT since {new Date(other.joined).getFullYear()}
+                  </div>
                 </div>
                 {trip.threadId ? (
                   <Link href={`/inbox/${trip.threadId}`} className="btn btn-secondary btn-md">
@@ -282,7 +296,8 @@ export function TripDetail({ id }: { id: string }) {
             <section className="car-section" aria-labelledby="answer">
               <h2 id="answer">Answer {trip.guest?.firstName ?? 'the guest'}</h2>
               <p className="muted" style={{ marginBottom: 14 }}>
-                They&apos;re verified and waiting. Approving confirms the trip; declining releases the dates.
+                Their licence is verified and they&apos;ve paid. Approving confirms the trip; declining releases the dates and refunds them in full.
+                {trip.respondBy ? ` Answer by ${until(trip.respondBy)}, or the request expires.` : ''}
               </p>
               <div className="row">
                 <button type="button" className="btn btn-primary btn-md" disabled={busy} onClick={() => act('respond', { approve: true }, 'Trip approved')}>
@@ -322,6 +337,24 @@ export function TripDetail({ id }: { id: string }) {
             </>
           ) : null}
 
+          {trip.refund.cents > 0 ? (
+            <section className="car-section" aria-labelledby="refund">
+              <h2 id="refund">Refund</h2>
+              <p className="muted">
+                {moneyExact(trip.refund.cents)}{' '}
+                {trip.refund.status === 'done'
+                  ? 'refunded to the original card. Banks take 5–10 business days to show it.'
+                  : trip.refund.status === 'pending'
+                    ? 'is on its way back to the original card.'
+                    : 'refunded'}
+                {moneyBack}
+                {trip.refund.cents < trip.quote.totalCents ? ` The first day (${moneyExact(trip.quote.totalCents - trip.refund.cents)}) was kept, per the cancellation policy.` : ''}
+              </p>
+            </section>
+          ) : null}
+
+          <ReviewSection trip={trip} onDone={load} />
+
           <section className="car-section" aria-labelledby="help">
             <h2 id="help">Help</h2>
             <div className="row">
@@ -342,10 +375,12 @@ export function TripDetail({ id }: { id: string }) {
               <h2 id="change">Changes</h2>
               <p className="small muted" style={{ marginBottom: 12 }}>
                 {trip.role === 'host'
-                  ? 'Cancelling as a host hurts your listing and the guest’s plans. Only if you must.'
-                  : freeCancel
-                    ? `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup (${formatDate(addDays(trip.start, 0), true)}).`
-                    : 'Inside 24 hours of pickup the first day is kept.'}
+                  ? `Cancelling as a host refunds ${trip.guest?.firstName ?? 'the guest'} in full and hurts your listing’s ranking. Only if you must.`
+                  : trip.status === 'requested'
+                    ? 'The host hasn’t answered yet, so cancelling refunds everything.'
+                    : preview?.free
+                      ? `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup. Cancel now and get the full ${moneyExact(preview.refundCents)} back.`
+                      : `You’re inside ${FREE_CANCEL_HOURS} hours of pickup: cancelling now refunds ${moneyExact(preview?.refundCents ?? 0)} and keeps the first day (${moneyExact(preview?.keptCents ?? 0)}).`}
               </p>
               {!confirm ? (
                 <button type="button" className="btn btn-ghost btn-md" onClick={() => setConfirm(true)}>
@@ -354,7 +389,7 @@ export function TripDetail({ id }: { id: string }) {
               ) : (
                 <div className="row">
                   <button type="button" className="btn btn-danger btn-md" disabled={busy} onClick={() => act('cancel', undefined, 'Trip cancelled')}>
-                    Yes, cancel
+                    {preview && trip.role === 'guest' ? `Cancel and refund ${moneyExact(preview.refundCents)}` : 'Yes, cancel'}
                   </button>
                   <button type="button" className="btn btn-ghost btn-md" onClick={() => setConfirm(false)}>
                     Keep it
@@ -373,6 +408,82 @@ export function TripDetail({ id }: { id: string }) {
         </aside>
       </div>
     </div>
+  )
+}
+
+function StarInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="star-input" role="radiogroup" aria-label="Rating">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n === 1 ? '' : 's'}`} data-on={n <= value} onClick={() => onChange(n)}>
+          <Icon name="star" size={26} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function ReviewSection({ trip, onDone }: { trip: TripView; onDone: () => Promise<void> }) {
+  const toast = useToast()
+  const [rating, setRating] = useState(0)
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const { mine, theirs } = trip.reviews
+  const otherName = (trip.role === 'guest' ? trip.host : trip.guest)?.firstName ?? (trip.role === 'guest' ? 'your host' : 'your guest')
+  if (!trip.canReview && !mine && !theirs) return null
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!rating) return toast('Choose 1 to 5 stars.')
+    setBusy(true)
+    const res = await fetch(`/api/trips/${encodeURIComponent(trip.id)}/review`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ rating, body }),
+    })
+    const json = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok) return toast(json.error ?? 'Couldn’t post that. Try again.')
+    toast('Thank you for your review')
+    await onDone()
+  }
+
+  return (
+    <section className="car-section" aria-labelledby="review">
+      <h2 id="review">{trip.role === 'guest' ? `How was the ${trip.car.title.replace(/^\d{4} /, '')}?` : `How was ${otherName} as a guest?`}</h2>
+      {trip.canReview ? (
+        <form method="post" onSubmit={send} className="stack" style={{ gap: 12 }}>
+          <StarInput value={rating} onChange={setRating} />
+          <label className="field">
+            <span className="label">{trip.role === 'guest' ? 'A few words for future guests (and your host)' : 'A few words for other hosts'}</span>
+            <textarea className="textarea" rows={4} maxLength={1000} value={body} onChange={(e) => setBody(e.target.value)} />
+          </label>
+          <div>
+            <button type="submit" className="btn btn-primary btn-md" disabled={busy || !rating}>
+              {busy ? 'Posting…' : 'Post review'}
+            </button>
+          </div>
+        </form>
+      ) : null}
+      {mine ? (
+        <div className="review">
+          <div className="between">
+            <strong>Your review</strong>
+            <Stars value={mine.rating} />
+          </div>
+          {mine.body ? <p className="muted" style={{ marginTop: 8 }}>{mine.body}</p> : null}
+        </div>
+      ) : null}
+      {theirs ? (
+        <div className="review" style={{ marginTop: 12 }}>
+          <div className="between">
+            <strong>{otherName.charAt(0).toUpperCase() + otherName.slice(1)}&apos;s review of you</strong>
+            <Stars value={theirs.rating} />
+          </div>
+          {theirs.body ? <p className="muted" style={{ marginTop: 8 }}>{theirs.body}</p> : null}
+        </div>
+      ) : null}
+    </section>
   )
 }
 
