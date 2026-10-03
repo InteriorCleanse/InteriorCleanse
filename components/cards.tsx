@@ -63,7 +63,6 @@ export function BookCard({ book }: { book: Book }) {
         <ProductImage src={book.coverImage} alt={book.imageAlt} label={book.title} />
       </Link>
       <div className="book-card-info">
-        <p className="eyebrow">The Library</p>
         <h3 className="book-card-title">
           <Link href={`/library/${book.slug}/`}>{book.title}</Link>
         </h3>

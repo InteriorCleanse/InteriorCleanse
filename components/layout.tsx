@@ -19,70 +19,58 @@ const FOOTER_LEGAL: [string, string][] = [
   ['Terms', '/legal/terms/'],
 ]
 
-/**
- * Footer wordmark. The ◇ separator is gone from the whole site — it read as
- * decoration rather than as part of the mark, and the master logo has a star
- * divider of its own.
- */
-function Wordmark() {
-  return (
-    <Link href="/" className="wordmark">
-      INTERIOR CLEANSE
-    </Link>
-  )
-}
-
 export { SiteHeader as Header } from './SiteHeader'
 
 export function Footer() {
+  // A letter close rather than the four-column link grid: the store signs off
+  // like a note from the house, with one sign-up and a single line of links.
   return (
-    <footer className="site-footer">
-      <div className="footer-grid">
-        <div className="footer-brand">
-          <Wordmark />
-          <p>
-            {SITE.tagline}.
-            <br />
-            Curated objects and ideas for a more considered life.
-          </p>
-          {/* Always present, no modal required — the sign-up must never depend
-              on a visitor having triggered something. */}
-          <GuestBookForm variant="compact" id="guestbook-email-footer" />
-        </div>
-        <div>
-          <p className="footer-col-title">Navigate</p>
-          <div className="footer-links">
-            {NAV.map(([label, href]) => (
-              <Link key={href} href={href}>
-                {label}
-              </Link>
-            ))}
+    <footer className="site-footer foot-letter">
+      <div className="foot-letter__note">
+        <p className="foot-letter__close">
+          From our house to yours.
+          <span className="foot-letter__sign">InteriorCleanse</span>
+        </p>
+        <p className="foot-letter__ps">
+          Letters back are welcome at{' '}
+          <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>. Or leave an
+          address for the occasional note when there is something worth sending.
+        </p>
+        {/* Always present, no modal required — the sign-up must never depend
+            on a visitor having triggered something. */}
+        <GuestBookForm variant="compact" id="guestbook-email-footer" />
+      </div>
+
+      <nav className="foot-letter__index" aria-label="Footer">
+        <ul className="foot-letter__links">
+          {NAV.map(([label, href]) => (
+            <li key={href}>
+              <Link href={href}>{label}</Link>
+            </li>
+          ))}
+          <li>
             <Link href="/contact/">Contact</Link>
-          </div>
-        </div>
-        <div>
-          <p className="footer-col-title">Legal</p>
-          <div className="footer-links">
-            {FOOTER_LEGAL.map(([label, href]) => (
-              <Link key={href} href={href}>
-                {label}
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="footer-col-title">Connect</p>
-          <div className="footer-links">
+          </li>
+          <li>
             <a href={SITE.social.tiktok} target="_blank" rel="noreferrer">
               TikTok ↗
             </a>
+          </li>
+          <li>
             <a href={SITE.social.instagram} target="_blank" rel="noreferrer">
               Instagram ↗
             </a>
-            <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>
-          </div>
-        </div>
-      </div>
+          </li>
+        </ul>
+        <ul className="foot-letter__links foot-letter__links--legal">
+          {FOOTER_LEGAL.map(([label, href]) => (
+            <li key={href}>
+              <Link href={href}>{label}</Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
       <div className="footer-base">
         <span>
           © {new Date().getFullYear()} {BRAND_NAME}

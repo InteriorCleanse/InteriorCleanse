@@ -22,11 +22,19 @@ light, never through gold everywhere or noise.
 - **Accent:** one quiet accent per track, never mixed on one screen. Mind
   `--mind-accent` sage, Home `--home-accent` slate blue, Body `--body-accent`
   brass, Spirit `--spirit-accent` plum. `--gold` is for small marks only.
-- **Type:** Fraunces for display, with optical size and a soft, slightly wonky
-  italic for emphasis. Plus Jakarta Sans for body and labels. Labels are small
-  capitals with wide tracking. Prices use the body face at a readable size.
-- **Shape:** pill buttons with an arrow orb, thin hairline rules (`--line`),
-  double-bezel product tiles. No heavy shadows, no glass panels.
+- **Type:** Fraunces for display, always roman. Emphasis inside a heading is
+  carried by the track's accent colour, never by italic (Hallmark gate 38a).
+  Plus Jakarta Sans for body and labels. Prices use the body face at a
+  readable size.
+- **Labels:** eyebrows only where they help wayfinding, at most one per
+  section. No ghost numerals, no "Object 05" counters, no repeated card labels.
+- **Shape:** one pill for the primary action on a screen; secondary actions
+  are typographic links with a drawn rule. Thin hairline rules (`--line`).
+  Product tiles are a single surface with print-like corners (2-4px), one
+  hover effect. No heavy shadows, no glass panels, no animated aurora.
+- **Footer:** a letter close (Hallmark Ft6), not a four-column link grid.
+- **Hallmark stamp:** the first line of `app/globals.css` records the genre,
+  macrostructure and archetypes. Run `hallmark audit` before shipping UI.
 - **3D:** products sit on a lit studio sweep in the packshot's own cream, so
   poster, model and page read as one surface. Models turn slowly until touched.
   Books and the print are built from their real artwork (`ObjectStage`); other
