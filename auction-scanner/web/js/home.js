@@ -1,6 +1,6 @@
 // Home: the command centre. What is ending soon, what the Sniper found, what you watch,
 // how the practice and the business are going, and the one next thing to do.
-import { getJson, esc, money, timeLeft, closesText, when } from './api.js'
+import { getJson, esc, money, timeLeft, closesText, when, store } from './api.js'
 import { loading, errorStrip, sourceName, carName } from './ui.js'
 
 const GOAL = { rental: 'Finding your first rental car', flip: 'Flipping cars', keep: 'Finding your next car' }
@@ -68,6 +68,11 @@ export async function render(el, ctx) {
   const paperAny = h.paper.won + h.paper.lost + h.paper.open > 0
   const garageAny = h.garage.cars > 0
   el.innerHTML = `<div class="head"><div><h1>Home</h1><p>${esc(h.goal ? GOAL[h.goal] : 'Your auction desk')}. ${h.liveSource ? 'Reading live auctions.' : 'No live source yet, so the feed shows SAMPLE cars.'}</p></div></div>
+    <form class="panel home-find" id="h-find" aria-label="Find deals for your budget">
+      <span class="mono dim">Find deals for your budget</span>
+      <div class="row"><div class="bd-amount"><span class="bd-cur">$</span><input id="h-budget" type="number" inputmode="numeric" min="500" step="500" aria-label="Your budget in dollars" value="${esc(String((store('gavel-deals') || {}).budget || ctx.me.cashUsd || 15000))}" /></div><button class="btn" type="submit">Find deals</button></div>
+      <span class="dim" style="font-size:14px">Clean title, little or no damage, every cost counted, ranked by estimated profit.</span>
+    </form>
     ${best ? bestHtml(best) : ''}
     ${showNext ? `<a class="tag nextup" href="${esc(nextUp.href)}"><div class="body" style="padding:16px 18px"><div class="mono dim">Next step · ${done} of ${h.next.length} done</div><h2 class="nt">${esc(nextUp.title)}</h2><p style="margin:4px 0 0">${esc(nextUp.body)}</p></div><span class="go-arrow" aria-hidden="true">→</span></a>` : ''}
     <div class="tiles four">
@@ -91,6 +96,14 @@ export async function render(el, ctx) {
       </section>` : ''}
       <section class="panel">${pathHtml(h.next)}</section>
     </div>`
+  el.querySelector('#h-find').addEventListener('submit', (e) => {
+    e.preventDefault()
+    const v = Number(el.querySelector('#h-budget').value)
+    if (!Number.isFinite(v) || v < 500) { el.querySelector('#h-budget').focus(); return }
+    const st = store('gavel-deals') || {}
+    store('gavel-deals', { ...st, budget: v })
+    location.hash = '#deals'
+  })
   ticker = setInterval(() => {
     if (!document.body.contains(el) || el.hidden) { clearInterval(ticker); ticker = null; return }
     el.querySelectorAll('[data-ends]').forEach((n) => { const t = timeLeft(Number(n.dataset.ends)); if (t) { n.textContent = t.text; n.className = 'cd ' + t.tone } })

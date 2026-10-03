@@ -50,8 +50,9 @@ export function timeLeft(endsAt, now = Date.now()) {
   const d = Math.floor(h / 24)
   const m = Math.floor((ms % 3_600_000) / 60_000)
   if (d >= 1) return { text: `Ends in ${d}d ${h % 24}h`, tone: '' }
-  if (h >= 1) return { text: `Ends in ${h}h ${m}m`, tone: h < 6 ? 'wait' : '' }
-  return { text: `Ends in ${m} min`, tone: 'hot' }
+  // Urgency means something: red only in the last 15 minutes, amber inside 3 hours.
+  if (h >= 1) return { text: `Ends in ${h}h ${m}m`, tone: h < 3 ? 'wait' : '' }
+  return { text: `Ends in ${m} min`, tone: m < 15 ? 'hot' : 'wait' }
 }
 
 /** A listing's time left; or, when the source gives only a closing date (GSA), that date and never a made-up countdown. */

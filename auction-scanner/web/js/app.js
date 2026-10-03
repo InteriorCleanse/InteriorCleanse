@@ -16,9 +16,10 @@ import * as garage from './garage.js'
 import * as setup from './setup.js'
 import * as importer from './import.js'
 import * as connect from './connect.js'
+import * as deals from './deals.js'
 import { startMotion, newVisit } from './motion.js'
 
-const SCREENS = { home, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup, import: importer, connect }
+const SCREENS = { home, deals, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, garage, setup, import: importer, connect }
 const ctx = { me: null, feedKind: null, installPrompt: null }
 // Chrome and Edge offer an install prompt once per load; keep it for the button in Settings.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); ctx.installPrompt = e })
@@ -32,7 +33,7 @@ function route() {
   if ((screen === 'admin' || screen === 'connect') && ctx.me && ctx.me.role !== 'owner') { location.hash = '#home'; return }
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.dataset.screen !== screen })
   document.querySelectorAll('.tabs a').forEach((a) => {
-    const grouped = ['watch', 'intel', 'auctions', 'playbook', 'rental', 'settings', 'admin', 'import', 'connect']
+    const grouped = ['watch', 'intel', 'auctions', 'playbook', 'rental', 'garage', 'settings', 'admin', 'import', 'connect']
     const active = a.dataset.tab === screen || (screen === 'plan' && a.dataset.tab === 'feed') || (a.dataset.tab === 'more' && grouped.includes(screen))
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current')
   })
@@ -57,7 +58,7 @@ export function setMode(kind, detail) {
 function moreSheet() {
   const owner = ctx.me.role === 'owner'
   const rental = ctx.me.goal === 'rental'
-  const items = [['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ...(rental ? [['#garage', 'Garage', 'The cars you bought: every cost in, every dollar out']] : []), ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
+  const items = [...(rental ? [['#rental', 'Rental', 'Your first rental car, ranked']] : []), ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#garage', 'Garage', 'The cars you bought: every cost in, every dollar out'], ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
   if (owner) items.push(['#admin', 'Members', 'Invite members, access codes, Stripe'], ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'])
   const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
   document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
@@ -104,9 +105,10 @@ async function pollAlerts() {
 
 /** Building a rental business: Rental takes Garage's place in the phone bar, and Garage moves into More. */
 export function applyGoal(me) {
-  const rental = me.goal === 'rental'
-  document.querySelector('.tabs [data-tab="rental"]').classList.toggle('desk-only', !rental)
-  document.querySelector('.tabs [data-tab="garage"]').classList.toggle('desk-only', rental)
+  // Deals holds the fourth phone tab; Rental and Garage live in More on a phone (Rental first for the rental goal).
+  document.querySelector('.tabs [data-tab="rental"]').classList.add('desk-only')
+  document.querySelector('.tabs [data-tab="garage"]').classList.add('desk-only')
+  document.body.dataset.goal = me.goal || ''
 }
 
 async function boot() {
