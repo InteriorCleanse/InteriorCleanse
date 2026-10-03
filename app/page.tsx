@@ -9,7 +9,6 @@ import { TrackScene } from '@/components/TrackScene'
 import { ArrowOrb } from '@/components/ui/ArrowOrb'
 import { GuestBook } from '@/components/GuestBook'
 import { LineIcon, type IconName } from '@/components/icons/LineIcon'
-import { TrackIcon } from '@/components/TrackIcon'
 import { allProducts, articles, mindBooks } from '@/lib/content'
 import { getScene, resolveFeatured } from '@/lib/scenes'
 import { LOGO_URL } from '@/lib/brand-assets'
@@ -110,12 +109,6 @@ export default function Home() {
         <TrackScene scene={getScene('library')} />
         <div className="track-inner">
           <div className="track-text">
-            <div className="track-eyebrow-row">
-              <TrackIcon name="book" />
-              <span className="eyebrow" style={{ color: 'var(--mind-accent)' }}>
-                For the mind — the library
-              </span>
-            </div>
             <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Books that change
@@ -149,12 +142,6 @@ export default function Home() {
         <TrackScene scene={getScene('atrium')} />
         <div className="track-inner reverse">
           <div className="track-text">
-            <div className="track-eyebrow-row">
-              <TrackIcon name="sparkle" />
-              <span className="eyebrow" style={{ color: 'var(--home-accent)' }}>
-                For the home — the edit
-              </span>
-            </div>
             <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Cleaning and
@@ -188,12 +175,6 @@ export default function Home() {
         <TrackScene scene={getScene('conservatory')} />
         <div className="track-inner">
           <div className="track-text">
-            <div className="track-eyebrow-row">
-              <TrackIcon name="flame" />
-              <span className="eyebrow" style={{ color: 'var(--body-accent)' }}>
-                For the body — the ritual
-              </span>
-            </div>
             <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Objects made
@@ -227,12 +208,6 @@ export default function Home() {
         <TrackScene scene={getScene('chapel')} />
         <div className="track-inner reverse">
           <div className="track-text">
-            <div className="track-eyebrow-row">
-              <TrackIcon name="star" />
-              <span className="eyebrow" style={{ color: 'var(--spirit-accent)' }}>
-                For the spirit — the faith library
-              </span>
-            </div>
             <span className="rule-draw" aria-hidden="true" />
             <h2 className="track-headline">
               Books for a

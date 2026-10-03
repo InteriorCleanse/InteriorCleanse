@@ -13,6 +13,7 @@ nothing under `.claude/` is built, served, or linted.
 | cast, paint, genjutsu/_jutsu/* | github.com/AThevon/genjutsu | 94a260a | MIT |
 | watch | github.com/bradautomates/claude-video (`skills/watch`) | 83da59f | MIT |
 | see-video | "Claude's Eyes" guide (supplied by the owner as a .docx), script and SKILL.md transcribed with two marked fixes | guide @ 2026-09-28 | none stated |
+| hallmark (SKILL.md + references; demo site, screenshots and talk slides left out) | github.com/Nutlope/hallmark (`skills/hallmark`) | 13ac0ec | MIT |
 | caveman | github.com/JuliusBrussee/caveman (`skills/caveman`) | 15581d1 | MIT (the skill; that repo's engine and Go binaries are BSL-1.1 and are not included) |
 | ui-ux-pro-max, design, design-system, brand, banner-design, slides | github.com/nextlevelbuilder/ui-ux-pro-max-skill (`.claude/skills/*`) | 7f69fed | MIT |
 | last30days | github.com/mvanhorn/last30days-skill (`skills/last30days`) | ac0ed3b | MIT |
@@ -63,6 +64,16 @@ matched every label to the millisecond. The timestamp font also falls back
 to DejaVu or Liberation on Linux instead of Pillow's tiny bitmap font. Use
 `/watch` for short clips, exact moments, or captionless audio.
 
+`hallmark` is the anti-slop design auditor: `hallmark audit` scores a page
+against named AI-design tells and its slop-test gates, and `hallmark redesign`
+fixes them inside the existing code. It is Markdown only, with no scripts and
+no network calls. Two local choices: the storefront's locked design system is
+`docs/DESIGN_BRIEF.md`, not a root `design.md`, and no `.hallmark/log.json` is
+kept at the root, because this repository's root is shared with other projects
+and Hallmark would read either file as their system too. Its catalogue themes
+reference the upstream demo site's `tokens.css`, which is not vendored; audits
+and redesigns of an existing system do not need it.
+
 `/caveman` switches Claude to a terse output style for the session (`/caveman
 off` restores normal). Only the skill itself is vendored; the upstream repo's
 compression engine, proxy, browser extension, and agent packs are separate
@@ -107,7 +118,7 @@ a specific AI tool (Claude, Cursor, Midjourney, video models, coding agents).
 It is instructions plus two reference files; no scripts, no network.
 
 Every installed skill's name and description is loaded into **every** session
-before you type. This repository now carries 109 skills at roughly 11,500
+before you type. This repository now carries 110 skills at roughly 11,600
 tokens of always-on context, up from 48 at ~4,000 before any of this. That
 budget is why the cybersecurity pack is installed at 16 skills of its 818
 (the full pack costs ~108,000 tokens per session) and why the 166-skill

@@ -1,3 +1,4 @@
+/* Hallmark · genre: editorial · macrostructure: Photographic (catalogue pages: Catalogue) · nav: N5 floating pill · footer: Ft6 letter close · design-system: docs/DESIGN_BRIEF.md · designed-as-app */
 
 @tailwind base;
 @tailwind components;
@@ -6152,3 +6153,130 @@ html[data-intro='skip'] .intro-veil { display: none; }
 .product-viewer-col .object-stage[data-kind='print'] .glb-poster {
   box-shadow: 0 30px 60px -20px rgba(60, 45, 25, 0.35);
 }
+
+
+/* ─── PHASE 17 · Hallmark redesign: remove the slop tells ────────────────────
+   Audit and redesign with the Hallmark skill (.claude/skills/hallmark). Each
+   block names the gate it answers. Layout, routes, copy and every component's
+   behaviour are unchanged; only the visual layer moves. */
+
+/* Gate 38a — headings are roman. Emphasis keeps its accent colour; the italic
+   emphasis word inside an upright headline was the loudest tell on the site. */
+:is(h1, h2, h3, h4, h5, h6, [class*='title'], [class*='headline'], [class*='tagline'], [class*='subtitle'], blockquote, .manifesto-text),
+:is(h1, h2, h3, h4, h5, h6, [class*='title'], [class*='headline'], [class*='tagline'], [class*='subtitle'], blockquote, .manifesto-text) :is(em, i) {
+  font-style: normal !important;
+}
+:is(h1, h2, h3, h4, h5, h6, [class*='title'], [class*='headline'], blockquote, .manifesto-text) :is(em, i) {
+  font-variation-settings: 'SOFT' 30, 'opsz' 144 !important;
+}
+
+/* Gate 54 and section-tag discipline — no giant ghost numerals behind each
+   track and each reel item; the order carries no information. */
+.track-section::before,
+.gallery-counter { display: none !important; }
+
+/* Gate 29 — no animated multi-colour aurora behind the still bands. */
+.manifesto-section::before,
+.email-capture-section::before { display: none; }
+
+/* Gates 4 and 13 — one surface per card and one hover effect. The tile was a
+   card seated inside a card, with lift, shadow and image zoom at once. Corners
+   come down from 22px to the radius of a print. */
+.product-card {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+}
+.product-card:hover { transform: none; box-shadow: none; }
+.product-card-image { border-radius: 4px; }
+.product-card-info { padding: 1.1rem 0 0; }
+.product-card:hover .product-card-image img,
+.product-card:focus-within .product-card-image img { transform: scale(1.03); }
+.book-card-image { border-radius: 2px; }
+
+/* Pill repetition — secondary calls to action become typographic links: a
+   drawn rule and an arrow, not another rounded button with an orb. */
+.track-cta {
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 0 0.35rem !important;
+  box-shadow: none !important;
+  gap: 0.6rem;
+  border-bottom: 1px solid currentColor !important;
+  letter-spacing: 0.16em;
+}
+.track-cta .btn-orb {
+  width: auto;
+  height: auto;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.track-cta:hover .btn-orb { transform: translateX(3px); }
+
+/* The featured reel sat on near-black like the old product stage; it now
+   shares the lit studio sweep so packshots read as one surface with the page. */
+.reel-stage {
+  --fg-rgb: 27, 24, 21;
+  background: radial-gradient(110% 85% at 50% 32%, #fbf8f2 0%, #f2ece0 48%, #e6ddcd 100%);
+}
+
+/* Gate 43 — Ft6 letter close replaces the four-column footer. */
+.foot-letter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 4rem 5vw;
+  align-items: end;
+}
+.foot-letter__note { max-width: 46ch; display: grid; gap: 1.25rem; }
+.foot-letter__close {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  line-height: 1.2;
+  color: var(--bone);
+  margin: 0.5rem 0 0;
+}
+.foot-letter__sign {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.foot-letter__ps { font-size: 0.9rem; line-height: 1.7; color: var(--text-dim); margin: 0; }
+.foot-letter__ps a { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+.foot-letter__index { display: grid; gap: 1.1rem; justify-items: end; }
+.foot-letter__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem 1.6rem;
+}
+.foot-letter__links a {
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: var(--bone);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s var(--ease-lux);
+}
+.foot-letter__links a:hover,
+.foot-letter__links a:focus-visible { border-bottom-color: currentColor; }
+.foot-letter__links--legal a { font-size: 0.74rem; color: var(--text-dim); }
+.foot-letter .footer-base { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .foot-letter { grid-template-columns: minmax(0, 1fr); gap: 3rem; }
+  .foot-letter__index { justify-items: start; }
+  .foot-letter__links { justify-content: flex-start; }
+}
+
+/* The quote's attribution sat at a whisper; it is the source of the claim. */
+.manifesto-attribution { color: var(--text-dim) !important; opacity: 1 !important; }

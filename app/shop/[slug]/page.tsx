@@ -9,7 +9,6 @@ import { CollectionView } from '@/components/product/CollectionView'
 import { PurchaseAction } from '@/components/product/PurchaseAction'
 import { StaticGallery } from '@/components/product/StaticGallery'
 import { resolveShopSlug, shopParams } from '@/lib/collections'
-import { allProducts } from '@/lib/content'
 import { checkoutModeFor } from '@/lib/category-experience'
 import type { Product } from '@/lib/types'
 
@@ -116,10 +115,6 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           <span>/ {p.category}</span>
           <span>/ {p.name}</span>
         </div>
-
-        <p className="eyebrow">
-          {p.category} · Object {String(allProducts.indexOf(p) + 1).padStart(2, '0')}
-        </p>
 
         <h1 className="product-detail-name">{p.name}</h1>
         <p className="product-detail-tagline">{p.tagline}</p>

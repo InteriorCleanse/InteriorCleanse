@@ -38,6 +38,7 @@ into `.claude/skills/` with provenance in `.claude/README.md`.
 | Addy Osmani Agent Skills | 25 lifecycle skills: spec, plan, incremental build, frontend engineering, testing, debugging, review, constraints, simplification, context engineering, source-driven development | `addyosmani/agent-skills`, MIT | Installed. Four skills synced on 2026-10-02 to upstream `9d0c60d` (review, ADRs, security, constraints); no local edits were lost | Keep. Upstream still ships the same 25 skills. |
 | Taste Skill | Anti-slop frontend taste | `Leonxlnx/taste-skill` | 3 of 13 installed: `design-taste-frontend`, `high-end-visual-design`, `redesign-existing-projects` | Keep the three. Upstream has moved (`ce26fc2`); re-check those three in a dedicated update. The other ten overlap or pick a direction this storefront has not chosen. |
 | UI/UX Pro Max | Searchable styles, palettes, font pairings, UX guidelines | `nextlevelbuilder/ui-ux-pro-max-skill`, MIT | Installed | Keep as a reference library. Upstream moved (`09170ee`); its data files make an update a separate review. |
+| Hallmark | Anti-slop audit and redesign: named tells, slop-test gates, macrostructure and footer archetypes | `Nutlope/hallmark`, MIT | Installed 2026-10-03 at `13ac0ec` | Keep. Run `hallmark audit` before calling any page done; it caught the storefront's italic headings, eyebrow overload, card-in-card and four-column footer. |
 | Ponytail | Complexity control: reuse, no speculative infrastructure | `DietrichGebert/ponytail`, MIT | Installed, matches upstream `e3ba2aa` | Keep. |
 | motion-design, GSAP skills, three.js skills, design-dna, genjutsu `cast` and `paint` | Motion, scroll, WebGL, design extraction | upstream repos listed in `.claude/README.md` | Installed | Keep. Use only where a product already uses that technology. |
 | Figma official MCP | Real design context: components, variables, layout, screenshots, Code Connect | Figma, remote server | **Not connected** | Connect through claude.ai connectors (section 3). |
@@ -78,7 +79,7 @@ recreating the frame pixel for pixel.
 | Task | Use |
 |---|---|
 | New interface or major page | `frontend-design`, then `design-taste-frontend` |
-| Improving an existing page | `redesign-existing-projects` (audit first), then `high-end-visual-design` |
+| Improving an existing page | `hallmark audit`, then `hallmark redesign` or `redesign-existing-projects`, then `high-end-visual-design` |
 | Motion | `motion-design`, plus `gsap-*` where the product already uses GSAP |
 | 3D | `threejs-*` or the product's existing engine (the storefront uses Babylon.js) |
 | Palettes, type pairings, UX rules | `ui-ux-pro-max` |

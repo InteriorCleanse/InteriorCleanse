@@ -95,7 +95,7 @@ request, wait for the `build` check, merge, then restart the branch from
 
 ## Agent capabilities
 
-`.claude/` carries 109 skills, 44 agents, and 17 commands. Their
+`.claude/` carries 110 skills, 44 agents, and 17 commands. Their
 provenance and licences are in `.claude/README.md`; what was deliberately not
 installed, and why, is in `docs/AGENT_CAPABILITIES.md`.
 
