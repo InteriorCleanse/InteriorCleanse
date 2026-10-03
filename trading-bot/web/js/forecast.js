@@ -131,7 +131,7 @@ function tabView() {
   const d = desk, c = d.current
   root.innerHTML = `
   <div class="fc-term">
-    <div class="fc-bar-top"><i></i><i></i><i></i><span>mr-cash · the-call · ${esc(d.symbol)} · ${d.windowMinutes}m</span><span class="fc-win" role="group" aria-label="Window length"><button class="${win === 15 ? 'on' : ''}" data-win="15">15m</button><button class="${win === 5 ? 'on' : ''}" data-win="5">5m scalp</button></span><span class="badge sc-prov">PAPER FORECAST</span></div>
+    <div class="fc-bar-top"><span>the-call · ${esc(d.symbol)} · ${d.windowMinutes}m</span><span class="fc-win" role="group" aria-label="Window length"><button class="${win === 15 ? 'on' : ''}" data-win="15">15m</button><button class="${win === 5 ? 'on' : ''}" data-win="5">5m scalp</button></span><span class="badge sc-prov">PAPER FORECAST</span></div>
     <div class="fc-body">
       <div class="fc-now">
         <div class="fc-q">Will ${esc(d.symbol)} end this ${d.windowMinutes}-minute window higher?</div>
@@ -157,7 +157,7 @@ function homeView() {
   const box = $('dk-call'); if (!box || !desk) return
   const d = desk, c = d.current
   box.innerHTML = `<button class="fc-term fc-mini" data-tab="forecast" aria-label="Open the call desk">
-    <span class="fc-bar-top"><i></i><i></i><i></i><span>the-call · ${esc(d.symbol)} · next ${d.windowMinutes}m</span><span class="badge sc-prov">PAPER FORECAST</span></span>
+    <span class="fc-bar-top"><span>the-call · ${esc(d.symbol)} · next ${d.windowMinutes}m</span><span class="badge sc-prov">PAPER FORECAST</span></span>
     <span class="fc-body">
       <span class="fc-line">› ${c ? `${callLine(c, d.line)} · <b id="fc-left-mini">${mmss(left())}</b> left · difficulty ${c.difficulty}/4` : `<span class="fc-flat">no call</span> · ${esc(statusText(d))}`}</span>
       ${d.log.slice(0, 3).map((r) => `<span class="fc-line fc-${r.result}">› ${hhmm(r.windowEnd)} settled <span class="fc-${r.outcome}">${ARROW[r.outcome]} ${r.outcome}</span> · ${r.call === 'flat' ? 'stayed flat' : `said ${ARROW[r.call]} ${r.call}`} · <em class="fc-res ${r.result}">${RESULT[r.result]}</em></span>`).join('')}

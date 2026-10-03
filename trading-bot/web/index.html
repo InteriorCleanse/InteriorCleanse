@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Kestrel" />
 <link rel="preload" href="/fonts/instrument-sans-400.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/app.css" />
 <script src="/js/theme.js"></script>
 </head>
@@ -1734,6 +1735,9 @@ $('palette-q').addEventListener('keydown', (e) => {
 $('palette-wrap').addEventListener('click', (e) => { if (e.target === $('palette-wrap')) closePalette() })
 $('btn-palette').onclick = openPalette
 document.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('palette-wrap').classList.contains('hidden') ? openPalette() : closePalette() } if (e.key === 'Escape') { closePalette(); closeTour() } })
+
+// A typed or linked #tab moves to that tab (showTab itself uses replaceState, so this never fires twice).
+window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (TAB[id]) showTab(id, false) })
 
 // ---------- welcome tour ----------
 function openTour() { $('tour-wrap').classList.remove('hidden') }
