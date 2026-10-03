@@ -35,7 +35,7 @@ const initials = (w) => w.slice(0, 2).toUpperCase()
 function card(c) {
   const row = (k, v) => `<div class="rk-row"><dt>${k}</dt><dd>${v}</dd></div>`
   return `<article class="rk-card ${c.choice ? 'done' : ''}">
-    <div class="rk-card-hd"><span class="rk-label">DECISION CARD</span><b>${esc(c.label)}</b><span class="badge sc-prov">RESEARCH</span></div>
+    <div class="rk-card-hd"><span class="rk-label">DECISION CARD</span><b>${esc(c.label)}</b><span class="badge sc-prov">RESEARCH</span><button type="button" class="web-check" data-web-preset="catalyst" data-web-symbol="${esc(String(c.key).split(':').pop())}" title="Ask the web what is behind this move (AI research, not a signal)">Check the web</button></div>
     <dl>
       ${row('What happened', esc(c.whatHappened))}
       ${row('Why', esc(c.why))}

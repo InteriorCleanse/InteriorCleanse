@@ -22,12 +22,13 @@ const PATTERNS: Array<{ kind: string; re: RegExp }> = [
   // A package lockfile's sha512 integrity hash has the same shape; it is not a key.
   { kind: 'Kraken private key', re: /(?<!sha(?:256|384|512)-[A-Za-z0-9+/]{0,4})(?<![A-Za-z0-9+/-])[A-Za-z0-9+/]{86}==/ },
   { kind: 'Anthropic key', re: /\bsk-ant-[A-Za-z0-9_-]{20,}/ },
+  { kind: 'Perplexity key', re: /\bpplx-[A-Za-z0-9]{32,}/ },
   { kind: 'OpenAI-style key', re: /\bsk-(?:proj-)?[A-Za-z0-9]{32,}/ },
   { kind: 'Stripe live key', re: /\b[rs]k_live_[A-Za-z0-9]{16,}/ },
   { kind: 'GitHub token', re: /\b(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{50,})\b/ },
   { kind: 'Slack token', re: /\bxox[baprs]-[A-Za-z0-9-]{10,}/ },
   // An env-style line that gives one of Kestrel's own secrets a value.
-  { kind: 'secret assigned in a file', re: /^\s*(?:export\s+)?(?:MRCASH_(?:ALPACA_SECRET|ALPACA_KEY|KRAKEN_SECRET|KRAKEN_KEY|VAULT_TOTP|VAULT_PASSCODE|PIN)|EXCHANGE_API_SECRET|EXCHANGE_API_KEY|ANTHROPIC_API_KEY)\s*=\s*[^\s#<'"]{6,}/ },
+  { kind: 'secret assigned in a file', re: /^\s*(?:export\s+)?(?:MRCASH_(?:ALPACA_SECRET|ALPACA_KEY|KRAKEN_SECRET|KRAKEN_KEY|VAULT_TOTP|VAULT_PASSCODE|PIN)|EXCHANGE_API_SECRET|EXCHANGE_API_KEY|ANTHROPIC_API_KEY|PERPLEXITY_API_KEY)\s*=\s*[^\s#<'"]{6,}/ },
 ]
 
 /**

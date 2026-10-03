@@ -75,15 +75,17 @@ test('the Docker build leaves secrets and records out', () => {
 test('audit: finds a key by its shape, names the line and never the value; ignores fixtures, examples and lockfiles', () => {
   // SYNTHETIC key-shaped strings, assembled at runtime so this file does not trip the scanner itself.
   const fakeAws = 'AKIA' + 'Q'.repeat(16)
+  const fakePplx = 'pplx-' + 'Z9'.repeat(20)
   const fakeSecret = 'MRCASH_ALPACA_SECRET=' + 'z9'.repeat(10)
   const hits = scanForSecrets([
     { path: 'src/a.ts', text: `const k = '${fakeAws}'\n` },
+    { path: 'src/b.ts', text: `const p = '${fakePplx}'\n` },
     { path: '.env.sample', text: `${fakeSecret}\n# MRCASH_PIN=246810\n` },
     { path: 'docs/x.md', text: `for example ${fakeAws}\n` },
     { path: 'package-lock.json', text: `"integrity": "sha512-${'A'.repeat(86)}=="` },
     { path: 'test/t.ts', text: "'PKABCDEFGHIJKLMNOPQRSTUV'" },
   ])
-  assert.deepEqual(hits.map((h) => `${h.path}:${h.line}:${h.kind}`), ['src/a.ts:1:AWS access key', '.env.sample:1:secret assigned in a file'])
+  assert.deepEqual(hits.map((h) => `${h.path}:${h.line}:${h.kind}`), ['src/a.ts:1:AWS access key', 'src/b.ts:1:Perplexity key', '.env.sample:1:secret assigned in a file'])
   const report = JSON.stringify(assess({ ...BASE, secretHits: hits }))
   assert.equal(report.includes(fakeAws) || report.includes('z9z9'), false, 'the report never repeats a key')
 })

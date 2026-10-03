@@ -6,6 +6,8 @@
  * reaches a broker: every fill is simulated and labelled PAPER.
  */
 import { esc } from './api.js'
+// Opens Ask and runs a Perplexity catalyst lookup (js/web.js listens). Research only.
+const webBtn = (sym) => `<button class="web-check" data-web-preset="catalyst" data-web-symbol="${esc(sym)}" title="Ask the web why ${esc(sym)} is moving (AI research, not a signal)">Check the web</button>`
 
 const $ = (id) => document.getElementById(id)
 let snap = null, err = null, busy = '', loadedAt = 0
@@ -105,7 +107,7 @@ function paint() {
   <section class="card">
     <h2>Positions</h2>
     ${open.length ? `<div class="sk-table"><table><thead><tr><th>Ticker</th><th>Theme</th><th class="num">Value</th><th class="num">Entry</th><th class="num">Last</th><th class="num">Stop</th><th class="num">Target</th><th class="num">R</th><th class="num">P&amp;L</th></tr></thead><tbody>
-      ${open.map((p) => `<tr><td><b>${esc(p.symbol)}</b></td><td class="muted">${esc(p.themeLabel)}</td><td class="num">${usd(p.value)}</td><td class="num">${p.entry.toFixed(2)}</td><td class="num">${p.last.toFixed(2)}</td><td class="num">${p.stop.toFixed(2)}</td><td class="num">${p.target.toFixed(2)}</td><td class="num ${tone(p.r)}">${p.r >= 0 ? '+' : ''}${p.r.toFixed(2)}R</td><td class="num ${tone(p.pnl)}">${usd(p.pnl)}</td></tr>`).join('')}
+      ${open.map((p) => `<tr><td><b>${esc(p.symbol)}</b> ${webBtn(p.symbol)}</td><td class="muted">${esc(p.themeLabel)}</td><td class="num">${usd(p.value)}</td><td class="num">${p.entry.toFixed(2)}</td><td class="num">${p.last.toFixed(2)}</td><td class="num">${p.stop.toFixed(2)}</td><td class="num">${p.target.toFixed(2)}</td><td class="num ${tone(p.r)}">${p.r >= 0 ? '+' : ''}${p.r.toFixed(2)}R</td><td class="num ${tone(p.pnl)}">${usd(p.pnl)}</td></tr>`).join('')}
     </tbody></table></div>` : '<div class="sk-empty">All cash. No trade is a valid decision; it buys only when there is a clear edge.</div>'}
   </section>
 
@@ -116,7 +118,7 @@ function paint() {
     </div>
     <div class="card">
       <h2>Candidates this cycle</h2>
-      ${sc?.evaluations?.length ? `<ul class="sk-cands">${sc.evaluations.map((e) => `<li><b>${esc(e.symbol)}</b><span class="sk-pill ${e.verdict.toLowerCase()}">${e.verdict}</span>${e.report ? `<em>${e.report.confidence}</em>` : ''}<p>${esc(e.reason)}</p></li>`).join('')}</ul>` : '<div class="muted">Candidates are judged during trading hours (8:30-3:00 CT), never at the bell.</div>'}
+      ${sc?.evaluations?.length ? `<ul class="sk-cands">${sc.evaluations.map((e) => `<li><b>${esc(e.symbol)}</b><span class="sk-pill ${e.verdict.toLowerCase()}">${e.verdict}</span>${webBtn(e.symbol)}${e.report ? `<em>${e.report.confidence}</em>` : ''}<p>${esc(e.reason)}</p></li>`).join('')}</ul>` : '<div class="muted">Candidates are judged during trading hours (8:30-3:00 CT), never at the bell.</div>'}
     </div>
   </section>
 
