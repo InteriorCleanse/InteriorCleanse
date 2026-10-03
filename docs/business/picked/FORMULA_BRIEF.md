@@ -41,7 +41,7 @@ Pipeline flavours after launch: Pineapple, Tart Cherry, Peach, Passion Fruit.
 
 | Format | Count | First order |
 | --- | --- | --- |
-| Stand-up resealable pouch | 20 servings | Quote 1,500 and 3,000 units per flavour |
+| Stand-up resealable pouch | 20 servings | Quote your minimum (for example 144), 1,500, and 3,000 units per flavor |
 | Single-serve stick pack | 1 serving; sold in boxes of 10 | Quote 5,000 and 10,000 sticks across flavours |
 
 We supply printed pouch film and stick film, or you source it. Quote both.

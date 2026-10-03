@@ -18,7 +18,7 @@ The short version:
 - 20 g protein per serving from acid-stable clear WPI
 - Real fruit as the first flavor ingredient, with grams of fruit per serving stated
 - Monk fruit and/or stevia only, no sucralose or Ace-K
-- 20-serving pouches (quote 1,500 and 3,000 per flavor) and single-serve sticks
+- 20-serving pouches (quote your minimum run, 1,500, and 3,000 per flavor) and single-serve sticks
 - A heavy-metal certificate of analysis on every lot
 
 Three questions decide who we work with:
