@@ -84,6 +84,9 @@ function Frame({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [palette, router, setOpen])
 
+  // Task flows get the whole screen: no tab bar over a form or a pay button.
+  const flow = /^\/(checkout|signin|forgot|reset|verify|verify-email|host\/new|trips\/confirm)(\/|$)/.test(pathname)
+
   const active = (href: string) => (href === '/' ? pathname === '/' || pathname.startsWith('/search') || pathname.startsWith('/cars') : pathname.startsWith(href) || (href === '/favorites' && pathname.startsWith('/saved')))
 
   return (
@@ -119,7 +122,9 @@ function Frame({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main id="main">{children}</main>
+      <main id="main" data-flow={flow ? '' : undefined}>
+        {children}
+      </main>
 
       <footer className="site-foot">
         <div className="wrap">
@@ -160,26 +165,30 @@ function Frame({ children }: { children: ReactNode }) {
               </ul>
             </div>
           </div>
-          <p className="foot-legal">
-            AVANT is a peer-to-peer car sharing marketplace. Vehicles are owned by independent hosts. Coverage descriptions are summaries; the policy
-            documents govern. In an emergency call 911.
-          </p>
+          <div className="foot-legal">
+            <p>
+              AVANT is a peer-to-peer car sharing marketplace. Vehicles are owned by independent hosts. Coverage descriptions are summaries; the
+              policy documents govern. In an emergency call 911.
+            </p>
+          </div>
         </div>
       </footer>
 
-      <nav className="tabbar" aria-label="Main">
-        {TABS.map((n) => (
-          <Link key={n.href} href={n.href} aria-current={active(n.href) ? 'page' : undefined}>
-            <Icon name={n.href === '/favorites' && active(n.href) ? 'heart-filled' : n.icon} size={22} />
-            {n.label}
-            {n.href === '/inbox' && inbox ? (
-              <span className="tab-badge" aria-label={`${inbox} unread`}>
-                {inbox > 9 ? '9+' : inbox}
-              </span>
-            ) : null}
-          </Link>
-        ))}
-      </nav>
+      {flow ? null : (
+        <nav className="tabbar" aria-label="Main">
+          {TABS.map((n) => (
+            <Link key={n.href} href={n.href} aria-current={active(n.href) ? 'page' : undefined}>
+              <Icon name={n.href === '/favorites' && active(n.href) ? 'heart-filled' : n.icon} size={22} />
+              {n.label}
+              {n.href === '/inbox' && inbox ? (
+                <span className="tab-badge" aria-label={`${inbox} unread`}>
+                  {inbox > 9 ? '9+' : inbox}
+                </span>
+              ) : null}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </>

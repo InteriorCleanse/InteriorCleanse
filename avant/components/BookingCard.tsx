@@ -61,7 +61,7 @@ export function BookingCard({ car }: { car: Car }) {
       <div className="rate">
         <strong>{money(daily)}</strong>
         <span>/day {allIn ? 'all-in' : 'rate'}</span>
-        {car.weeklyDiscountPct ? <span className="badge badge-ok" style={{ marginLeft: 'auto' }}>−{car.weeklyDiscountPct}% weekly</span> : null}
+        {car.weeklyDiscountPct ? <span className="badge" style={{ marginLeft: 'auto' }}>−{car.weeklyDiscountPct}% weekly</span> : null}
       </div>
       <div className="dates">
         <label>

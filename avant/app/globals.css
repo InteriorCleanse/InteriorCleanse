@@ -4280,3 +4280,402 @@ html[data-shell='app'] body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
+
+/* ───────────────────────────────────────────────────────────────────────
+   Finish pass (App Store review). Overrides for the rules above, kept
+   together so the reasons stay in one place.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Safe areas: nothing draws under the status bar, the notch or the home
+   indicator. A white strip sits behind the status bar while scrolling. */
+:root {
+  --gutter: max(clamp(18px, 4vw, 48px), env(safe-area-inset-left), env(safe-area-inset-right));
+}
+
+body {
+  padding-top: env(safe-area-inset-top);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top);
+  background: #fff;
+  z-index: 60;
+}
+
+.topbar {
+  top: env(safe-area-inset-top);
+}
+
+html[data-shell='app'] .topbar {
+  padding-top: 0;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 920px) {
+  .tabbar {
+    left: calc(12px + env(safe-area-inset-left));
+    right: calc(12px + env(safe-area-inset-right));
+  }
+
+  /* The More tab carries the footer's links on phones. */
+  .site-foot {
+    display: none;
+  }
+
+  .page {
+    padding-bottom: 24px;
+  }
+
+  /* Task flows (checkout, sign-in, listing) hide the tab bar: nothing covers the form. */
+  main[data-flow] {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 1000px) {
+  .mobile-pay {
+    bottom: 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  main[data-flow]:has(.mobile-pay) {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .car-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Two date fields never push the page wider than the phone. */
+.dates {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* iOS zooms into any field under 16px; keep them at 16. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea,
+  .search-top .searchbar-field input {
+    font-size: 16px;
+  }
+
+  .chip,
+  .btn-sm,
+  .segmented button,
+  .select {
+    min-height: 44px;
+  }
+
+  .save-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .check input,
+  .plan input {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Hover effects only where there is hover; a tap must not leave them stuck. */
+@media (hover: none) {
+  .chip:hover {
+    border-color: var(--line-2);
+  }
+
+  .carcard:hover .car-img img {
+    transform: none;
+  }
+
+  .save-btn:hover {
+    transform: none;
+  }
+
+  .plan:hover:not([data-checked='true']) {
+    border-color: var(--line-2);
+  }
+
+  .carcard[data-active='true'] .car-img {
+    box-shadow: none;
+  }
+}
+
+/* Display type is light, everywhere. */
+.car-layout h1,
+.section-head h2,
+.why-section h2,
+.circle-section h2,
+.legal h2 {
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.plan-number {
+  font-weight: 300;
+  font-stretch: normal;
+}
+
+.rate strong,
+.quote-total dd,
+.carcard-price strong {
+  font-weight: 600;
+}
+
+/* Screen titles open like the rest of the app: large, light, left-aligned. */
+.app-title {
+  text-align: left;
+  font-size: clamp(2.1rem, 4.8vw, 3.4rem);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  padding: 18px 0 22px;
+}
+
+/* A disabled primary button stays legible. */
+.btn-primary:disabled {
+  opacity: 1;
+  background: var(--surface-3);
+  color: var(--dim);
+  border-color: var(--surface-3);
+}
+
+/* Quiet actions keep their edge aligned with the text around them. */
+.btn-ghost {
+  padding-inline: 4px;
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+  text-underline-offset: 4px;
+}
+
+/* Champagne is for detail, not fills. */
+.band-ink .btn-primary {
+  background: #fff;
+  color: var(--text);
+}
+
+.band-steps li::before {
+  background: transparent;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--gold);
+  font-weight: 400;
+}
+
+.badge-lime {
+  background: var(--gold-soft);
+  /* Bronze deepened a step so small badge text clears 4.5:1 on champagne. */
+  color: #7a5c38;
+}
+
+.compare .ours {
+  border-left-color: var(--line-2);
+}
+
+/* Rails and categories bleed to the window edge and line up with the content. */
+.rail-track,
+.cats {
+  margin-inline: calc(50% - 50vw);
+  padding-inline: calc(50vw - 50%);
+  scroll-padding-inline: calc(50vw - 50%);
+}
+
+/* Key–value rows stack on phones instead of wrapping into slivers. */
+@media (max-width: 560px) {
+  .kv > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .circle-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .circle-facts > div + div {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.circle-progress {
+  margin-top: 14px;
+}
+
+.thread .top > span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* The concierge button shrinks to its orb where it would cover content. */
+@media (min-width: 921px) and (max-width: 1600px) {
+  .ai-fab {
+    padding: 10px;
+    gap: 0;
+    font-size: 0;
+  }
+}
+
+/* The footer's legal line spans the full width; its text keeps a measure. */
+.foot-legal {
+  max-width: none;
+}
+
+.foot-legal > * {
+  max-width: 90ch;
+}
+
+/* A verified Driver Pass reads as calm porcelain with an obsidian mark, not mint. */
+.driver-pass[data-verified='true'] {
+  background: var(--bg-2);
+}
+
+.driver-pass[data-verified='true'] .driver-pass-icon {
+  background: var(--text);
+  color: #fff;
+}
+
+/* Home, "The AVANT way": promises beside a worked price, no empty block. */
+.why-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+}
+
+.why-grid .promises {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.why-example {
+  transform: none;
+  max-width: 360px;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .why-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .why-grid .promises {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phone search: the date fields keep their labels; an empty iOS date input is otherwise a blank box. */
+@media (max-width: 760px) {
+  .search-top .searchbar-field label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+}
+
+/* Listing wizard on phones: a progress line instead of seven chips, and the
+   actions in a bar at the bottom of the screen. */
+.wizard-progress {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .wizard-steps {
+    display: none !important;
+  }
+
+  .wizard-progress {
+    display: grid;
+    gap: 8px;
+    margin: -8px 0 22px;
+  }
+
+  .wizard-bar {
+    height: 3px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    overflow: hidden;
+  }
+
+  .wizard-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--text);
+    transition: width 0.3s var(--ease);
+  }
+
+  .wizard-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.97);
+    border-top: 1px solid var(--line);
+    flex-wrap: nowrap;
+  }
+
+  .wizard-actions > .btn:first-child {
+    font-size: 0;
+    gap: 0;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    flex: none;
+  }
+
+  .wizard-actions .row {
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+}
+
+.invite-code {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 8px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+}
+
+.invite-code strong {
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+}
+
+@media (max-width: 560px) {
+  .invite-row {
+    flex-wrap: wrap;
+  }
+
+  .invite-code {
+    flex-basis: 100%;
+  }
+
+  .invite-row .btn {
+    flex: 1;
+  }
+}
+
+/* Progress starts as a visible sliver, so an empty bar never reads as a stray rule. */
+.circle-progress > span {
+  min-width: 6px;
+}

@@ -15,7 +15,7 @@ export function CoveragePicker({ value, onChange, tripCents, days }: { value: Co
           const on = p.id === value
           return (
             <label key={p.id} className="plan" data-checked={on ? 'true' : undefined}>
-              {p.id === 'plus' ? <span className="badge badge-lime plan-tag">Most chosen</span> : null}
+              {p.id === 'plus' ? <span className="badge badge-lime plan-tag">Recommended</span> : null}
               <input type="radio" name="coverage" value={p.id} checked={on} onChange={() => onChange(p.id)} />
               <span>
                 <span className="plan-name">{p.name}</span>

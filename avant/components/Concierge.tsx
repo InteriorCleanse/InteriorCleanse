@@ -213,7 +213,7 @@ export function ConciergeProvider({ children }: { children: ReactNode }) {
       <PendingAsk.Provider value={{ text: pending, clear: () => setPending(null) }}>
         {children}
         {!open ? (
-          <button type="button" className="ai-fab" onClick={() => setOpen(true)}>
+          <button type="button" className="ai-fab" onClick={() => setOpen(true)} aria-label="Ask AVANT">
             <span className="ai-fab-orb" aria-hidden="true" />
             Ask AVANT
           </button>

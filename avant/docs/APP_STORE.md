@@ -150,8 +150,20 @@ sign-in, no third-party or social login (guideline 4.8).
 
 Required: iPhone 6.9" (1320 × 2868). Apple scales them down for smaller
 iPhones. The app is iPhone-only (`TARGETED_DEVICE_FAMILY = 1`), so no iPad
-screenshots are needed. A first set, taken from the app shell, is in
-`native/screenshots/`. They show sample listings, which are labelled
+screenshots are needed. A first set, taken from the app shell at 1320 × 2868,
+is in `native/screenshots/`, in upload order:
+
+| File | Caption |
+| --- | --- |
+| `1-home.png` | Cars worth remembering. From people who care for them. |
+| `2-search.png` | The whole price, up front. Every fee is in the price you compare. |
+| `3-car.png` | Know the car before you go. The host's own photos, rules and record. |
+| `4-checkout.png` | Coverage in one number. Choose the most you could ever owe. |
+| `5-circle.png` | Drive more, pay less. Your trip fee falls with every trip. |
+| `6-messages.png` | Talk to your host, privately. Messages are encrypted and stay on AVANT. |
+
+The app icon (1024 × 1024, no transparency) and launch screen are drawn
+from the crest in `native/brand/` (`app-icon.svg`, `splash.svg`). They show sample listings, which are labelled
 "Sample" and have no photos. **Retake them once real hosts have listed
 real cars**: a listing with the host's own photos sells the app far better,
 and App Review expects screenshots to show the app as customers will see

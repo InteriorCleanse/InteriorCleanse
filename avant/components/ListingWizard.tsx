@@ -210,7 +210,15 @@ export function ListingWizard() {
         List your car.
       </h1>
 
-      <ol className="row" aria-label="Steps" style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', gap: 8 }}>
+      <div className="wizard-progress" aria-hidden="true">
+        <span className="small muted">
+          Step {step + 1} of {STEPS.length} · {STEPS[step].label}
+        </span>
+        <span className="wizard-bar">
+          <span style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+        </span>
+      </div>
+      <ol className="row wizard-steps" aria-label="Steps" style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', gap: 8 }}>
         {STEPS.map((s, i) => (
           <li key={s.id}>
             <button
@@ -238,12 +246,13 @@ export function ListingWizard() {
                   className="input"
                   value={d.vin}
                   onChange={(e) => set('vin', e.target.value.toUpperCase().slice(0, 20))}
-                  placeholder="17 characters, on the dashboard or door frame"
+                  placeholder="17 characters"
                   aria-invalid={Boolean(err('vin'))}
                   autoCapitalize="characters"
                   spellCheck={false}
                   style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '0.06em' }}
                 />
+                <span className="hint">On the dashboard by the windscreen, or the driver&apos;s door frame.</span>
                 {vin === 'ok' ? (
                   <span className="small" style={{ color: 'var(--ok)' }}>
                     <Icon name="check" size={13} /> Check digit matches
@@ -601,7 +610,7 @@ export function ListingWizard() {
             </p>
           ) : null}
 
-          <div className="between">
+          <div className="between wizard-actions">
             {step > 0 ? (
               <button type="button" className="btn btn-secondary btn-md" onClick={() => setStep((s) => s - 1)}>
                 <Icon name="chevron-left" size={16} /> Back

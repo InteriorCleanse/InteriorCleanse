@@ -105,11 +105,11 @@ export default async function CarPage({ params }: Props) {
                 <Stars value={car.rating} size={16} /> · {car.reviews.length} reviews · {car.tripCount} trips
               </>
             ) : (
-              <span className="badge badge-glass">New listing</span>
+              <span className="badge">New listing</span>
             )}{' '}
             · {car.neighborhood}, {cityName(car.city)}
-            {car.approxLocation ? <span className="dim"> (exact spot shared after booking)</span> : null}
           </p>
+          {car.approxLocation ? <p className="small dim">Exact pickup spot shared after booking</p> : null}
 
           <ul className="specs" aria-label="Key details">
             <li>

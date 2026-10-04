@@ -200,7 +200,19 @@ function Schematic({
   allIn: boolean
 }) {
   const [s, w, n, e] = city.bounds
-  const pos = (lat: number, lng: number) => ({ left: `${6 + ((lng - w) / (e - w)) * 88}%`, top: `${8 + ((n - lat) / (n - s)) * 84}%` })
+  const xy = (lat: number, lng: number) => ({ x: 6 + ((lng - w) / (e - w)) * 88, y: 8 + ((n - lat) / (n - s)) * 84 })
+  const pos = (lat: number, lng: number) => {
+    const p = xy(lat, lng)
+    return { left: `${p.x}%`, top: `${p.y}%` }
+  }
+  // Pins that would overlap are nudged down until each price can be read (and tapped) on its own.
+  const placed: { id: string; x: number; y: number }[] = []
+  for (const car of [...cars].sort((a, b) => xy(a.lat, a.lng).y - xy(b.lat, b.lng).y)) {
+    const p = xy(car.lat, car.lng)
+    while (placed.some((q) => Math.abs(q.x - p.x) < 11 && Math.abs(q.y - p.y) < 6)) p.y += 6
+    placed.push({ id: car.id, ...p })
+  }
+  const pinAt = new Map(placed.map((p) => [p.id, { left: `${p.x}%`, top: `${Math.min(p.y, 96)}%` }]))
   return (
     <div className="schematic">
       <svg aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100">
@@ -222,7 +234,7 @@ function Schematic({
           type="button"
           className="pin"
           data-active={car.id === activeId ? 'true' : undefined}
-          style={pos(car.lat, car.lng)}
+          style={pinAt.get(car.id)}
           aria-label={`${carTitle(car)}, ${money(displayDaily(car, allIn))} a day`}
           onMouseEnter={() => onActivate(car.id)}
           onMouseLeave={() => onActivate(null)}

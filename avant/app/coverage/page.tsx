@@ -41,7 +41,7 @@ export default function CoveragePage() {
             <div key={p.id} className="panel stack" style={{ gap: 10, borderColor: p.id === 'plus' ? 'var(--text)' : undefined, borderWidth: p.id === 'plus' ? 2 : undefined }}>
               <div className="between">
                 <span className="plan-name">{p.name}</span>
-                {p.id === 'plus' ? <span className="badge badge-lime">Most chosen</span> : null}
+                {p.id === 'plus' ? <span className="badge badge-lime">Recommended</span> : null}
               </div>
               <p className="display" style={{ fontSize: 'clamp(3.6rem,7vw,5rem)' }}>
                 {money(p.maxOutOfPocketCents)}

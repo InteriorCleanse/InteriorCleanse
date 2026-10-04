@@ -89,8 +89,14 @@ export function CarCard({
             <h3>{carTitle(car)}</h3>
           </div>
           <p className="carcard-meta row" style={{ gap: 6 }}>
-            <Stars value={car.rating} />
-            <span>({car.tripCount} trips)</span>
+            {car.tripCount ? (
+              <>
+                <Stars value={car.rating} />
+                <span>({car.tripCount} trips)</span>
+              </>
+            ) : (
+              <span>New listing</span>
+            )}
           </p>
           <p className="carcard-meta row" style={{ gap: 4 }}>
             <Icon name="map" size={14} />

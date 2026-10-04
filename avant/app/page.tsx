@@ -60,7 +60,41 @@ export default async function Home() {
               <p className="eyebrow">The AVANT way</p>
               <h2 id="why" style={{ marginTop: 8 }}>Thoughtful at every step</h2>
             </div>
-            <figure className="hero-quote" aria-label="Example of an all-in price" style={{ maxWidth: 360, transform: 'none' }}>
+          </div>
+          <div className="why-grid">
+            <div className="promises">
+              <div className="promise">
+                <Icon name="card" size={28} />
+                <h3>The price on the card is the price</h3>
+                <p>Rate, a flat {TRIP_FEE_PCT}% trip fee and coverage, shown together. Checkout only adds what you choose, and tax.</p>
+              </div>
+              <div className="promise">
+                <Icon name="shield" size={28} />
+                <h3>Insurance in one number</h3>
+                <p>Pick the most you&apos;d ever pay if the car is damaged. Liability is included on every trip.</p>
+              </div>
+              <div className="promise">
+                <Icon name="id" size={28} />
+                <h3>Young drivers welcome</h3>
+                <p>Everyday cars from 18. The under-25 fee is capped at {money(young.capCents)} a trip for 21 to 24, and halved with a clean record.</p>
+              </div>
+              <div className="promise">
+                <Icon name="check" size={28} />
+                <h3>Fair claims, on the record</h3>
+                <p>Fingerprinted check-in photos for both sides. If a host reports damage, you see the evidence and get 72 hours to respond.</p>
+              </div>
+              <div className="promise">
+                <Icon name="chat" size={28} />
+                <h3>Help at 3am</h3>
+                <p>The concierge searches real cars, prices trips and explains coverage any time. People handle disputes.</p>
+              </div>
+              <div className="promise">
+                <Icon name="lock" size={28} />
+                <h3>Private by design</h3>
+                <p>Browse without an account. Licence images are deleted after the check, and you can export or erase your record any time.</p>
+              </div>
+            </div>
+            <figure className="hero-quote why-example" aria-label="Example of an all-in price">
               <figcaption>
                 <span className="badge badge-lime">All-in</span>
                 <span className="small muted">
@@ -69,38 +103,6 @@ export default async function Home() {
               </figcaption>
               <PriceBreakdown quote={{ ...exampleQuote, lines: exampleQuote.lines.filter((l) => l.cents !== 0) }} notes={false} />
             </figure>
-          </div>
-          <div className="promises">
-            <div className="promise">
-              <Icon name="card" size={28} />
-              <h3>The price on the card is the price</h3>
-              <p>Rate, a flat {TRIP_FEE_PCT}% trip fee and coverage, shown together. Checkout only adds what you choose, and tax.</p>
-            </div>
-            <div className="promise">
-              <Icon name="shield" size={28} />
-              <h3>Insurance in one number</h3>
-              <p>Pick the most you&apos;d ever pay if the car is damaged. Liability is included on every trip.</p>
-            </div>
-            <div className="promise">
-              <Icon name="id" size={28} />
-              <h3>Young drivers welcome</h3>
-              <p>Everyday cars from 18. The under-25 fee is capped at {money(young.capCents)} a trip for 21 to 24, and halved with a clean record.</p>
-            </div>
-            <div className="promise">
-              <Icon name="check" size={28} />
-              <h3>Fair claims, on the record</h3>
-              <p>Fingerprinted check-in photos for both sides. If a host reports damage, you see the evidence and get 72 hours to respond.</p>
-            </div>
-            <div className="promise">
-              <Icon name="chat" size={28} />
-              <h3>Help at 3am</h3>
-              <p>The concierge searches real cars, prices trips and explains coverage any time. People handle disputes.</p>
-            </div>
-            <div className="promise">
-              <Icon name="lock" size={28} />
-              <h3>Private by design</h3>
-              <p>Browse without an account. Licence images are deleted after the check, and you can export or erase your record any time.</p>
-            </div>
           </div>
         </section>
 
@@ -145,7 +147,7 @@ export default async function Home() {
               <div key={p.id} className="plan-tile" data-featured={p.id === DEFAULT_COVERAGE ? 'true' : undefined}>
                 <div className="between">
                   <p className="plan-name">{p.name}</p>
-                  {p.id === DEFAULT_COVERAGE ? <span className="badge badge-lime">Most picked</span> : null}
+                  {p.id === DEFAULT_COVERAGE ? <span className="badge badge-lime">Recommended</span> : null}
                 </div>
                 <p className="display">{money(p.maxOutOfPocketCents)}</p>
                 <p className="muted">{p.oneLiner}</p>

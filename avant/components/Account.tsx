@@ -52,9 +52,10 @@ function Profile() {
       <div className="profile-head" style={{ paddingTop: 0 }}>
         <Avatar name={user.name} photo={user.photo} size={84} />
         <div className="stack" style={{ gap: 6 }}>
-          <h2 id="profile" style={{ fontSize: '1.4rem', fontWeight: 500 }}>
+          <h2 id="profile" style={{ fontSize: '1.4rem', fontWeight: 300 }}>
             {user.name}
           </h2>
+          <span className="small dim">Signed in as {user.email}</span>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => file.current?.click()} disabled={busy}>
             {user.photo ? 'Change photo' : 'Add a photo of you'}
           </button>
@@ -62,7 +63,7 @@ function Profile() {
         </div>
       </div>
       <p className="small muted" style={{ marginBottom: 16 }}>
-        Hosts and guests see your first name, photo and these few words. A real, friendly photo builds trust on both sides. Location data is removed from it first.
+        Hosts and guests see your first name and initial, your photo and these few words. A real, friendly photo builds trust on both sides. Location data is removed from it first.
       </p>
       <div className="stack" style={{ gap: 14 }}>
         <label className="field">
@@ -77,7 +78,6 @@ function Profile() {
           <button type="button" className="btn btn-primary btn-md" onClick={save} disabled={busy}>
             Save profile
           </button>
-          <span className="small dim">{user.email}</span>
         </div>
       </div>
     </section>

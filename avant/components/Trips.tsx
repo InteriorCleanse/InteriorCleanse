@@ -419,7 +419,7 @@ export function TripDetail({ id }: { id: string }) {
           <div className="bookcard sticky">
             <h2 style={{ fontSize: '1.1rem' }}>Receipt</h2>
             <PriceBreakdown quote={trip.quote} credit={trip.creditUsedCents} />
-            <p className="small dim">Ref {trip.id}</p>
+            <p className="small dim tabular">Booking ref · {trip.id.slice(0, 8).toUpperCase()}</p>
           </div>
         </aside>
       </div>

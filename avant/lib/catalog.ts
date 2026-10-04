@@ -114,7 +114,7 @@ export const COVERAGE_PLANS: CoveragePlan[] = [
     liability: 'Up to $750,000 third-party liability',
     oneLiner: 'Pay at most $500 if the car is damaged.',
     includes: ['$500 damage responsibility, max', '$250 refundable deposit', '24/7 roadside assistance', 'Tyres, glass and towing'],
-    recommendedFor: 'Most trips. The one most people pick.',
+    recommendedFor: 'Most trips. A modest cap and a small hold.',
   },
   {
     id: 'essential',

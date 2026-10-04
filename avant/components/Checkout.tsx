@@ -272,7 +272,7 @@ export function Checkout({ car }: { car: Car }) {
             {error ? <p className="error-block" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
             <button type="button" className="btn btn-primary btn-lg btn-block" style={{ marginTop: 18 }} disabled={!canPay} onClick={pay}>
               <Icon name="lock" size={17} />
-              {busy ? 'Confirming…' : modes?.payments ? `Pay ${moneyExact(due)}` : car.instantBook ? `Confirm preview booking · ${moneyExact(due)}` : `Request to book · ${moneyExact(due)}`}
+              {busy ? 'Confirming…' : !days ? 'Pick your dates' : modes?.payments ? `Pay ${moneyExact(due)}` : car.instantBook ? `Confirm preview booking · ${moneyExact(due)}` : `Request to book · ${moneyExact(due)}`}
             </button>
             <p className="small dim" style={{ marginTop: 10 }}>
               {modes?.payments ? 'Card details are entered on Stripe’s secure page. AVANT never sees your card number.' : 'Preview mode: nothing is charged.'} The price is re-checked on our server before anything is confirmed.
@@ -300,7 +300,7 @@ export function Checkout({ car }: { car: Car }) {
       <div className="mobile-pay">
         <div>
           <div className="small muted">Total{days ? `, ${days} days` : ''}</div>
-          <strong style={{ fontSize: '1.2rem' }} className="tabular">{days ? moneyExact(due) : '—'}</strong>
+          <strong style={{ fontSize: '1.2rem' }} className="tabular">{days ? moneyExact(due) : 'Pick dates'}</strong>
         </div>
         <a href="#s5" className="btn btn-primary btn-md">Review &amp; pay</a>
       </div>

@@ -7,6 +7,12 @@ import { money } from '@/lib/format'
 import { hostMonthlyEstimate } from '@/lib/pricing'
 import type { BodyType } from '@/lib/types'
 
+/** "SUV" stays upper case; "Sedan" reads as "sedan" mid-sentence. */
+function typeLabel(body: BodyType): string {
+  const label = BODY_TYPES.find((b) => b.id === body)?.label ?? body
+  return label === label.toUpperCase() ? label : label.toLowerCase()
+}
+
 export function Estimator() {
   const [body, setBody] = useState<BodyType>('suv')
   const [city, setCity] = useState(cities[0].slug)
@@ -52,7 +58,7 @@ export function Estimator() {
       <p className="small dim" style={{ marginTop: 8 }}>
         {own || median === null
           ? `Your rate × ${days} days, and you keep ${HOST_SHARE_PCT}%.`
-          : `Median ${BODY_TYPES.find((b) => b.id === body)?.label.toLowerCase()} rate in ${cities.find((c) => c.slug === city)?.name}${SAMPLE_FLEET ? ' across sample listings' : ''}: ${money(median)}/day, and you keep ${HOST_SHARE_PCT}%.`}{' '}
+          : `Median ${typeLabel(body)} rate in ${cities.find((c) => c.slug === city)?.name}${SAMPLE_FLEET ? ' across sample listings' : ''}: ${money(median)}/day, and you keep ${HOST_SHARE_PCT}%.`}{' '}
         An estimate, not a promise.
       </p>
     </div>

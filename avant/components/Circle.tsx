@@ -136,7 +136,7 @@ export function Circle() {
       await navigator.clipboard.writeText(link)
       toast('Invite link copied')
     } catch {
-      toast('Copy the link from the box')
+      toast(`Couldn’t copy. Your link: ${link}`)
     }
   }
   const share = async () => {
@@ -156,8 +156,8 @@ export function Circle() {
               <dd>{circle.tier.feePct}%</dd>
             </div>
             <div>
-              <dt>Free cancellation</dt>
-              <dd>{circle.tier.freeCancelHours}h before pickup</dd>
+              <dt>Free cancellation, before pickup</dt>
+              <dd>{circle.tier.freeCancelHours}h</dd>
             </div>
             <div>
               <dt>Saved with Circle</dt>
@@ -228,7 +228,10 @@ export function Circle() {
           in your wallet.
         </p>
         <div className="invite-row">
-          <input className="input" readOnly value={link} aria-label="Your invite link" onFocus={(e) => e.currentTarget.select()} />
+          <div className="invite-code" aria-label={`Your invite code, ${referralCode.split('').join(' ')}`}>
+            <span className="small muted">Your invite code</span>
+            <strong className="tabular">{referralCode}</strong>
+          </div>
           <button type="button" className="btn btn-primary btn-md" onClick={() => void copy()}>
             Copy link
           </button>
@@ -238,7 +241,6 @@ export function Circle() {
             </button>
           ) : null}
         </div>
-        <p className="small dim">Your code: {referralCode}</p>
       </section>
 
       <OurPromise />
