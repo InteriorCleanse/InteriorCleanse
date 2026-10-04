@@ -1,0 +1,16 @@
+supplier,role,website,status,contact_name,contact_email,last_contact,next_action,next_date,minimum,lead_time,price_found,notes
+NutraSeller,Manufacturer (first choice for all products),nutraseller.com,not contacted,,,,Send manufacturer email 2,,"2,500 bags; 50,000 sticks; $10k project",6 to 8 weeks first order,$10 to $20 per unit custom (their guidance),"Clear whey, pouches and sticks in-house. No NSF/ANSI 455-2 found; ask"
+Pure Private Label,Manufacturer (samples; lean run if it makes whey),pureprivatelabel.com,not contacted,,,,Send manufacturer email 1,,144 units,8 to 10 weeks after labels,"$695 samples, up to 3 flavors, $500 credited",Whey not confirmed: ask first
+Somafina,Manufacturer (second choice for all products),somafina.com,not contacted,,,,Send manufacturer email 7,,"5,000 to 10,000 per flavor",8 to 12 weeks,not found,"NSF Sport, SQF, organic, in-house ISO 17025 lab"
+Makers Nutrition,Manufacturer,makersnutrition.com,not contacted,,,,Send manufacturer email 3,,"1,000 to 5,000",8 to 10 weeks,not found,NSF GMP for Sport; clear whey not confirmed
+Nutrablend Foods,Manufacturer,nutrablendfoods.com,not contacted,,,,Send manufacturer email 4,,"2,000",not found,not found,NSF/ANSI 455-2; NSF Sport; Informed Choice
+Nutracap,Manufacturer,nutracapusa.com,not contacted,,,,Send manufacturer email 5,,500 custom,not found,$350 flavor samples,FDA warning letter May 2020: ask what changed
+Cpack,Manufacturer,cpackmanufacturing.com,not contacted,,,,Send manufacturer email 6,,"1,500 powder; 100,000 sticks",4 to 8 weeks powder,not found,Claims NSF
+ePac Flexible Packaging,Pouches and stick film,epacflexibles.com,not contacted,,,,Send supplier email 1,,"100 pouches online; $1,500 custom; 5,000 stick impressions",15 business days pouches,not found,Ask for MVTR/OTR and food-contact letter
+Advanced Laboratories,ISO 17025 lab,advancedlabsinc.com,not contacted,,,,Send supplier email 2,,none,not found,"Heavy metals $90; Salmonella $27",Confirm scope covers every test
+Medallion Labs,ISO 17025 lab (backup),medallionlabs.com,not contacted,,,,Only if Advanced can't cover a test,,none,7 to 9 business days,"Metals $164; protein $32; micro $22 to $39",Confirm metals in accredited scope
+Dietary Supplement Experts,Label and claims review,dietarysupplementexperts.com,not contacted,,,,Send supplier email 3,,none,1 to 3 days,$599 per label,Also reviews site and ad copy
+Insurance Canopy,Product liability insurance,insurancecanopy.com,not contacted,,,,Request quote once company exists,,none,online,from about $2800 a year,$1M/$2M; $2500 deductible
+Veracity Insurance,Product liability insurance (comparison),veracityinsurance.com,not contacted,,,,Request quote same day,,none,online,minimum about $2500,
+Fierce Fruit,Freeze-dried fruit (only if we supply it),fiercefruit.com,not contacted,,,,Only if the manufacturer asks,,none,not found,Strawberry $55.30 per lb,Ask for COA and spec sheet
+GS1 US,Barcodes,gs1us.org,not contacted,,,,Buy 10-item prefix once company exists,,none,instant,$250 then $50 a year,

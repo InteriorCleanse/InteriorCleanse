@@ -2,7 +2,9 @@
 
 Picked ships a flavor only if people pick it, blind, as the one that tastes
 most like real fruit. This kit runs that test with about 30 people in one
-afternoon. Print `scoresheet.pdf`, one per person.
+afternoon. Print `scoresheet.pdf`, one per person, and type the sheets into
+`taste-panel-scoring.xlsx`, which works out the averages and the ship
+decision.
 
 ## The ship rule
 
@@ -71,9 +73,11 @@ Budget about $150 including the comparison products.
    each, have a cracker and water between, and answer honestly. There are
    no right answers." Don't say which one is yours. Don't watch their face.
 5. **No talking** between tasters until everyone's done.
-6. **Score it the same day.** Enter each sheet in a spreadsheet: one row per
-   taster, one column per question per sample. Average each score, count
-   the "drink again" choices, then open the sealed key.
+6. **Score it the same day** in `taste-panel-scoring.xlsx`. On **Setup**,
+   enter the three cup codes. On **Scores**, type one row per taster, each
+   score under the product whose code was on that cup. Only then open the
+   sealed key, enter which product is Picked, and read **Results**: the
+   averages, the sweetness split, and SHIP or NOT YET.
 
 ## What to write down afterwards
 

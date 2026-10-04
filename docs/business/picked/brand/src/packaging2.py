@@ -8,6 +8,24 @@ FL={f[0]:f for f in P.FLAVORS}
 def rnd(s): return re.sub(r' d="([^"]*)"',lambda m:' d="'+re.sub(r'(\d+\.\d)\d+',r'\1',m.group(1))+'"',s)
 def save(name,s): open(f'{OUT}/{name}','w').write(rnd(s))
 
+
+# ---------- Lot Book QR (real, scannable) ----------
+LOT_URL='https://pickedprotein.com/lots/'
+def qr_path(x,y,size,url=LOT_URL,quiet=2):
+    """Return an SVG path for a QR code of url, quiet zone included, fitted to size."""
+    import segno
+    m=[list(r) for r in segno.make(url,error='q',boost_error=False).matrix]
+    n=len(m)+2*quiet; u=size/n; d=[]
+    for r,row in enumerate(m):
+        c=0
+        while c<len(row):
+            if row[c]:
+                s=c
+                while c<len(row) and row[c]: c+=1
+                d.append(f'M{x+(s+quiet)*u:.2f} {y+(r+quiet)*u:.2f}h{(c-s)*u:.2f}v{u:.2f}h{-(c-s)*u:.2f}z')
+            else: c+=1
+    return ''.join(d)
+
 # ---------- back panel ----------
 def back(key):
     _,name,col,ink,soft,fruit,fruitline=FL[key]
@@ -44,8 +62,7 @@ def back(key):
     a,ry=para('CONTAINS',['Milk.'],ry); L.append(a)
     a,ry=para('DIRECTIONS',['Shake 1 scoop with 10 to','12 oz cold water.'],ry); L.append(a)
     # QR + barcode placeholders
-    L.append(f'<rect x="{rx}" y="{ry}" width="96" height="96" rx="8" fill="#fff"/><rect x="{rx+8}" y="{ry+8}" width="80" height="80" fill="none" stroke="{INK}" stroke-width="2" stroke-dasharray="5 4"/>')
-    L.append(T('LOT QR',F7,rx+48,ry+52,11,INK,1,'middle'))
+    L.append(f'<rect x="{rx}" y="{ry}" width="96" height="96" rx="8" fill="#fff"/><path d="{qr_path(rx+4,ry+4,88)}" fill="{INK}"/>')
     L.append(T('scan for this',F5,rx+108,ry+40,13,ink)+T("lot's lab results",F5,rx+108,ry+57,13,ink))
     by=ry+120
     L.append(f'<rect x="{rx}" y="{by}" width="190" height="88" rx="6" fill="#fff"/>')
@@ -127,4 +144,6 @@ for k in FL: save(f'stick-{k}.svg',stick(k))
 save('pouch-back-strawberry.svg',back('strawberry'))
 save('counter-display.svg',display())
 save('shaker.svg',shaker())
+q=qr_path(0,0,256)
+open(f'{OUT}/qr-lot-book.svg','w').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="QR code: {LOT_URL}"><rect width="256" height="256" fill="#fff"/><path d="{q}" fill="{INK}"/></svg>')
 print('ok')

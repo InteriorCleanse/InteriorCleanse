@@ -99,19 +99,21 @@ About 35 minutes a day of review in exchange for most of the drafting.
 
 ## Set it up
 
-### Before the team: the owner steps
+### Before the team: one command
 
-The agents need somewhere to live and something to read. Do these first;
-they're all in `../START_HERE.md`.
+The agents need a repository of their own. From a copy of this repository on
+your computer, run:
 
-1. Create a private GitHub repository called `picked` under your own account.
-2. Copy this whole `docs/business/picked/` folder into it as the root.
-3. Copy `ai-team/repo-template/CLAUDE.template.md` to the repository root as
-   `CLAUDE.md`.
-4. Copy `ai-team/repo-template/claude/` to the repository root as `.claude/`
-   (note the dot). This holds the eleven agents and the permission settings.
-5. Create the working folders: `outbox/`, `briefs/`, `data/` (aggregated
-   numbers only, no customer details), and `lots/`.
+```
+bash docs/business/picked/ai-team/setup-picked-repo.sh ~/picked
+```
+
+It builds `~/picked` with every Picked document, installs the eleven agents
+in `.claude/agents/`, the permission settings, `CLAUDE.md`, and `.gitignore`,
+creates the working folders (`outbox/`, `briefs/`, `data/`, `lots/`,
+`trackers/` with the supplier list already filled in), and makes the first
+commit. It never pushes. Then create an empty private GitHub repository named
+`picked` and run the two lines it prints.
 
 ### Phase 1: run it by hand (week 1 to 2)
 
@@ -188,3 +190,7 @@ token on the API instead.
 | `repo-template/claude/agents/*.md` | The eleven agents. Becomes `.claude/agents/` |
 | `repo-template/claude/settings.json` | Permission settings that keep agents to drafting. Becomes `.claude/settings.json` |
 | `repo-template/gitignore.txt` | Keeps customer data out of git. Becomes `.gitignore` |
+| `repo-template/trackers/` | Supplier list (filled in from the research), and empty creator, store, and lot trackers |
+| `repo-template/lots/SPEC.md` | The finished-product spec every lot is checked against. Fill it from the final formula |
+| `repo-template/data/README.md` | Which weekly exports to drop in `data/`, and which never to |
+| `setup-picked-repo.sh` | Builds the picked repository from all of the above in one step |
