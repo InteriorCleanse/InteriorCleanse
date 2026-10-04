@@ -36,6 +36,8 @@ const Draft = z
     features: z.array(z.enum(FEATURE_IDS as [FeatureId, ...FeatureId[]])).max(30),
     rules: z.array(z.string().trim().max(160)).max(10),
     efficiency: z.number(),
+    welcome: z.string().trim().max(600).optional(),
+    pickup: z.string().trim().max(600).optional(),
   })
   .strict()
 

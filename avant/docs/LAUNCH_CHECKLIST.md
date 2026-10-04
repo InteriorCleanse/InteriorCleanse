@@ -50,6 +50,10 @@ ocd wrangler deploy
 
 ## 4. Business
 
+- Review the AVANT Advantage amounts in `lib/circle.ts` (Circle tier fees, the
+  Promise credits, the referral credits). Credit is a liability on the books:
+  your accountant should see the `credits` table. Credit can't be cashed out.
+
 - Insurance program signed (see `INSURANCE_PLAYBOOK.md`); then set
   `COVERAGE_TERMS_FINAL = true` with the carrier's numbers.
 - Legal checklist done (see `LEGAL_BRIEF.md`).

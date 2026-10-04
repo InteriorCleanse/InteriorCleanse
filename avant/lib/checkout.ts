@@ -23,6 +23,8 @@ export const TripRequest = z
     extras: z.array(z.enum(EXTRAS.map((e) => e.id) as [ExtraId, ...ExtraId[]])).max(EXTRAS.length),
     delivery: z.boolean(),
     deliveryAddress: z.string().trim().max(200),
+    /** Apply the guest's AVANT credit (on unless they turn it off). */
+    useCredit: z.boolean().optional(),
   })
   .strict()
 
@@ -42,6 +44,8 @@ export interface PriceOptions {
   paid?: boolean
   /** Sales tax for the car's city (0.0863 for 8.63%). */
   taxRate?: number
+  /** The guest's AVANT Circle tier, from their completed trips (server-side). */
+  circle?: { tier: string; feePct: number; freeCancelHours: number }
 }
 
 /** Prices a trip in `car`, which the caller has already loaded for req.slug. */
@@ -75,6 +79,7 @@ export function priceTrip(car: Car | null | undefined, req: TripRequest, driver:
     extras: req.extras.map(getExtra),
     taxRate: opts.taxRate ?? 0,
     youngDriverFeeCents: youngDriverFee(driver.age, days, driver.cleanRecord),
+    circle: opts.circle,
   })
   return { ok: true, car, quote: q, days }
 }

@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
+import { nudgeReviews, rewardReferrals } from '@/lib/server/advantage'
 import { expireRequests, settlePendingRefunds } from '@/lib/server/bookings'
 import { deliverNotificationEmails } from '@/lib/server/email'
 import { queuePayouts, sendPayouts } from '@/lib/server/payouts'
@@ -18,7 +19,8 @@ function authorised(req: NextRequest): boolean {
 /**
  * Housekeeping, run by Vercel Cron (vercel.json) with CRON_SECRET:
  * expire unanswered requests, retry refunds Stripe didn't confirm, queue and
- * send host payouts, and send notification emails. Each step is idempotent.
+ * send host payouts, reward referrals, ask for reviews after trips, and send
+ * notification emails. Each step is idempotent.
  */
 export async function GET(req: NextRequest) {
   if (!authorised(req)) return NextResponse.json({ error: 'unauthorised' }, { status: 401 })
@@ -26,6 +28,8 @@ export async function GET(req: NextRequest) {
   const refunds = await settlePendingRefunds()
   const queued = await queuePayouts()
   const paid = await sendPayouts()
+  const referrals = await rewardReferrals()
+  const nudged = await nudgeReviews()
   const emails = await deliverNotificationEmails(100)
-  return NextResponse.json({ expired: expired.length, refunds, queued, paid, emails })
+  return NextResponse.json({ expired: expired.length, refunds, queued, paid, referrals, nudged, emails })
 }

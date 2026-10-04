@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
+import { tierFor } from '@/lib/circle'
 import { publicProfile, updateProfile } from '@/lib/server/accounts'
+import { completedTrips } from '@/lib/server/advantage'
+import { creditBalance } from '@/lib/server/credit'
 import { unreadCounts } from '@/lib/server/inbox'
 import { currentUser, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
@@ -11,7 +14,13 @@ export const runtime = 'nodejs'
 export async function GET() {
   const user = await currentUser()
   if (!user) return NextResponse.json({ user: null })
-  return NextResponse.json({ user: { ...publicProfile(user), email: user.email }, unread: await unreadCounts(user.id) })
+  const [unread, trips, creditCents] = await Promise.all([unreadCounts(user.id), completedTrips(user.id), creditBalance(user.id)])
+  const tier = tierFor(trips)
+  return NextResponse.json({
+    user: { ...publicProfile(user), email: user.email },
+    unread,
+    advantage: { tier: tier.name, feePct: tier.feePct, freeCancelHours: tier.freeCancelHours, creditCents },
+  })
 }
 
 const Patch = z.object({ name: z.string().trim().min(2).max(60).optional(), bio: z.string().trim().max(600).optional() }).strict()

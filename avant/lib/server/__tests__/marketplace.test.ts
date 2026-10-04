@@ -94,7 +94,7 @@ describe('marketplace', () => {
     assert.deepEqual(out, { result: 'ok', refundCents: trip.quote.totalCents })
     const after = (await tripsFor(guest.id)).find((t) => t.id === trip.id)!
     assert.equal(after.status, 'cancelled')
-    assert.deepEqual(after.refund, { cents: trip.quote.totalCents, status: 'demo' }, 'preview mode records the refund without moving money')
+    assert.deepEqual(after.refund, { cents: trip.quote.totalCents, status: 'demo', creditCents: 0 }, 'preview mode records the refund without moving money')
     assert.equal(after.cancelledBy, 'guest')
   })
 

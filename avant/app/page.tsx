@@ -6,6 +6,7 @@ import { COVERAGE_PLANS, DEFAULT_COVERAGE, getPlan, HOST_SHARE_PCT, TRIP_FEE_PCT
 import { money } from '@/lib/format'
 import { quote } from '@/lib/pricing'
 import { listCars } from '@/lib/server/catalog'
+import { CIRCLE_TIERS, PROMISE } from '@/lib/circle'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,7 +99,33 @@ export default async function Home() {
             <div className="promise">
               <Icon name="lock" size={28} />
               <h3>Private by design</h3>
-              <p>No account to browse or book. Licence images are deleted after the check, and you can export or erase your record.</p>
+              <p>Browse without an account. Licence images are deleted after the check, and you can export or erase your record any time.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="section" aria-labelledby="circle">
+          <div className="band band-ink circle-band">
+            <div className="band-body">
+              <h2 id="circle">The more you drive, the less you pay</h2>
+              <p>
+                AVANT Circle lowers your trip fee as you complete trips: {CIRCLE_TIERS.map((t) => `${t.feePct}% as ${t.name}`).join(', ')}. If a host ever cancels on
+                you, you&apos;re refunded in full with ${PROMISE.hostCancelCreditCents / 100} of credit on top.
+              </p>
+              <div className="row">
+                <ButtonLink href="/circle">Explore Circle</ButtonLink>
+                <ButtonLink href="/why" variant="secondary">
+                  Every fee, side by side
+                </ButtonLink>
+              </div>
+            </div>
+            <div className="band-body circle-band-tiers" aria-hidden="true">
+              {CIRCLE_TIERS.map((t) => (
+                <div key={t.id}>
+                  <span>{t.name}</span>
+                  <strong>{t.feePct}%</strong>
+                </div>
+              ))}
             </div>
           </div>
         </section>

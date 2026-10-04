@@ -81,6 +81,10 @@ export interface ListingDraft {
   efficiency: number
   monthlyDiscountPct: number
   milesPerDay: number
+  /** A personal hello from the host, shown to guests once a trip is confirmed. */
+  welcome?: string
+  /** Where and how to collect the car; shown only to confirmed guests. */
+  pickup?: string
 }
 
 export interface Listing extends ListingDraft {
@@ -162,6 +166,8 @@ export function validateListing(d: ListingDraft, currentYear: number): ListingPr
   if (words < 15) out.push({ step: 'details', field: 'description', message: 'Write a few sentences about your car: at least 15 words.' })
   else if (d.description.length > 1500) out.push({ step: 'details', field: 'description', message: 'Keep the description under 1,500 characters.' })
   if (d.rules.some((r) => r.length > 140)) out.push({ step: 'details', field: 'rules', message: 'Keep each rule under 140 characters.' })
+  if ((d.welcome?.length ?? 0) > 600) out.push({ step: 'details', field: 'welcome', message: 'Keep the welcome note under 600 characters.' })
+  if ((d.pickup?.length ?? 0) > 600) out.push({ step: 'details', field: 'pickup', message: 'Keep the pickup instructions under 600 characters.' })
   if (!d.city) out.push({ step: 'location', field: 'city', message: 'Choose a city.' })
   if (d.neighborhood.trim().length < 2) out.push({ step: 'location', field: 'neighborhood', message: 'Add the neighbourhood guests will see.' })
   if (d.deliveryOffered && (d.deliveryFeeCents < 0 || d.deliveryFeeCents > 50_000)) out.push({ step: 'location', field: 'deliveryFeeCents', message: 'Delivery fee must be between $0 and $500.' })

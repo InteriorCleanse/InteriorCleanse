@@ -54,7 +54,7 @@ describe('hosting, payments and accounts', () => {
     assert.equal(await respond(host.id, b.id, false), 'ok')
     const t = (await tripFor(guest.id, b.id))!
     assert.equal(t.status, 'declined')
-    assert.deepEqual(t.refund, { cents: 40000, status: 'demo' })
+    assert.deepEqual(t.refund, { cents: 40000, status: 'demo', creditCents: 0 })
   })
 
   it('expires requests the host leaves unanswered', async () => {

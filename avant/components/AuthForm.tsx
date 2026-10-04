@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { safeNext } from '@/lib/security/redirect'
 import { useDriver } from './DriverProvider'
 import { Crest } from './Logo'
@@ -14,7 +14,16 @@ export function AuthForm() {
   const { refresh } = useSession()
   const driver = useDriver()
   const next = safeNext(params.get('next') ?? '/', undefined)
-  const [mode, setMode] = useState<'in' | 'up'>(params.get('mode') === 'up' ? 'up' : 'in')
+  const ref = (params.get('ref') ?? '').toUpperCase().slice(0, 12)
+  const [mode, setMode] = useState<'in' | 'up'>(params.get('mode') === 'up' || ref ? 'up' : 'in')
+  const [inviter, setInviter] = useState<{ firstName: string; creditCents: number } | null>(null)
+  useEffect(() => {
+    if (!ref) return
+    fetch(`/api/referral?code=${encodeURIComponent(ref)}`)
+      .then((r) => r.json())
+      .then((j) => setInviter(j.firstName ? j : null))
+      .catch(() => undefined)
+  }, [ref])
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,7 +38,7 @@ export function AuthForm() {
       const res = await fetch(mode === 'up' ? '/api/auth/signup' : '/api/auth/login', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(mode === 'up' ? { name, email, password } : { email, password }),
+        body: JSON.stringify(mode === 'up' ? { name, email, password, ...(inviter ? { ref } : {}) } : { email, password }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Something went wrong.')
@@ -45,6 +54,11 @@ export function AuthForm() {
   return (
     <div className="auth fade-in">
       <Crest height={68} />
+      {inviter && mode === 'up' ? (
+        <p className="invite-banner">
+          {inviter.firstName} invited you. Create your account and ${Math.round(inviter.creditCents / 100)} comes off your first car.
+        </p>
+      ) : null}
       <h1 className="greeting" style={{ marginTop: 10 }}>
         {mode === 'up' ? 'Welcome.' : 'Welcome back.'}
       </h1>

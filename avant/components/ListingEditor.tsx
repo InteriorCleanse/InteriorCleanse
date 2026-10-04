@@ -53,6 +53,8 @@ export function ListingEditor({ id }: { id: string }) {
         neighborhood: d.neighborhood,
         efficiency: d.efficiency,
         color: d.color,
+        welcome: d.welcome ?? '',
+        pickup: d.pickup ?? '',
       })
     }
   }, [id])
@@ -259,6 +261,34 @@ export function ListingEditor({ id }: { id: string }) {
               value={edit.rules.join('\n')}
               onChange={(e) => set('rules', e.target.value.split('\n').slice(0, 8).map((r) => r.slice(0, 140)))}
             />
+          </label>
+        </section>
+
+        <section className="panel stack" aria-labelledby="h-welcome">
+          <h2 id="h-welcome" style={{ fontSize: '1.2rem' }}>
+            Welcome your guests
+          </h2>
+          <p className="muted">Guests see these once their trip is confirmed. A warm, specific note is the first thing they remember.</p>
+          <label className="field">
+            <span className="label">Welcome note</span>
+            <textarea
+              className="textarea"
+              rows={3}
+              value={edit.welcome}
+              placeholder="Hi, I’m glad you chose my car. The playlist is yours to change, and there’s a spare charging cable in the trunk."
+              onChange={(e) => set('welcome', e.target.value.slice(0, 600))}
+            />
+          </label>
+          <label className="field">
+            <span className="label">Pickup instructions</span>
+            <textarea
+              className="textarea"
+              rows={3}
+              value={edit.pickup}
+              placeholder="Where the car is parked, how to find the keys or unlock it, and anything about the building."
+              onChange={(e) => set('pickup', e.target.value.slice(0, 600))}
+            />
+            <span className="hint">Shared only with confirmed guests, never on the public listing.</span>
           </label>
         </section>
 

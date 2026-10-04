@@ -138,6 +138,7 @@ function Frame({ children }: { children: ReactNode }) {
                 <li><Link href="/coverage">Coverage, explained</Link></li>
                 <li><Link href="/verify">Driver Pass</Link></li>
                 <li><Link href="/concierge">Concierge</Link></li>
+                <li><Link href="/circle">AVANT Circle</Link></li>
               </ul>
             </div>
             <div>
@@ -150,6 +151,7 @@ function Frame({ children }: { children: ReactNode }) {
             <div>
               <h3>Company</h3>
               <ul>
+                <li><Link href="/why">Why AVANT</Link></li>
                 <li><Link href="/legal/privacy">Privacy</Link></li>
                 <li><Link href="/legal/terms">Terms</Link></li>
                 <li><Link href="/account">Your data</Link></li>

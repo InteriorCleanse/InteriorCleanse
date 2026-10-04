@@ -173,6 +173,8 @@ export interface QuoteInput {
   extras: Extra[]
   taxRate: number
   youngDriverFeeCents: number
+  /** The guest's AVANT Circle rate; the standard trip fee when absent. */
+  circle?: { tier: string; feePct: number; freeCancelHours: number }
 }
 
 export interface QuoteLine {
@@ -197,6 +199,8 @@ export interface Quote {
   totalCents: number
   depositCents: number
   lines: QuoteLine[]
+  /** The Circle tier this trip was priced at, frozen at booking. */
+  circle?: { tier: string; feePct: number; savedCents: number; freeCancelHours: number }
 }
 
 export interface SearchState {

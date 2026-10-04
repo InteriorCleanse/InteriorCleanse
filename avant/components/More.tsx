@@ -25,7 +25,7 @@ function Item({ href, icon, label, note }: { href: string; icon: IconName; label
 }
 
 export function More() {
-  const { user, loaded, signOut } = useSession()
+  const { user, loaded, signOut, advantage } = useSession()
   const { facts, refresh } = useDriver()
   const { setOpen } = useConcierge()
   const router = useRouter()
@@ -60,6 +60,12 @@ export function More() {
 
       <p className="menu-title">Account</p>
       <ul className="menu">
+        <Item
+          href="/circle"
+          icon="star"
+          label={advantage ? `AVANT Circle · ${advantage.tier}` : 'AVANT Circle'}
+          note={advantage ? `${advantage.feePct}% trip fee${advantage.creditCents ? ` · $${(advantage.creditCents / 100).toFixed(2)} credit` : ''} · invite friends` : 'Your trip fee falls the more you drive'}
+        />
         <Item href="/verify" icon="id" label="Driver Pass" note={facts.verified ? 'Verified' : 'Verify your licence once to book'} />
         <Item href="/account" icon="user" label="Profile and privacy" />
       </ul>
@@ -74,6 +80,7 @@ export function More() {
 
       <p className="menu-title">Help</p>
       <ul className="menu">
+        <Item href="/why" icon="shield" label="Why AVANT" note="Our pricing, our promise, side by side" />
         <li>
           <button type="button" onClick={() => setOpen(true)}>
             <Icon name="sparkle" size={20} />

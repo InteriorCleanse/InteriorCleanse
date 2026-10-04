@@ -49,12 +49,14 @@ export interface CancelOutcome {
 }
 
 /**
- * Free until FREE_CANCEL_HOURS before pickup. Inside that window the first
+ * Free until FREE_CANCEL_HOURS before pickup (later for Circle Gold). Inside that window the first
  * day (a day's share of the total) is kept and the rest refunded. A host
  * cancelling always refunds the guest in full.
  */
-export function cancellationOutcome(q: Pick<Quote, 'totalCents' | 'days'>, pickupMs: number, nowMs: number, by: 'guest' | 'host'): CancelOutcome {
-  if (by === 'host' || pickupMs - nowMs >= FREE_CANCEL_HOURS * HOUR) return { refundCents: q.totalCents, keptCents: 0, free: true }
+export function cancellationOutcome(q: Pick<Quote, 'totalCents' | 'days' | 'circle'>, pickupMs: number, nowMs: number, by: 'guest' | 'host'): CancelOutcome {
+  // Circle Gold earns a later free-cancellation window, frozen into the quote at booking.
+  const freeHours = q.circle?.freeCancelHours ?? FREE_CANCEL_HOURS
+  if (by === 'host' || pickupMs - nowMs >= freeHours * HOUR) return { refundCents: q.totalCents, keptCents: 0, free: true }
   const keptCents = Math.min(q.totalCents, Math.round(q.totalCents / Math.max(1, q.days)))
   return { refundCents: q.totalCents - keptCents, keptCents, free: false }
 }

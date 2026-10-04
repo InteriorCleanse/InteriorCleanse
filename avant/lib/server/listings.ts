@@ -9,9 +9,9 @@ import { tierForRate } from '../catalog.ts'
 import { COLORS, normaliseVin, PHOTO_ANGLES, validateListing, type ListingDraft, type ListingProblem } from '../listing.ts'
 import type { Car, City, Host } from '../types.ts'
 import { photoUrl } from './accounts.ts'
-import { db } from './db.ts'
+import { db, type Db } from './db.ts'
 import { ownListingPhotos } from './photos.ts'
-import { HOLDS_CAR } from './bookings.ts'
+import { HOLDS_CAR, notify } from './bookings.ts'
 import { reviewsForListing } from './reviews.ts'
 
 export type StoredListing = Omit<ListingDraft, 'photos'> & { photoIds: string[] }
@@ -250,6 +250,8 @@ export const EDITABLE = [
   'neighborhood',
   'efficiency',
   'color',
+  'welcome',
+  'pickup',
 ] as const satisfies readonly (keyof ListingDraft)[]
 
 export type ListingEdit = Partial<Pick<ListingDraft, (typeof EDITABLE)[number]>>
@@ -327,8 +329,25 @@ export async function updateListing(hostId: string, id: string, changes: Listing
       next.dailyRateCents,
     ])
     if (photo) await t.query(`update photos set listing_id = $1 where id = $2 and owner_id = $3`, [id, photo.photoId, hostId])
+    if (next.dailyRateCents < r.data.dailyRateCents) await announcePriceDrop(t, r.slug, hostId, `${r.data.year} ${r.data.make} ${r.data.model}`, r.data.dailyRateCents, next.dailyRateCents)
   })
   return true
+}
+
+/**
+ * Tells everyone who saved this car that it got cheaper. At most one alert
+ * per person per car every three days, so a host adjusting prices can't
+ * flood anyone's inbox.
+ */
+async function announcePriceDrop(t: Db, slug: string, hostId: string, title: string, was: number, now: number) {
+  const fans = await t.query<{ user_id: string }>(
+    `select f.user_id from favorites f where f.listing_slug = $1 and f.user_id <> $2
+       and not exists (select 1 from notifications n where n.user_id = f.user_id and n.href = $3 and n.title = 'Price drop' and n.created_at > now() - interval '3 days')`,
+    [slug, hostId, `/cars/${slug}`],
+  )
+  for (const f of fans) {
+    await notify(t, f.user_id, 'Price drop', `The ${title} you saved is now $${Math.round(now / 100)} a day, down from $${Math.round(was / 100)}.`, `/cars/${slug}`)
+  }
 }
 
 export type BlockResult = 'ok' | 'not-found' | 'invalid' | 'has-trip'

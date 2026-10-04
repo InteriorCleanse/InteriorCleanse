@@ -3,7 +3,10 @@ import { priceTrip, TripRequest } from '@/lib/checkout'
 import { carTitle } from '@/lib/places'
 import { loadRecord, toFacts } from '@/lib/driver-record'
 import { createBooking, DatesTaken } from '@/lib/server/bookings'
+import { creditToApply } from '@/lib/circle'
+import { circlePricing } from '@/lib/server/advantage'
 import { cityNameFor, findCar, taxRateFor, tzFor } from '@/lib/server/catalog'
+import { creditBalance } from '@/lib/server/credit'
 import { deliverNotificationEmails } from '@/lib/server/email'
 import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
@@ -29,7 +32,8 @@ export async function POST(req: NextRequest) {
   if (!user) return signInRequired()
   const record = await loadRecord(driverKey(user))
   const car = await findCar(body.slug)
-  const priced = priceTrip(car, body, toFacts(record), undefined, { taxRate: car ? taxRateFor(car) : 0 })
+  // The guest's Circle rate comes from their own completed trips, on the server.
+  const priced = priceTrip(car, body, toFacts(record), undefined, { taxRate: car ? taxRateFor(car) : 0, circle: await circlePricing(user.id) })
   if (!priced.ok) return NextResponse.json({ error: priced.error, reasons: priced.reasons }, { status: priced.status })
   if (car!.sample && process.env.NEXT_PUBLIC_AVANT_SAMPLE_FLEET === '0') return problem(404, 'That car is not available.')
 
@@ -38,9 +42,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Verify your licence to book.', reasons: ['unverified'] }, { status: 403 })
   }
 
-  let booking: { id: string; status: string }
+  const wantCredit = body.useCredit === false ? 0 : creditToApply(await creditBalance(user.id), priced.quote.totalCents, Boolean(stripe))
+  let booking: { id: string; status: string; creditCents: number }
   try {
-    booking = await createBooking({ guestId: user.id, car: priced.car, cityName: cityNameFor(priced.car), tz: tzFor(priced.car), request: body, quote: priced.quote, paid: stripe ? 'stripe' : 'demo' })
+    booking = await createBooking({
+      guestId: user.id,
+      car: priced.car,
+      cityName: cityNameFor(priced.car),
+      tz: tzFor(priced.car),
+      request: body,
+      quote: priced.quote,
+      paid: stripe ? 'stripe' : 'demo',
+      creditCents: wantCredit,
+    })
   } catch (err) {
     if (err instanceof DatesTaken) return problem(409, err.message)
     console.error('booking failed')
@@ -48,7 +62,7 @@ export async function POST(req: NextRequest) {
   }
   if (!stripe) {
     after(() => deliverNotificationEmails())
-    return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote })
+    return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote, creditCents: booking.creditCents })
   }
 
   const site = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`
@@ -58,9 +72,15 @@ export async function POST(req: NextRequest) {
     cancel_url: `${site}/checkout/${priced.car.slug}?start=${body.start}&end=${body.end}`,
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': 'usd',
-    'line_items[0][price_data][unit_amount]': String(priced.quote.totalCents),
+    // AVANT credit is already taken off; the card pays the rest.
+    'line_items[0][price_data][unit_amount]': String(priced.quote.totalCents - booking.creditCents),
     'line_items[0][price_data][product_data][name]': `${carTitle(priced.car)} · ${body.start} to ${body.end}`,
-    'line_items[0][price_data][product_data][description]': priced.quote.lines.map((l) => l.label).join(', ').slice(0, 480),
+    'line_items[0][price_data][product_data][description]': [
+      ...priced.quote.lines.map((l) => l.label),
+      ...(booking.creditCents ? [`AVANT credit applied: $${(booking.creditCents / 100).toFixed(2)}`] : []),
+    ]
+      .join(', ')
+      .slice(0, 480),
     'metadata[booking]': booking.id,
     'metadata[user]': user.id,
     expires_at: String(Math.floor(Date.now() / 1000) + 30 * 60),
@@ -76,5 +96,5 @@ export async function POST(req: NextRequest) {
     return problem(502, 'Payment is unavailable right now. Nothing was charged.')
   }
   const session = (await res.json()) as { url: string }
-  return NextResponse.json({ mode: 'stripe', url: session.url, bookingId: booking.id, quote: priced.quote })
+  return NextResponse.json({ mode: 'stripe', url: session.url, bookingId: booking.id, quote: priced.quote, creditCents: booking.creditCents })
 }

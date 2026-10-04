@@ -13,6 +13,7 @@ import type { ConciergeReply } from './concierge'
 
 const TOPIC_WORDS: [PolicyTopic, RegExp][] = [
   ['accident', /\b(accident|crash|injur|hurt|collision)\b/],
+  ['circle_and_promise', /\b(circle|loyal\w*|referr\w*|invite|promise|member\w*|avant credit|discount on fees)\b/],
   ['cancellation', /\b(cancel|refund)\b/],
   ['young_drivers', /\b(young|under ?25|age|18|19|20|21|22|23|24)\b/],
   ['verification', /\b(verif|licen[cs]e|id\b|identity)\b/],

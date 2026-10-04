@@ -202,4 +202,31 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       alter table notifications add column emailed_at timestamptz;
     `,
   },
+  {
+    id: 4,
+    name: 'advantage: credit, referrals, nudges',
+    sql: `
+      -- AVANT credit, as a ledger: the balance is the sum. Credit pays for
+      -- trips only and is never exchanged for cash.
+      create table credits (
+        id text primary key,
+        user_id text not null references users(id) on delete cascade,
+        amount_cents integer not null check (amount_cents <> 0),
+        reason text not null check (reason in ('promise_host_cancel', 'promise_request_expired', 'referral_welcome', 'referral_reward', 'used', 'returned', 'goodwill')),
+        booking_id text,
+        created_at timestamptz not null default now()
+      );
+      create index credits_user on credits(user_id, created_at desc);
+      -- Each kind of credit at most once per trip, so retries never pay twice.
+      create unique index credits_once on credits(user_id, reason, booking_id) where booking_id is not null;
+
+      alter table bookings add column credit_cents integer not null default 0 check (credit_cents >= 0);
+      alter table bookings add column refund_credit_cents integer not null default 0 check (refund_credit_cents >= 0);
+      alter table bookings add column nudged_at timestamptz;
+
+      alter table users add column referral_code text unique;
+      alter table users add column referred_by text references users(id);
+      alter table users add column referral_rewarded boolean not null default false;
+    `,
+  },
 ]

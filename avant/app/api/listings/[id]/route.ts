@@ -27,6 +27,8 @@ const Changes = z
     neighborhood: z.string().trim().max(60),
     efficiency: z.number(),
     color: z.string().max(20),
+    welcome: z.string().trim().max(600),
+    pickup: z.string().trim().max(600),
   })
   .strict()
   .partial()

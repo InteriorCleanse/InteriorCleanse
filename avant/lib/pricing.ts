@@ -30,7 +30,8 @@ export function quote(input: QuoteInput): Quote {
   const discountPct = discountFor(days, input.weeklyDiscountPct, input.monthlyDiscountPct)
   const discountCents = pct(baseCents, discountPct)
   const tripCents = baseCents - discountCents
-  const tripFeeCents = pct(tripCents, TRIP_FEE_PCT)
+  const feePct = input.circle?.feePct ?? TRIP_FEE_PCT
+  const tripFeeCents = pct(tripCents, feePct)
   const protectionCents = Math.max(pct(tripCents, input.plan.pctOfTrip), input.plan.minPerDayCents * days)
   const youngDriverCents = Math.max(0, Math.round(input.youngDriverFeeCents))
   const deliveryCents = input.delivery ? input.deliveryFeeCents : 0
@@ -51,7 +52,15 @@ export function quote(input: QuoteInput): Quote {
       note: 'Set by the host for longer trips.',
     })
   }
-  lines.push({ id: 'fee', label: `Trip fee (${TRIP_FEE_PCT}%)`, cents: tripFeeCents, note: 'One flat rate. Pays for support, verification and the platform.' })
+  lines.push({
+    id: 'fee',
+    label: feePct < TRIP_FEE_PCT ? `Trip fee (${feePct}%, Circle ${input.circle?.tier})` : `Trip fee (${feePct}%)`,
+    cents: tripFeeCents,
+    note:
+      feePct < TRIP_FEE_PCT
+        ? `Your Circle rate saves ${dollars(pct(tripCents, TRIP_FEE_PCT) - tripFeeCents)} against the standard ${TRIP_FEE_PCT}%.`
+        : 'One flat rate. Pays for support, verification and the platform.',
+  })
   lines.push({
     id: 'protection',
     label: `${input.plan.name} coverage`,
@@ -91,6 +100,9 @@ export function quote(input: QuoteInput): Quote {
     totalCents,
     depositCents: input.plan.depositCents,
     lines,
+    ...(input.circle
+      ? { circle: { tier: input.circle.tier, feePct, savedCents: pct(tripCents, TRIP_FEE_PCT) - tripFeeCents, freeCancelHours: input.circle.freeCancelHours } }
+      : {}),
   }
 }
 

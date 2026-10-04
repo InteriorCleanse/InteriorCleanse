@@ -292,6 +292,21 @@ export function TripDetail({ id }: { id: string }) {
             </section>
           ) : null}
 
+          {trip.hostNote ? (
+            <section className="car-section host-note" aria-labelledby="note">
+              <h2 id="note">From {trip.host?.firstName ?? 'your host'}</h2>
+              {trip.hostNote.welcome ? <p className="welcome">{trip.hostNote.welcome}</p> : null}
+              {trip.hostNote.pickup ? (
+                <div className="pickup">
+                  <strong>Pickup</strong>
+                  <p className="muted" style={{ whiteSpace: 'pre-line', marginTop: 4 }}>
+                    {trip.hostNote.pickup}
+                  </p>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
           {trip.role === 'host' && trip.status === 'requested' ? (
             <section className="car-section" aria-labelledby="answer">
               <h2 id="answer">Answer {trip.guest?.firstName ?? 'the guest'}</h2>
@@ -348,6 +363,7 @@ export function TripDetail({ id }: { id: string }) {
                     ? 'is on its way back to the original card.'
                     : 'refunded'}
                 {moneyBack}
+                {trip.refund.creditCents > 0 ? ` ${moneyExact(trip.refund.creditCents)} of it went back to your AVANT credit.` : ''}
                 {trip.refund.cents < trip.quote.totalCents ? ` The first day (${moneyExact(trip.quote.totalCents - trip.refund.cents)}) was kept, per the cancellation policy.` : ''}
               </p>
             </section>
@@ -402,7 +418,7 @@ export function TripDetail({ id }: { id: string }) {
         <aside>
           <div className="bookcard sticky">
             <h2 style={{ fontSize: '1.1rem' }}>Receipt</h2>
-            <PriceBreakdown quote={trip.quote} />
+            <PriceBreakdown quote={trip.quote} credit={trip.creditUsedCents} />
             <p className="small dim">Ref {trip.id}</p>
           </div>
         </aside>

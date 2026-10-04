@@ -9,6 +9,7 @@ import { PICKUP_TIMES, addDays, billableDays, formatDate, formatTime, isIsoDate,
 import { checkEligibility, youngDriverFee } from '@/lib/eligibility'
 import { money, moneyExact } from '@/lib/format'
 import { quote as makeQuote } from '@/lib/pricing'
+import { creditToApply } from '@/lib/circle'
 import { blockedRanges } from '@/lib/search'
 import type { Car, CoverageId, ExtraId, Quote } from '@/lib/types'
 import { CarImage } from './CarImage'
@@ -37,6 +38,7 @@ export function Checkout({ car }: { car: Car }) {
   const [delivery, setDelivery] = useState(false)
   const [address, setAddress] = useState('')
   const [agree, setAgree] = useState(false)
+  const [useCredit, setUseCredit] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const city = getCity(car.city)
@@ -60,7 +62,11 @@ export function Checkout({ car }: { car: Car }) {
     extras: extras.map(getExtra),
     taxRate: city?.taxRate ?? 0,
     youngDriverFeeCents: youngDriverFee(facts.age, Math.max(1, days), facts.cleanRecord),
+    circle: session.advantage ? { tier: session.advantage.tier, feePct: session.advantage.feePct, freeCancelHours: session.advantage.freeCancelHours } : undefined,
   })
+  const creditAvailable = session.advantage?.creditCents ?? 0
+  const credit = useCredit && days ? creditToApply(creditAvailable, q.totalCents, Boolean(modes?.payments)) : 0
+  const due = q.totalCents - credit
 
   const canPay = datesOk && Boolean(elig?.ok) && Boolean(session.user) && agree && !busy && (!delivery || address.trim().length >= 6)
   const here = `/checkout/${car.slug}?start=${start}&end=${end}`
@@ -73,7 +79,7 @@ export function Checkout({ car }: { car: Car }) {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slug: car.slug, start, end, startTime, endTime, coverage, extras, delivery: delivery && car.delivery.offered, deliveryAddress: delivery ? address : '' }),
+        body: JSON.stringify({ slug: car.slug, start, end, startTime, endTime, coverage, extras, delivery: delivery && car.delivery.offered, deliveryAddress: delivery ? address : '', useCredit }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Booking failed.')
@@ -82,6 +88,7 @@ export function Checkout({ car }: { car: Car }) {
         return
       }
       toast(json.status === 'requested' ? 'Request sent' : 'You’re booked')
+      void session.refresh()
       router.push(`/trips/${json.bookingId}?new=1`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Booking failed.')
@@ -249,10 +256,21 @@ export function Checkout({ car }: { car: Car }) {
                 I agree to the host&apos;s rules, the <Link href="/legal/terms" className="link">trip terms</Link> and the {getPlan(coverage).name} coverage summary. Free cancellation until 24 hours before pickup.
               </span>
             </label>
+            {creditAvailable > 0 ? (
+              <label className="check" style={{ marginTop: 10 }}>
+                <input type="checkbox" checked={useCredit} onChange={() => setUseCredit((u) => !u)} />
+                <span>
+                  <strong>Use my AVANT credit</strong>
+                  <span className="small muted" style={{ display: 'block' }}>
+                    {moneyExact(creditAvailable)} in your wallet{credit ? `; ${moneyExact(credit)} comes off this trip` : ''}.
+                  </span>
+                </span>
+              </label>
+            ) : null}
             {error ? <p className="error-block" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
             <button type="button" className="btn btn-primary btn-lg btn-block" style={{ marginTop: 18 }} disabled={!canPay} onClick={pay}>
               <Icon name="lock" size={17} />
-              {busy ? 'Confirming…' : modes?.payments ? `Pay ${moneyExact(q.totalCents)}` : car.instantBook ? `Confirm preview booking · ${moneyExact(q.totalCents)}` : `Request to book · ${moneyExact(q.totalCents)}`}
+              {busy ? 'Confirming…' : modes?.payments ? `Pay ${moneyExact(due)}` : car.instantBook ? `Confirm preview booking · ${moneyExact(due)}` : `Request to book · ${moneyExact(due)}`}
             </button>
             <p className="small dim" style={{ marginTop: 10 }}>
               {modes?.payments ? 'Card details are entered on Stripe’s secure page. AVANT never sees your card number.' : 'Preview mode: nothing is charged.'} The price is re-checked on our server before anything is confirmed.
@@ -273,14 +291,14 @@ export function Checkout({ car }: { car: Car }) {
               </div>
             </div>
             <hr className="hairline" style={{ margin: 0 }} />
-            {days ? <PriceBreakdown quote={q} /> : <p className="muted small">Pick dates for the full price.</p>}
+            {days ? <PriceBreakdown quote={q} credit={credit} /> : <p className="muted small">Pick dates for the full price.</p>}
           </div>
         </aside>
       </div>
       <div className="mobile-pay">
         <div>
           <div className="small muted">Total{days ? `, ${days} days` : ''}</div>
-          <strong style={{ fontSize: '1.2rem' }} className="tabular">{days ? moneyExact(q.totalCents) : '—'}</strong>
+          <strong style={{ fontSize: '1.2rem' }} className="tabular">{days ? moneyExact(due) : '—'}</strong>
         </div>
         <a href="#s5" className="btn btn-primary btn-md">Review &amp; pay</a>
       </div>

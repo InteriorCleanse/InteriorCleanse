@@ -17,6 +17,8 @@ export const NAV: NavItem[] = [
   { label: 'Coverage', href: '/coverage', icon: 'shield', key: 'c' },
   { label: 'Profile', href: '/account', icon: 'user', key: 'a' },
   { label: 'Trust & safety', href: '/security', icon: 'lock', key: 'p' },
+  { label: 'AVANT Circle', href: '/circle', icon: 'star', key: 'r' },
+  { label: 'Why AVANT', href: '/why', icon: 'sparkle', key: 'w' },
 ]
 
 /** The five tabs, in the order the app shows them. */
