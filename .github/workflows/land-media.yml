@@ -1,0 +1,75 @@
+name: Land Higgsfield media
+
+# Copies every Higgsfield asset the storefront shows (room films, product
+# photographs, 3D models, book covers, the logo) into public/media/hf/ with
+# scripts/land-media.mjs, rewrites the links to the local copies, proves the
+# site still builds, and commits the result to the branch it ran on.
+#
+# Runs on GitHub's machines because the generation CDN is not reachable from
+# every network. It starts by itself when this file or the script changes on
+# the storefront branch, and can be re-run from the Actions tab.
+
+on:
+  push:
+    branches: [claude/interiorcleanse-3d-rebuild-ewspkq]
+    paths:
+      - .github/workflows/land-media.yml
+      - scripts/land-media.mjs
+  workflow_dispatch:
+
+concurrency:
+  group: land-media-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  land:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The push below needs the real branch, not a detached head.
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Image conversion only; never added to package.json.
+      - run: npm install --no-save --no-package-lock sharp@0.33.5
+
+      - name: Land the media and rewrite the links
+        run: node scripts/land-media.mjs
+
+      - name: Build with the local media
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://interiorcleanse.com
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/media/hf content/catalog.json content/books.json content/scenes.json app/page.tsx lib/brand-assets.ts
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+            exit 0
+          fi
+          {
+            echo "media: serve every Higgsfield asset from the site itself"
+            echo
+            echo "Copied by scripts/land-media.mjs into public/media/hf/ and every link"
+            echo "rewritten to the local copy: room films, product photographs (as WebP),"
+            echo "3D models, book covers, the logo and the cursor's Earth texture."
+            echo
+            echo "Landed by the 'Land Higgsfield media' workflow, run ${{ github.run_id }}."
+          } > .commit-msg
+          git commit -F .commit-msg
+          rm -f .commit-msg
+          git push
