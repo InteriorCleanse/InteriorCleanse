@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { configured, errorBody } from '@/lib/env'
 import { listContacts } from '@/lib/brevo'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,9 @@ export type AdminContact = {
 }
 
 export async function GET(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     if (!configured.brevo()) {
       return NextResponse.json({ contacts: [], configured: false })

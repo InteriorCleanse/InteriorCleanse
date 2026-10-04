@@ -3,12 +3,16 @@ import { CSV_COLUMNS, blankProduct, coerceProduct } from '@/lib/catalog-schema'
 import { readCatalog, writeCatalog } from '@/lib/catalog-store'
 import { parseCsv } from '@/lib/csv'
 import { errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /** The template a spreadsheet can start from: one header row, no data. */
 export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   return new NextResponse(CSV_COLUMNS.join(',') + '\n', {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
@@ -27,6 +31,9 @@ export async function GET() {
  * Everything that lands is `draft`, whatever the sheet said.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const text = await req.text()
     const rows = parseCsv(text)

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readCatalog, readPublicAsset, writeCatalog, writePublicAsset } from '@/lib/catalog-store'
 import { errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,6 +20,9 @@ export const maxDuration = 60
  * on the product.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     let slug = ''
     let source: Buffer | null = null

@@ -10,6 +10,7 @@ import {
 } from '@/lib/catalog-schema'
 import { readCatalog, storeInfo, writeCatalog } from '@/lib/catalog-store'
 import { errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,6 +33,9 @@ const counts = (all: CatalogProduct[]) => {
 
 /** The whole catalog, every record annotated with what still blocks publishing. */
 export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const all = await readCatalog()
     const body: AdminProductsResponse = {
@@ -52,6 +56,9 @@ export async function GET() {
  * publishing goes through PUT so the gate applies.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const input = (await req.json()) as Record<string, unknown>
     const { product, problems } = coerceProduct(input, blankProduct())
@@ -78,6 +85,9 @@ export async function POST(req: Request) {
  * shows the same list, but this is the gate.
  */
 export async function PUT(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const input = (await req.json()) as Record<string, unknown>
     const id = String(input.id ?? '')
@@ -116,6 +126,9 @@ export async function PUT(req: Request) {
  * the publish gate are skipped and reported, never half-published.
  */
 export async function PATCH(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { ids, status } = (await req.json()) as { ids: string[]; status: CatalogStatus }
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -154,6 +167,9 @@ export async function PATCH(req: Request) {
 
 /** Deletes a product. Body: `{ id }`. Published products must be unpublished first. */
 export async function DELETE(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { id } = (await req.json()) as { id: string }
     const all = await readCatalog()
