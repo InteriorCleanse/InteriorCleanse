@@ -91,7 +91,7 @@ export function briefing(i: BriefingInput): Briefing {
     if (perMonth.length >= 2) push({ id: 'compare', kind: 'ESTIMATE', tone: 'go', title: `${perMonth[0].name} earns the most per car per month`, body: `${perMonth.map((x) => `${x.name}: about ${usd(x.rate)}`).join(' · ')}. Worked out from your books (rental income per car-month; a flip's profit spread over the days it took to sell). Put the next dollar where it works hardest.` })
   }
   for (const c of report.companies) {
-    if (c.stats.netUsd < 0 && c.stats.sold >= 2) push({ id: `co-${c.company.id}`, kind: 'FACT', tone: 'hot', title: `${c.company.name} is ${usd(-c.stats.netUsd)} down overall`, body: `After ${c.stats.sold} sales and ${usd(c.stats.overheadUsd)} of overhead. Check whether the buys, the fixes or the overhead are doing it.`, href: '#business' })
+    if (c.stats.profitUsd < 0 && c.stats.sold >= 2) push({ id: `co-${c.company.id}`, kind: 'FACT', tone: 'hot', title: `${c.company.name} is ${usd(-c.stats.profitUsd)} down overall`, body: `After ${c.stats.sold} sales and ${usd(c.stats.overheadUsd)} of overhead. Check whether the buys, the fixes or the overhead are doing it.`, href: '#business' })
   }
 
   // 4. The shape of the books.
@@ -116,8 +116,8 @@ export function briefing(i: BriefingInput): Briefing {
 
   const order: Record<AdviceTone, number> = { hot: 0, best: 1, wait: 2, go: 3, '': 4 }
   items.sort((a, b) => order[a.tone] - order[b.tone])
-  const headline = cars.length ? `${signed(o.netUsd)} net across ${o.cars} car${o.cars === 1 ? '' : 's'}${i.companies.length ? ` and ${i.companies.length} compan${i.companies.length === 1 ? 'y' : 'ies'}` : ''}` : 'Your business starts with one good car'
-  const sub = cars.length ? `${usd(o.realisedNetUsd)} realised on ${o.sold} sold · ${usd(o.cashInCarsUsd)} still in ${o.active} car${o.active === 1 ? '' : 's'}` : 'Gavel watches the auctions, your books and your cash, and tells you what to do next.'
+  const headline = cars.length ? `${signed(o.profitUsd)} profit across ${o.cars} car${o.cars === 1 ? '' : 's'}${i.companies.length ? ` and ${i.companies.length} compan${i.companies.length === 1 ? 'y' : 'ies'}` : ''}` : 'Your business starts with one good car'
+  const sub = cars.length ? `${usd(o.realisedNetUsd)} realised on ${o.sold} sold · ${usd(o.heldUsd)} held in ${o.active} car${o.active === 1 ? '' : 's'} you still own` : 'Gavel watches the auctions, your books and your cash, and tells you what to do next.'
   return { headline, sub, items: items.slice(0, 12) }
 }
 
@@ -133,11 +133,11 @@ export function answerFromBooks(q: string, i: BriefingInput, b: Briefing): { ans
   const lines: string[] = []
   if (/\b(tax(es)?|irs|deduct\w*|llc|legal|lawyers?|licen[cs]es?)\b|\bwrit\w*.{0,12}\boff\b/.test(s)) {
     lines.push('That is a question for a tax adviser or your state, and Gavel will not guess at the law. Keep every receipt in the books here so whoever you ask has the numbers. The Intel screen links each state\'s dealer-licence rules.')
-  } else if (/\b(compan|which business|compare|best business)\b/.test(s)) {
+  } else if (/\b(compan(y|ies)|which business|compar\w*|best business)\b/.test(s)) {
     if (!cos.length) lines.push('You have no companies yet. Add them under Business and put each car in one; then this answer compares them.')
-    else lines.push(...[...cos].sort((a, b) => b.stats.netUsd - a.stats.netUsd).map((c) => `${c.company.name} (${c.company.kind}): ${signed(c.stats.netUsd)} net on ${c.stats.cars} car${c.stats.cars === 1 ? '' : 's'}, ${usd(c.stats.overheadUsd)} overhead${c.stats.avgProfitPerSaleUsd !== undefined ? `, ${usd(c.stats.avgProfitPerSaleUsd)} a sale` : ''}${c.stats.rentalPerCarMonthUsd !== undefined ? `, ${usd(c.stats.rentalPerCarMonthUsd)} rent per car-month` : ''}.`))
+    else lines.push(...[...cos].sort((a, b) => b.stats.profitUsd - a.stats.profitUsd).map((c) => `${c.company.name} (${c.company.kind}): ${signed(c.stats.profitUsd)} profit on ${c.stats.cars} car${c.stats.cars === 1 ? '' : 's'}, ${usd(c.stats.overheadUsd)} overhead${c.stats.avgProfitPerSaleUsd !== undefined ? `, ${usd(c.stats.avgProfitPerSaleUsd)} a sale` : ''}${c.stats.rentalPerCarMonthUsd !== undefined ? `, ${usd(c.stats.rentalPerCarMonthUsd)} rent per car-month` : ''}.`))
   } else if (/\b(profits?|made|net|earn\w*|money|doing|how am i)\b/.test(s)) {
-    lines.push(o.cars ? `Overall ${signed(o.netUsd)} net: ${usd(o.incomeUsd)} in, ${usd(o.carSpendUsd)} into cars, ${usd(o.overheadUsd)} overhead. ${usd(o.realisedNetUsd)} of it is realised on ${o.sold} sold car${o.sold === 1 ? '' : 's'}; ${usd(o.cashInCarsUsd)} is still in ${o.active} car${o.active === 1 ? '' : 's'}.` : 'No cars in the books yet, so there is no profit to report. Add your first car under Business when you buy it.')
+    lines.push(o.cars ? `Profit so far: ${signed(o.profitUsd)}. That is ${signed(o.realisedNetUsd)} on ${o.sold} sold car${o.sold === 1 ? '' : 's'}, plus income less running costs on the ${o.active} you still own, less ${usd(o.overheadUsd)} overhead. The ${usd(o.heldUsd)} you paid for cars you still own is held, not lost; it comes back when they sell. Cash flow, every dollar in less every dollar out: ${signed(o.netUsd)}.` : 'No cars in the books yet, so there is no profit to report. Add your first car under Business when you buy it.')
     if (o.avgProfitPerSaleUsd !== undefined) lines.push(`Each sale has made ${usd(o.avgProfitPerSaleUsd)} on average, in ${o.avgDaysToSell} days.`)
   } else if (/\b(cash|afford|budget|spend|how much)\b/.test(s)) {
     lines.push(i.cashUsd ? `Your budget is ${usd(i.cashUsd)}. ${usd(o.cashInCarsUsd)} is in cars not sold yet.` : 'Set your budget in Settings and this answer works out what is free for the next car.')

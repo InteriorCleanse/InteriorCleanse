@@ -3,8 +3,14 @@
  * the companies' overhead. Pure arithmetic on what the member typed in:
  * nothing estimated, nothing filled in.
  *
- *   net       = income − (purchases + car costs) − overhead
- *   realised  = net on the cars already sold (the money that came back)
+ *   profit    = net on the cars already sold
+ *               + income − running costs on the cars still owned
+ *               − overhead
+ *               (a car still owned is held at what was paid for it, not
+ *               counted as a loss; no depreciation is guessed)
+ *   held      = what was paid for the cars still owned
+ *   cash flow = every dollar in − every dollar out (the bank's view)
+ *   realised  = net on the cars already sold
  *   in cars   = what is still out in cars not sold yet (spent − income, per car)
  *
  * Money is counted on the date it moved, so the months add up to the total.
@@ -22,7 +28,12 @@ export type Stats = {
   incomeUsd: number
   salesUsd: number
   rentalIncomeUsd: number
+  /** Cash flow: every dollar in minus every dollar out. */
   netUsd: number
+  /** Profit: sold cars in full, owned cars' income and running costs, minus overhead. */
+  profitUsd: number
+  /** What was paid for the cars still owned (held at cost). */
+  heldUsd: number
   realisedNetUsd: number
   cashInCarsUsd: number
   avgDaysToSell?: number
@@ -66,7 +77,7 @@ function monthKeys(now: number, count = 12): string[] {
 }
 
 export function statsFor(cars: GarageCar[], overhead: Array<{ usd: number }>, now = Date.now()): Stats {
-  const s: Stats = { cars: cars.length, active: 0, sold: 0, carSpendUsd: 0, overheadUsd: 0, incomeUsd: 0, salesUsd: 0, rentalIncomeUsd: 0, netUsd: 0, realisedNetUsd: 0, cashInCarsUsd: 0 }
+  const s: Stats = { cars: cars.length, active: 0, sold: 0, carSpendUsd: 0, overheadUsd: 0, incomeUsd: 0, salesUsd: 0, rentalIncomeUsd: 0, netUsd: 0, profitUsd: 0, heldUsd: 0, realisedNetUsd: 0, cashInCarsUsd: 0 }
   let soldDays = 0
   let soldSpend = 0
   let rentalCarMonths = 0
@@ -87,19 +98,22 @@ export function statsFor(cars: GarageCar[], overhead: Array<{ usd: number }>, no
     } else {
       s.active++
       s.cashInCarsUsd += Math.max(0, t.spentUsd - t.incomeUsd)
+      s.heldUsd += c.purchaseUsd
+      s.profitUsd += t.incomeUsd - (t.spentUsd - c.purchaseUsd)
     }
     if (!s.best || t.netUsd > s.best.netUsd) s.best = { id: c.id, title: c.title, netUsd: t.netUsd }
     if (!s.worst || t.netUsd < s.worst.netUsd) s.worst = { id: c.id, title: c.title, netUsd: t.netUsd }
   }
   s.overheadUsd = overhead.reduce((a, o) => a + o.usd, 0)
   s.netUsd = s.incomeUsd - s.carSpendUsd - s.overheadUsd
+  s.profitUsd += s.realisedNetUsd - s.overheadUsd
   if (s.sold) {
     s.avgDaysToSell = Math.round(soldDays / s.sold)
     s.avgProfitPerSaleUsd = r2(s.realisedNetUsd / s.sold)
     s.roiPct = soldSpend > 0 ? s.realisedNetUsd / soldSpend : undefined
   }
   if (rentalCarMonths > 0) s.rentalPerCarMonthUsd = r2(s.rentalIncomeUsd / rentalCarMonths)
-  for (const k of ['carSpendUsd', 'overheadUsd', 'incomeUsd', 'salesUsd', 'rentalIncomeUsd', 'netUsd', 'realisedNetUsd', 'cashInCarsUsd'] as const) s[k] = r2(s[k])
+  for (const k of ['carSpendUsd', 'overheadUsd', 'incomeUsd', 'salesUsd', 'rentalIncomeUsd', 'netUsd', 'profitUsd', 'heldUsd', 'realisedNetUsd', 'cashInCarsUsd'] as const) s[k] = r2(s[k])
   if (cars.length < 2) { delete s.worst; if (!cars.length) delete s.best }
   return s
 }

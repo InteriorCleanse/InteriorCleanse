@@ -1010,6 +1010,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const watch = listWatch()
       const paper = listPaper()
       const garage = garageSummary(t)
+      const partnerInput = briefingFor(t)
       const picks = uniquePicks(st.picks)
       const best = picks[0]
       const endingSoon = picks
@@ -1041,8 +1042,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         alerts: { unread: alerts.filter((a) => !a.read).length, latest: alerts.slice(0, 5) },
         watch: watch.slice(0, 6).map((w) => ({ listingId: w.listingId, title: w.title, endsAt: w.snapshot?.endsAt ?? null, priceUsd: w.snapshot ? (w.snapshot.currentBidUsd ?? w.snapshot.buyNowUsd ?? null) : null, kind: w.snapshot?.kind ?? null })),
         paper: paperSummary(),
-        garage,
-        partner: briefing(briefingFor(t)),
+        // Profit after company overhead, the same figure Business shows.
+        garage: { ...garage, netUsd: partnerInput.report.overall.profitUsd },
+        partner: briefing(partnerInput),
         next,
       })
     }

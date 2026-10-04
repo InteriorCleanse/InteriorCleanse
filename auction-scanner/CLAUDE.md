@@ -42,7 +42,10 @@ a rental car company as the first business, starting with one car.
 
 `src/server.ts` (node:http app + API) · `src/sources/` (eBay, GSA and
 MarketCheck adapters, the importer, directory, SAMPLE, registry) · `src/valuation.ts` `scoring.ts` `filters.ts`
-`fees.ts` `bidplan.ts` `demand.ts` (the engine) · `src/explain.ts` `ai.ts`
+`fees.ts` `bidplan.ts` `demand.ts` `finder.ts` (the engine) · `materials.ts`
+`pnl.ts` `parts.ts` (what a car needs, its profit and loss, parts that fit) ·
+`companies.ts` `business.ts` `advisor.ts` (companies, profit per company and
+overall, the partner's briefing) · `src/explain.ts` `ai.ts`
 (walkthrough, optional Claude) · `src/paper.ts` `settings.ts` `garage.ts` `store.ts`
 (JSON stores; personal files resolve through `userFile()` into the
 member's folder while a request runs in `withUser()`) · `src/playbook/content.ts` `rental.ts` (the

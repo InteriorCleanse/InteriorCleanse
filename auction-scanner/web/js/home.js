@@ -73,13 +73,15 @@ export async function render(el, ctx) {
       <div class="row"><div class="bd-amount"><span class="bd-cur">$</span><input id="h-budget" type="number" inputmode="numeric" min="500" step="500" aria-label="Your budget in dollars" value="${esc(String((store('gavel-deals') || {}).budget || ctx.me.cashUsd || 15000))}" /></div><button class="btn" type="submit">Find deals</button></div>
       <span class="dim" style="font-size:14px">Clean title, little or no damage, every cost counted, ranked by estimated profit.</span>
     </form>
+    ${h.partner ? `<a class="partner-mini panel" href="#business"><div class="partner-head"><div class="partner-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4z"/></svg></div><div><span class="mono dim">Your partner</span><h2>${esc(h.partner.headline)}</h2></div><span class="go-arrow" aria-hidden="true">→</span></div>
+      <ol class="advice">${h.partner.items.slice(0, 3).map((a) => `<li class="adv ${esc(a.tone)}"><span class="adv-dot" aria-hidden="true"></span><div><div class="adv-top"><b>${esc(a.title)}</b><span class="kind mono">${esc(a.kind)}</span></div></div></li>`).join('')}</ol></a>` : ''}
     ${best ? bestHtml(best) : ''}
     ${showNext ? `<a class="tag nextup" href="${esc(nextUp.href)}"><div class="body" style="padding:16px 18px"><div class="mono dim">Next step · ${done} of ${h.next.length} done</div><h2 class="nt">${esc(nextUp.title)}</h2><p style="margin:4px 0 0">${esc(nextUp.body)}</p></div><span class="go-arrow" aria-hidden="true">→</span></a>` : ''}
     <div class="tiles four">
       ${tile('Sniper', `${h.sniper.active}`, `${h.sniper.active === 1 ? 'target' : 'targets'} hunting · ${h.sniper.picks} pick${h.sniper.picks === 1 ? '' : 's'}`, '#sniper')}
       ${tile('Alerts', `${h.alerts.unread}`, h.alerts.unread ? 'new since you looked' : 'all caught up', '#sniper', h.alerts.unread ? 'hot' : '')}
       ${paperAny ? tile('Paper record', `${h.paper.won}<small>/${h.paper.won + h.paper.lost}</small>`, `won of decided · ${h.paper.open} open`, '#watch') : ''}
-      ${garageAny ? tile('Garage net', esc(money(h.garage.netUsd)), `${h.garage.cars} car${h.garage.cars === 1 ? '' : 's'} · ${esc(money(h.garage.incomeUsd))} in`, '#garage', netTone) : ''}
+      ${garageAny ? tile('Profit', esc(money(h.garage.netUsd)), `${h.garage.cars} car${h.garage.cars === 1 ? '' : 's'} · ${esc(money(h.garage.incomeUsd))} in`, '#business', netTone) : ''}
     </div>
     <div class="homegrid">
       ${soon.length || !best ? `<section class="panel">
