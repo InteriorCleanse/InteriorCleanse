@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { BODY_TYPES, FEATURE_IDS, FUELS, TRANSMISSIONS } from '@/lib/catalog'
+import { recordConsent } from '@/lib/server/consent'
 import { createListing, ListingRejected } from '@/lib/server/listings'
 import { currentUser, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
@@ -41,7 +42,14 @@ const Draft = z
   })
   .strict()
 
-const Body = z.object({ draft: Draft, photoIds: z.array(z.string().max(40)).max(12) }).strict()
+const Body = z
+  .object({
+    draft: Draft,
+    photoIds: z.array(z.string().max(40)).max(12),
+    /** The Host Agreement, accepted on the review step: required, and recorded. */
+    acceptHostAgreement: z.literal(true),
+  })
+  .strict()
 
 export async function POST(req: NextRequest) {
   const blocked = await guard(req, { limit: LIMITS.upload, limitKey: 'listing' })
@@ -49,9 +57,14 @@ export async function POST(req: NextRequest) {
   const user = await currentUser()
   if (!user) return signInRequired()
   const parsed = Body.safeParse(await readJson(req).catch(() => null))
-  if (!parsed.success) return problem(400, 'Something in the listing is invalid. Check each step.')
+  if (!parsed.success) {
+    const agreement = parsed.error.issues.some((i) => i.path[0] === 'acceptHostAgreement')
+    return problem(400, agreement ? 'Agree to the Host Agreement to publish.' : 'Something in the listing is invalid. Check each step.')
+  }
   try {
-    return NextResponse.json(await createListing(user.id, parsed.data.draft, parsed.data.photoIds))
+    const listing = await createListing(user.id, parsed.data.draft, parsed.data.photoIds)
+    await recordConsent(user.id, ['host_agreement'], 'listing', listing.id).catch(() => console.error('consent record failed'))
+    return NextResponse.json(listing)
   } catch (err) {
     if (err instanceof ListingRejected) return NextResponse.json({ error: err.message, problems: err.problems }, { status: 422 })
     console.error('listing create failed')

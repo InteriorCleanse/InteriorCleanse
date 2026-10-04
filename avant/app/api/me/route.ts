@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { tierFor } from '@/lib/circle'
-import { publicProfile, updateProfile } from '@/lib/server/accounts'
+import { NAME_PATTERN, ownProfile, updateProfile } from '@/lib/server/accounts'
 import { completedTrips } from '@/lib/server/advantage'
 import { creditBalance } from '@/lib/server/credit'
 import { unreadCounts } from '@/lib/server/inbox'
@@ -17,13 +17,13 @@ export async function GET() {
   const [unread, trips, creditCents] = await Promise.all([unreadCounts(user.id), completedTrips(user.id), creditBalance(user.id)])
   const tier = tierFor(trips)
   return NextResponse.json({
-    user: { ...publicProfile(user), email: user.email },
+    user: ownProfile(user),
     unread,
     advantage: { tier: tier.name, feePct: tier.feePct, freeCancelHours: tier.freeCancelHours, creditCents },
   })
 }
 
-const Patch = z.object({ name: z.string().trim().min(2).max(60).optional(), bio: z.string().trim().max(600).optional() }).strict()
+const Patch = z.object({ name: z.string().trim().min(2).max(60).regex(NAME_PATTERN).optional(), bio: z.string().trim().max(600).optional() }).strict()
 
 export async function PATCH(req: NextRequest) {
   const blocked = await guard(req, { limit: LIMITS.default, limitKey: 'me' })
@@ -33,5 +33,5 @@ export async function PATCH(req: NextRequest) {
   const parsed = Patch.safeParse(await readJson(req).catch(() => null))
   if (!parsed.success) return problem(400, 'Check your name and bio.')
   const next = await updateProfile(user.id, parsed.data)
-  return NextResponse.json({ user: next ? { ...publicProfile(next), email: next.email } : null })
+  return NextResponse.json({ user: next ? ownProfile(next) : null })
 }

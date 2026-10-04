@@ -3,11 +3,11 @@ import { before, describe, it } from 'node:test'
 
 process.env.AVANT_DB = 'memory'
 delete process.env.STRIPE_SECRET_KEY
-const { createUser } = await import('../accounts.ts')
+const { createUser, markEmailVerified } = await import('../accounts.ts')
 const { savePhoto } = await import('../photos.ts')
 const { carBySlug, createListing, updateListing } = await import('../listings.ts')
 const { cancel, createBooking, expireRequests, tripFor } = await import('../bookings.ts')
-const { applyReferral, circleFor, circlePricing, nudgeReviews, referralCodeFor, rewardReferrals } = await import('../advantage.ts')
+const { applyReferral, grantReferralWelcome, circleFor, circlePricing, nudgeReviews, referralCodeFor, rewardReferrals } = await import('../advantage.ts')
 const { creditBalance, creditHistory } = await import('../credit.ts')
 const { notificationsFor, setFavorite } = await import('../inbox.ts')
 const { db } = await import('../db.ts')
@@ -52,6 +52,11 @@ describe('the AVANT Advantage', () => {
     assert.equal(await applyReferral(guest.id, code), false, 'no self-referral')
     assert.equal(await applyReferral(friend.id, code), true)
     assert.equal(await applyReferral(friend.id, code), false, 'only once')
+    assert.equal(await grantReferralWelcome(friend.id), false, 'not before the email is confirmed')
+    assert.equal(await creditBalance(friend.id), 0)
+    await markEmailVerified(friend.id)
+    assert.equal(await grantReferralWelcome(friend.id), true)
+    assert.equal(await grantReferralWelcome(friend.id), false, 'once per account')
     assert.equal(await creditBalance(friend.id), REFERRAL.friendCreditCents)
   })
 
@@ -76,13 +81,17 @@ describe('the AVANT Advantage', () => {
     assert.equal(await creditBalance(guest.id), PROMISE.hostCancelCreditCents, 'never twice')
   })
 
-  it('makes good on a request the host lets expire', async () => {
+  it('makes good on a request the host lets expire, but only once per host', async () => {
     await updateListing(host.id, (await (await db()).query<{ id: string }>(`select id from listings where slug = $1`, [slug]))[0].id, { instantBook: false })
+    const newcomer = await createUser({ name: 'Jordan Vale', email: 'jordan@example.com', password: 'a-long-password' })
+    const b = await createBooking({ guestId: newcomer.id, car: await car(), cityName: 'Denver', request: request(slug, iso(60), iso(62)), quote: quote(), paid: 'demo', creditCents: 0 })
+    // The guest who already had a Promise credit from this host gets the refund, not a second credit.
     const before = await creditBalance(guest.id)
-    const b = await createBooking({ guestId: guest.id, car: await car(), cityName: 'Denver', request: request(slug, iso(60), iso(62)), quote: quote(), paid: 'demo', creditCents: 0 })
-    await (await db()).query(`update bookings set created_at = now() - interval '9 hours' where id = $1`, [b.id])
+    const again = await createBooking({ guestId: guest.id, car: await car(), cityName: 'Denver', request: request(slug, iso(64), iso(66)), quote: quote(), paid: 'demo', creditCents: 0 })
+    await (await db()).query(`update bookings set created_at = now() - interval '9 hours' where id = any($1)`, [[b.id, again.id]])
     await expireRequests()
-    assert.equal(await creditBalance(guest.id), before + PROMISE.requestExpiredCreditCents)
+    assert.equal(await creditBalance(newcomer.id), PROMISE.requestExpiredCreditCents)
+    assert.equal(await creditBalance(guest.id), before, 'never twice from the same host')
   })
 
   it('alerts people who saved a car when its price drops, without flooding them', async () => {

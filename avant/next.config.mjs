@@ -30,9 +30,19 @@ const nextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: SECURITY_HEADERS },
-      // Nothing under /api is cached by a shared cache, except photos, whose
-      // ids are random and whose bytes never change.
-      { source: '/api/:path((?!photos/).*)', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+      // Nothing under /api is cached by a shared cache, and no API response can
+      // be framed or run anything if opened directly. Photos set their own.
+      {
+        source: '/api/:path((?!photos/).*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'Content-Security-Policy', value: "default-src 'none'; frame-ancestors 'none'" },
+        ],
+      },
+      // Pages that carry one-time tokens never leak them in a Referer.
+      { source: '/reset', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+      { source: '/verify-email', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+      { source: '/trips/confirm', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
     ]
   },
 }

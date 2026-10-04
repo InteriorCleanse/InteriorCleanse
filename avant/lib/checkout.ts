@@ -25,6 +25,8 @@ export const TripRequest = z
     deliveryAddress: z.string().trim().max(200),
     /** Apply the guest's AVANT credit (on unless they turn it off). */
     useCredit: z.boolean().optional(),
+    /** The guest ticked the trip terms; the booking route requires it and records it. */
+    agreeTerms: z.boolean().optional(),
   })
   .strict()
 

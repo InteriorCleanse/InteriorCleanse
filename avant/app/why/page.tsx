@@ -63,7 +63,9 @@ export default function WhyPage() {
         <h2 id="compare">Side by side</h2>
         <div className="compare" role="table" aria-label="AVANT compared with a typical car-sharing app">
           <div role="row" className="compare-head">
-            <span role="columnheader" />
+            <span role="columnheader">
+              <span className="sr-only">What you get</span>
+            </span>
             <span role="columnheader">AVANT</span>
             <span role="columnheader">A typical car-sharing app</span>
           </div>

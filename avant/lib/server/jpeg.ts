@@ -33,3 +33,57 @@ export function jpegSize(bytes: Uint8Array): { width: number; height: number } |
   }
   return null
 }
+
+/** Edges beyond this are refused: nothing a phone takes, and no decompression bombs for viewers. */
+export const MAX_EDGE = 6000
+
+/**
+ * Returns the JPEG without its metadata: every APP1–APP15 segment (EXIF,
+ * GPS, XMP, maker notes) and every comment is dropped, keeping only APP0
+ * (JFIF) and the segments needed to draw the image. Done on the server, so
+ * location data can't survive even if a client skips the browser re-encode.
+ * Null for anything that isn't a well-formed JPEG.
+ */
+export function stripJpegMetadata(bytes: Uint8Array): Uint8Array | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null
+  const keep: Uint8Array[] = [bytes.subarray(0, 2)]
+  let i = 2
+  while (i + 4 <= bytes.length) {
+    if (bytes[i] !== 0xff) return null
+    const marker = bytes[i + 1]
+    if (marker === 0xff) {
+      i += 1
+      continue
+    }
+    if (marker === 0xd9) {
+      keep.push(bytes.subarray(i, i + 2))
+      break
+    }
+    if ((marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) {
+      keep.push(bytes.subarray(i, i + 2))
+      i += 2
+      continue
+    }
+    const length = (bytes[i + 2] << 8) | bytes[i + 3]
+    if (length < 2 || i + 2 + length > bytes.length) return null
+    if (marker === 0xda) {
+      // Start of scan: the image data runs to the end-of-image marker. Anything
+      // appended after it (some apps hide data there) is dropped too.
+      let end = bytes.length - 2
+      while (end > i && !(bytes[end] === 0xff && bytes[end + 1] === 0xd9)) end--
+      if (end <= i) return null
+      keep.push(bytes.subarray(i, end + 2))
+      break
+    }
+    const metadata = (marker >= 0xe1 && marker <= 0xef) || marker === 0xfe
+    if (!metadata) keep.push(bytes.subarray(i, i + 2 + length))
+    i += 2 + length
+  }
+  const out = new Uint8Array(keep.reduce((n, k) => n + k.length, 0))
+  let o = 0
+  for (const k of keep) {
+    out.set(k, o)
+    o += k.length
+  }
+  return out
+}

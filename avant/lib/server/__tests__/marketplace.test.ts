@@ -53,7 +53,7 @@ describe('marketplace', () => {
     assert.equal(cars.length, 1)
     assert.equal(cars[0].slug, slug)
     assert.equal(cars[0].photos.length, 6)
-    assert.equal(cars[0].host.name, 'Maya Host')
+    assert.equal(cars[0].host.name, 'Maya H.', 'only a first name and initial in public')
     assert.equal((cars[0] as { vin?: string }).vin, undefined, 'the VIN never leaves the server')
     assert.equal((await listingsForHost(host.id))[0].status, 'live')
   })

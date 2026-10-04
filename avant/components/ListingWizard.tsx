@@ -80,7 +80,7 @@ const EMPTY: ListingDraft = {
 const PREVIEW_TINT = '#b8956a'
 
 /** Sends each photo (already re-encoded on this device) and then the listing. */
-async function publish(d: ListingDraft): Promise<{ slug: string } | { problems: ListingProblem[] } | { signIn: true } | { error: string }> {
+async function publish(d: ListingDraft, acceptHostAgreement: true): Promise<{ slug: string } | { problems: ListingProblem[] } | { signIn: true } | { error: string }> {
   const photoIds: string[] = []
   for (const p of d.photos) {
     const blob = await getListingPhoto(p.id)
@@ -95,7 +95,7 @@ async function publish(d: ListingDraft): Promise<{ slug: string } | { problems: 
   const res = await fetch('/api/listings', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ draft: { ...draft, vin: normaliseVin(d.vin) }, photoIds }),
+    body: JSON.stringify({ draft: { ...draft, vin: normaliseVin(d.vin) }, photoIds, acceptHostAgreement }),
   })
   const json = await res.json().catch(() => ({}))
   if (res.status === 401) return { signIn: true }
@@ -118,6 +118,7 @@ export function ListingWizard() {
   const session = useSession()
   const [busy, setBusy] = useState(false)
   const [serverProblem, setServerProblem] = useState<string | null>(null)
+  const [agreed, setAgreed] = useState(false)
   const editId = params.get('id')
   const [id] = useState(() => editId ?? shortId('lst'))
   const [step, setStep] = useState(0)
@@ -172,9 +173,13 @@ export function ListingWizard() {
       router.push(`/signin?next=${encodeURIComponent(`/host/new?id=${id}`)}`)
       return
     }
+    if (!agreed) {
+      setServerProblem('Agree to the Host Agreement to publish.')
+      return
+    }
     setBusy(true)
     try {
-      const out = await publish(d)
+      const out = await publish(d, true)
       if ('signIn' in out) router.push(`/signin?next=${encodeURIComponent(`/host/new?id=${id}`)}`)
       else if ('problems' in out) {
         setServerProblem(out.problems[0]?.message ?? 'Check each step.')
@@ -565,6 +570,18 @@ export function ListingWizard() {
                 guests. You can pause it any time from Your listings.
                 {session.user ? null : ' You’ll sign in or create an account first; your draft stays on this device.'}
               </p>
+              {session.user ? (
+                <label className="check">
+                  <input type="checkbox" checked={agreed} onChange={() => setAgreed((a) => !a)} />
+                  <span className="small">
+                    I own this car or may share it, it&apos;s insured and registered, and I agree to the{' '}
+                    <Link href="/legal/host" className="link" target="_blank">
+                      Host Agreement
+                    </Link>
+                    .
+                  </span>
+                </label>
+              ) : null}
               {touched && problems.length ? (
                 <p className="error-block" role="alert">
                   {problems[0].message}

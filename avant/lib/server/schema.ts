@@ -229,4 +229,53 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       alter table users add column referral_rewarded boolean not null default false;
     `,
   },
+  {
+    id: 5,
+    name: 'hardening: shared limits, consent records',
+    sql: `
+      -- Rate limits shared by every server instance. Keys are SHA-256
+      -- hashes, so no email address or IP is stored here.
+      create table rate_limits (
+        key_hash text primary key,
+        tokens double precision not null,
+        updated timestamptz not null default now()
+      );
+
+      -- Proof of agreement: which version of which document each person
+      -- accepted, when, and in what context. Never edited, only added to.
+      create table consents (
+        id text primary key,
+        user_id text not null references users(id) on delete cascade,
+        document text not null check (document in ('terms', 'privacy', 'trip_terms', 'host_agreement')),
+        version text not null,
+        context text not null check (context in ('signup', 'booking', 'listing')),
+        subject_id text,
+        accepted_at timestamptz not null default now()
+      );
+      create index consents_user on consents(user_id, accepted_at desc);
+
+      -- Email verification. Accounts that existed before this migration were
+      -- created before verification existed; they are treated as verified.
+      alter table users add column email_verified_at timestamptz;
+      update users set email_verified_at = created_at;
+      create table email_verifications (
+        token_hash text primary key,
+        user_id text not null references users(id) on delete cascade,
+        expires_at timestamptz not null
+      );
+
+      -- Sessions end after 14 idle days, not only at 30.
+      alter table sessions add column last_seen_at timestamptz not null default now();
+
+      -- Money retries: a payout or refund is claimed ('sending') before Stripe
+      -- is called, and failures are counted and rotate to the back.
+      alter table payouts drop constraint payouts_status_check;
+      alter table payouts add constraint payouts_status_check check (status in ('pending', 'sending', 'paid'));
+      alter table payouts add column attempts integer not null default 0;
+      alter table payouts add column last_attempt_at timestamptz;
+      alter table payouts add column last_error text;
+      alter table bookings add column refund_attempts integer not null default 0;
+      alter table bookings add column refund_error text;
+    `,
+  },
 ]

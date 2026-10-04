@@ -5,6 +5,7 @@ import { eraseDriverPass } from '@/lib/server/erase'
 import { clearAuthCookie, currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
+import { sharedLimit } from '@/lib/server/limits'
 
 export const runtime = 'nodejs'
 
@@ -14,6 +15,8 @@ export async function POST(req: NextRequest) {
   if (blocked) return blocked
   const user = await currentUser()
   if (!user) return signInRequired()
+  const limited = await sharedLimit(LIMITS.auth, `close:${user.id}`)
+  if (limited) return limited
   const parsed = z.object({ password: z.string().max(200) }).strict().safeParse(await readJson(req).catch(() => null))
   if (!parsed.success || !(await authenticate(user.email, parsed.data.password))) return problem(403, 'That password isn’t right.')
   const result = await deleteAccount(user.id)

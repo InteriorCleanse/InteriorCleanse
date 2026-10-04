@@ -126,6 +126,7 @@ export function SearchExperience({ cars: fleet }: { cars: Car[] }) {
             />
           ) : null}
 
+          <h2 className="sr-only">Results</h2>
           <div className="cargrid">
             {results.slice(0, limit).map((car, i) => (
               <CarCard

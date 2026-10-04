@@ -82,3 +82,54 @@ anything marked *to confirm* came from secondary sources.
 9. Company insurance: general liability, cyber, errors and omissions.
 10. A documented claims and dispute process that matches what the site
     promises (72-hour response window, evidence shown to the guest).
+
+## What the app already does for you
+
+- **Clickwrap records.** Sign-up requires ticking "18 or older" and the terms
+  and privacy notice; booking requires the trip terms; listing requires the
+  Host Agreement. Each acceptance is stored with the document version, the
+  time and the trip or listing (`consents` table, `lib/legal.ts`), kept after
+  an account closes, and included in the person's data export.
+- **All-in price.** The checkout total includes every mandatory fee before
+  the guest pays; taxes are their own line.
+- **Privacy rights.** Download-my-data and close-my-account are in the app
+  (Profile), which covers access and deletion requests and the App Store's
+  in-app deletion rule. The retention schedule is in `SECURITY.md`.
+- **Minimised identity data**, field encryption and email verification, as
+  described in `SECURITY.md`.
+
+## Checklist for counsel
+
+Each item is a question for a licensed attorney in the launch state. The
+drafts are written to make their review fast, not to replace it.
+
+1. **State P2P car sharing law** in each launch state: the program agreement
+   disclosures, insurance assumption, record keeping, recalls and airport
+   rules, mapped to `/legal/terms` and `/legal/host`.
+2. **Insurance:** carrier-signed program; coverage text replaces the
+   placeholders; `COVERAGE_TERMS_FINAL` set true only then.
+3. **Terms of Service:** complete the bracketed sections (legal entity,
+   limitation of liability, disclaimers, indemnity, governing law, venue).
+   Decide on **arbitration and a class-action waiver**, and if adopted, a
+   mass-arbitration protocol and an opt-out window.
+4. **Pricing law:** California SB 478 (all-in pricing, in force since July
+   2024) and the FTC's rule on unfair or deceptive fees: confirm the checkout
+   total and the search price display satisfy both.
+5. **Privacy:** final privacy notice; CCPA/CPRA (notice at collection,
+   "do not sell or share", sensitive personal information for licence data),
+   and the other state privacy laws where AVANT operates; vendor data
+   processing agreements (Stripe, Resend, Anthropic, the database host,
+   Vercel); a breach response plan with the state notice deadlines.
+6. **Referral programme:** FTC Endorsement Guides. Referrers must disclose
+   that they earn credit; the terms tell them to. Confirm the credit terms
+   (no cash value, expiry) satisfy state gift card and unclaimed property
+   rules; set the "[period set by counsel]" in the programme terms.
+7. **Accessibility:** ADA Title III exposure for consumer sites. Aim for WCAG
+   2.2 AA; publish an accessibility statement with a contact.
+8. **Tax:** marketplace facilitator registration and collection where
+   required; P2P car sharing taxes (Virginia, Maryland and others); host
+   1099-K reporting through Stripe Connect.
+9. **Non-discrimination:** host and guest rules consistent with public
+   accommodation law; how reports are handled.
+10. **Company:** entity formed, registered agent, the company insurance in
+    the list above, and trademark clearance for the AVANT name and marks.

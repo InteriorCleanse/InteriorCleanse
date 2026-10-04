@@ -7,6 +7,10 @@
 import { randomId } from '../security/crypto.ts'
 import { getUser, publicProfile, type PublicProfile } from './accounts.ts'
 import { db } from './db.ts'
+import { openText, sealText } from './sealed.ts'
+
+/** Messages are sealed at rest with the message id as associated data. */
+const ctx = (messageId: string) => `message:${messageId}`
 
 export const MAX_MESSAGE = 2000
 
@@ -45,6 +49,7 @@ interface ThreadRow {
   car: { title: string }
   status: string
   end_date: string | Date
+  last_id: string | null
   last_body: string | null
   last_at: string | Date | null
   last_sender: string | null
@@ -55,12 +60,12 @@ export async function threadsFor(userId: string): Promise<ThreadSummary[]> {
   const q = await db()
   const rows = await q.query<ThreadRow>(
     `select t.*, b.car, b.status, b.end_date,
-       m.body as last_body, m.created_at as last_at, m.sender_id as last_sender,
+       m.id as last_id, m.body as last_body, m.created_at as last_at, m.sender_id as last_sender,
        (select count(*) from messages x where x.thread_id = t.id and x.sender_id <> $1
           and x.created_at > coalesce((select read_at from thread_reads r where r.thread_id = t.id and r.user_id = $1), 'epoch')) as unread
      from threads t
      join bookings b on b.id = t.booking_id
-     left join lateral (select body, created_at, sender_id from messages where thread_id = t.id order by created_at desc limit 1) m on true
+     left join lateral (select id, body, created_at, sender_id from messages where thread_id = t.id order by created_at desc limit 1) m on true
      where t.guest_id = $1 or t.host_id = $1
      order by coalesce(m.created_at, t.last_message_at) desc`,
     [userId],
@@ -78,19 +83,40 @@ export async function threadsFor(userId: string): Promise<ThreadSummary[]> {
         tripStatus: r.status,
         tripEnded: end < today,
         other: other ? publicProfile(other) : null,
-        last: r.last_body ? { body: r.last_body, at: new Date(r.last_at as string).toISOString(), mine: r.last_sender === userId } : null,
+        last: r.last_body ? { body: await openText(r.last_body, ctx(r.last_id!)), at: new Date(r.last_at as string).toISOString(), mine: r.last_sender === userId } : null,
         unread: Number(r.unread),
       }
     }),
   )
 }
 
-async function member(userId: string, threadId: string): Promise<{ guest_id: string; host_id: string } | null> {
-  const [t] = await (await db()).query<{ guest_id: string; host_id: string }>(
-    `select guest_id, host_id from threads where id = $1 and (guest_id = $2 or host_id = $2)`,
+interface Member {
+  guest_id: string
+  host_id: string
+  /** Whether new messages can still be sent. */
+  open: boolean
+}
+
+/**
+ * A thread stays open while its trip is live, and for 14 days after it ends
+ * (or 3 days after a decline or cancellation), then becomes read-only.
+ */
+async function member(userId: string, threadId: string): Promise<Member | null> {
+  const [t] = await (await db()).query<Member>(
+    `select t.guest_id, t.host_id,
+       case when b.status in ('requested', 'confirmed') then b.end_date >= current_date - 14
+            else b.updated_at > now() - interval '3 days' end as open
+     from threads t join bookings b on b.id = t.booking_id
+     where t.id = $1 and (t.guest_id = $2 or t.host_id = $2)`,
     [threadId, userId],
   )
   return t ?? null
+}
+
+/** Whether this user can still write in the thread (null when not a member). */
+export async function threadOpen(userId: string, threadId: string): Promise<boolean | null> {
+  const m = await member(userId, threadId)
+  return m ? m.open : null
 }
 
 /** Messages in a thread, oldest first; marks the thread read for this user. */
@@ -105,15 +131,15 @@ export async function messagesIn(userId: string, threadId: string, after?: strin
     `insert into thread_reads (thread_id, user_id, read_at) values ($1, $2, now()) on conflict (thread_id, user_id) do update set read_at = now()`,
     [threadId, userId],
   )
-  return rows.map((r) => ({ id: r.id, body: r.body, at: new Date(r.created_at).toISOString(), mine: r.sender_id === userId }))
+  return Promise.all(rows.map(async (r) => ({ id: r.id, body: await openText(r.body, ctx(r.id)), at: new Date(r.created_at).toISOString(), mine: r.sender_id === userId })))
 }
 
 export async function sendMessage(userId: string, threadId: string, body: string): Promise<Message | null> {
   const text = body.trim().slice(0, MAX_MESSAGE)
-  if (!text || !(await member(userId, threadId))) return null
+  const t = text ? await member(userId, threadId) : null
+  if (!t || !t.open) return null
   const q = await db()
   const id = randomId(12)
-  const t = (await member(userId, threadId))!
   const to = t.guest_id === userId ? t.host_id : t.guest_id
   // Email the other person only for the first unread message, not every line.
   const [waiting] = await q.query(
@@ -123,17 +149,18 @@ export async function sendMessage(userId: string, threadId: string, body: string
   )
   const [row] = await q.query<{ created_at: string | Date }>(
     `insert into messages (id, thread_id, sender_id, body) values ($1, $2, $3, $4) returning created_at`,
-    [id, threadId, userId, text],
+    [id, threadId, userId, await sealText(text, ctx(id))],
   )
   await q.query(`update threads set last_message_at = $2 where id = $1`, [threadId, row.created_at])
   if (!waiting) {
     const sender = await getUser(userId, q)
     // Born read: it exists to be emailed; the inbox already shows the message.
+    // The text itself is never copied here or into the email: it stays sealed.
     await q.query(`insert into notifications (id, user_id, title, body, href, read_at) values ($1, $2, $3, $4, $5, now())`, [
       randomId(12),
       to,
       `New message from ${sender?.name.split(/\s+/)[0] ?? 'your trip'}`,
-      text.length > 280 ? `${text.slice(0, 277)}…` : text,
+      'Open AVANT to read and reply.',
       `/inbox/${threadId}`,
     ])
   }

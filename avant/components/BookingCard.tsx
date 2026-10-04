@@ -151,22 +151,28 @@ export function AvailabilityCalendar({ car }: { car: Car }) {
   const cells = Array.from({ length: 35 }, (_, i) => addDays(today, i - startDow))
   return (
     <div>
-      <div className="calendar" role="grid" aria-label="Availability for the next five weeks">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <div key={i} className="dow" role="columnheader">
-            {d}
+      <div className="calendar" role="table" aria-label="Availability for the next five weeks">
+        <div className="calendar-row" role="row">
+          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((d) => (
+            <div key={d} className="dow" role="columnheader" aria-label={d}>
+              {d[0]}
+            </div>
+          ))}
+        </div>
+        {[0, 1, 2, 3, 4].map((w) => (
+          <div key={w} className="calendar-row" role="row">
+            {cells.slice(w * 7, w * 7 + 7).map((d) => {
+              const past = d < today
+              const booked = blocked.some((b) => d >= b.start && d <= b.end)
+              const state = past ? 'past' : booked ? 'booked' : 'free'
+              return (
+                <div key={d} className="day" data-state={state} role="cell" aria-label={`${formatDate(d)}: ${past ? 'past' : booked ? 'booked' : 'available'}`}>
+                  {Number(d.slice(8))}
+                </div>
+              )
+            })}
           </div>
         ))}
-        {cells.map((d) => {
-          const past = d < today
-          const booked = blocked.some((b) => d >= b.start && d <= b.end)
-          const state = past ? 'past' : booked ? 'booked' : 'free'
-          return (
-            <div key={d} className="day" data-state={state} role="gridcell" aria-label={`${formatDate(d)}: ${past ? 'past' : booked ? 'booked' : 'available'}`}>
-              {Number(d.slice(8))}
-            </div>
-          )
-        })}
       </div>
       <p className="small dim" style={{ marginTop: 10 }}>
         Struck-through days are booked. Everything else is open.

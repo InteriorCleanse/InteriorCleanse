@@ -131,6 +131,7 @@ export function Thread({ id }: { id: string }) {
   const [missing, setMissing] = useState(false)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [open, setOpen] = useState(true)
   const end = useRef<HTMLDivElement>(null)
   const last = useRef<string | undefined>(undefined)
 
@@ -138,7 +139,9 @@ export function Thread({ id }: { id: string }) {
     const res = await fetch(`/api/threads/${encodeURIComponent(id)}/messages${last.current ? `?after=${encodeURIComponent(last.current)}` : ''}`, { cache: 'no-store' })
     if (res.status === 404) return setMissing(true)
     if (!res.ok) return
-    const fresh: Message[] = (await res.json()).messages
+    const json = await res.json()
+    const fresh: Message[] = json.messages
+    setOpen(json.open !== false)
     if (fresh.length) {
       last.current = fresh[fresh.length - 1].at
       setMessages((m) => {
@@ -218,7 +221,12 @@ export function Thread({ id }: { id: string }) {
         ))}
         <div ref={end} />
       </div>
-      <form className="composer" onSubmit={send}>
+      {!open ? (
+        <p className="small muted center" style={{ padding: '14px 0' }}>
+          This conversation has closed now that the trip is over. For anything about it, ask AVANT support.
+        </p>
+      ) : (
+      <form method="post" className="composer" onSubmit={send}>
         <label className="sr-only" htmlFor="msg">
           Message
         </label>
@@ -240,6 +248,7 @@ export function Thread({ id }: { id: string }) {
           <Icon name="send" size={17} />
         </button>
       </form>
+      )}
     </div>
   )
 }

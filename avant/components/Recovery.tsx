@@ -130,3 +130,44 @@ export function ResetForm() {
     </div>
   )
 }
+
+/** Opened from the confirmation email: confirms the address and signs in. */
+export function VerifyEmail() {
+  const router = useRouter()
+  const { refresh } = useSession()
+  const [state, setState] = useState<'working' | 'failed'>('working')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('token') ?? ''
+    window.history.replaceState(null, '', window.location.pathname)
+    fetch('/api/auth/verify-email', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }) })
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.error ?? 'This link didn’t work.')
+        await refresh()
+        router.replace('/more')
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'This link didn’t work.')
+        setState('failed')
+      })
+  }, [refresh, router])
+
+  return (
+    <div className="auth fade-in">
+      <Crest height={68} />
+      <h1 className="greeting" style={{ marginTop: 10 }}>
+        {state === 'working' ? 'Confirming your email…' : 'That link didn’t work.'}
+      </h1>
+      {state === 'failed' ? (
+        <p className="muted">
+          {error}{' '}
+          <Link href="/signin" className="link">
+            Sign in
+          </Link>
+        </p>
+      ) : null}
+    </div>
+  )
+}

@@ -60,7 +60,8 @@ async function connect(): Promise<Database> {
 async function connectPostgres(url: string): Promise<Database> {
   const { default: postgres } = await import('postgres')
   // prepare:false keeps transaction-mode poolers (Supabase, PgBouncer) happy.
-  const sql = postgres(url, { max: 5, prepare: false, idle_timeout: 20, onnotice: () => {} })
+  // UTC on every connection, so "today" in SQL always matches the app's clock.
+  const sql = postgres(url, { max: 5, prepare: false, idle_timeout: 20, onnotice: () => {}, connection: { TimeZone: 'UTC' } })
   type Unsafe = { unsafe: (text: string, params?: never[]) => PromiseLike<unknown> }
   const wrap = (s: Unsafe): Db => ({
     query: async <T,>(text: string, params: unknown[] = []) => (await s.unsafe(text, params as never[])) as T[],
@@ -80,6 +81,7 @@ async function connectPglite(mode: DatabaseMode): Promise<Database> {
     mkdirSync(dir, { recursive: true })
   }
   const pg = new PGlite(dir)
+  await pg.query(`set time zone 'UTC'`)
   type Q = { query: (s: string, p?: unknown[]) => Promise<{ rows: unknown[] }> }
   const wrap = (s: Q): Db => ({ query: async <T,>(text: string, params: unknown[] = []) => (await s.query(text, params)).rows as T[] })
   return {

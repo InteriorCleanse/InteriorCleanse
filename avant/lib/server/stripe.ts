@@ -35,4 +35,12 @@ export async function stripe<T>(
   return json
 }
 
-export const siteUrl = (): string => (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+/**
+ * The site's own address, from configuration only, never from the request's
+ * Host header (which a caller controls). Required in production.
+ */
+export function siteUrl(): string {
+  const url = process.env.NEXT_PUBLIC_SITE_URL
+  if (!url && process.env.NODE_ENV === 'production' && process.env.AVANT_REQUIRE_SECRETS === '1') throw new Error('NEXT_PUBLIC_SITE_URL is required')
+  return (url || 'http://localhost:3000').replace(/\/$/, '')
+}

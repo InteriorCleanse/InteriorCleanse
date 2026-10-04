@@ -79,7 +79,7 @@ export function Checkout({ car }: { car: Car }) {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slug: car.slug, start, end, startTime, endTime, coverage, extras, delivery: delivery && car.delivery.offered, deliveryAddress: delivery ? address : '', useCredit }),
+        body: JSON.stringify({ slug: car.slug, start, end, startTime, endTime, coverage, extras, delivery: delivery && car.delivery.offered, deliveryAddress: delivery ? address : '', useCredit, agreeTerms: agree }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Booking failed.')

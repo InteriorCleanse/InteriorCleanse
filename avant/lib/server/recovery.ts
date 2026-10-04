@@ -35,8 +35,34 @@ export async function resetPassword(token: string, password: string): Promise<st
       [sha256(token)],
     )
     if (!r) return null
-    await t.query(`update users set password_hash = $2 where id = $1 and deleted_at is null`, [r.user_id, hash])
+    // Using a link sent to the address also proves the person owns it.
+    await t.query(`update users set password_hash = $2, email_verified_at = coalesce(email_verified_at, now()) where id = $1 and deleted_at is null`, [r.user_id, hash])
     await t.query(`delete from sessions where user_id = $1`, [r.user_id])
+    return r.user_id
+  })
+}
+
+/**
+ * Email verification: a single-use link (24 hours) proving the person owns
+ * the address. Until it's used the account can't sign in (when email is
+ * configured), so nobody can open an account in someone else's name.
+ */
+export async function createVerifyLink(userId: string, site: string): Promise<string> {
+  const token = randomBytes(32).toString('base64url')
+  await (await db()).tx(async (t) => {
+    await t.query(`delete from email_verifications where user_id = $1`, [userId])
+    await t.query(`insert into email_verifications (token_hash, user_id, expires_at) values ($1, $2, now() + interval '24 hours')`, [sha256(token), userId])
+  })
+  return `${site}/verify-email#token=${token}`
+}
+
+/** Marks the email verified and returns the user id, or null for a bad or used link. */
+export async function verifyEmail(token: string): Promise<string | null> {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null
+  return (await db()).tx(async (t) => {
+    const [r] = await t.query<{ user_id: string }>(`delete from email_verifications where token_hash = $1 and expires_at > now() returning user_id`, [sha256(token)])
+    if (!r) return null
+    await t.query(`update users set email_verified_at = coalesce(email_verified_at, now()) where id = $1 and deleted_at is null`, [r.user_id])
     return r.user_id
   })
 }

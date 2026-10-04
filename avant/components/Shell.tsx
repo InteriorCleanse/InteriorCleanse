@@ -41,9 +41,9 @@ function DemoRibbon() {
   const { modes } = useDriver()
   if (!modes || (modes.payments && modes.identity && !modes.demoKeys)) return null
   return (
-    <div className="demo-ribbon" role="note">
+    <aside className="demo-ribbon" aria-label="Preview mode">
       Preview mode: {SAMPLE_FLEET ? 'sample cars, ' : ''}no real charges{modes.identity ? '' : ', simulated licence checks'}. <Link href="/security#modes">What this means</Link>
-    </div>
+    </aside>
   )
 }
 
@@ -132,7 +132,7 @@ function Frame({ children }: { children: ReactNode }) {
               </p>
             </div>
             <div>
-              <h3>Drive</h3>
+              <h2>Drive</h2>
               <ul>
                 <li><Link href="/search">Search cars</Link></li>
                 <li><Link href="/coverage">Coverage, explained</Link></li>
@@ -142,14 +142,15 @@ function Frame({ children }: { children: ReactNode }) {
               </ul>
             </div>
             <div>
-              <h3>Host</h3>
+              <h2>Host</h2>
               <ul>
                 <li><Link href="/host">Earn with your car</Link></li>
                 <li><Link href="/security">Trust &amp; safety</Link></li>
+                <li><Link href="/legal/host">Host Agreement</Link></li>
               </ul>
             </div>
             <div>
-              <h3>Company</h3>
+              <h2>Company</h2>
               <ul>
                 <li><Link href="/why">Why AVANT</Link></li>
                 <li><Link href="/legal/privacy">Privacy</Link></li>

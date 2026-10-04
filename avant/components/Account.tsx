@@ -167,6 +167,7 @@ export function Account() {
       <Notice icon="lock">
         Deleting the Driver Pass also asks our verification partner to redact anything it still holds. <Link href="/security" className="link">How we protect your data</Link>
       </Notice>
+      <Security />
       <CloseAccount />
     </div>
   )
@@ -218,6 +219,60 @@ function CloseAccount() {
           <Icon name="trash" size={16} /> Close account
         </button>
       )}
+    </section>
+  )
+}
+
+function Security() {
+  const toast = useToast()
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const change = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    const res = await fetch('/api/me/password', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ current, next }) })
+    const json = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok) return setError(json.error ?? 'Couldn’t change it. Try again.')
+    setCurrent('')
+    setNext('')
+    toast('Password changed. Other devices are signed out.')
+  }
+
+  const signOutEverywhere = async () => {
+    const res = await fetch('/api/auth/logout-all', { method: 'POST' })
+    if (res.ok) window.location.assign('/signin')
+    else toast('Couldn’t sign out everywhere. Try again.')
+  }
+
+  return (
+    <section className="panel" aria-labelledby="security">
+      <h2 id="security" style={{ fontSize: '1.2rem' }}>Security and your data</h2>
+      <form method="post" onSubmit={change} className="stack" style={{ gap: 12, marginTop: 14, maxWidth: 420 }}>
+        <label className="field">
+          <span className="label">Current password</span>
+          <input className="input" type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+        </label>
+        <label className="field">
+          <span className="label">New password</span>
+          <input className="input" type="password" autoComplete="new-password" required minLength={10} value={next} onChange={(e) => setNext(e.target.value)} />
+          <span className="hint">At least 10 characters. Passwords found in public data breaches are refused.</span>
+        </label>
+        {error ? <p className="error-block" role="alert">{error}</p> : null}
+        <div>
+          <button type="submit" className="btn btn-secondary btn-md" disabled={busy || !current || next.length < 10}>{busy ? 'Saving…' : 'Change password'}</button>
+        </div>
+      </form>
+      <hr className="hairline" />
+      <div className="row">
+        <a href="/api/me/export" className="btn btn-secondary btn-md"><Icon name="download" size={16} /> Download all my data</a>
+        <button type="button" className="btn btn-ghost btn-md" onClick={() => void signOutEverywhere()}>Sign out on every device</button>
+      </div>
+      <p className="small dim" style={{ marginTop: 10 }}>The download includes your profile, trips, messages, listings, reviews, credit and the agreements you accepted.</p>
     </section>
   )
 }

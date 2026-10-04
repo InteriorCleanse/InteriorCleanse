@@ -117,9 +117,13 @@ describe('hosting, payments and accounts', () => {
   })
 
   it('queues the host’s share of a paid trip once it ends', async () => {
-    const b = await createBooking({ guestId: guest.id, car: await car(), cityName: 'Denver', request: request(slug, iso(-12), iso(-10)), quote, paid: 'stripe' })
-    assert.equal(await markPaid(b.id, 'pi_test_123'), 'requested')
+    const b = await createBooking({ guestId: guest.id, car: await car(), cityName: 'Denver', request: request(slug, iso(80), iso(82)), quote, paid: 'stripe' })
+    await assert.rejects(markPaid(b.id, 'ch_not_a_payment_intent'), 'only a PaymentIntent confirms a booking')
+    assert.equal(await markPaid(b.id, 'pi_test_123', { amountCents: 39_999, currency: 'usd' }), 'pending_payment', 'the amount must match')
+    assert.equal(await markPaid(b.id, 'pi_test_123', { amountCents: 40_000, currency: 'usd' }), 'requested')
     assert.equal(await respond(host.id, b.id, true), 'ok')
+    // The trip happens; move it into the past.
+    await (await db()).query(`update bookings set start_date = current_date - 12, end_date = current_date - 10 where id = $1`, [b.id])
     assert.equal(await queuePayouts(), 1)
     assert.equal(await queuePayouts(), 0, 'never twice')
     assert.equal(await sendPayouts(), 0, 'nothing moves without Stripe')

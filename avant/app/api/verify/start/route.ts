@@ -6,6 +6,7 @@ import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
 import { recordKey } from '@/lib/security/session'
 import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
+import { siteUrl } from '@/lib/server/stripe'
 import { createLicenceSession } from '@/lib/verification/stripe-identity'
 
 export const runtime = 'nodejs'
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   const m = modes()
   if (!m.identity) return NextResponse.json({ demo: true })
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`
+  const site = siteUrl()
   const session = await createLicenceSession({ returnUrl: `${site}/api/verify/complete`, recordKey: await recordKey(sid) })
   const prev = await loadRecord(sid)
   await saveRecord(sid, { ...prev, pendingProviderRef: session.id, attestedLicenceYears: body.licenceYears })

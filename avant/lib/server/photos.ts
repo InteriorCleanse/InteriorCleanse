@@ -3,15 +3,16 @@
  * profile photos. Stored as bytes in Postgres, which keeps the whole app on
  * one service; move to object storage when volume calls for it.
  *
- * Only JPEGs are accepted (the browser re-encodes every upload to JPEG,
- * which strips location data), checked by parsing the file itself.
+ * Only JPEGs are accepted, checked by parsing the file itself. The browser
+ * re-encodes every upload (dropping location data), and the server strips
+ * all metadata again before storing, so no photo ever carries GPS.
  */
 
 import { createHash } from 'node:crypto'
 import { randomId } from '../security/crypto.ts'
 import { MIN_PHOTO_EDGE, PHOTO_ANGLES, type PhotoAngle } from '../listing.ts'
 import { db } from './db.ts'
-import { jpegSize } from './jpeg.ts'
+import { jpegSize, MAX_EDGE, stripJpegMetadata } from './jpeg.ts'
 
 export const MAX_PHOTO_BYTES = 6 * 1024 * 1024
 
@@ -26,10 +27,11 @@ export interface StoredPhoto {
 }
 
 export async function savePhoto(input: { ownerId: string; kind: 'listing' | 'avatar'; angle?: string | null; bytes: Uint8Array }): Promise<StoredPhoto> {
-  const { bytes } = input
-  if (bytes.length === 0 || bytes.length > MAX_PHOTO_BYTES) throw new PhotoError('Photos must be under 6 MB.')
-  const size = jpegSize(bytes)
-  if (!size) throw new PhotoError('That file is not a photo we can use.')
+  if (input.bytes.length === 0 || input.bytes.length > MAX_PHOTO_BYTES) throw new PhotoError('Photos must be under 6 MB.')
+  const size = jpegSize(input.bytes)
+  const bytes = size ? stripJpegMetadata(input.bytes) : null
+  if (!size || !bytes) throw new PhotoError('That file is not a photo we can use.')
+  if (Math.max(size.width, size.height) > MAX_EDGE) throw new PhotoError('That photo is larger than we can use. Try a smaller copy.')
   if (Math.min(size.width, size.height) < (input.kind === 'avatar' ? 200 : MIN_PHOTO_EDGE)) throw new PhotoError('That photo is too small to look sharp.')
   const angle = input.kind === 'listing' ? (PHOTO_ANGLES.find((a) => a.id === input.angle)?.id ?? null) : null
   if (input.kind === 'listing' && !angle) throw new PhotoError('Unknown photo angle.')
@@ -55,4 +57,9 @@ export async function ownListingPhotos(ownerId: string, ids: string[]): Promise<
     [ownerId, ids],
   )
   return rows.map((r) => ({ id: r.id, angle: r.angle, width: r.width, height: r.height, sha256: r.sha256 }))
+}
+
+/** Deletes one of the owner's own photos. */
+export async function deletePhoto(ownerId: string, id: string): Promise<void> {
+  await (await db()).query(`delete from photos where id = $1 and owner_id = $2`, [id, ownerId])
 }

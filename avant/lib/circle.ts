@@ -46,6 +46,16 @@ export const REFERRAL = {
 /** Stripe's smallest card charge; credit always leaves at least this to pay by card. */
 export const MIN_CARD_CHARGE_CENTS = 50
 
+/**
+ * With live payments, credit pays at most this share of a trip; the rest is
+ * on a card. Keeps credit a thank-you rather than a currency that could be
+ * farmed by booking and cancelling between friendly accounts.
+ */
+export const MAX_CREDIT_SHARE_PCT = 50
+
+/** Referral rewards a referrer can earn in a rolling year. */
+export const MAX_REFERRAL_REWARDS_PER_YEAR = 10
+
 export function tierFor(completedTrips: number): Tier {
   let tier = CIRCLE_TIERS[0]
   for (const t of CIRCLE_TIERS) if (completedTrips >= t.minTrips) tier = t
@@ -63,11 +73,11 @@ export function circleSavings(tripCents: number, tier: Tier): number {
 }
 
 /**
- * Credit to apply to a trip: all of it, up to the total. With live
- * payments a card charge still has to be at least MIN_CARD_CHARGE_CENTS.
+ * Credit to apply to a trip. With live payments, at most MAX_CREDIT_SHARE_PCT
+ * of the total, and the card always pays at least MIN_CARD_CHARGE_CENTS.
  */
 export function creditToApply(balanceCents: number, totalCents: number, paymentsLive: boolean): number {
-  const cap = paymentsLive ? totalCents - MIN_CARD_CHARGE_CENTS : totalCents
+  const cap = paymentsLive ? Math.min(Math.floor((totalCents * MAX_CREDIT_SHARE_PCT) / 100), totalCents - MIN_CARD_CHARGE_CENTS) : totalCents
   return Math.max(0, Math.min(balanceCents, cap))
 }
 

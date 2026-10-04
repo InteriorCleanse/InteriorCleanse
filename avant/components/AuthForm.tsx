@@ -28,7 +28,9 @@ export function AuthForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
+  const [accept, setAccept] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [checkEmail, setCheckEmail] = useState(false)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,9 +40,10 @@ export function AuthForm() {
       const res = await fetch(mode === 'up' ? '/api/auth/signup' : '/api/auth/login', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(mode === 'up' ? { name, email, password, ...(inviter ? { ref } : {}) } : { email, password }),
+        body: JSON.stringify(mode === 'up' ? { name, email, password, accept, ...(inviter ? { ref } : {}) } : { email, password }),
       })
       const json = await res.json()
+      if (json.checkEmail) return setCheckEmail(true)
       if (!res.ok) throw new Error(json.error ?? 'Something went wrong.')
       await Promise.all([refresh(), driver.refresh()])
       router.replace(next === '/search' && !params.get('next') ? '/' : next)
@@ -49,6 +52,22 @@ export function AuthForm() {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (checkEmail) {
+    return (
+      <div className="auth fade-in">
+        <Crest height={68} />
+        <h1 className="greeting" style={{ marginTop: 10 }}>
+          Check your email.
+        </h1>
+        <p className="muted">
+          We&apos;ve sent a link to {email}. Open it on this device to confirm your address and finish signing up. It works for 24 hours.
+        </p>
+        <hr className="coachline" style={{ margin: '28px auto' }} />
+        <p className="center muted small">Nothing arrived? Check spam, or sign in with your email and password and we&apos;ll send a new link.</p>
+      </div>
+    )
   }
 
   return (
@@ -97,12 +116,28 @@ export function AuthForm() {
             </Link>
           )}
         </label>
+        {mode === 'up' ? (
+          <label className="check">
+            <input type="checkbox" checked={accept} onChange={() => setAccept((a) => !a)} required />
+            <span className="small">
+              I&apos;m 18 or older and I agree to the{' '}
+              <Link href="/legal/terms" className="link" target="_blank">
+                terms
+              </Link>{' '}
+              and the{' '}
+              <Link href="/legal/privacy" className="link" target="_blank">
+                privacy notice
+              </Link>
+              .
+            </span>
+          </label>
+        ) : null}
         {error ? (
           <p className="error-block" role="alert">
             {error}
           </p>
         ) : null}
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy}>
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || (mode === 'up' && !accept)}>
           {busy ? 'One moment…' : mode === 'up' ? 'Create account' : 'Sign in'}
         </button>
       </form>
@@ -113,9 +148,11 @@ export function AuthForm() {
           {mode === 'up' ? 'Sign in' : 'Create an account'}
         </button>
       </p>
-      <p className="center small dim" style={{ marginTop: 16 }}>
-        By continuing you agree to the <Link href="/legal/terms" className="link">terms</Link> and <Link href="/legal/privacy" className="link">privacy notice</Link>.
-      </p>
+      {mode === 'in' ? (
+        <p className="center small dim" style={{ marginTop: 16 }}>
+          Your use of AVANT stays under the <Link href="/legal/terms" className="link">terms</Link> and <Link href="/legal/privacy" className="link">privacy notice</Link> you agreed to.
+        </p>
+      ) : null}
     </div>
   )
 }

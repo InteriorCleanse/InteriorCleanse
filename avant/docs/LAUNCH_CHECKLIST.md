@@ -5,16 +5,19 @@
 | Variable | How to get it |
 | --- | --- |
 | `DATABASE_URL` | Any Postgres: Neon or Supabase (free tiers are fine to start), RDS, or your own. Use the pooled connection string. Migrations run on first request. **Required on Vercel**: without it the app runs in memory and forgets every account on each cold start |
-| `AVANT_SESSION_SECRET`, `AVANT_ENCRYPTION_KEY`, `AVANT_VAULT_SIGNING_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`, once each |
+| `AVANT_SESSION_SECRET`, `AVANT_ENCRYPTION_KEY`, `AVANT_VAULT_SIGNING_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`, once each. **Back up `AVANT_ENCRYPTION_KEY` outside Vercel** (a password manager): messages, delivery addresses, pickup notes and VINs can't be read without it |
 | `STRIPE_SECRET_KEY` | Stripe dashboard. Start with a test key. A restricted key needs Checkout Sessions (write) and Identity Verification Sessions (write, plus read of verified outputs) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → endpoint `https://<domain>/api/webhook/stripe`, events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`. Add `account.updated` with "Listen to events on Connected accounts" |
 | Stripe Connect | Stripe → Connect → get started, platform type **Marketplace**, Express accounts, US. Hosts set up payouts from Earnings; AVANT never sees bank details. The restricted key also needs Accounts, Account Links, Transfers and Refunds (write) |
 | `CRON_SECRET` | Any long random string. `vercel.json` runs `/api/cron` daily (09:17 UTC); on a Pro plan you can make it hourly |
-| `RESEND_API_KEY`, `AVANT_EMAIL_FROM` | resend.com: verify your sending domain, then create a key. Needed for password reset emails |
+| `RESEND_API_KEY`, `AVANT_EMAIL_FROM` | resend.com: verify your sending domain, then create a key. **Required in production**: without them new accounts skip email verification, and password reset can't work |
 | `STRIPE_IDENTITY_WEBHOOK_SECRET` | Stripe → Webhooks → endpoint `https://<domain>/api/verify/webhook`, events `identity.verification_session.*` |
 | `ANTHROPIC_API_KEY` | console.anthropic.com. The concierge uses `claude-opus-5` by default (`AVANT_AI_MODEL` overrides) |
 | `AVANT_VAULT_URL` | After deploying the vault (below) |
 | `AVANT_REQUIRE_SECRETS=1` | Set in production so a missing secret is an error, not a demo |
+| `NEXT_PUBLIC_SITE_URL` | The real `https://` domain. Required in production: links in emails and Stripe redirects are built from it, never from the request's Host header |
+| `AVANT_SECURITY_CONTACT` | A `mailto:` or `https:` address for vulnerability reports, published at `/.well-known/security.txt` |
+| `AVANT_TRUSTED_PROXY_HOPS` | Only off Vercel: the number of proxies in front of the app. With `AVANT_REQUIRE_SECRETS=1` the app refuses to guess |
 
 ## 2. The vault
 
@@ -45,7 +48,10 @@ ocd wrangler deploy
 - Set `NEXT_PUBLIC_SITE_URL` to the real domain.
 - Set `NEXT_PUBLIC_AVANT_SAMPLE_FLEET=0` in production so only real listings show.
 - Host photos are stored in Postgres and served from the app's own origin, so no extra `img-src` is needed. Past roughly 10,000 listings, move them to object storage (S3, R2) and add its origin to `img-src` in `middleware.ts`.
-- Set the email variables above: password reset and email copies of notifications use them. Still to add: verifying a new account's email address.
+- Set the email variables above: email verification, password reset and email copies of notifications use them.
+- Give preview deployments their own database (or none). Never the production `DATABASE_URL`.
+- Vercel → Firewall: add a rate-limit rule for `/api/auth/*` (for example 20 requests a minute per IP), and for `/api/checkout`, `/api/verify/*` and `/api/concierge`.
+- Turn on Vercel's deployment protection for previews, and two-factor authentication on Vercel, GitHub, Stripe, Resend and the database provider.
 - Keep `AVANT_INDEXABLE=0` until listings and legal review are real.
 
 ## 4. Business
@@ -56,5 +62,5 @@ ocd wrangler deploy
 
 - Insurance program signed (see `INSURANCE_PLAYBOOK.md`); then set
   `COVERAGE_TERMS_FINAL = true` with the carrier's numbers.
-- Legal checklist done (see `LEGAL_BRIEF.md`).
+- Legal checklist done (see `LEGAL_BRIEF.md`, and the counsel checklist at its end). The terms, trip terms and Host Agreement at `/legal/terms` and `/legal/host` are drafts marked as such; when counsel finalises a document, bump its date in `lib/legal.ts` so the next acceptance is recorded against the new version.
 - Real hosts list their own cars from `/host/new`. Turn the sample fleet off (`NEXT_PUBLIC_AVANT_SAMPLE_FLEET=0`) once the first real listings are live.

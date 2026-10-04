@@ -166,7 +166,7 @@ export function Circle() {
           </dl>
           {circle.next ? (
             <div>
-              <div className="circle-progress" role="progressbar" aria-valuemin={0} aria-valuemax={circle.next.tier.minTrips} aria-valuenow={circle.completedTrips}>
+              <div className="circle-progress" role="progressbar" aria-label={`Progress to ${circle.next.tier.name}`} aria-valuemin={0} aria-valuemax={circle.next.tier.minTrips} aria-valuenow={circle.completedTrips}>
                 <span style={{ width: `${progress * 100}%` }} />
               </div>
               <p className="small muted" style={{ marginTop: 8 }}>

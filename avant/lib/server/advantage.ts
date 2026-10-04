@@ -5,17 +5,22 @@
  */
 
 import { randomBytes } from 'node:crypto'
-import { randomId } from '../security/crypto.ts'
-import { CIRCLE_TIERS, nextTier, REFERRAL, referralCode, tierFor, type Tier } from '../circle.ts'
+import { CIRCLE_TIERS, MAX_REFERRAL_REWARDS_PER_YEAR, nextTier, REFERRAL, referralCode, tierFor, type Tier } from '../circle.ts'
 import { notify } from './bookings.ts'
 import { creditBalance, grantCredit } from './credit.ts'
 import { db, type Db } from './db.ts'
 import { paymentsLive } from './stripe.ts'
 
-/** Trips finished as a guest: confirmed and ended. */
+/**
+ * Trips that count towards Circle: confirmed, ended, with a real host who
+ * isn't the guest, and (once payments are live) paid with real money, so
+ * preview bookings and self-dealing never lift a tier.
+ */
 export async function completedTrips(userId: string, q?: Db): Promise<number> {
   const [r] = await (q ?? (await db())).query<{ n: string }>(
-    `select count(*) as n from bookings where guest_id = $1 and status = 'confirmed' and end_date < current_date`,
+    `select count(*) as n from bookings
+     where guest_id = $1 and status = 'confirmed' and end_date < current_date
+       and (host_id is null or host_id <> guest_id) ${paymentsLive() ? `and paid = 'stripe' and host_id is not null` : ''}`,
     [userId],
   )
   return Number(r.n)
@@ -77,26 +82,34 @@ export async function referrerByCode(code: string): Promise<{ id: string; firstN
 }
 
 /**
- * Links a brand-new account to whoever invited it and gives the welcome
- * credit, once. Self-referral is impossible: the code must belong to
- * someone else and the account must not already be linked.
+ * Links a brand-new account to whoever invited it. Self-referral is
+ * impossible: the code must belong to someone else and the account must
+ * not already be linked. The welcome credit itself waits until the new
+ * account's email is confirmed (grantReferralWelcome).
  */
 export async function applyReferral(newUserId: string, code: string): Promise<boolean> {
   const referrer = await referrerByCode(code)
   if (!referrer || referrer.id === newUserId) return false
+  const linked = await (await db()).query(`update users set referred_by = $2 where id = $1 and referred_by is null returning id`, [newUserId, referrer.id])
+  return linked.length > 0
+}
+
+/** The friend's welcome credit, once, after their email is confirmed. */
+export async function grantReferralWelcome(userId: string): Promise<boolean> {
   return (await db()).tx(async (t) => {
-    const linked = await t.query(`update users set referred_by = $2 where id = $1 and referred_by is null returning id`, [newUserId, referrer.id])
-    if (!linked.length) return false
-    await t.query(`insert into credits (id, user_id, amount_cents, reason) values ($1, $2, $3, 'referral_welcome')`, [
-      randomId(12),
-      newUserId,
-      REFERRAL.friendCreditCents,
-    ])
+    const [u] = await t.query<{ referred_by: string | null; verified: boolean }>(
+      `select referred_by, email_verified_at is not null as verified from users where id = $1`,
+      [userId],
+    )
+    if (!u?.referred_by || !u.verified) return false
+    const [referrer] = await t.query<{ name: string }>(`select name from users where id = $1`, [u.referred_by])
+    // Keyed on the account, so it can only ever be granted once.
+    if (!(await grantCredit(t, userId, REFERRAL.friendCreditCents, 'referral_welcome', `welcome:${userId}`))) return false
     await notify(
       t,
-      newUserId,
+      userId,
       'Welcome to AVANT',
-      `${referrer.firstName} invited you, so $${REFERRAL.friendCreditCents / 100} of AVANT credit is waiting. It comes off your first trip automatically.`,
+      `${referrer?.name.split(/\s+/)[0] ?? 'A friend'} invited you, so $${REFERRAL.friendCreditCents / 100} of AVANT credit is waiting. It comes off your first trip automatically.`,
       '/circle',
     )
     return true
@@ -106,11 +119,20 @@ export async function applyReferral(newUserId: string, code: string): Promise<bo
 /** Rewards each referrer once their friend finishes a first real trip. */
 export async function rewardReferrals(): Promise<number> {
   const d = await db()
-  const paid = paymentsLive() ? `b.paid = 'stripe'` : `true`
+  // The friend's first real trip: paid mostly by card, with a host who is neither the
+  // referrer nor anyone the referrer brought in (so nobody books their own car to earn it).
+  const paid = paymentsLive() ? `b.paid = 'stripe' and b.credit_cents * 2 <= (b.quote->>'totalCents')::int` : `true`
   const rows = await d.query<{ id: string; referred_by: string; name: string; booking_id: string }>(
     `select u.id, u.referred_by, u.name,
-       (select b.id from bookings b where b.guest_id = u.id and b.status = 'confirmed' and b.end_date < current_date and ${paid} order by b.end_date limit 1) as booking_id
-     from users u where u.referred_by is not null and not u.referral_rewarded`,
+       (select b.id from bookings b
+          where b.guest_id = u.id and b.status = 'confirmed' and b.end_date < current_date and ${paid}
+            and b.host_id is not null and b.host_id <> u.referred_by
+            and not exists (select 1 from users r where r.id = b.host_id and r.referred_by = u.referred_by)
+          order by b.end_date limit 1) as booking_id
+     from users u
+     where u.referred_by is not null and not u.referral_rewarded and u.email_verified_at is not null
+       and (select count(*) from credits c where c.user_id = u.referred_by and c.reason = 'referral_reward'
+              and c.created_at > now() - interval '1 year') < ${MAX_REFERRAL_REWARDS_PER_YEAR}`,
   )
   let n = 0
   for (const r of rows) {

@@ -131,38 +131,75 @@ export async function queuePayouts(): Promise<number> {
   return n
 }
 
-/** Transfers queued payouts to hosts whose payout setup is complete. */
-export async function sendPayouts(): Promise<number> {
+/**
+ * Transfers queued payouts to hosts whose payout setup is complete.
+ *
+ * Never twice, even across a crash: each payout is claimed ('sending')
+ * before Stripe is called, and before creating a transfer Stripe is asked
+ * whether one already exists for this booking (its idempotency key only
+ * lasts about a day). Failures are counted and rotate to the back.
+ */
+export async function sendPayouts(deadline = Date.now() + 25_000): Promise<number> {
   if (!paymentsLive()) return 0
   const d = await db()
-  const rows = await d.query<{ booking_id: string; host_id: string; amount_cents: number; account: string; payment_ref: string; title: string }>(
-    `select p.booking_id, p.host_id, p.amount_cents, u.stripe_account_id as account, b.payment_ref, b.car->>'title' as title
+  const rows = await d.query<{
+    booking_id: string
+    host_id: string
+    amount_cents: number
+    account: string
+    payment_ref: string
+    title: string
+    charged_cents: number
+  }>(
+    `select p.booking_id, p.host_id, p.amount_cents, u.stripe_account_id as account, b.payment_ref, b.car->>'title' as title,
+            (b.quote->>'totalCents')::int - b.credit_cents as charged_cents
      from payouts p join users u on u.id = p.host_id join bookings b on b.id = p.booking_id
-     where p.status = 'pending' and p.amount_cents > 0 and u.payouts_enabled and u.stripe_account_id is not null
-     order by p.created_at limit 50`,
+     where (p.status = 'pending' or (p.status = 'sending' and p.last_attempt_at < now() - interval '15 minutes'))
+       and p.amount_cents > 0 and u.payouts_enabled and u.stripe_account_id is not null and b.payment_ref like 'pi\\_%'
+     order by p.last_attempt_at nulls first, p.created_at limit 20`,
   )
   let sent = 0
   for (const p of rows) {
+    if (Date.now() > deadline) break
+    const claimed = await d.query(
+      `update payouts set status = 'sending', attempts = attempts + 1, last_attempt_at = now()
+       where booking_id = $1 and (status = 'pending' or (status = 'sending' and last_attempt_at < now() - interval '15 minutes')) returning booking_id`,
+      [p.booking_id],
+    )
+    if (!claimed.length) continue
     try {
-      const pi = await stripe<{ latest_charge: string | null }>(`payment_intents/${p.payment_ref}`)
-      const transfer = await stripe<{ id: string }>('transfers', {
-        form: {
-          amount: String(p.amount_cents),
-          currency: 'usd',
-          destination: p.account,
-          transfer_group: p.booking_id,
-          ...(pi.latest_charge ? { source_transaction: pi.latest_charge } : {}),
-          'metadata[booking]': p.booking_id,
-        },
-        idempotencyKey: `payout-${p.booking_id}`,
-      })
+      const existing = await stripe<{ data: { id: string }[] }>(`transfers?transfer_group=${encodeURIComponent(p.booking_id)}&limit=1`)
+      let transferId = existing.data[0]?.id
+      if (!transferId) {
+        const pi = await stripe<{ latest_charge: string | null }>(`payment_intents/${p.payment_ref}`)
+        // Tie the transfer to the trip's own charge only when that charge covers it;
+        // a trip paid mostly with AVANT credit is funded from the platform balance.
+        const fromCharge: Record<string, string> = pi.latest_charge && p.charged_cents >= p.amount_cents ? { source_transaction: pi.latest_charge } : {}
+        const transfer = await stripe<{ id: string }>('transfers', {
+          form: {
+            amount: String(p.amount_cents),
+            currency: 'usd',
+            destination: p.account,
+            transfer_group: p.booking_id,
+            ...fromCharge,
+            'metadata[booking]': p.booking_id,
+          },
+          idempotencyKey: `payout-${p.booking_id}`,
+        })
+        transferId = transfer.id
+      }
       await d.tx(async (t) => {
-        await t.query(`update payouts set status = 'paid', transfer_id = $2, paid_at = now() where booking_id = $1 and status = 'pending'`, [p.booking_id, transfer.id])
+        await t.query(`update payouts set status = 'paid', transfer_id = $2, paid_at = now(), last_error = null where booking_id = $1 and status = 'sending'`, [
+          p.booking_id,
+          transferId,
+        ])
         await notify(t, p.host_id, 'Payout sent', `$${(p.amount_cents / 100).toFixed(2)} for the ${p.title} trip is on its way to your bank.`, '/host/earnings')
       })
       sent += 1
     } catch (err) {
-      console.error(`payout ${p.booking_id}: ${err instanceof Error ? err.message : 'failed'}`)
+      const why = err instanceof Error ? err.name : 'error'
+      await d.query(`update payouts set status = 'pending', last_error = $2 where booking_id = $1 and status = 'sending'`, [p.booking_id, why])
+      console.error(`payout ${p.booking_id}: failed (${why})`)
     }
   }
   return sent

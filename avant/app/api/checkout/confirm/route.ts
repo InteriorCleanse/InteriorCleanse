@@ -17,13 +17,13 @@ export async function GET(req: NextRequest) {
     signal: AbortSignal.timeout(10_000),
   })
   if (!res.ok) return problem(502, 'Could not confirm payment yet.')
-  const s = (await res.json()) as { payment_status: string; payment_intent: string | null; metadata: { booking?: string; user?: string } }
+  const s = (await res.json()) as { payment_status: string; payment_intent: string | null; amount_total: number; currency: string; metadata: { booking?: string; user?: string } }
   if (s.metadata.user !== user.id || !s.metadata.booking) return problem(403, 'This checkout belongs to another account.')
   const owner = await bookingOwner(s.metadata.booking)
   if (!owner || owner.guestId !== user.id) return problem(404, 'Booking not found.')
-  if (s.payment_status !== 'paid') return problem(402, 'Payment not completed.')
+  if (s.payment_status !== 'paid' || !s.payment_intent) return problem(402, 'Payment not completed.')
   const booking = s.metadata.booking
-  const status = await markPaid(booking, s.payment_intent ?? id)
+  const status = await markPaid(booking, s.payment_intent, { amountCents: s.amount_total, currency: s.currency })
   after(async () => {
     await settleRefund(booking)
     await deliverNotificationEmails()

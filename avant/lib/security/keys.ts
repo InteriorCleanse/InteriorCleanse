@@ -7,7 +7,7 @@
  * be secure: sessions reset on restart and the UI shows DEMO.
  */
 
-import { decodeKey, randomBytes } from './crypto'
+import { decodeKey, randomBytes } from './crypto.ts'
 
 const ephemeral = new Map<string, Uint8Array>()
 

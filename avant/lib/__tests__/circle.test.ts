@@ -53,10 +53,11 @@ describe('AVANT Circle', () => {
 })
 
 describe('AVANT credit', () => {
-  it('applies credit up to the total, leaving the smallest card charge when payments are live', () => {
+  it('applies credit up to half the trip when payments are live, always leaving a card charge', () => {
     assert.equal(creditToApply(2_500, 40_000, true), 2_500)
-    assert.equal(creditToApply(90_000, 40_000, true), 40_000 - MIN_CARD_CHARGE_CENTS)
-    assert.equal(creditToApply(90_000, 40_000, false), 40_000)
+    assert.equal(creditToApply(90_000, 40_000, true), 20_000, 'at most half')
+    assert.equal(creditToApply(90_000, 80, true), 80 - MIN_CARD_CHARGE_CENTS, 'the card always pays something')
+    assert.equal(creditToApply(90_000, 40_000, false), 40_000, 'preview mode: no limit')
     assert.equal(creditToApply(0, 40_000, true), 0)
   })
 

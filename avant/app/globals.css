@@ -930,7 +930,7 @@ p {
   color: #a39f97;
 }
 
-.site-foot .foot-grid h3 {
+.site-foot .foot-grid h2 {
   color: #f4f2ed;
 }
 
@@ -940,7 +940,7 @@ p {
   gap: 28px;
 }
 
-.foot-grid h3 {
+.foot-grid h2 {
   font-size: 0.95rem;
   font-weight: 700;
   margin-bottom: 12px;
@@ -4218,4 +4218,49 @@ p {
   .why-two {
     grid-template-columns: 1fr;
   }
+}
+
+/* Legal pages */
+.legal h2 {
+  margin-top: 18px;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.legal h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.legal ul {
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  max-width: 72ch;
+}
+
+.legal p {
+  max-width: 72ch;
+}
+
+.legal-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-toc a {
+  color: var(--gold-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Calendar weeks are rows for assistive technology; the grid lays out the days. */
+.calendar-row {
+  display: contents;
 }

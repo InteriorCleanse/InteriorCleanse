@@ -69,3 +69,18 @@ export function resetEmail(name: string, link: string): { subject: string; text:
     text: `Hi ${name.split(/\s+/)[0]},\n\nSomeone (hopefully you) asked to reset the password on your AVANT account. This link works once, for the next hour:\n\n${link}\n\nIf it wasn’t you, ignore this email; your password stays as it is.${FOOTER}`,
   }
 }
+
+export function verifyEmailMessage(name: string, link: string): { subject: string; text: string } {
+  return {
+    subject: 'Confirm your email for AVANT',
+    text: `Hi ${name.split(/\s+/)[0]},\n\nWelcome to AVANT. Confirm this is your email address to finish creating your account. The link works once, for the next 24 hours:\n\n${link}\n\nIf you didn’t sign up, ignore this email and no account will be activated.${FOOTER}`,
+  }
+}
+
+/** Sent instead of a second account when someone signs up with an address that already has one. */
+export function existingAccountMessage(name: string, site: string): { subject: string; text: string } {
+  return {
+    subject: 'You already have an AVANT account',
+    text: `Hi ${name.split(/\s+/)[0]},\n\nSomeone (hopefully you) tried to create an AVANT account with this email, but you already have one. Sign in at ${site}/signin, or reset your password at ${site}/forgot.\n\nIf this wasn’t you, you can ignore this email; nothing has changed.${FOOTER}`,
+  }
+}

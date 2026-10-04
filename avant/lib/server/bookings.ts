@@ -20,7 +20,8 @@ import { cancellationOutcome, REVIEW_DAYS, REQUEST_HOURS, zonedTime, type Cancel
 import { getUser, publicProfile, type PublicProfile } from './accounts.ts'
 import { grantCredit, spendCredit } from './credit.ts'
 import { db, type Db } from './db.ts'
-import { stripe } from './stripe.ts'
+import { openText, sealText } from './sealed.ts'
+import { paymentsLive, stripe } from './stripe.ts'
 
 export type BookingStatus = 'pending_payment' | 'requested' | 'confirmed' | 'declined' | 'cancelled' | 'expired'
 export type RefundStatus = 'none' | 'pending' | 'done' | 'demo'
@@ -169,28 +170,66 @@ export async function createBooking(input: {
   creditCents?: number
 }): Promise<{ id: string; status: BookingStatus; creditCents: number }> {
   const { car, request } = input
-  const hostId = car.sample ? null : car.hostId
-  if (hostId === input.guestId) throw new DatesTaken('You can’t book your own car.')
   const status: BookingStatus = input.paid === 'stripe' ? 'pending_payment' : car.instantBook ? 'confirmed' : 'requested'
   const id = randomId(12)
   let credit = 0
   await (await db()).tx(async (t) => {
+    // The host comes from the database, never from the car object the page held.
+    let hostId: string | null = null
+    if (!car.sample) {
+      const [l] = await t.query<{ host_id: string }>(`select host_id from listings where slug = $1 and status = 'live'`, [car.slug])
+      if (!l) throw new DatesTaken('That car isn’t available any more.')
+      hostId = l.host_id
+    }
+    if (hostId === input.guestId) throw new DatesTaken('You can’t book your own car.')
+    if (input.paid === 'stripe') {
+      // At most two unpaid checkouts at a time, so nobody can hold calendars hostage.
+      const [{ n }] = await t.query<{ n: string }>(
+        `select count(*) as n from bookings where guest_id = $1 and status = 'pending_payment' and created_at > now() - interval '30 minutes'`,
+        [input.guestId],
+      )
+      if (Number(n) >= 2) throw new DatesTaken('Finish or close your open checkout first.')
+    }
     // One booking at a time per car, so the overlap check below is reliable.
     await t.query(`select pg_advisory_xact_lock(hashtext($1))`, [car.slug])
     if (await clashes(t, car.slug, request.start, request.end)) throw new DatesTaken('Those dates were just taken. Try others.')
+    const stored = { ...request, deliveryAddress: await sealText(request.deliveryAddress, `booking:${id}:address`) }
     await t.query(
       `insert into bookings (id, listing_slug, guest_id, host_id, start_date, end_date, status, paid, request, quote, car)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [id, car.slug, input.guestId, hostId, request.start, request.end, status, input.paid, JSON.stringify(request), JSON.stringify(input.quote), JSON.stringify(snapshot(car, input.cityName, input.tz))],
+      [id, car.slug, input.guestId, hostId, request.start, request.end, status, input.paid, JSON.stringify(stored), JSON.stringify(input.quote), JSON.stringify(snapshot(car, input.cityName, input.tz))],
     )
     credit = await spendCredit(t, input.guestId, Math.min(input.creditCents ?? 0, input.quote.totalCents), id)
     if (credit) await t.query(`update bookings set credit_cents = $2 where id = $1`, [id, credit])
-    if (hostId) {
-      await t.query(`insert into threads (id, booking_id, guest_id, host_id) values ($1, $2, $3, $4)`, [randomId(12), id, input.guestId, hostId])
-      if (status !== 'pending_payment') await announce(t, id, status, hostId, input.guestId, `${car.year} ${car.make} ${car.model}`, request)
+    // Unpaid checkouts get no conversation; it opens once the trip is paid (markPaid).
+    if (hostId && status !== 'pending_payment') {
+      await openThread(t, id, input.guestId, hostId)
+      await announce(t, id, status, hostId, input.guestId, `${car.year} ${car.make} ${car.model}`, request)
     }
   })
   return { id, status, creditCents: credit }
+}
+
+async function openThread(t: Db, bookingId: string, guestId: string, hostId: string) {
+  await t.query(`insert into threads (id, booking_id, guest_id, host_id) values ($1, $2, $3, $4) on conflict (booking_id) do nothing`, [randomId(12), bookingId, guestId, hostId])
+}
+
+/**
+ * The AVANT Promise pays out only where it can't be farmed: the trip was
+ * paid with real money, at least half of it by card; the guest hasn't had
+ * Promise credit in the last 90 days; and never twice from the same host.
+ */
+async function promiseEligible(t: Db, b: BookingRow): Promise<boolean> {
+  if (!b.host_id) return false
+  if (paymentsLive() && b.paid !== 'stripe') return false
+  if (b.credit_cents * 2 > b.quote.totalCents) return false
+  const [recent] = await t.query(
+    `select 1 from credits c left join bookings x on x.id = c.booking_id
+     where c.user_id = $1 and c.reason in ('promise_host_cancel', 'promise_request_expired')
+       and (c.created_at > now() - interval '90 days' or x.host_id = $2) limit 1`,
+    [b.guest_id, b.host_id],
+  )
+  return !recent
 }
 
 async function announce(t: Db, id: string, status: BookingStatus, hostId: string, guestId: string, title: string, r: TripRequest) {
@@ -220,16 +259,25 @@ async function giveBack(t: Db, b: BookingRow, refundCents: number): Promise<{ st
 /** SQL setting the refund columns from three parameters starting at $from. */
 const refundSet = (from: number) => `refund_cents = $${from}, refund_status = $${from + 1}, refund_credit_cents = $${from + 2}`
 
-/** After Stripe confirms payment. Idempotent. */
-export async function markPaid(id: string, paymentRef: string): Promise<BookingStatus | null> {
+/**
+ * After Stripe confirms payment. Idempotent. `charged` is what Stripe says
+ * it took; anything but exactly the amount due, in dollars, is left for
+ * support rather than confirmed.
+ */
+export async function markPaid(id: string, paymentRef: string, charged?: { amountCents: number; currency: string }): Promise<BookingStatus | null> {
+  if (!paymentRef.startsWith('pi_')) throw new Error('markPaid needs a payment intent id')
   return (await db()).tx(async (t) => {
     const [b] = await t.query<BookingRow>(`select * from bookings where id = $1 for update`, [id])
     if (!b) return null
     if (b.status !== 'pending_payment') return b.status
+    if (charged && (charged.currency !== 'usd' || charged.amountCents !== b.quote.totalCents - b.credit_cents)) {
+      console.error(`markPaid ${id}: charged amount does not match the booking; left for review`)
+      return b.status
+    }
     await t.query(`select pg_advisory_xact_lock(hashtext($1))`, [b.listing_slug])
-    // A hold older than 30 minutes no longer protects the dates. If someone
-    // else took them meanwhile, refund in full rather than double-book.
-    if (await clashes(t, b.listing_slug, day(b.start_date), day(b.end_date), b.id)) {
+    // A hold older than 30 minutes no longer protects the dates, and a trip
+    // whose pickup day has passed can't start. Refund in full in both cases.
+    if (day(b.start_date) < todayUtc() || (await clashes(t, b.listing_slug, day(b.start_date), day(b.end_date), b.id))) {
       const back = await giveBack(t, { ...b, paid: 'stripe' }, b.quote.totalCents)
       await t.query(`update bookings set status = 'cancelled', cancelled_by = 'system', payment_ref = $2, ${refundSet(3)}, updated_at = now() where id = $1`, [
         id,
@@ -245,7 +293,10 @@ export async function markPaid(id: string, paymentRef: string): Promise<BookingS
     const next: BookingStatus = b.car.instantBook || !b.host_id ? 'confirmed' : 'requested'
     // created_at restarts at payment so the host's answer window starts now.
     await t.query(`update bookings set status = $2, payment_ref = $3, created_at = now(), updated_at = now() where id = $1`, [id, next, paymentRef])
-    if (b.host_id) await announce(t, id, next, b.host_id, b.guest_id, b.car.title, b.request)
+    if (b.host_id) {
+      await openThread(t, id, b.guest_id, b.host_id)
+      await announce(t, id, next, b.host_id, b.guest_id, b.car.title, b.request)
+    }
     return next
   })
 }
@@ -297,20 +348,23 @@ async function toView(r: BookingRow, userId: string, q: Db): Promise<TripView> {
   const ended = r.status === 'confirmed' && end < today
   const withinWindow = Date.now() - Date.parse(`${end}T23:59:59Z`) < REVIEW_DAYS * 86_400_000
   const otherId = role === 'guest' ? r.host_id : r.guest_id
+  // The delivery address: always to the guest; to the host only while the trip is live.
+  const address = role === 'guest' || active ? await openText(r.request.deliveryAddress, `booking:${r.id}:address`) : ''
   let hostNote: TripView['hostNote'] = null
   if (role === 'guest' && r.host_id && r.status === 'confirmed' && end >= today) {
-    const [l] = await q.query<{ welcome: string | null; pickup: string | null }>(
-      `select data->>'welcome' as welcome, data->>'pickup' as pickup from listings where slug = $1 and host_id = $2`,
+    const [l] = await q.query<{ id: string; welcome: string | null; pickup: string | null }>(
+      `select id, data->>'welcome' as welcome, data->>'pickup' as pickup from listings where slug = $1 and host_id = $2`,
       [r.listing_slug, r.host_id],
     )
-    if (l?.welcome || l?.pickup) hostNote = { welcome: l.welcome ?? '', pickup: l.pickup ?? '' }
+    const pickup = l ? await openText(l.pickup, `listing:${l.id}:pickup`) : ''
+    if (l?.welcome || pickup) hostNote = { welcome: l?.welcome ?? '', pickup }
   }
   return {
     id: r.id,
     status: r.status,
     start: day(r.start_date),
     end,
-    request: r.request,
+    request: { ...r.request, deliveryAddress: address },
     quote: r.quote,
     car: r.car,
     paid: r.paid,
@@ -345,7 +399,11 @@ export async function tripsFor(userId: string): Promise<TripView[]> {
 
 export async function tripFor(userId: string, id: string): Promise<TripView | null> {
   const q = await db()
-  const [r] = await q.query<BookingRow>(`${WITH_THREAD} where b.id = $1 and (b.guest_id = $2 or b.host_id = $2)`, [id, userId])
+  // Hosts never see unpaid or abandoned checkouts; guests see their own.
+  const [r] = await q.query<BookingRow>(
+    `${WITH_THREAD} where b.id = $1 and (b.guest_id = $2 or (b.host_id = $2 and (b.status not in ('pending_payment', 'expired') or b.cancelled_by is not null)))`,
+    [id, userId],
+  )
   return r ? toView(r, userId, q) : null
 }
 
@@ -393,6 +451,8 @@ export async function cancel(userId: string, id: string): Promise<{ result: Chan
     const [b] = await t.query<BookingRow>(`select * from bookings where id = $1 and (guest_id = $2 or host_id = $2) for update`, [id, userId])
     if (!b) return { result: 'not-found', refundCents: 0 }
     if (!['requested', 'confirmed'].includes(b.status) || day(b.end_date) < todayUtc()) return { result: 'not-allowed', refundCents: 0 }
+    // Once pickup time has passed the trip has started: no self-serve cancel or refund. Support handles it.
+    if (b.status === 'confirmed' && Date.now() >= pickupMs(b)) return { result: 'not-allowed', refundCents: 0 }
     const by = b.guest_id === userId ? 'guest' : 'host'
     // An unanswered request was never accepted, so it always refunds in full.
     const out = b.status === 'requested' ? cancellationOutcome(b.quote, 0, 0, 'host') : cancellationOutcome(b.quote, pickupMs(b), Date.now(), by)
@@ -405,7 +465,9 @@ export async function cancel(userId: string, id: string): Promise<{ result: Chan
       back.creditCents,
     ])
     // The AVANT Promise: a host backing out of a confirmed trip costs the guest nothing, and AVANT adds credit.
-    const promised = by === 'host' && b.status === 'confirmed' && (await grantCredit(t, b.guest_id, PROMISE.hostCancelCreditCents, 'promise_host_cancel', id))
+    const promised =
+      by === 'host' && b.status === 'confirmed' && (await promiseEligible(t, b)) && (await grantCredit(t, b.guest_id, PROMISE.hostCancelCreditCents, 'promise_host_cancel', id))
+    if (by === 'host' && b.status === 'confirmed') await penaliseHostCancels(t, userId)
     const other = by === 'guest' ? b.host_id : b.guest_id
     if (other) {
       await notify(
@@ -418,6 +480,27 @@ export async function cancel(userId: string, id: string): Promise<{ result: Chan
     }
     return { result: 'ok', refundCents: out.refundCents }
   })
+}
+
+/** Three host cancellations of confirmed trips in 30 days pauses every listing of that host. */
+const HOST_CANCEL_LIMIT = 3
+
+async function penaliseHostCancels(t: Db, hostId: string) {
+  const [{ n }] = await t.query<{ n: string }>(
+    `select count(*) as n from bookings where host_id = $1 and cancelled_by = 'host' and updated_at > now() - interval '30 days'`,
+    [hostId],
+  )
+  if (Number(n) < HOST_CANCEL_LIMIT) return
+  const paused = await t.query(`update listings set status = 'paused', updated_at = now() where host_id = $1 and status = 'live' returning id`, [hostId])
+  if (paused.length) {
+    await notify(
+      t,
+      hostId,
+      'Your listings are paused',
+      `You’ve cancelled ${n} confirmed trips in 30 days, so your cars are paused to protect guests. Contact support to talk it through before resuming.`,
+      '/host/listings',
+    )
+  }
 }
 
 /** Requests the host did not answer in time expire, refunded in full. */
@@ -436,7 +519,7 @@ export async function expireRequests(): Promise<string[]> {
         back.status,
         back.creditCents,
       ])
-      const promised = Boolean(b.host_id) && (await grantCredit(t, b.guest_id, PROMISE.requestExpiredCreditCents, 'promise_request_expired', id))
+      const promised = (await promiseEligible(t, b)) && (await grantCredit(t, b.guest_id, PROMISE.requestExpiredCreditCents, 'promise_request_expired', id))
       await notify(
         t,
         b.guest_id,
@@ -462,21 +545,32 @@ export async function settleRefund(id: string): Promise<boolean> {
     return false
   }
   try {
-    const refund = await stripe<{ id: string; status: string }>('refunds', {
-      form: { payment_intent: b.payment_ref, amount: String(cardCents), 'metadata[booking]': id },
-      idempotencyKey: `refund-${id}`,
-    })
-    await d.query(`update bookings set refund_status = 'done', refund_ref = $2, updated_at = now() where id = $1 and refund_status = 'pending'`, [id, refund.id])
+    // Never twice: Stripe's idempotency key only lasts about a day, so first
+    // look for a refund already made for this booking.
+    const existing = await stripe<{ data: { id: string; metadata?: { booking?: string } }[] }>(`refunds?payment_intent=${encodeURIComponent(b.payment_ref)}&limit=100`)
+    const already = existing.data.find((x) => x.metadata?.booking === id)
+    const refund =
+      already ??
+      (await stripe<{ id: string; status: string }>('refunds', {
+        form: { payment_intent: b.payment_ref, amount: String(cardCents), 'metadata[booking]': id },
+        idempotencyKey: `refund-${id}`,
+      }))
+    await d.query(`update bookings set refund_status = 'done', refund_ref = $2, refund_error = null, updated_at = now() where id = $1 and refund_status = 'pending'`, [id, refund.id])
     return true
   } catch (err) {
-    console.error(`refund ${id}: ${err instanceof Error ? err.message : 'failed'}`)
+    // Counted and moved to the back of the queue, so one stuck refund never blocks the rest.
+    await d.query(`update bookings set refund_attempts = refund_attempts + 1, refund_error = $2, updated_at = now() where id = $1`, [id, err instanceof Error ? err.name : 'error'])
+    console.error(`refund ${id}: failed (${err instanceof Error ? err.name : 'error'})`)
     return false
   }
 }
 
-export async function settlePendingRefunds(): Promise<number> {
-  const rows = await (await db()).query<{ id: string }>(`select id from bookings where refund_status = 'pending' order by updated_at limit 50`)
+export async function settlePendingRefunds(deadline = Date.now() + 20_000): Promise<number> {
+  const rows = await (await db()).query<{ id: string }>(`select id from bookings where refund_status = 'pending' order by updated_at limit 20`)
   let n = 0
-  for (const r of rows) if (await settleRefund(r.id)) n += 1
+  for (const r of rows) {
+    if (Date.now() > deadline) break
+    if (await settleRefund(r.id)) n += 1
+  }
   return n
 }

@@ -2,11 +2,13 @@ import { after, NextResponse, type NextRequest } from 'next/server'
 import { priceTrip, TripRequest } from '@/lib/checkout'
 import { carTitle } from '@/lib/places'
 import { loadRecord, toFacts } from '@/lib/driver-record'
-import { createBooking, DatesTaken } from '@/lib/server/bookings'
+import { createBooking, DatesTaken, expirePending } from '@/lib/server/bookings'
 import { creditToApply } from '@/lib/circle'
 import { circlePricing } from '@/lib/server/advantage'
 import { cityNameFor, findCar, taxRateFor, tzFor } from '@/lib/server/catalog'
+import { recordConsent } from '@/lib/server/consent'
 import { creditBalance } from '@/lib/server/credit'
+import { siteUrl } from '@/lib/server/stripe'
 import { deliverNotificationEmails } from '@/lib/server/email'
 import { currentUser, driverKey, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
@@ -30,6 +32,7 @@ export async function POST(req: NextRequest) {
   }
   const user = await currentUser()
   if (!user) return signInRequired()
+  if (body.agreeTerms !== true) return problem(400, 'Agree to the trip terms to book.')
   const record = await loadRecord(driverKey(user))
   const car = await findCar(body.slug)
   // The guest's Circle rate comes from their own completed trips, on the server.
@@ -60,14 +63,18 @@ export async function POST(req: NextRequest) {
     console.error('booking failed')
     return problem(500, 'Couldn’t book that. Nothing was charged.')
   }
+  // Clickwrap evidence: which trip terms this guest accepted, for this trip.
+  await recordConsent(user.id, ['trip_terms'], 'booking', booking.id).catch(() => console.error('consent record failed'))
   if (!stripe) {
     after(() => deliverNotificationEmails())
     return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote, creditCents: booking.creditCents })
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`
+  const site = siteUrl()
   const form = new URLSearchParams({
     mode: 'payment',
+    // Cards only: delayed methods (bank debits) could confirm after the hold ends.
+    'payment_method_types[0]': 'card',
     success_url: `${site}/trips/confirm?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${site}/checkout/${priced.car.slug}?start=${body.start}&end=${body.end}`,
     'line_items[0][quantity]': '1',
@@ -83,18 +90,27 @@ export async function POST(req: NextRequest) {
       .slice(0, 480),
     'metadata[booking]': booking.id,
     'metadata[user]': user.id,
-    expires_at: String(Math.floor(Date.now() / 1000) + 30 * 60),
+    // Stripe's minimum is 30 minutes; a minute of slack absorbs clock skew.
+    expires_at: String(Math.floor(Date.now() / 1000) + 31 * 60),
   })
-  const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${stripe}`, 'content-type': 'application/x-www-form-urlencoded' },
-    body: form.toString(),
-    signal: AbortSignal.timeout(10_000),
-  })
-  if (!res.ok) {
-    console.error(`checkout: Stripe ${res.status}`)
+  // Any failure here releases the hold at once and gives back any credit put towards it.
+  const failed = async (why: string) => {
+    console.error(`checkout: ${why}`)
+    await expirePending(booking.id)
     return problem(502, 'Payment is unavailable right now. Nothing was charged.')
   }
+  let res: Response
+  try {
+    res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${stripe}`, 'content-type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+      signal: AbortSignal.timeout(10_000),
+    })
+  } catch {
+    return failed('Stripe unreachable')
+  }
+  if (!res.ok) return failed(`Stripe ${res.status}`)
   const session = (await res.json()) as { url: string }
   return NextResponse.json({ mode: 'stripe', url: session.url, bookingId: booking.id, quote: priced.quote, creditCents: booking.creditCents })
 }

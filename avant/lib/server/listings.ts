@@ -4,17 +4,38 @@
  * Car shape every screen already understands.
  */
 
+import { createHmac } from 'node:crypto'
 import { randomId } from '../security/crypto.ts'
+import { encryptionKeys } from '../security/keys.ts'
+import { openText, sealText } from './sealed.ts'
 import { tierForRate } from '../catalog.ts'
 import { COLORS, normaliseVin, PHOTO_ANGLES, validateListing, type ListingDraft, type ListingProblem } from '../listing.ts'
 import type { Car, City, Host } from '../types.ts'
-import { photoUrl } from './accounts.ts'
+import { photoUrl, shortName } from './accounts.ts'
 import { db, type Db } from './db.ts'
 import { ownListingPhotos } from './photos.ts'
 import { HOLDS_CAR, notify } from './bookings.ts'
 import { reviewsForListing } from './reviews.ts'
 
-export type StoredListing = Omit<ListingDraft, 'photos'> & { photoIds: string[] }
+/**
+ * What's stored. The VIN is never kept in the clear: a keyed fingerprint for
+ * the one-VIN-one-host check, and the VIN itself sealed. Pickup
+ * instructions (they can hold lockbox codes) are sealed too.
+ */
+export type StoredListing = Omit<ListingDraft, 'photos' | 'vin'> & {
+  photoIds: string[]
+  vinHash?: string
+  vinSealed?: string
+  /** Listings stored before the VIN was sealed. */
+  vin?: string
+}
+
+const pickupCtx = (listingId: string) => `listing:${listingId}:pickup`
+
+/** HMAC-SHA-256 of the VIN under the app's key: matches duplicates without storing the VIN. */
+function vinFingerprint(vin: string): string {
+  return createHmac('sha256', Buffer.from(encryptionKeys()[0])).update(`vin:${vin}`).digest('hex')
+}
 
 interface ListingRow {
   id: string
@@ -51,14 +72,22 @@ export async function createListing(hostId: string, draft: Omit<ListingDraft, 'p
   }
   const problems = validateListing(full, currentYear)
   if (problems.length) throw new ListingRejected(problems)
-  const [dupe] = await d.query(`select 1 from listings where data->>'vin' = $1 and host_id <> $2`, [full.vin, hostId])
-  if (dupe) throw new ListingRejected([{ step: 'car', field: 'vin', message: 'That VIN is already listed by another host.' }])
+  const vinHash = vinFingerprint(full.vin)
+  const [dupe] = await d.query(`select 1 from listings where (data->>'vinHash' = $1 or data->>'vin' = $2) and host_id <> $3`, [vinHash, full.vin, hostId])
+  // Deliberately vague: it must not tell anyone whether a given VIN is on AVANT.
+  if (dupe) throw new ListingRejected([{ step: 'car', field: 'vin', message: 'This VIN can’t be listed. If it’s your car, contact support.' }])
 
   const ordered = PHOTO_ANGLES.map((a) => photos.find((p) => p.angle === a.id)!.id)
   const id = randomId(12)
   const slug = `${slugify(`${full.year} ${full.make} ${full.model} ${full.city}`)}-${id.slice(0, 6).toLowerCase().replace(/[^a-z0-9]/g, 'x')}`
-  const { photos: _p, ...rest } = full
-  const data: StoredListing = { ...rest, photoIds: ordered }
+  const { photos: _p, vin, ...rest } = full
+  const data: StoredListing = {
+    ...rest,
+    pickup: await sealText(rest.pickup ?? '', pickupCtx(id)),
+    photoIds: ordered,
+    vinHash,
+    vinSealed: await sealText(vin, `listing:${id}:vin`),
+  }
   await d.tx(async (t) => {
     await t.query(`insert into listings (id, slug, host_id, status, city, daily_rate_cents, data) values ($1, $2, $3, 'live', $4, $5, $6)`, [
       id,
@@ -177,8 +206,9 @@ function toCar(r: CarRow, cities: City[]): Car {
   const trips = Number(r.host_trips)
   const hostRating = r.host_rating == null ? 0 : Math.round(Number(r.host_rating) * 100) / 100
   const host: Host = {
-    id: r.host_id,
-    name: r.host_name,
+    // The listing stands in for the host's account id, which never leaves the server.
+    id: r.id,
+    name: shortName(r.host_name),
     joined: new Date(r.host_created).toISOString().slice(0, 10),
     // The same bar guests know: a near-perfect rating over a real number of trips.
     allStar: hostRating >= 4.9 && trips >= 10,
@@ -217,7 +247,7 @@ function toCar(r: CarRow, cities: City[]): Car {
     lat: (city?.lat ?? 0) + hashUnit(r.id, 7) * 0.04,
     lng: (city?.lng ?? 0) + hashUnit(r.id, 13) * 0.05,
     approxLocation: true,
-    hostId: r.host_id,
+    hostId: r.id,
     host,
     rating: r.car_rating == null ? 0 : Math.round(Number(r.car_rating) * 100) / 100,
     tripCount: Number(r.car_trips),
@@ -262,7 +292,7 @@ export interface EditableListing {
   status: 'live' | 'paused'
   title: string
   city: string
-  data: Omit<StoredListing, 'vin'>
+  data: Omit<StoredListing, 'vin' | 'vinHash' | 'vinSealed'>
   photos: { angle: string; url: string }[]
   blocks: { id: string; start: string; end: string }[]
   trips: { id: string; start: string; end: string; status: string }[]
@@ -282,7 +312,8 @@ export async function listingForHost(hostId: string, id: string): Promise<Editab
     `select id, start_date, end_date, status from bookings where listing_slug = $1 and status in ('requested', 'confirmed') and end_date >= current_date order by start_date`,
     [r.slug],
   )
-  const { vin: _v, ...data } = r.data
+  const { vin: _v, vinHash: _h, vinSealed: _s, ...stored } = r.data
+  const data = { ...stored, pickup: await openText(stored.pickup, pickupCtx(r.id)) }
   return {
     id: r.id,
     slug: r.slug,
@@ -301,8 +332,11 @@ export async function updateListing(hostId: string, id: string, changes: Listing
   const d = await db()
   const [r] = await d.query<ListingRow>(`select * from listings where id = $1 and host_id = $2`, [id, hostId])
   if (!r) return false
-  const editable = Object.fromEntries(Object.entries(changes).filter(([k]) => (EDITABLE as readonly string[]).includes(k)))
-  const next: StoredListing = { ...r.data, ...editable, photoIds: [...r.data.photoIds] }
+  const editable = Object.fromEntries(Object.entries(changes).filter(([k]) => (EDITABLE as readonly string[]).includes(k))) as ListingEdit
+  // Work on the plain pickup text; it is sealed again before storing.
+  const pickup = editable.pickup ?? (await openText(r.data.pickup, pickupCtx(id)))
+  const next: StoredListing = { ...r.data, ...editable, pickup, photoIds: [...r.data.photoIds] }
+  let replaced: string | null = null
   if (photo) {
     const index = PHOTO_ANGLES.findIndex((a) => a.id === photo.angle)
     const [fresh] = await d.query<{ id: string }>(
@@ -310,14 +344,16 @@ export async function updateListing(hostId: string, id: string, changes: Listing
       [photo.photoId, hostId, photo.angle, id],
     )
     if (index < 0 || !fresh) throw new ListingRejected([{ step: 'photos', field: 'photos', message: 'That photo can’t be used here. Upload it again.' }])
+    replaced = next.photoIds[index] === fresh.id ? null : next.photoIds[index]
     next.photoIds[index] = fresh.id
   }
   const photos = await ownListingPhotos(hostId, next.photoIds)
   const full: ListingDraft = {
     ...next,
+    vin: '',
     photos: photos.map((p) => ({ id: p.id, angle: p.angle!, sha256: p.sha256, width: p.width, height: p.height, bytes: 0, addedAt: '' })),
   }
-  // Only rules about what can change here; the car's age and mileage were checked at listing.
+  // Only rules about what can change here; the car's VIN, age and mileage were checked at listing.
   const fields = new Set<string>([...EDITABLE, 'photos'])
   const problems = validateListing(full, new Date().getFullYear()).filter((p) => fields.has(p.field))
   if (problems.length) throw new ListingRejected(problems)
@@ -325,10 +361,12 @@ export async function updateListing(hostId: string, id: string, changes: Listing
     await t.query(`update listings set data = $3, daily_rate_cents = $4, updated_at = now() where id = $1 and host_id = $2`, [
       id,
       hostId,
-      JSON.stringify(next),
+      JSON.stringify({ ...next, pickup: await sealText(pickup, pickupCtx(id)) }),
       next.dailyRateCents,
     ])
     if (photo) await t.query(`update photos set listing_id = $1 where id = $2 and owner_id = $3`, [id, photo.photoId, hostId])
+    // A replaced photo stops being served at all.
+    if (replaced) await t.query(`delete from photos where id = $1 and owner_id = $2`, [replaced, hostId])
     if (next.dailyRateCents < r.data.dailyRateCents) await announcePriceDrop(t, r.slug, hostId, `${r.data.year} ${r.data.make} ${r.data.model}`, r.data.dailyRateCents, next.dailyRateCents)
   })
   return true

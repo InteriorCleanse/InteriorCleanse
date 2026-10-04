@@ -6,11 +6,15 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { userForToken, type User } from './accounts'
+import { emailConfigured } from './email'
 
 const AUTH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-avant_auth' : 'avant_auth'
 
 export async function currentUser(): Promise<User | null> {
-  return userForToken((await cookies()).get(AUTH_COOKIE)?.value)
+  const user = await userForToken((await cookies()).get(AUTH_COOKIE)?.value)
+  // Belt and braces: with email configured, an unconfirmed account never acts.
+  if (user && !user.emailVerified && emailConfigured()) return null
+  return user
 }
 
 export async function authToken(): Promise<string | undefined> {
