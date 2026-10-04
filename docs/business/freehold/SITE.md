@@ -62,6 +62,16 @@ dashboard: pushes to the branch `claude/business-profit-agents-uw913k` should
 produce preview deployments; production builds from `main` once the branch
 merges.
 
+## Deploys skip unchanged commits
+
+`freehold/vercel.json` carries an ignore command. Vercel builds Freehold
+only when something under `freehold/` changed since the last *successful*
+Freehold deploy (`VERCEL_GIT_PREVIOUS_SHA`). Comparing with the last
+successful deploy, not the parent commit, means a deploy that fails (the
+free plan's 100-a-day limit did this to #77 on 2026-09-28) is retried by
+the next push instead of being skipped forever. When the variable is
+missing or the commit cannot be found, it builds.
+
 ## Owner actions, in order
 
 1. Open the Vercel dashboard, confirm the `freehold` project and its latest
