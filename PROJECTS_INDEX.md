@@ -54,9 +54,14 @@ project's session or an owner decision.
    branch starts builds for `interior-cleanse`, `interior-cleanse-cr2t`,
    `avant`, `freehold` and `trading-bot`. On recent storefront pull requests,
    four of the five were refused with "Deployment rate limited — retry in 24
-   hours". One project's busy day can stop another project's deploys. Fix:
-   in each Vercel project, set an Ignored Build Step that skips the build unless
-   that project's own folder changed, or give each product its own repository.
+   hours". One project's busy day can stop another project's deploys, and on
+   2026-10-04 it held back the storefront's production deploy. An Ignored
+   Build Step does not help: the limit counts deployments when they are
+   created, before that step runs. **Storefront side, done:** the root
+   `vercel.json` sets `git.deploymentEnabled` so the two storefront projects
+   create deployments only for `main` and the storefront branch, not for every
+   other project's branch. Each other project can do the same in its own
+   folder's `vercel.json`; separate repositories remove the problem.
 2. **Two Vercel projects deploy the storefront:** `interior-cleanse` and
    `interior-cleanse-cr2t`. Only one should own interiorcleanse.com. The
    connector available to this session cannot read either project, so which
