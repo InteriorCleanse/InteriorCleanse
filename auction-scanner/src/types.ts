@@ -160,4 +160,12 @@ export type PaperBid = {
   outcome?: 'open' | 'won' | 'lost' | 'withdrawn'
 }
 
-export type WatchItem = { listingId: string; title: string; url: string; addedAt: number; snapshot: Listing }
+export type WatchItem = {
+  listingId: string
+  title: string
+  url: string
+  addedAt: number
+  snapshot: Listing
+  /** Which watch alerts have gone out, so each is sent once (src/watchalerts.ts). */
+  alerted?: { ending?: boolean; ended?: boolean; lastPriceUsd?: number }
+}

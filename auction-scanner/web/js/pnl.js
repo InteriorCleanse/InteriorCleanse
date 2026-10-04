@@ -110,3 +110,40 @@ export async function openMaterials(listingId) {
   } catch (e) { root.innerHTML = errorStrip(e.message) }
   return close
 }
+
+/** "I bought it": put a car from an auction straight into the books, with what was actually paid. */
+export async function openBought(listingId) {
+  const close = sheet(`<div id="bought-root">${loading('Getting the car…')}</div>`, { label: 'I bought it' })
+  const root = document.getElementById('bought-root')
+  let card, biz
+  try { [card, biz] = await Promise.all([getJson('/api/listing/' + encodeURIComponent(listingId)), getJson('/api/business')]) } catch (e) { root.innerHTML = errorStrip(e.message); return }
+  const l = card.listing
+  const price = l.currentBidUsd ?? l.buyNowUsd ?? ''
+  const today = new Date().toISOString().slice(0, 10)
+  const target = card.estimate && card.estimate.ok ? Math.round(card.estimate.valueUsd) : ''
+  root.innerHTML = `<form id="bought-form"><h2>You bought it</h2><p class="mono dim">${esc(l.title)}</p>
+    ${l.kind === 'SAMPLE' ? '<div class="strip wait"><b>This is a SAMPLE car.</b> It can go in your books to practise, but it is not a real car.</div>' : ''}
+    <p class="dim" style="font-size:14px">Type what you actually paid. Gavel fills in the rest from the listing; change anything that is wrong.</p>
+    <div class="grid2">
+      <label class="f">Winning bid ($)<input type="number" name="purchaseUsd" min="1" step="any" required value="${esc(String(price))}" /></label>
+      <label class="f">Company<select name="companyId"><option value="">No company yet</option>${biz.companies.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select></label>
+      <label class="f">Buyer fee paid ($)<input type="number" name="fee" min="0" step="any" placeholder="from your invoice" /></label>
+      <label class="f">Transport paid ($)<input type="number" name="transport" min="0" step="any" placeholder="from your quote" /></label>
+      <label class="f">Target sale price ($)<input type="number" name="targetSaleUsd" min="1" step="any" value="${esc(String(target))}" /><span class="dim" style="font-weight:400;font-size:12.5px">${target ? 'Starts at what similar cars go for. An estimate, not a price.' : 'Not enough similar cars to suggest one.'}</span></label>
+      <label class="f">Date bought<input type="date" name="boughtAt" value="${today}" /></label>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn" type="submit">Add to my books</button><button class="btn outline" type="button" data-close>Cancel</button></div></form>`
+  root.querySelector('#bought-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const f = Object.fromEntries(new FormData(e.target).entries())
+    const when = Date.parse(f.boughtAt + 'T12:00:00')
+    const body = { title: l.title, year: l.year, make: l.make, model: l.model, mileage: l.mileage, vin: l.vin && !/^SAMPLE/.test(l.vin) ? l.vin : undefined, boughtFrom: l.source, purchaseUsd: Number(f.purchaseUsd), companyId: f.companyId || undefined, targetSaleUsd: f.targetSaleUsd ? Number(f.targetSaleUsd) : undefined, boughtAt: when }
+    try {
+      const car = await postJson('/api/garage', body)
+      if (Number(f.fee) > 0) await postJson(`/api/garage/${encodeURIComponent(car.id)}/cost`, { label: 'Buyer fee', usd: Number(f.fee), date: when })
+      if (Number(f.transport) > 0) await postJson(`/api/garage/${encodeURIComponent(car.id)}/cost`, { label: 'Transport', usd: Number(f.transport), date: when })
+      close(); toast('In your books. Log each cost as it comes.'); location.hash = '#business'
+    } catch (err) { toast(err.message, 'hot') }
+  })
+  return close
+}

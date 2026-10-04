@@ -140,7 +140,7 @@ export async function render(el, ctx, args = []) {
       ${b.report.unassigned ? `<button type="button" class="chip" data-co="none" aria-pressed="${sel === 'none'}">No company <span class="mono">${b.report.unassigned.cars}</span></button>` : ''}
     </nav>
     <section class="biz-books">
-      <div class="biz-title"><h2>${sel === 'none' ? 'Cars in no company' : company ? esc(company.name) : 'All companies'}${company ? ` <span class="badge">${esc(KIND[company.kind])}</span>` : ''}</h2>${company ? '<button class="more" type="button" id="b-edit">Edit</button>' : ''}</div>
+      <div class="biz-title"><h2>${sel === 'none' ? 'Cars in no company' : company ? esc(company.name) : 'All companies'}${company ? ` <span class="badge">${esc(KIND[company.kind])}</span>` : ''}</h2><div class="row">${company ? '<button class="more" type="button" id="b-edit">Edit</button>' : ''}<a class="btn outline sm" href="/api/business/export.csv${sel ? '?company=' + encodeURIComponent(sel) : ''}" download>Export for your accountant (CSV)</a></div></div>
       ${kpis(rep.stats)}
       ${rep.months ? chartHtml(rep.months) : ''}
       ${!sel && b.report.companies.length ? `<div class="biz-board">${[...b.report.companies].sort((x, y) => y.stats.profitUsd - x.stats.profitUsd).map((r) => {

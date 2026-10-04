@@ -35,7 +35,8 @@ import type { PlanInputs } from './bidplan.ts'
 import { walkthrough } from './explain.ts'
 import type { Walkthrough } from './explain.ts'
 import { aiAdvise, aiStatus, aiWalkthrough } from './ai.ts'
-import { addWatch, listPaper, listWatch, paperSummary, placePaperBid, removeWatch, setOutcome } from './paper.ts'
+import { addWatch, listPaper, listWatch, paperSummary, placePaperBid, removeWatch, saveWatch, setOutcome } from './paper.ts'
+import { checkWatch } from './watchalerts.ts'
 import { getSettings, updateSettings } from './settings.ts'
 import type { Settings } from './settings.ts'
 import { GUIDES } from './playbook/content.ts'
@@ -73,7 +74,7 @@ import { vinauditConfigured, vinauditEstimate, vinauditValue } from './sources/v
 import { isStateCode } from './states.ts'
 import { findDeals } from './finder.ts'
 import { addCompany, addOverhead, listCompanies, removeCompany, removeOverhead, updateCompany, validateCompaniesFile } from './companies.ts'
-import { businessReport } from './business.ts'
+import { businessReport, ledgerCsv } from './business.ts'
 import { answerFromBooks, briefing } from './advisor.ts'
 import type { BriefingInput } from './advisor.ts'
 import { materialsFor } from './materials.ts'
@@ -82,6 +83,8 @@ import type { PnlInput } from './pnl.ts'
 import { cleanQuery, partCategories, partLinks, vehicleFrom } from './parts.ts'
 import { ebayConfigured, searchEbayParts } from './sources/ebay.ts'
 import { splitTitle } from './sources/normalize.ts'
+import { parseSearch } from './searchparse.ts'
+import type { ParsedSearch } from './searchparse.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const WEB_DIR = resolve(HERE, '..', 'web')
@@ -94,7 +97,7 @@ const OWNER_EMAIL = 'owner'
 const DEAL_MAKES = ['Toyota', 'Honda', 'Lexus', 'Ford', 'Chevrolet', 'Jeep', 'Subaru', 'Mazda']
 
 export type Card = { listing: Listing; estimate: Estimate; score: Score; demand?: { tier: DemandEntry['tier']; tags: Array<DemandEntry['tier']>; why: string } }
-export type Feed = { kind: ScanResult['kind']; scannedAt: number; errors: string[]; hidden: number; cards: Card[] }
+export type Feed = { kind: ScanResult['kind']; scannedAt: number; errors: string[]; hidden: number; cards: Card[]; /** What the search box understood, one phrase per filter applied. */ understood?: string[] }
 
 export type ServerOptions = {
   host?: string
@@ -344,10 +347,13 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
 
   async function buildFeed(params: URLSearchParams): Promise<Feed> {
     const settings = getSettings()
-    const q = str(params.get('q'), 120)
-    const make = str(params.get('make'), 40)
-    const maxPrice = num(params.get('maxPrice'), 'maxPrice', { optional: true, min: 0, max: 10_000_000 })
-    const state = str(params.get('state'), 2).toUpperCase()
+    // Plain English in the search box ("2015+ camry under 8k no damage") becomes filters (src/searchparse.ts).
+    const raw = str(params.get('q'), 160)
+    const parsed: ParsedSearch | undefined = raw ? parseSearch(raw) : undefined
+    const q = parsed ? parsed.text : ''
+    const make = str(params.get('make'), 40) || parsed?.make || ''
+    const maxPrice = num(params.get('maxPrice'), 'maxPrice', { optional: true, min: 0, max: 10_000_000 }) ?? parsed?.maxPriceUsd
+    const state = (str(params.get('state'), 2) || parsed?.state || '').toUpperCase()
     const tier = str(params.get('tier'), 20)
     const starter = params.get('starter') !== '0'
     const allowSample = params.get('sample') !== '0' && settings.allowSample
@@ -376,9 +382,15 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     if (maxPrice !== undefined) cards = cards.filter((c) => (askingPrice(c.listing) ?? 0) <= maxPrice)
     // A car can be more than one kind: a 911 shows under Enthusiast, Supercar and Holds value.
     if (tier && tier !== 'all') cards = cards.filter((c) => c.demand?.tags.includes(tier as DemandEntry['tier']))
-    if (q && result.kind === 'SAMPLE') {
-      const needle = q.toLowerCase()
-      cards = cards.filter((c) => c.listing.title.toLowerCase().includes(needle))
+    if (parsed?.model) cards = cards.filter((c) => `${c.listing.model ?? ''} ${c.listing.title}`.toLowerCase().replace(/-/g, ' ').includes(parsed.model!.toLowerCase().replace(/-/g, ' ')))
+    if (parsed?.minYear !== undefined) cards = cards.filter((c) => (c.listing.year ?? 0) >= parsed.minYear!)
+    if (parsed?.maxYear !== undefined) cards = cards.filter((c) => c.listing.year !== undefined && c.listing.year <= parsed.maxYear!)
+    if (parsed?.maxMileage !== undefined) cards = cards.filter((c) => c.listing.mileage !== undefined && c.listing.mileage <= parsed.maxMileage!)
+    if (parsed?.damage === 'none') cards = cards.filter((c) => c.listing.damage === 'none')
+    if (parsed?.damage === 'minor') cards = cards.filter((c) => c.listing.damage === 'none' || c.listing.damage === 'minor')
+    if (q && !parsed?.make && result.kind === 'SAMPLE') {
+      const words = q.toLowerCase().split(' ').filter(Boolean)
+      cards = cards.filter((c) => words.every((w) => c.listing.title.toLowerCase().includes(w)))
     }
     let hidden = 0
     if (starter) {
@@ -393,7 +405,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const ub = b.score.grade === 'unpriced' ? 1 : 0
       return ua - ub || b.score.total - a.score.total
     })
-    return { kind: result.kind, scannedAt, errors: result.errors, hidden, cards }
+    return { kind: result.kind, scannedAt, errors: result.errors, hidden, cards, understood: parsed?.understood ?? [] }
   }
 
   /** Scan one query (cached like the feed) and score every car, starter rules not applied. */
@@ -466,11 +478,21 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     return st.running
   }
 
-  /** Run the sniper for every member who has an active target. */
+  /** Watched cars: ending soon, price moved, ended (src/watchalerts.ts). Uses only listings already scanned. */
+  function runWatchAlerts(): void {
+    const items = listWatch()
+    if (!items.length) return
+    const r = checkWatch(items, (id) => known.get(id), now())
+    for (const a of r.alerts) addAlert({ kind: 'watch', listingId: a.listingId, title: a.title, body: a.body }, now())
+    if (r.changed) saveWatch(r.items)
+  }
+
+  /** Run the sniper for every member who has an active target, and check every member's watched cars. */
   function runAllSnipers(): void {
     const emails = new Set<string>([OWNER_EMAIL, ...listUserScopes().map((u) => u.email)])
     for (const email of emails) {
       withUser(email, () => {
+        try { runWatchAlerts() } catch (e) { console.error('[watch]', e instanceof Error ? e.message : e) }
         if (listTargets().some((t) => t.active)) runSniper().catch((e) => console.error('[sniper]', e instanceof Error ? e.message : e))
       })
     }
@@ -1079,6 +1101,17 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     }
 
     // ---- The business: companies, books, the partner, materials, P/L, parts ----
+    if (path === '/api/business/export.csv' && method === 'GET') {
+      const only = str(url.searchParams.get('company') ?? '', 80) || undefined
+      const csv = ledgerCsv(listGarage(), listCompanies(), only)
+      res.setHeader('content-type', 'text/csv; charset=utf-8')
+      res.setHeader('content-disposition', `attachment; filename="gavel-books-${new Date(now()).toISOString().slice(0, 10)}.csv"`)
+      res.setHeader('cache-control', 'no-store')
+      res.statusCode = 200
+      res.end('\ufeff' + csv)
+      return
+    }
+
     if (path === '/api/business' && method === 'GET') {
       const t = now()
       const input = briefingFor(t)

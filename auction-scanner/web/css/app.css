@@ -1007,6 +1007,21 @@ body.door { background: radial-gradient(1200px 600px at 50% -10%, color-mix(in s
 .home-find form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .home-find .bd-amount input { font-size: 34px; width: 7ch; }
 
+.comps-panel summary { display: grid; gap: 2px; cursor: pointer; list-style: none; }
+.comps-panel summary::-webkit-details-marker { display: none; }
+.comps-panel summary h2 { margin: 0; }
+.comps { list-style: none; margin: 12px 0 8px; padding: 0; display: grid; }
+.comps li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.comp-main { display: grid; gap: 2px; min-width: 0; }
+.comp-main a, .comp-main b { font-weight: 600; color: var(--ink); }
+.comp-main .mono { font-size: 12px; }
+.comp-p { display: grid; justify-items: end; gap: 4px; flex-shrink: 0; }
+.comp-p b { font-size: 17px; white-space: nowrap; }
+.understood { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 4px; }
+.understood:empty { display: none; }
+.understood .mono { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-right: 2px; }
+.understood .pill { border-color: color-mix(in srgb, var(--best) 50%, transparent); color: var(--ink); background: color-mix(in srgb, var(--best-fill) 10%, transparent); }
+
 /* ---------- business: the partner, the books, companies ---------- */
 .badge.best { border-color: var(--best); color: var(--best); }
 .seg-mat { background: color-mix(in srgb, var(--best-fill) 70%, var(--ink-2)); }

@@ -2,6 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { withUser } from '../src/store.ts'
+import type { Listing } from '../src/types.ts'
 import { addCompany, addOverhead, listCompanies, removeCompany, updateCompany, validateCompaniesFile } from '../src/companies.ts'
 import { addCar, addCost, addIncome, listGarage, totalsFor, unassignCompany, updateCar } from '../src/garage.ts'
 import { businessReport } from '../src/business.ts'
@@ -144,4 +145,42 @@ test('the part finder checks the car, builds store searches, and reads eBay fitm
   assert.equal(part.priceUsd, 42.1)
   assert.equal(part.freeShipping, true)
   assert.equal(fromEbayPart({ itemId: '2', title: 't', itemWebUrl: 'https://example.invalid/2' }).fits, 'not checked')
+})
+
+test('the books export as a CSV an accountant can open, one row per dollar, formulas defused', async () => {
+  const { ledgerCsv } = await import('../src/business.ts')
+  await withUser('b4@example.com', () => {
+    const co = addCompany({ name: '=TEST FIXTURE Co', kind: 'flip' }, T0)
+    addOverhead(co.id, { label: 'Dealer licence', usd: 400, date: T0 }, T0)
+    const car = addCar({ title: 'TEST FIXTURE 2016 Honda Civic', purchaseUsd: 4000, companyId: co.id, boughtAt: T0 + DAY }, T0 + DAY)
+    addCost(car.id, { label: '+Transport', usd: 300, date: T0 + 2 * DAY }, T0 + 2 * DAY)
+    addIncome(car.id, { label: 'Sale', usd: 7000, date: T0 + 9 * DAY }, T0 + 9 * DAY)
+    addCar({ title: 'TEST FIXTURE loose car', purchaseUsd: 100, boughtAt: T0 }, T0)
+    const csv = ledgerCsv(listGarage(), listCompanies(), co.id)
+    const lines = csv.trim().split('\r\n')
+    assert.equal(lines.length, 5, 'header, licence, purchase, transport, sale; not the loose car')
+    assert.match(lines[1], /"Business cost","Dealer licence",-400/)
+    assert.match(lines[1], /"'=TEST FIXTURE Co"/, 'a leading = is defused')
+    assert.match(lines[3], /"'\+Transport",-300/)
+    assert.match(lines[4], /"Sale","Sale",7000,"sold"/)
+    assert.equal(ledgerCsv(listGarage(), listCompanies(), 'none').trim().split('\r\n').length, 2)
+  })
+})
+
+test('watch alerts: ending soon once, a real price move, the end; never a countdown for a date-only close', async () => {
+  const { checkWatch } = await import('../src/watchalerts.ts')
+  const now = T0
+  const base: Listing = { id: 'ebay:w1', source: 'ebay', externalId: 'w1', url: 'https://example.invalid/w1', title: 'TEST FIXTURE 2017 Camry', titleStatus: 'clean', damage: 'none', saleType: 'auction', currentBidUsd: 5000, photos: [], kind: 'LIVE', fetchedAt: now }
+  const item = { listingId: 'ebay:w1', title: 'TEST FIXTURE 2017 Camry', url: base.url, addedAt: now, snapshot: { ...base, endsAt: now + 5 * 3600_000 } }
+  // A fresh scan: the bid moved $400 and the end is now inside two hours.
+  let r = checkWatch([item], () => ({ ...base, currentBidUsd: 5400, endsAt: now + 90 * 60_000 }), now)
+  assert.deepEqual(r.alerts.map((a) => a.title), ['Ends in 1h 30m: TEST FIXTURE 2017 Camry', 'Price up to $5,400: TEST FIXTURE 2017 Camry'])
+  // Same again: nothing new. A $50 wiggle is not a move.
+  r = checkWatch(r.items, () => ({ ...base, currentBidUsd: 5450, endsAt: now + 80 * 60_000 }), now + 600_000)
+  assert.equal(r.alerts.length, 0)
+  r = checkWatch(r.items, () => ({ ...base, currentBidUsd: 6100, endsAt: now - 1 }), now + 7200_000)
+  assert.match(r.alerts[0].title, /^Ended: /)
+  assert.match(r.alerts[0].body, /\$6,100/)
+  const gsa = { ...item, alerted: undefined, snapshot: { ...base, endsAt: now + 3600_000, endsAtDateOnly: true } }
+  assert.equal(checkWatch([gsa], () => undefined, now).alerts.length, 0, 'a date-only close gets no countdown')
 })

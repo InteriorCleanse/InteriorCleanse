@@ -157,3 +157,37 @@ export function businessReport(cars: GarageCar[], companies: Company[], now = Da
   }
 }
 
+
+/** A spreadsheet cell: quoted, and a leading = + - @ in text is defused so a spreadsheet never runs it as a formula. */
+function cell(v: string | number): string {
+  if (typeof v === 'number') return String(Math.round(v * 100) / 100)
+  const t = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v
+  return `"${t.replace(/"/g, '""')}"`
+}
+
+/**
+ * The books as a CSV, one row per dollar that moved: purchases, car costs,
+ * income, and each company's business costs. Money out is negative. For an
+ * accountant, a spreadsheet, or a tax adviser. `only` limits it to one
+ * company id, or 'none' for cars in no company.
+ */
+export function ledgerCsv(cars: GarageCar[], companies: Company[], only?: string): string {
+  const name = new Map(companies.map((c) => [c.id, c.name]))
+  const rows: Array<{ date: number; cols: Array<string | number> }> = []
+  const want = (companyId?: string) => !only || (only === 'none' ? !companyId || !name.has(companyId) : companyId === only)
+  const day = (ms: number) => new Date(ms).toISOString().slice(0, 10)
+  for (const c of cars) {
+    if (!want(c.companyId)) continue
+    const co = c.companyId ? name.get(c.companyId) ?? '' : ''
+    rows.push({ date: c.boughtAt, cols: [day(c.boughtAt), co, c.title, c.vin ?? '', 'Purchase', c.boughtFrom ? `Bought from ${c.boughtFrom}` : 'Purchase', -c.purchaseUsd, c.status] })
+    for (const m of c.costs) rows.push({ date: m.date, cols: [day(m.date), co, c.title, c.vin ?? '', 'Car cost', m.label, -m.usd, c.status] })
+    for (const m of c.income) rows.push({ date: m.date, cols: [day(m.date), co, c.title, c.vin ?? '', /^sale$/i.test(m.label) ? 'Sale' : 'Income', m.label, m.usd, c.status] })
+  }
+  for (const co of companies) {
+    if (only && only !== co.id) continue
+    for (const o of co.overhead) rows.push({ date: o.date, cols: [day(o.date), co.name, '', '', 'Business cost', o.label, -o.usd, ''] })
+  }
+  rows.sort((a, b) => a.date - b.date)
+  const head = ['Date', 'Company', 'Car', 'VIN', 'Type', 'What for', 'Amount (USD)', 'Car status now']
+  return [head.map(cell).join(','), ...rows.map((r) => r.cols.map(cell).join(','))].join('\r\n') + '\r\n'
+}

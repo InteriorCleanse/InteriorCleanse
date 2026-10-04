@@ -22,6 +22,8 @@ function alertParts(a) {
   if (pick) return { car: pick[2], what: `Pick for ${pick[1]}` }
   const fired = /^PAPER bid fired: (.+)$/.exec(a.title)
   if (fired) return { car: fired[1], what: 'Paper bid fired' }
+  const watch = /^(Ends in [^:]+|Price (?:up|down) to [^:]+|Ended): (.+)$/.exec(a.title)
+  if (watch) return { car: watch[2], what: `Watching · ${watch[1]}` }
   return { car: a.title, what: '' }
 }
 

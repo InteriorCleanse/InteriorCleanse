@@ -38,6 +38,11 @@ export function addWatch(l: Listing): WatchItem[] {
   return listWatch()
 }
 
+/** Write the watch list back after the watch alerts update snapshots. */
+export function saveWatch(items: WatchItem[]): void {
+  writeJson(userFile(WATCH_FILE), items)
+}
+
 /** Stop watching a car. Removing one that is not there changes nothing. */
 export function removeWatch(listingId: string): WatchItem[] {
   const items = readWatch()

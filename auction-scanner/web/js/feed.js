@@ -14,7 +14,7 @@ function chipsHtml() {
   return `<div class="rail" id="rail">
     <div class="chips wrap tiers" role="toolbar" aria-label="Kind of car">${TIERS.map(([k, v]) => `<button class="chip" type="button" data-tier="${k}" aria-pressed="${state.tier === k}">${v}</button>`).join('')}</div>
     <div class="chips" role="toolbar" aria-label="Search">
-      <input type="search" id="f-q" placeholder="Search a make or model" aria-label="Search" value="${esc(state.q)}" />
+      <input type="search" id="f-q"  placeholder="Try: 2015+ camry under 8k no damage" aria-label="Search in plain English" value="${esc(state.q)}" />
       <details class="filters" id="f-more"><summary class="chip" id="f-more-sum">${filterSummary()}</summary>
         <div class="filters-body">
       <label class="switch" title="Hides salvage titles, damage beyond minor, cars that do not run, and cars over your price, mileage or age caps (Settings)."><input type="checkbox" id="f-starter" ${state.starter ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span class="mono">Starter mode</span></label>
@@ -25,6 +25,7 @@ function chipsHtml() {
         </div>
       </details>
     </div>
+    <div class="understood" id="f-understood" aria-live="polite"></div>
     <div class="status mono" id="f-status"></div>
   </div>`
 }
@@ -85,6 +86,8 @@ async function load() {
     if (state.starter && !state.showHidden && feed.hidden) bits.push(`<button class="lnk" type="button" id="f-why">Starter mode hid ${feed.hidden} — why?</button>`)
     if (state.starter && state.showHidden) bits.push(`<button class="lnk" type="button" id="f-why">showing hidden cars — hide them again</button>`)
     status.innerHTML = bits.join(' · ')
+    const u = root.querySelector('#f-understood')
+    u.innerHTML = feed.understood && feed.understood.length ? `<span class="mono dim">Searching for</span>${feed.understood.map((x) => `<span class="pill">${esc(x)}</span>`).join('')}` : ''
     const why = status.querySelector('#f-why')
     if (why) why.addEventListener('click', () => { state.showHidden = !state.showHidden; load() })
     let html = ''

@@ -2,7 +2,7 @@
 import { getJson, postJson, esc, money, debounce, safeUrl, reducedMotion } from './api.js'
 import { stub, badges, stamp, toast, loading, errorStrip, sourceName, carName } from './ui.js'
 import { HOUSES } from './houses.js'
-import { openPnl, openMaterials } from './pnl.js'
+import { openPnl, openMaterials, openBought } from './pnl.js'
 
 let current = null
 
@@ -52,6 +52,24 @@ function whyHtml(card) {
     ${card.demand ? `<p class="mono dim" style="margin-top:10px">Kind: ${esc(card.demand.tags.map(tierName).join(' · '))}</p>` : ''}
     ${reasons.length > 1 ? `<ul class="why">${reasons.slice(1).map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
     ${flags.length ? `<div class="flags"><span class="k mono">Red flags</span><ul>${flags.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}</details>`
+}
+
+const KIND_WORD = { sold: ['go', 'Sold'], ask: ['', 'Asking'], bid: ['wait', 'Open bid'] }
+
+/** The similar cars behind the estimate, closest first, each with its source: check them yourself. */
+function compsHtml(card) {
+  const e = card.estimate
+  if (!e || !e.ok || !e.used || !e.used.length) return ''
+  const b = e.basis
+  return `<details class="panel comps-panel" style="margin-top:16px"><summary><h2>The ${e.comps} similar cars</h2><span>${b ? `${b.sold} sold · ${b.asks} asking · ${b.bids} open bid${b.bids === 1 ? '' : 's'}` : esc(e.method)}</span><span class="mono dim">check them yourself</span></summary>
+    ${b && b.sold + b.asks < 3 ? '<div class="strip wait">Most of these are bids on auctions still running; they usually finish higher. Look up what this car actually sold for before you trust the estimate.</div>' : ''}
+    <ul class="comps">${e.used.map((c) => {
+      const [tone, word] = KIND_WORD[c.priceKind] || ['', c.priceKind]
+      const url = safeUrl(c.url)
+      const name = `${carName(c.title)}`
+      return `<li><div class="comp-main">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${name} ↗</a>` : `<b>${name}</b>`}<span class="mono dim">${esc([c.mileage !== undefined ? c.mileage.toLocaleString('en-US') + ' mi' : 'miles not stated', c.state, sourceName(c.source)].filter(Boolean).join(' · '))}</span></div><div class="comp-p"><b class="num">${esc(money(c.priceUsd))}</b><span class="badge ${tone}">${word}</span></div></li>`
+    }).join('')}</ul>
+    <p class="mono dim src">${e.used.length < e.comps ? `The ${e.used.length} closest of ${e.comps}, by year then miles. ` : ''}Median ${esc(money(e.valueUsd))}; range ${esc(money(e.low))} to ${esc(money(e.high))}.</p></details>`
 }
 
 function tierName(t) {
@@ -118,7 +136,7 @@ export async function render(el, ctx, [id]) {
   const inputs = {}
   const openUrl = sample ? null : safeUrl(l.url)
   el.innerHTML = `<div class="head"><div><a href="#feed" class="mono">← Back to the feed</a><h1 style="margin-top:6px">${carName(l.title)}</h1><p class="mono">${esc(sourceName(l.source))}${l.vin ? ' · VIN ' + esc(l.vin) : ' · no VIN in the listing'}</p></div>
-      <div class="row"><button class="btn outline sm" type="button" id="p-pnl">P/L</button><button class="btn outline sm" type="button" id="p-mats">Materials</button><button class="btn outline sm" type="button" id="p-print">Print</button>${openUrl ? `<a class="btn outline sm" href="${esc(openUrl)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''}</div></div>
+      <div class="row"><button class="btn outline sm" type="button" id="p-pnl">P/L</button><button class="btn outline sm" type="button" id="p-mats">Materials</button><button class="btn outline sm" type="button" id="p-print">Print</button><button class="btn outline sm" type="button" id="p-bought">I bought it</button>${openUrl ? `<a class="btn outline sm" href="${esc(openUrl)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''}</div></div>
     ${sample ? '<div class="strip"><b>SAMPLE car.</b> Nothing here can be bought. Use it to practise the plan.</div>' : ''}
     ${(l.photos || []).map(safeUrl).filter(Boolean).length ? `<div class="gallery" role="list" aria-label="Photos from the listing">${(l.photos || []).map(safeUrl).filter(Boolean).slice(0, 16).map((u, i) => `<a role="listitem" href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img src="${esc(u)}" alt="Photo ${i + 1} of the car" loading="lazy" /></a>`).join('')}</div><p class="dim" style="font-size:14px;margin:6px 0 16px">Zoom every photo. Mismatched paint, uneven gaps and new parts on an old car usually mean a repaired crash.</p>` : ''}
     <div class="plan">
@@ -127,6 +145,7 @@ export async function render(el, ctx, [id]) {
           <div><span class="k mono">${card.estimate.ok ? 'Similar cars sell for' : 'Similar cars'}</span><div class="comps ${card.estimate.ok ? '' : 'nocomps'}">${card.estimate.ok ? esc(money(card.estimate.valueUsd)) : 'Not enough comps'}</div><div class="receipt mono">${card.estimate.ok ? esc(card.estimate.method) : esc(card.estimate.reason)}</div></div></div>${badges(l)}</div>${stub(card.score, { big: true })}</div>
         ${priceItHtml(l, card.estimate)}
         ${whyHtml(card)}
+        ${compsHtml(card)}
         <div class="panel receipt-paper" style="margin-top:16px"><div class="r-head"><h2>The number</h2><span class="mono">Itemised · every dollar</span></div><div id="p-ledger">${ledgerHtml(card.plan, inputs, l)}</div></div>
         ${supercarHtml(card.plan)}
         <div class="panel"><h2>Bid</h2>
@@ -171,6 +190,7 @@ export async function render(el, ctx, [id]) {
   el.querySelector('#p-print').addEventListener('click', () => window.print())
   el.querySelector('#p-pnl').addEventListener('click', () => openPnl({ listingId: l.id }))
   el.querySelector('#p-mats').addEventListener('click', () => openMaterials(l.id))
+  el.querySelector('#p-bought').addEventListener('click', () => openBought(l.id))
   const soldForm = el.querySelector('#p-sold')
   if (soldForm) soldForm.addEventListener('submit', async (e) => {
     e.preventDefault()

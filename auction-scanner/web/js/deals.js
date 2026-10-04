@@ -3,7 +3,7 @@
 // ranked by estimated profit. The engine is src/finder.ts; nothing here guesses.
 import { getJson, postJson, del, esc, money, debounce, store, safeUrl, closesText } from './api.js'
 import { loading, errorStrip, toast, carName, sourceName } from './ui.js'
-import { openPnl, openMaterials } from './pnl.js'
+import { openPnl, openMaterials, openBought } from './pnl.js'
 
 const QUICK = [3000, 5000, 10000, 15000, 25000, 40000]
 const PROFITS = [['', 'Any'], ['1000', '$1k+'], ['2500', '$2.5k+'], ['5000', '$5k+']]
@@ -166,13 +166,14 @@ function dealHtml(d, rank, lead = false) {
       <div class="deal-facts"><span class="badge go">✓ Clean title</span><span class="badge ${l.damage === 'none' ? 'go' : 'wait'}">${l.damage === 'none' ? '✓ No damage' : '! Minor damage'}</span><span class="badge ${l.runsAndDrives === true ? 'go' : 'wait'}">${l.runsAndDrives === true ? '✓ Runs & drives' : '? Runs: not stated'}</span></div>
       <div class="deal-evidence ${lead ? 'lead' : 'ok'}"><span class="mono">${lead ? 'Lead' : 'Confirmed'}</span> similar cars ${esc(money(d.resaleUsd))} · ${esc(basis)}${d.confidence === 'thin' ? ' · thin' : ''}</div>
       <details class="deal-cautions"><summary>${d.cautions.length} thing${d.cautions.length === 1 ? '' : 's'} to check before you bid</summary><ul>${d.cautions.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
-      <div class="actions"><a class="btn sm" href="#plan/${encodeURIComponent(l.id)}">View plan</a>${open ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open auction ↗</a>` : ''}<button class="btn outline sm" type="button" data-pnl>P/L</button><button class="btn outline sm" type="button" data-mats>Materials ${esc(money(d.materialsUsd || 0))}</button><button class="btn outline sm" type="button" data-watch>Watch</button></div>
+      <div class="actions"><a class="btn sm" href="#plan/${encodeURIComponent(l.id)}">View plan</a>${open ? `<a class="btn outline sm" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">Open auction ↗</a>` : ''}<button class="btn outline sm" type="button" data-pnl>P/L</button><button class="btn outline sm" type="button" data-mats>Materials ${esc(money(d.materialsUsd || 0))}</button><button class="btn outline sm" type="button" data-watch>Watch</button><button class="more" type="button" data-bought>I bought it</button></div>
     </div>
   </article>`
 }
 
 function wire(root) {
   root.querySelectorAll('[data-pnl]').forEach((b) => b.addEventListener('click', () => openPnl({ listingId: b.closest('[data-id]').dataset.id })))
+  root.querySelectorAll('[data-bought]').forEach((b) => b.addEventListener('click', () => openBought(b.closest('[data-id]').dataset.id)))
   root.querySelectorAll('[data-mats]').forEach((b) => b.addEventListener('click', () => openMaterials(b.closest('[data-id]').dataset.id)))
   root.querySelectorAll('[data-watch]').forEach((b) => b.addEventListener('click', async () => {
     const id = b.closest('[data-id]').dataset.id

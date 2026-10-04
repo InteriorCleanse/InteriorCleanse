@@ -5,7 +5,7 @@ import { readJson, userFile, writeJson } from '../store.ts'
 export type Alert = {
   id: string
   at: number
-  kind: 'pick' | 'paper-fired' | 'scan' | 'note'
+  kind: 'pick' | 'paper-fired' | 'scan' | 'note' | 'watch'
   targetId?: string
   listingId?: string
   title: string
