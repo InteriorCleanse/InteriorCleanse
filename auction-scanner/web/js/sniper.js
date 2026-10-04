@@ -28,7 +28,7 @@ function targetForm(t = {}) {
       <label class="f">Last year <select name="yearMax">${yearOpts(t.yearMax)}</select></label>
       <label class="f">Mileage cap <input type="number" name="maxMileage" min="0" step="any" value="${esc(t.maxMileage || '')}" placeholder="Any" /></label>
       <label class="f">States (two letters, comma separated) <input type="text" name="states" value="${esc((t.states || []).join(', '))}" placeholder="Anywhere" /></label>
-      <label class="f">Lowest deal score <input type="number" name="minScore" min="0" max="100" step="any" value="${esc(t.minScore ?? 60)}" /><small>60 is a good deal, 80 is a steal.</small></label>
+      <label class="f">Lowest deal score <input type="number" name="minScore" min="0" max="100" step="any" value="${esc(t.minScore ?? 60)}" /><small>60 is below market, 80 is well below market.</small></label>
     </div>
     <div class="row" style="margin-top:12px">
       <label class="switch"><input type="checkbox" name="starterOnly" ${t.starterOnly !== false ? 'checked' : ''} /><span class="track" aria-hidden="true"></span><span>Starter rules only</span></label>
@@ -105,7 +105,7 @@ export async function render(el, ctx) {
         ${data.alerts.length ? `<div class="list">${data.alerts.slice(0, 12).map((a) => `<div class="item ${a.read ? '' : 'unread'}"><div class="main"><b>${esc(a.title)}</b><div style="font-size:14px">${esc(a.body)}</div><div class="mono dim">${esc(when(a.at))}</div></div>${a.listingId ? `<a class="btn outline sm" href="#plan/${encodeURIComponent(a.listingId)}">Plan</a>` : ''}</div>`).join('')}</div><div class="row" style="margin-top:10px"><button class="btn outline sm" id="sn-read">Mark all read</button></div>` : '<p class="dim">Alerts appear here when a target finds a pick or fires a paper bid.</p>'}
       </div>
     </div>
-    <div style="margin-top:20px"><h2 style="margin-bottom:4px">Picks (${data.picks.length})</h2><p class="dim" style="margin:0 0 10px;font-size:14px">Best match first. The match mixes the steal score, how far the price is under your number, and how fresh the listing is.</p>
+    <div style="margin-top:20px"><h2 style="margin-bottom:4px">Picks (${data.picks.length})</h2><p class="dim" style="margin:0 0 10px;font-size:14px">Best match first. The match mixes the deal score, how far the price is under your number, and how fresh the listing is.</p>
       ${data.picks.length ? `<div class="feed">${data.picks.map(pickHtml).join('')}</div>` : `<div class="tag empty"><p>${targets.length ? 'No picks yet. Press Scan now, or loosen a target (a lower minimum score, more makes, a bigger budget).' : 'Picks show up here once you have a target.'}</p></div>`}
     </div>`
   const reload = () => render(el, ctx)

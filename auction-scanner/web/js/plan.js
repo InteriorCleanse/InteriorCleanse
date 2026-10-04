@@ -2,6 +2,7 @@
 import { getJson, postJson, esc, money, debounce, safeUrl, reducedMotion } from './api.js'
 import { stub, badges, stamp, toast, loading, errorStrip, sourceName, carName } from './ui.js'
 import { HOUSES } from './houses.js'
+import { openPnl, openMaterials } from './pnl.js'
 
 let current = null
 
@@ -117,7 +118,7 @@ export async function render(el, ctx, [id]) {
   const inputs = {}
   const openUrl = sample ? null : safeUrl(l.url)
   el.innerHTML = `<div class="head"><div><a href="#feed" class="mono">← Back to the feed</a><h1 style="margin-top:6px">${carName(l.title)}</h1><p class="mono">${esc(sourceName(l.source))}${l.vin ? ' · VIN ' + esc(l.vin) : ' · no VIN in the listing'}</p></div>
-      <div class="row"><button class="btn outline sm" type="button" id="p-print">Print</button>${openUrl ? `<a class="btn outline sm" href="${esc(openUrl)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''}</div></div>
+      <div class="row"><button class="btn outline sm" type="button" id="p-pnl">P/L</button><button class="btn outline sm" type="button" id="p-mats">Materials</button><button class="btn outline sm" type="button" id="p-print">Print</button>${openUrl ? `<a class="btn outline sm" href="${esc(openUrl)}" target="_blank" rel="noopener noreferrer">Open the lot ↗</a>` : ''}</div></div>
     ${sample ? '<div class="strip"><b>SAMPLE car.</b> Nothing here can be bought. Use it to practise the plan.</div>' : ''}
     ${(l.photos || []).map(safeUrl).filter(Boolean).length ? `<div class="gallery" role="list" aria-label="Photos from the listing">${(l.photos || []).map(safeUrl).filter(Boolean).slice(0, 16).map((u, i) => `<a role="listitem" href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img src="${esc(u)}" alt="Photo ${i + 1} of the car" loading="lazy" /></a>`).join('')}</div><p class="dim" style="font-size:14px;margin:6px 0 16px">Zoom every photo. Mismatched paint, uneven gaps and new parts on an old car usually mean a repaired crash.</p>` : ''}
     <div class="plan">
@@ -168,6 +169,8 @@ export async function render(el, ctx, [id]) {
   wireLedger()
 
   el.querySelector('#p-print').addEventListener('click', () => window.print())
+  el.querySelector('#p-pnl').addEventListener('click', () => openPnl({ listingId: l.id }))
+  el.querySelector('#p-mats').addEventListener('click', () => openMaterials(l.id))
   const soldForm = el.querySelector('#p-sold')
   if (soldForm) soldForm.addEventListener('submit', async (e) => {
     e.preventDefault()

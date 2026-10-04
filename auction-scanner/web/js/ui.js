@@ -53,7 +53,8 @@ export function sheet(html, { label = 'Dialog' } = {}) {
 
 // Timing colours: purple is the best in the session, green good, yellow caution.
 const GRADE_TONE = { steal: 'best', 'good deal': 'go', fair: 'wait', pass: '', unpriced: 'hollow' }
-const GRADE_WORD = { steal: 'Steal', 'good deal': 'Good deal', fair: 'Fair', pass: 'Pass', unpriced: 'Unpriced' }
+// Market-range words, never a promise: where the price sits against similar cars.
+const GRADE_WORD = { steal: 'Well below market', 'good deal': 'Below market', fair: 'Near market', pass: 'At or above market', unpriced: 'Not enough similar cars' }
 
 /** A car's name, escaped, with hyphenated model names (MX-5, F-150) kept on one line. */
 export function carName(title) {

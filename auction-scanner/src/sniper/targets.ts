@@ -20,7 +20,7 @@ export type Target = {
   maxMileage?: number
   /** Only US state codes; empty = anywhere. */
   states: string[]
-  /** Minimum Steal score to count as a pick. */
+  /** Minimum deal score to count as a pick. */
   minScore: number
   /** Starter rules must pass (clean title, minor damage at most, runs and drives). */
   starterOnly: boolean

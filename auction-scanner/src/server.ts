@@ -29,7 +29,7 @@ import { AUCTION_HOUSES, houseById, HOUSE_GROUPS } from './sources/directory.ts'
 import { estimateValue, askingPrice } from './valuation.ts'
 import { demandFor } from './demand.ts'
 import type { DemandEntry } from './demand.ts'
-import { scoreListing } from './scoring.ts'
+import { gradeWord, scoreListing } from './scoring.ts'
 import { buildPlan } from './bidplan.ts'
 import type { PlanInputs } from './bidplan.ts'
 import { walkthrough } from './explain.ts'
@@ -453,7 +453,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
               fired++
               console.log(`[sniper] PAPER fired ${card.listing.id} $${bid.maxBidUsd} for a target`)
             } else if (!target.armed && !listAlerts().some((a) => (a.kind === 'pick' || a.kind === 'paper-fired') && a.listingId === card.listing.id)) {
-              addAlert({ kind: 'pick', targetId: target.id, listingId: card.listing.id, title: `New pick for ${target.name}: ${card.listing.title}`, body: `Score ${card.score.total} (${card.score.grade}). Never bid above $${pick.fire.maxBidUsd.toLocaleString('en-US')}. ${pick.fire.why}` }, now())
+              addAlert({ kind: 'pick', targetId: target.id, listingId: card.listing.id, title: `New pick for ${target.name}: ${card.listing.title}`, body: `Score ${card.score.total} (${gradeWord(card.score.grade)}). Never bid above $${pick.fire.maxBidUsd.toLocaleString('en-US')}. ${pick.fire.why}` }, now())
             }
           }
         }

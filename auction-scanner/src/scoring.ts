@@ -1,5 +1,5 @@
 /**
- * The Steal score — how good a deal one car looks, 0 to 100, worked out in
+ * The deal score — how far under similar cars one car is priced, 0 to 100, worked out in
  * the open so every point can be explained.
  *
  *   1. No estimate (NOT ENOUGH COMPS) or no price → score 0, grade "unpriced".
@@ -8,7 +8,8 @@
  *      100; in between is a straight line; outside is clamped 0–100.
  *   3. Named adjustments for title, damage, running, keys, mileage, timing and
  *      demand, each written out as a reason with its sign.
- *   4. Grade: 80+ steal · 60+ good deal · 40+ fair · below 40 pass.
+ *   4. Grade: 80+ steal · 60+ good deal · 40+ fair · below 40 pass. These are
+ *      internal ids; members see `gradeWord()`, market-range words.
  *
  * Red flags are the things a beginner must not miss. Starter mode blocks come
  * from filters.ts. Every sentence is meant for someone who has never bought a
@@ -209,4 +210,9 @@ export function scoreListing(l: Listing, est: Estimate, demand?: DemandEntry, ru
     starterOk,
     starterBlocks,
   }
+}
+
+/** What a member reads for a grade: where the price sits against similar cars, never a promise. */
+export function gradeWord(g: 'steal' | 'good deal' | 'fair' | 'pass' | 'unpriced'): string {
+  return { steal: 'well below market', 'good deal': 'below market', fair: 'near market', pass: 'at or above market', unpriced: 'not enough similar cars' }[g]
 }

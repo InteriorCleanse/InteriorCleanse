@@ -16,6 +16,7 @@ import type { BidPlan, Listing } from '../types.ts'
 import type { Card } from '../server.ts'
 import type { Target } from './targets.ts'
 import { askingPrice } from '../valuation.ts'
+import { gradeWord } from '../scoring.ts'
 
 export type FirePlan = {
   method: 'snipe' | 'proxy' | 'live-lane' | 'buy-now' | 'unknown'
@@ -74,7 +75,7 @@ export function matchesTarget(target: Target, card: Card): { ok: boolean; why: s
   if (target.starterOnly && !card.score.starterOk) return { ok: false, why: ['fails starter rules'] }
   if (card.score.grade === 'unpriced') return { ok: false, why: ['not enough comps'] }
   if (card.score.total < target.minScore) return { ok: false, why: ['score too low'] }
-  why.push(`Score ${card.score.total}, ${card.score.grade}`)
+  why.push(`Score ${card.score.total}, ${gradeWord(card.score.grade)}`)
   return { ok: true, why }
 }
 
