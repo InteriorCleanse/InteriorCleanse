@@ -772,6 +772,30 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     })
   })
 
+  it("keeps one company's agent and standing orders from another", async () => {
+    // A profile shapes what every member of a workspace hears from its
+    // analyst. It is the workspace's to read and its admins' to write, and
+    // another tenant can do neither.
+    await db.query(
+      `insert into public.assistant_profiles (organization_id, agent_name, standing_orders)
+       values ($1, 'Nova', 'Watch margin on the candle range.')`,
+      [orgA],
+    )
+    await asUser(db, ownerA, async (s) => {
+      const own = await s.query<{ agent_name: string }>('select agent_name from public.assistant_profiles')
+      expect(own.rows.map((r) => r.agent_name)).toEqual(['Nova'])
+    })
+    await asUser(db, ownerB, async (s) => {
+      const other = await s.query('select agent_name from public.assistant_profiles')
+      expect(other.rowCount).toBe(0)
+      const failure = await s.refused(
+        `insert into public.assistant_profiles (organization_id, agent_name) values ($1, 'Mallory')`,
+        [orgA],
+      )
+      expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+  })
+
   it('does not let a tenant edit their own subscription', async () => {
     // Entitlements are read from this table. A tenant that could write it could
     // grant themselves the top plan for nothing.
@@ -851,6 +875,7 @@ describe.skipIf(!hasTestDatabase)('the harness is testing what it claims to', ()
       'integration_credentials',
       'mail_connections',
       'site_builds',
+      'assistant_profiles',
       'subscriptions',
     ]) {
       const row = rows.find((r) => r.relname === table)

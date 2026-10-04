@@ -101,7 +101,11 @@ describe('tool surface', () => {
       expect(tool.capability).toBe('assistant:approve_action')
     }
     for (const tool of readTools()) {
-      expect(tool.capability).toBe('data:view')
+      // The one read that crosses tenants is gated on the platform capability
+      // no tenant role can hold; every other read is ordinary workspace data.
+      expect(tool.capability).toBe(
+        tool.name === 'portfolio_overview' ? 'platform:view_console' : 'data:view',
+      )
     }
   })
 

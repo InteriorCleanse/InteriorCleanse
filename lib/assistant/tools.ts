@@ -9,6 +9,7 @@ import { loadWorkspaceAnalytics, type WorkspaceAnalytics } from '@/lib/workspace
 import { INBOX_LIMIT, type MailMessage } from '@/lib/mail/gmail'
 import { agendaWindow, describeWhen, type AgendaDay, type AgendaEvent } from './agenda'
 import { forecast } from './forecast'
+import { watch, type WatchedCompany } from '@/lib/owner/mission'
 
 /**
  * The analyst's tool surface.
@@ -60,6 +61,12 @@ export type ToolContext = {
   queryAgenda?: (from: Date, to: Date) => Promise<AgendaEvent[]>
   /** Sites the assistant has built in this workspace. */
   listSites?: () => Promise<SiteRecord[]>
+  /**
+   * Every company on the deployment, for the platform owner alone. Injected
+   * by the route only after the platform-role gate; absent for everyone else,
+   * so the tool is not merely hidden from a tenant — it has nothing to read.
+   */
+  listPortfolio?: () => Promise<WatchedCompany[]>
 }
 
 export type SiteRecord = {
@@ -824,12 +831,64 @@ const publishSite: ToolDefinition = {
   }),
 }
 
+// ── The owner's portfolio ───────────────────────────────────────────────────
+// The one tool that sees more than one workspace, and it sees them only for
+// the person who owns the deployment. The capability is the platform one, not
+// a tenant one, and the data arrives only if the route chose to inject it
+// after checking that capability — a tenant's model has nothing to call.
+
+const portfolioOverview: ToolDefinition = {
+  name: 'portfolio_overview',
+  kind: 'read',
+  capability: 'platform:view_console',
+  description:
+    'For the owner of the deployment only: every company, each with its own analyst’s name, its standing (critical, watch, healthy, or unknown when nothing is connected), its loudest signal, subscription health, members and headline revenue in its own currency. Use it for "what is happening across my companies", "who needs me", or a portfolio morning brief. Lead with what needs a decision.',
+  schema: z.object({}),
+  execute: async (_args, ctx) => {
+    if (!ctx.listPortfolio) {
+      return {
+        data: { available: false, reason: 'The portfolio view is not available to this person.' },
+        citations: ['portfolio'],
+      }
+    }
+    const mission = watch(await ctx.listPortfolio(), 'The assistant')
+    return {
+      data: {
+        available: true,
+        summary: mission.summary.replace(/^The assistant/, 'You are'),
+        counts: mission.counts,
+        needsYou: mission.needsYou.map((c) => ({ name: c.name, standing: c.standing, headline: c.headline })),
+        companies: mission.companies.map((c) => ({
+          name: c.name,
+          agent: c.agentName,
+          reportsIn: c.reportsToOwner,
+          demo: c.isDemo,
+          standing: c.standing,
+          headline: c.headline,
+          subscription: c.subscriptionStatus || 'none',
+          plan: c.planKey,
+          members: c.memberCount,
+          currency: c.currency,
+          revenue: c.netRevenueMinor === null ? null : fmt(c.currency)(c.netRevenueMinor),
+          contributionProfit:
+            c.contributionProfitMinor === null ? null : fmt(c.currency)(c.contributionProfitMinor),
+          signals: c.signals.map((s) => ({ severity: s.severity, title: s.title, detail: s.detail })),
+        })),
+        note: 'Revenue is per company in its own currency and is never summed across companies. A null revenue means no data source is connected, not zero. Demo companies carry demonstration data and are marked.',
+      },
+      citations: ['portfolio', ...mission.companies.map((c) => `company:${c.id}`)],
+      sources: mission.companies.map((c) => ({ key: `company:${c.id}`, label: c.name, url: null })),
+    }
+  },
+}
+
 export const TOOLS: ToolDefinition[] = [
   searchKnowledge,
   queryPipeline,
   readInbox,
   checkCalendar,
   listSites,
+  portfolioOverview,
   queryKpis,
   comparePeriods,
   rankProducts,

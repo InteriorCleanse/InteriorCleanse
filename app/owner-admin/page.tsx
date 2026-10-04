@@ -1,11 +1,10 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import { Eyebrow, Panel } from '@/components/ui'
 import { can } from '@/lib/authz'
 import { applyPlanCopy } from '@/lib/billing/plan-copy'
 import { PLAN_ORDER, formatPlanPrice } from '@/lib/billing/plans'
 import { readiness, type ReadinessLevel } from '@/lib/readiness'
-import { requireSession } from '@/lib/session'
+import { requireOwnerConsole } from '@/lib/session'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { PlanCopyForm } from './plan-copy-form'
 // Imported for its side effect as well as its type: this is what registers the
@@ -35,16 +34,8 @@ const TONE: Record<ReadinessLevel, { className: string; label: string }> = {
  * deployment; this describes the one that is running.
  */
 export default async function OwnerAdminPage() {
-  const session = await requireSession()
-
-  const actor = {
-    userId: session.userId,
-    tenantRole: null,
-    platformRole: session.platformRole,
-  }
-
-  // Not 403 — a non-staff user should not learn that this route exists.
-  if (!can(actor, 'platform:view_console')) redirect('/app/command-center')
+  // Platform staff with a second factor, or a redirect that reveals nothing.
+  const { session, actor } = await requireOwnerConsole()
 
   const report = readiness()
 
@@ -66,7 +57,7 @@ export default async function OwnerAdminPage() {
         href="/owner-admin/companies"
         className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-hairline bg-panelRaised px-5 text-sm font-medium transition hover:border-signal"
       >
-        View all companies →
+        Open mission control →
       </Link>
 
       <Panel className="mt-8">

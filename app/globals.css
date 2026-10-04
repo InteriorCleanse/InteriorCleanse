@@ -294,6 +294,28 @@ main :is(a, li) .shadow-panel:hover {
   );
 }
 
+/* ── Health ring ──────────────────────────────────────────────────────────
+   A company's standing as a ring: the tone says which, the fill says how
+   much is known. Built from tokens so it reads in every theme. */
+.health-ring {
+  --tone: var(--signal);
+  --pct: 100;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: conic-gradient(rgb(var(--tone)) calc(var(--pct) * 1%), rgb(var(--hairline)) 0);
+  box-shadow: 0 0 18px -6px rgb(var(--tone) / 0.7);
+}
+.health-ring::after {
+  content: "";
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  background: rgb(var(--panel));
+}
+.tone-muted { --tone: var(--muted); }
+
 /* A headline that carries the signal in its second half. */
 .text-glow {
   background: linear-gradient(92deg, rgb(var(--ink)) 0%, rgb(var(--ink)) 45%, rgb(var(--signal)) 100%);
