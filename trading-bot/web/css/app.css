@@ -3155,6 +3155,11 @@ button.cc-cell:focus-visible { box-shadow:inset var(--focus-ring); outline:none;
 .cc-note { font-size:var(--fs-xs); color:var(--dim); margin:var(--sp-2) var(--sp-1) 0; }
 .cc-note b { color:var(--text); font-weight:600; }
 
+/* A fresh reading: one soft highlight that fades (the kestrel's single move). */
+@keyframes cc-fresh { from { background-color:rgba(var(--brand-rgb), .16); } to { background-color:transparent; } }
+.cc-fresh { animation:cc-fresh var(--dur-scene) var(--ease-strike) both; animation-duration:calc(var(--dur-scene) * 3); }
+@media (prefers-reduced-motion: reduce) { .cc-fresh { animation:none; } }
+
 /* The lower band: what happened, and where to go */
 .cc-lower { display:grid; grid-template-columns:minmax(0, 1.35fr) minmax(0, 1fr); gap:var(--sp-6); margin:var(--sp-6) 0; align-items:start; }
 .cc-tl { list-style:none; margin:0; padding:0; border-left:var(--rule); margin-left:var(--sp-1); }
@@ -3232,3 +3237,12 @@ button.cc-cell:focus-visible { box-shadow:inset var(--focus-ring); outline:none;
 .web-check { all:unset; cursor:pointer; font:500 var(--fs-2xs)/1 var(--type-ui); color:var(--brand); padding:4px 6px; border-radius:var(--rad-1); white-space:nowrap; }
 .web-check:hover { text-decoration:underline; text-underline-offset:3px; }
 .web-check:focus-visible { box-shadow:var(--focus-ring); }
+
+/* Dark themes: the main panels let the living backdrop glow through a little.
+   Translucency only, no blur, so the canvas below never forces a re-blur per frame. */
+html[data-tone="dark"] .cc-rail, html[data-tone="dark"] .cc-scroll, html[data-tone="dark"] .cc-lower .hg-grid, html[data-tone="dark"] .wr-ans { background:rgba(var(--surf-lo), .72); }
+html[data-tone="dark"] .card, html[data-tone="dark"] .dk-evidence, html[data-tone="dark"] .ev-hero, html[data-tone="dark"] .dk-stat, html[data-tone="dark"] .dk-mini { background:linear-gradient(180deg, rgba(var(--surf-hi), .78), rgba(var(--surf-lo), .86)); }
+html[data-tone="dark"] .hm-hero, html[data-tone="dark"].has-film .hm-hero { background:radial-gradient(70% 90% at 30% 50%, rgba(var(--brand-rgb), .12), transparent 70%), linear-gradient(160deg, rgba(var(--surf-hi), .74), rgba(var(--surf-lo), .86)); }
+@media (prefers-reduced-transparency: reduce) {
+  html[data-tone="dark"] .cc-rail, html[data-tone="dark"] .cc-scroll, html[data-tone="dark"] .cc-lower .hg-grid, html[data-tone="dark"] .wr-ans, html[data-tone="dark"] .card, html[data-tone="dark"] .hm-hero { background:var(--panel); }
+}

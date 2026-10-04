@@ -162,12 +162,24 @@ function place() {
   if (more) more.before(lowerEl); else out.after(lowerEl)
 }
 
+// What changed since the last paint, so a new reading gets one brief highlight
+// (a single move per change, never a loop; tokens.css stops it under reduced motion).
+let prevTick = null, prevVals = {}
 function paint() {
   const top = $('home-overview'); if (!top) return
   top.innerHTML = rail()
   desksEl.innerHTML = desks()
   eventsEl.innerHTML = events()
   place()
+  const tick = st.health?.lastWatchAt ?? null
+  if (prevTick !== null && tick !== null && tick > prevTick) top.querySelector('.cc-cell[data-tab="today"]')?.classList.add('cc-fresh')
+  prevTick = tick
+  const vals = Object.fromEntries((st.overview?.books || []).map((b) => [b.id, b.now]))
+  desksEl.querySelectorAll('tbody tr[data-tab]').forEach((tr, i) => { const b = st.overview.books[i]; if (b && prevVals[b.id] !== undefined && prevVals[b.id] !== b.now) tr.classList.add('cc-fresh') })
+  prevVals = vals
+  // The backdrop (bg.js) dims when the candle feed is stale and sends one wave per new candle check.
+  const v = st.system?.feeds?.candles?.verdict
+  document.dispatchEvent(new CustomEvent('kestrel:state', { detail: { stale: v ? v !== 'fresh' : false, tick } }))
 }
 
 const top = $('home-overview')

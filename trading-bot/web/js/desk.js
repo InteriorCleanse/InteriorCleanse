@@ -465,7 +465,9 @@ async function loadDesk() {
     coreData = j.data.core || null
     deskData = j.data
     // The accounts card (web/js/accounts.js) fills itself in; the desk only says it has drawn.
-    document.dispatchEvent(new CustomEvent('desk:rendered'))
+    // The detail lets the backdrop (web/js/bg.js) lean with the panel: direction, agreement and volatility, as read here.
+    const pn = j.data.core?.panel
+    document.dispatchEvent(new CustomEvent('desk:rendered', { detail: { direction: pn?.direction || 'flat', score: typeof pn?.score === 'number' ? pn.score : null, volatility: j.data.core?.volatility?.label || null } }))
     attachBrain()
     if (deskVisible()) { startDeskRefresh(); startCore() } else { stopDeskRefresh(); stopCore() }
   } catch (e) {

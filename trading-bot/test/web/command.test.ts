@@ -44,3 +44,14 @@ test('reduced motion stops every token duration', () => {
   assert.ok(durations.length >= 5)
   for (const d of new Set(durations)) assert.match(reduced, new RegExp(`${d}:\\s*0ms`), `${d} is zeroed under reduced motion`)
 })
+
+test('the living backdrop moves only for real state, and holds still for reduced motion', () => {
+  const bg = web('js/bg.js')
+  assert.match(bg, /addEventListener\('desk:rendered'/, 'leans with the panel')
+  assert.match(bg, /addEventListener\('kestrel:state'/, 'dims when blind, one wave per candle')
+  assert.match(bg, /if \(lastTick !== null && d\.tick > lastTick && !reduce\) wave =/, 'a wave only on a newer candle, never under reduced motion')
+  assert.equal((bg.match(/fetch\(/g) || []).length, 1, 'the backdrop reads no market data itself (its only fetch asks which media files exist)')
+  for (const t of ['midnight', 'plum', 'slate', 'onyx', 'daylight', 'linen']) assert.match(bg, new RegExp(`\\b${t}: \\[F\\(`), `${t} has its own palette`)
+  assert.match(web('js/desk.js'), /new CustomEvent\('desk:rendered', \{ detail: \{ direction:/)
+  assert.match(web('js/overview.js'), /new CustomEvent\('kestrel:state'/)
+})
