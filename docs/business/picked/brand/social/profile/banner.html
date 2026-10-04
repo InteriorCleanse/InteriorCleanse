@@ -8,7 +8,7 @@
 html,body{margin:0;height:100%}
 body{background:#1F4D2C;overflow:hidden;position:relative;font-family:L;color:#FFF7EC}
 .dots{position:absolute;inset:0}
-.dot{position:absolute;border-radius:50%}
+.fr{position:absolute;width:auto}
 .safe{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:calc(var(--u)*3);white-space:nowrap}
 .safe img{height:calc(var(--u)*9)}
 .rule{width:calc(var(--u)*.35);height:calc(var(--u)*10);background:#9BD36A;border-radius:9px}
@@ -16,15 +16,14 @@ body{background:#1F4D2C;overflow:hidden;position:relative;font-family:L;color:#F
 .s{font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:calc(var(--u)*1.25);color:#9BD36A;margin-top:calc(var(--u)*1.2)}
 </style></head><body>
 <div class="dots">
- <div class="dot" style="background:#F0505E;width:42vh;height:42vh;left:-12vh;top:-14vh"></div>
- <div class="dot" style="background:#FFB01F;width:30vh;height:30vh;left:9vw;bottom:-16vh"></div>
- <div class="dot" style="background:#B8185A;width:46vh;height:46vh;right:-14vh;bottom:-20vh"></div>
- <div class="dot" style="background:#F6DD3D;width:20vh;height:20vh;right:12vw;top:-8vh"></div>
+ <img class="fr" src="../../fruit/strawberry.svg" alt="" style="height:58vh;left:-10vh;top:-20vh;transform:rotate(-18deg)">
+ <img class="fr" src="../../fruit/raspberry-lemon.svg" alt="" style="height:56vh;right:-10vh;bottom:-22vh;transform:rotate(12deg)">
+ <img class="fr" src="../../fruit/mango.svg" alt="" style="height:42vh;left:6vw;bottom:-22vh">
 </div>
 <div class="safe">
  <img src="../../picked-wordmark-reverse.svg" alt="Picked">
  <div class="rule"></div>
- <div><div class="t">Real fruit.<br>Real protein.</div><div class="s">The grams are on the front</div></div>
+ <div><div class="t">The fruit<br>is in it.</div><div class="s">The grams go on the front</div></div>
 </div>
 <script>
 // Size the unit to the safe area so every banner keeps the same composition.

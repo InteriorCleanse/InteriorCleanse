@@ -63,6 +63,9 @@ def pouch(key,name,col,ink,soft,fruit,fruitline):
 </g>
 <path d="M40 58 l10 6 l-10 6" fill="#fff" opacity=".7"/>
 </svg>'''
-for f in FLAVORS:
-    open(f'{OUT}/pouch-{f[0]}.svg','w').write(pouch(*f))
-print('ok')
+# v1 pouch fronts. The current fronts come from pack.py; this module now only
+# supplies shared helpers (wordmark, fruit, palette) unless run directly.
+if __name__ == '__main__':
+    for f in FLAVORS:
+        open(f'{OUT}/pouch-{f[0]}-v1.svg','w').write(pouch(*f))
+    print('ok')

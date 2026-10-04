@@ -1,6 +1,7 @@
 import re, importlib.util, io, contextlib
 with contextlib.redirect_stdout(io.StringIO()):
     import pouch as P
+    import device as D
 from textpath import path as T, width as TW
 B='brico800.ttf'; F5='franklin500.ttf'; F7='franklin700.ttf'
 OUT=P.OUT; INK=P.INK; CREAM=P.CREAM
@@ -26,15 +27,26 @@ def qr_path(x,y,size,url=LOT_URL,quiet=2):
             else: c+=1
     return ''.join(d)
 
+
+DEEP='#1F4D2C'; SPROUT='#9BD36A'
+def crown_band(w, y):
+    """Deep-green crown with a leafy lower edge, same as the pouch front."""
+    tips=max(2,round(w/86)); step=w/tips; d=f'M0 0 H{w} V{y} '
+    for i in range(tips,0,-1):
+        x1=i*step; xm=x1-step/2; x0=x1-step; dep=16 if i%2 else 10
+        d+=f'C{x1-step*.15:.1f} {y} {xm+step*.12:.1f} {y+dep*.55:.1f} {xm:.1f} {y+dep} C{xm-step*.12:.1f} {y+dep*.55:.1f} {x0+step*.15:.1f} {y} {x0:.1f} {y} '
+    return f'<path d="{d}Z" fill="{DEEP}"/>'
+
 # ---------- back panel ----------
 def back(key):
     _,name,col,ink,soft,fruit,fruitline=FL[key]
     w,h=600,860; L=[]
     L.append(f'<rect width="{w}" height="{h}" rx="40" fill="{col}"/>')
-    L.append(P.wordmark(50,60,120,ink,'#1F4D2C' if ink==INK else '#9BD36A'))
-    L.append(T('the fruit on the label is in it.',F7,50,150,22,ink))
+    L.append(crown_band(w,112))
+    L.append(P.wordmark(50,40,128,CREAM,SPROUT))
+    L.append(T('the fruit is in it.',F7,300,92,24,CREAM,0,'start'))
     story=["We make protein that tastes like "+name.lower()+" because it","is made with "+fruitline.replace('real ','')+". No candy flavor, no","sucralose. Every lot is tested for heavy metals,","and the results are one scan away."]
-    for i,s in enumerate(story): L.append(T(s,F5,50,185+i*24,16,ink))
+    for i,s in enumerate(story): L.append(T(s,F5,50,170+i*24,16,ink))
     # facts panel
     fx,fy,fw=50,300,290
     rows=[('Serving Size','1 scoop ([x] g)'),('Servings Per Container','20')]
@@ -86,14 +98,14 @@ def stick(key):
     body=f'<path d="M0 6 Q0 0 6 0 H{w-6} Q{w} 0 {w} 6 V{h-6} Q{w} {h} {w-6} {h} H6 Q0 {h} 0 {h-6}Z" fill="{col}"/>'
     serr=''.join(f'<path d="M{x} 0 l5 7 l5 -7Z" fill="#FFF7EC"/>' for x in range(0,w,10))+''.join(f'<path d="M{x} {h} l5 -7 l5 7Z" fill="#FFF7EC"/>' for x in range(0,w,10))
     lines=[name] if len(name)<12 else name.split(' ')
-    size=min(76, 360/(TW(max(lines,key=len),B,100,-2)/100))
+    size=min(70, 300/(TW(max(lines,key=len),B,100,-2)/100))
     thick=size*(0.78+0.95*(len(lines)-1))
-    g=f'<g transform="translate({100+thick/2:.1f} 128) rotate(90)">'
+    g=f'<g transform="translate({100+thick/2:.1f} 140) rotate(90)">'
     for i,t in enumerate(lines): g+=T(t,B,0,size*0.78+i*size*0.95,size,ink,-2)
     g+='</g>'
-    wm=P.wordmark(30,30,140,ink,'#1F4D2C' if ink==INK else '#9BD36A')
-    badge=T('20g',B,100,572,36,ink,0,'middle')+T('PROTEIN',F7,100,594,11,ink,2,'middle')
-    sub=T('REAL FRUIT · 1 SERVING',F7,100,520,10.5,ink,1.5,'middle')
+    wm=crown_band(w,104)+P.wordmark(30,34,140,CREAM,SPROUT)
+    badge=D.sticker(key,w=172,h=114,x=14,y=486,rot=-6,standalone=False)
+    sub=T('20g PROTEIN · 1 SERVING',F7,100,470,10.5,ink,1.5,'middle')
     sheen='<rect x="0" y="0" width="200" height="640" fill="url(#st)"/>'
     defs='<defs><linearGradient id="st" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".12"/><stop offset=".2" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".14"/></linearGradient></defs>'
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" aria-label="Picked {name} stick pack concept">{defs}{body}{wm}{g}{sub}{badge}{sheen}{serr}</svg>'
@@ -112,15 +124,15 @@ def display():
     # header card
     s.append('<path d="M80 40 H820 Q850 40 850 70 V300 H50 V70 Q50 40 80 40Z" fill="#1F4D2C"/>')
     s.append(P.wordmark(96,70,260,'#FFF7EC','#9BD36A'))
-    s.append(T('protein that tastes like',F7,96,235,30,'#FFF7EC'))
-    s.append(T('it was just picked.',F7,96,272,30,'#FFF7EC'))
-    s.append('<circle cx="720" cy="170" r="92" fill="#F6DD3D"/>'+T('$3.99',B,720,178,46,INK,-1,'middle')+T('20g PROTEIN',F7,720,210,14,INK,1.5,'middle'))
+    s.append(T('the grams are on the front.',F7,96,235,30,'#FFF7EC'))
+    s.append(T('every lot tested, results online.',F7,96,272,30,'#FFF7EC'))
+    s.append('<circle cx="750" cy="150" r="64" fill="#F6DD3D"/>'+T('$3.99',B,750,158,34,INK,-1,'middle')+T('EACH',F7,750,184,12,INK,1.5,'middle'))
     # tray front
     s.append('<path d="M50 430 H850 V690 Q850 720 820 720 H80 Q50 720 50 690Z" fill="#F0505E"/>')
     s.append('<path d="M50 430 H850 V460 H50Z" fill="#000" opacity=".08"/>')
-    s.append(T('made with real fruit.',B,450,560,64,INK,-2,'middle'))
+    s.append(T('the fruit is in it.',B,450,560,64,INK,-2,'middle'))
     s.append(T('STRAWBERRY  ·  MANGO  ·  RASPBERRY LEMON',F7,450,620,20,INK,3,'middle'))
-    s.append(T('scan the pouch to see every lab result',F5,450,668,20,INK,0,'middle'))
+    s.append(T('scan any pack for its lot\'s lab results',F5,450,668,20,INK,0,'middle'))
     defs='<defs><linearGradient id="dsh" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".15"/><stop offset=".3" stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient></defs>'
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" aria-label="Picked counter display concept with ten stick packs">{defs}{"".join(s)}</svg>'
 
