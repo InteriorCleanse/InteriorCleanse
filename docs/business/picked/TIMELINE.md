@@ -11,11 +11,11 @@ the plan allows for that.
 | Milestone | Target date | What it depends on |
 | --- | --- | --- |
 | Company formed, EIN, bank account, waitlist live | **Oct 9, 2026** (week 1) | Owner's time |
-| Quote requests out to six manufacturers, Pure Private Label first | **Oct 9, 2026** | `outreach/01-manufacturer-rfq.md` |
+| Quote requests out to seven manufacturers, NutraSeller and Pure Private Label first | **Oct 9, 2026** | `outreach/manufacturer-emails.md`, `MANUFACTURING.md` |
 | Trademark filed (after clearance opinion) | **Oct 23, 2026** | Attorney availability |
 | Shopify store set up with policies, flows, and a real test order | **Oct 30, 2026** | `OPERATIONS.md`, lawyer review of `legal/` |
 | Optional: first revenue from Picked Creatine (unflavored) via Supliful, shipped outside New York and California | **Nov 6, 2026** | Store live, age rules handled |
-| Samples ordered ($695 at Pure Private Label) | **Oct 23, 2026** | Quotes back |
+| Samples ordered ($695 at Pure Private Label if it can make whey, or the chosen manufacturer's development fee) | **Oct 23, 2026** | Quotes back |
 | Strawberry formula locked after 2 to 3 sample rounds and the taste panel | **Dec 4, 2026** | Manufacturer speed |
 | Label reviewed and printed | **Dec 18, 2026** | Label consultant, printer |
 | Purchase order and deposit | **Dec 18, 2026** | Cash: about $8k for a 144-unit run, about $45k for 1,000 |

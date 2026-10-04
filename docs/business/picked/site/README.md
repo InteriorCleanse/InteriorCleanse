@@ -4,8 +4,10 @@ A static site with no build step. It runs on any static host.
 
 | Path | What it is |
 | --- | --- |
-| `index.html` | Home: hero and waitlist, flavor switcher, label comparison, how it mixes, stockist pitch, FAQ, waitlist with flavor vote |
+| `index.html` | Home: hero and waitlist, flavor switcher, label comparison, the Picked Standard, how it mixes, stockist pitch, FAQ, waitlist with flavor vote |
 | `real-fruit-test/` | The lead magnet: how to read a protein label in 60 seconds |
+| `lots/` | The Lot Book: where every lot's lab results are posted. The pack's QR code points here. Add each lot as a row with its PDF before that lot ships |
+| `links/` | Link-in-bio page for every social profile: four buttons with UTM tags. Not indexed. Replaces Linktree |
 | `privacy/` | Draft privacy page, marked for owner review, not indexed |
 | `assets/site.css`, `assets/site.js` | All styles and behavior. Light and dark themes, reduced-motion support |
 | `assets/fonts/` | Bricolage Grotesque and Libre Franklin, self-hosted WOFF2 (Open Font License) |

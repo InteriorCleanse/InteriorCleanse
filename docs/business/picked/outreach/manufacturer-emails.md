@@ -1,6 +1,6 @@
-# Emails to the six manufacturers
+# Emails to the manufacturers
 
-Send all six on the same day so the quotes come back together. Attach
+Send all seven on the same day so the quotes come back together. Attach
 `outreach/formula-brief.pdf` to each. Fill the brackets first: your name,
 email, and phone, and the company name once it's registered.
 
@@ -9,8 +9,10 @@ Find the contact address on each manufacturer's site. Most use a contact or
 no email address. The facts in each email come from public pages found in
 October 2026. The questions are there partly to confirm those facts.
 
-Send to Pure Private Label first. Its 144-unit minimum is what makes the
-lean launch possible.
+Send to NutraSeller and Pure Private Label first. NutraSeller is the best
+single partner for every product (see `../MANUFACTURING.md`); Pure Private
+Label's 144-unit minimum is what makes the lean launch possible, if it can
+make a whey drink mix.
 
 | # | Manufacturer | Why they're on the list | Where to reach them |
 | --- | --- | --- | --- |
@@ -18,8 +20,9 @@ lean launch possible.
 | 2 | NutraSeller | Already makes a clear whey, has a flavor team | nutraseller.com |
 | 3 | Makers Nutrition | 1,500-unit custom minimum, NSF-registered GMP | makersnutrition.com |
 | 4 | Nutrablend Foods (Lancaster, NY) | NSF Certified for Sport and Informed Choice capable | nutrablendfoods.com |
-| 5 | Nutracap | 500-unit custom minimum, $350 flavor samples | nutracapusa.com |
+| 5 | Nutracap | 500-unit custom minimum, $350 flavor samples. FDA warning letter in May 2020: ask what changed | nutracapusa.com |
 | 6 | Cpack | 1,500-unit minimum, flavor work included in lead time | cpackmanufacturing.com |
+| 7 | Somafina (Utah) | Clear protein, pouches and sticks in-house, NSF Certified for Sport, in-house ISO 17025 lab. Higher minimums | somafina.com |
 
 ---
 
@@ -45,8 +48,9 @@ The product, in short (full brief attached):
 
 My questions:
 
-1. Can you make a clear (acidified) whey isolate drink mix, or only
-   standard whey? If only standard, what would you suggest?
+1. Do you make whey protein drink mixes at all? Your published lines are
+   electrolytes, creatine, greens, and collagen. If you do, can you make a
+   clear (acidified) whey isolate, or only standard whey?
 2. Can the $695 sample program cover Strawberry plus two more fruit
    flavors, and how many rounds of adjustment does it include?
 3. What would 144 pouches cost per unit, and what changes at 500 and 1,500?
@@ -212,7 +216,9 @@ My questions:
 2. What does the $350 sample include, and how many adjustment rounds?
 3. Unit price at 500, 1,500, and 3,000 pouches, with the main cost lines
    shown separately?
-4. Where is the facility, and which GMP certification does it hold?
+4. Where is the facility, and which GMP certification does it hold? I saw
+   the FDA warning letter from May 2020. What changed afterwards, and have
+   you had an FDA inspection since?
 
 I'd like to order samples within two weeks. Do you have time for a call
 this week?
@@ -264,6 +270,47 @@ Founder, Picked
 
 ---
 
+## 7. Somafina
+
+**Subject:** Real-fruit clear protein: pouches now, stick packs next
+
+Hi [name, or "Somafina team"],
+
+I'm launching Picked, a clear whey protein drink flavored mainly by real
+freeze-dried fruit, with the grams of fruit printed on the front and every
+lot's lab results posted publicly. Your clear protein work, in-house stick
+and pouch lines, and NSF Certified for Sport capability make you the partner
+I'd want as we grow into hydration sticks, greens, and collagen.
+
+The product (full brief attached):
+
+- 20 g protein per serving from a clear, acidified whey isolate
+- Freeze-dried fruit as the main flavor ingredient, starting with
+  Strawberry, with grams per serving printed on the pack
+- Monk fruit and/or stevia only. No sucralose or acesulfame potassium
+- 20-serving pouches first, then single-serve sticks
+- A certificate of analysis with heavy metals on every lot
+
+My questions:
+
+1. Can your clear protein base carry a real-fruit flavor built mainly from
+   freeze-dried fruit? How many bench rounds, and at what cost?
+2. What is your minimum per flavor for a first run, and can a run be split
+   across flavors?
+3. Unit price at your minimum and at 10,000 pouches, with the main cost
+   lines shown separately?
+4. What is your maximum stick fill weight? A full serving is about 25 to
+   30 g of powder.
+
+I'm aiming to lock the formula by early December. Could we talk this week?
+
+Thanks,
+[Your name]
+Founder, Picked
+[email] · [phone]
+
+---
+
 ## Follow-up (send after 4 business days with no reply)
 
 **Subject:** Re: [original subject]
@@ -289,6 +336,7 @@ Thanks,
 | Nutrablend Foods | | | | | | | | | | |
 | Nutracap | | | | | | | | | | |
 | Cpack | | | | | | | | | | |
+| Somafina | | | | | | | | | | |
 
 **Choosing:** flavor skill and a passing heavy-metal COA come first,
 certification second, minimum third, price fourth. Sign `legal/mutual-nda.md`

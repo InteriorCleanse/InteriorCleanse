@@ -10,6 +10,7 @@
 ## Pages
 
 - [Home and waitlist](https://pickedprotein.com/): what Picked is and how to join the waitlist
+- [The Lot Book](https://pickedprotein.com/lots/): lab results for every lot, once production starts
 - [The Real Fruit Test](https://pickedprotein.com/real-fruit-test/): how to read a protein label for real fruit, sweeteners, protein %DV, and lab results
 
 ## Contact

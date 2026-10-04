@@ -9,11 +9,11 @@ the fruit on the label is in it, and the pack says how much.
 
 | | |
 | --- | --- |
-| For | Active adults who drink protein most days and are tired of milkshake flavours or candy-flavoured "fruit" |
+| For | Active adults who drink protein most days and are tired of milkshake flavors or candy-flavored "fruit" |
 | Picked is | a light, juice-style whey protein drink |
 | That | tastes like actual strawberries, mango, or raspberry and lemon |
-| Because | real fruit is the main flavour ingredient, stated in grams on every pack |
-| Unlike | clear wheys flavoured with "natural and artificial flavors" and sucralose |
+| Because | real fruit is the main flavor ingredient, stated in grams on every pack |
+| Unlike | clear wheys flavored with "natural and artificial flavors" and sucralose |
 
 **The proof point we own:** grams of real fruit per scoop, printed on the front.
 Nobody in the category does this. Myprotein already says "real fruit flavors",
@@ -29,7 +29,7 @@ Three words: **bright, honest, refreshing.**
 - Talk like a friend at a farmers' market, not a coach in a gym.
 - Be sensory and specific: "tart", "sun-warm", "the seedy bit of a strawberry".
 - Short sentences. Lowercase is fine in headlines and on pack.
-- Dry humour about fake fruit is allowed. Sneering at customers is not.
+- Dry humor about fake fruit is allowed. Sneering at customers is not.
 
 | Say | Never say |
 | --- | --- |
@@ -50,21 +50,21 @@ Headline examples:
 
 | File | Use |
 | --- | --- |
-| `brand/picked-wordmark.svg` | Primary. Ink wordmark, leaf-green leaf, on cream or light fruit colours. |
+| `brand/picked-wordmark.svg` | Primary. Ink wordmark, leaf-green leaf, on cream or light fruit colors. |
 | `brand/picked-wordmark-reverse.svg` | Cream wordmark, sprout leaf, on deep leaf or raspberry. |
-| `brand/picked-wordmark-onfruit.svg` | One-colour ink, for strawberry, mango, lemon, and single-colour print. |
+| `brand/picked-wordmark-onfruit.svg` | One-color ink, for strawberry, mango, lemon, and single-color print. |
 | `brand/picked-mark.svg` | The leaf alone in a strawberry disc. Social avatar, stickers, scoop. |
 | `brand/favicon.svg` | Browser tab and app icon. |
 
 The wordmark is Bricolage Grotesque ExtraBold, converted to outlines, with the
 dot of the "i" replaced by a leaf. The leaf has a hairline midrib cut so it
-works in one colour. Clear space equals the height of the "e" on all sides.
+works in one color. Clear space equals the height of the "e" on all sides.
 Minimum width is 72 px on screen and 18 mm in print. Never set the name in
 another font, never add a second leaf, and never put the leaf on the "k".
 
-## Colour
+## Color
 
-Each flavour owns a colour. The brand neutrals hold everything together.
+Each flavor owns a color. The brand neutrals hold everything together.
 
 | Token | Hex | Role |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ strawberry, and never put ink on raspberry.
 
 | Role | Face | Notes |
 | --- | --- | --- |
-| Display | Bricolage Grotesque, 800 | Flavour names, headlines. Tight tracking (about -3%). |
+| Display | Bricolage Grotesque, 800 | Flavor names, headlines. Tight tracking (about -3%). |
 | Body and label | Libre Franklin, 500 and 700 | Copy, Supplement Facts, small caps labels with 0.15em tracking. |
 
 Both are free on Google Fonts under the Open Font License.
@@ -102,7 +102,7 @@ Front panel, top to bottom:
 
 1. Wordmark.
 2. Category line: REAL FRUIT PROTEIN DRINK MIX.
-3. Flavour name, as big as it fits.
+3. Flavor name, as big as it fits.
 4. "made with real [fruit]". Replace with "[x]g real [fruit] in every scoop"
    once the formula is final.
 5. 20g protein badge. Use the number from the final Supplement Facts, not this concept.
@@ -122,7 +122,7 @@ final size, the bleed, the zipper, and the tear notch.
 ## Photography and imagery
 
 - Real fruit, real light, real hands. Cut fruit next to the glass.
-- The drink photographed against a window so its colour reads like juice.
+- The drink photographed against a window so its color reads like juice.
 - No stock photos of the product, and no AI-generated product photos until a
   real pouch exists to reference.
 - No shirtless gym shots. The setting is a kitchen counter, a park, a car after a run.

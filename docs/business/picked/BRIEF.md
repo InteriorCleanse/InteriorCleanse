@@ -15,9 +15,9 @@ One sentence:            Picked is a clear whey protein that tastes like the fru
                          because the fruit on the label is in it.
 Who pays, and how much:  Active adults who already buy protein. Proposed price in STRATEGY.md.
 First ten customers:     Owner's own network, local gyms, run clubs, smoothie and juice bars.
-Competitors:             See STRATEGY.md (fruit-flavoured and clear whey proteins).
+Competitors:             See STRATEGY.md (fruit-flavored and clear whey proteins).
 Three words:             bright, honest, refreshing (decided)
-Colours or fonts:        Decided in BRAND.md.
+Colors or fonts:        Decided in BRAND.md.
 Existing assets:         None stated.
 What must NOT appear:    Health or disease claims, weight-loss promises, "detox", "guilt-free",
                          fake before/after photos, invented reviews, stock photos of the product.

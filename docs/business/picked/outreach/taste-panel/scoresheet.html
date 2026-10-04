@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Picked taste panel scoresheet</title>
+<style>
+@font-face{font-family:"Bricolage";src:url(../../site/assets/fonts/bricolage-800.woff2) format("woff2");font-weight:800}
+@font-face{font-family:"Franklin";src:url(../../site/assets/fonts/librefranklin-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"Franklin";src:url(../../site/assets/fonts/librefranklin-700.woff2) format("woff2");font-weight:700}
+@page{size:Letter;margin:0.5in}
+*{box-sizing:border-box}
+body{font-family:Franklin,Arial,sans-serif;color:#1E1A17;margin:0;font-size:10.5pt;line-height:1.35}
+header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #F0505E;padding-bottom:8px;margin-bottom:12px}
+h1{font-family:Bricolage,Arial,sans-serif;font-weight:800;font-size:24pt;margin:0;letter-spacing:-.02em}
+.mark{font-family:Bricolage,Arial,sans-serif;font-weight:800;font-size:16pt;color:#2F7D3A}
+.intro{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:12px}
+.field{border-bottom:1px solid #1E1A17;padding-top:14px;font-size:9pt;color:#5a524b}
+.check{background:#FFF7EC;border-left:4px solid #C81E3A;padding:8px 12px;margin-bottom:12px;font-size:10pt}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #cfc6bb;padding:7px 6px;vertical-align:middle;text-align:left}
+thead th{background:#1F4D2C;color:#FFF7EC;text-align:center;font-weight:700}
+thead th:first-child{text-align:left}
+tbody th{width:34%;font-weight:400}
+tbody th small{display:block;color:#5a524b;font-size:8.5pt;margin-top:2px}
+td{text-align:center;white-space:nowrap}
+.b{display:inline-block;width:15px;height:17px;border:1px solid #1E1A17;border-radius:3px;margin:0 1px;font-size:7.5pt;line-height:16px;text-align:center;color:#5a524b}
+.code{display:inline-block;border:1.5px dashed #1E1A17;width:70px;height:22px;margin-top:4px;background:#fff}
+.open td{height:62px;vertical-align:top;text-align:left}
+.pick{margin-top:12px;border:2px solid #1E1A17;padding:10px 12px}
+.pick b{font-size:11pt}
+.line{border-bottom:1px solid #1E1A17;height:22px}
+footer{margin-top:10px;font-size:8.5pt;color:#5a524b}
+</style></head><body>
+<header><h1>Blind taste panel</h1><span class="mark">picked</span></header>
+<div class="intro">
+<div class="field">First name</div>
+<div class="field">Date</div>
+<div class="field">How often do you drink protein? &nbsp; ☐ most days &nbsp; ☐ weekly &nbsp; ☐ rarely or never</div>
+<div class="field">Taster number (from the host)</div>
+</div>
+<div class="check"><b>Before you taste:</b> every sample contains <b>milk</b>. &nbsp;☐ I am 18 or older and have no milk allergy.<br>
+Taste in the order you were handed them. Have a cracker and water between samples. There are no right answers.</div>
+<table>
+<thead><tr><th>Write the code on each cup →</th><th>Sample 1<br><span class="code"></span></th><th>Sample 2<br><span class="code"></span></th><th>Sample 3<br><span class="code"></span></th></tr></thead>
+<tbody>
+<tr><th><b>1. Overall, how much do you like it?</b><small>1 = dislike extremely · 5 = neither · 9 = like extremely</small></th><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span><span class="b">8</span><span class="b">9</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span><span class="b">8</span><span class="b">9</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span><span class="b">8</span><span class="b">9</span></td></tr>
+<tr><th><b>2. How much does it taste like real strawberry?</b><small>1 = not at all · 7 = exactly like real strawberry</small></th><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span></td></tr>
+<tr><th><b>3. Sweetness</b><small>1 = far too little · 3 = just right · 5 = far too sweet</small></th><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span></td></tr>
+<tr><th><b>4. Aftertaste</b><small>1 = strong, unpleasant · 5 = none or pleasant</small></th><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span></td></tr>
+<tr><th><b>5. Texture and mouthfeel</b><small>1 = dislike extremely · 9 = like extremely</small></th><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span><span class="b">8</span><span class="b">9</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span><span class="b">8</span><span class="b">9</span></td><td><span class="b">1</span><span class="b">2</span><span class="b">3</span><span class="b">4</span><span class="b">5</span><span class="b">6</span><span class="b">7</span><span class="b">8</span><span class="b">9</span></td></tr>
+<tr class="open"><th><b>6. What would you change?</b><small>One or two words is fine</small></th><td></td><td></td><td></td></tr>
+<tr class="open"><th><b>7. What fruit does it taste like?</b><small>Your own words</small></th><td></td><td></td><td></td></tr>
+</tbody></table>
+<div class="pick"><b>8. Which one would you drink again?</b> &nbsp; Write its code: <span class="code"></span><br>
+<b>Why?</b><div class="line"></div></div>
+<footer>Thank you. Your answers stay with Picked and are used only to decide whether this flavor is ready. Host: enter scores the same day; see outreach/taste-panel/README.md.</footer>
+</body></html>
