@@ -86,15 +86,15 @@ export default function Home() {
       <section className="triptych" aria-label="InteriorCleanse editorial" data-cursor-label="Editorial">
         {[
           [
-            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_39dacf9b-ba7d-4cc7-ae1f-a812ae30cc77.png',
+            '/media/hf/hf_20260925_224901_39dacf9b-ba7d-4cc7-ae1f-a812ae30cc77.webp',
             'A pale oak console with a hand-poured candle and a stack of linen-bound books in morning light',
           ],
           [
-            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_3ec3cf93-a32b-49c0-aead-249d0bcb268e.png',
+            '/media/hf/hf_20260925_224901_3ec3cf93-a32b-49c0-aead-249d0bcb268e.webp',
             'A bed dressed in washed oatmeal linen in a calm sunlit bedroom',
           ],
           [
-            'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/hf_20260925_224901_a9fbe1d6-8801-4663-8d17-6e026debf376.png',
+            '/media/hf/hf_20260925_224901_a9fbe1d6-8801-4663-8d17-6e026debf376.webp',
             'A limestone kitchen counter with a stoneware mug and folded linen',
           ],
         ].map(([src, alt]) => (

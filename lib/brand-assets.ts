@@ -7,7 +7,7 @@
  * scripts/land-media.mjs copies every file into public/media/hf/ and points
  * `CDN` at that folder, so the site does not depend on the generation CDN.
  */
-const CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/'
+const CDN = '/media/hf/'
 
 export const LOGO_CANDIDATES = {
   brassEngraved: `${CDN}hf_20260926_225131_2d4ae34a-1951-45e5-90df-515822301b44.png`,
