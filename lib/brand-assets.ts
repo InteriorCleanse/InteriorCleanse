@@ -1,10 +1,11 @@
 /**
- * Brand assets that live on the generation CDN rather than in the repository.
+ * Brand assets generated with Higgsfield.
  *
- * The emblem was painted with Higgsfield from the master prompt recorded in
+ * The emblem was painted from the master prompt recorded in
  * docs/BRAND_PROMPTS.md; the four candidates are kept here so swapping the
  * house mark is a one-line change. The Earth texture wraps the cursor globe.
- * Both hosts are allowed by the CSP in next.config.js.
+ * scripts/land-media.mjs copies every file into public/media/hf/ and points
+ * `CDN` at that folder, so the site does not depend on the generation CDN.
  */
 const CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_3HcoDUttWldZsray5X12PGDUTBl/'
 
