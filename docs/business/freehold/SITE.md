@@ -17,6 +17,8 @@ below for why it does not yet.
 | `/private/review/` | The review, check by check across five areas: domains, mail, the public web, people, and the admin accounts. What we need from the client, and what the review is not |
 | `/discretion/` | The security and discretion policy the Private FAQ promised: NDA first, scoped and revoked access, where information lives, AI model use, people, incident notice within 24 hours, services relied on. Marked as a draft for adoption |
 | `/privacy/`, `/terms/` | Drafts, each carrying a line that says they need professional review |
+| `/check/` | Free email-security check: a domain in, a graded reading of SPF, DMARC, DKIM, MX, MTA-STS, TLS-RPT and CAA out, with a fix line per finding, a call button, and an emailed copy on request. Shareable as `/check/?d=domain` |
+| `/api/check/` | The check's JSON endpoint: Node DNS only, 12 requests a minute per IP, cached five minutes at the edge |
 | `/api/inquiry/` | Form handler: requires a JSON same-origin request, validates, rate-limits per IP, drops honeypot hits. With `BREVO_API_KEY` set it emails the message to `INQUIRY_TO` through Brevo's transactional API (so the "one inbox" promise is true) and adds the address to list `BREVO_LIST_ID` without ever overwriting an existing contact. Without the key it returns 503 and the form tells the visitor to email instead |
 | `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/opengraph-image` | Search and AI discovery, and the rendered share image |
 | `public/brand/` | `mark.svg`, `favicon.svg`, `wordmark.svg`, `lockup.svg` |
@@ -71,6 +73,20 @@ successful deploy, not the parent commit, means a deploy that fails (the
 free plan's 100-a-day limit did this to #77 on 2026-09-28) is retried by
 the next push instead of being skipped forever. When the variable is
 missing or the commit cannot be found, it builds.
+
+## Settings added 2026-10-04
+
+- `NEXT_PUBLIC_BOOKING_URL`: a Cal.com (or similar) link. When set, every
+  "Request a call" button goes straight to it; when blank, they go to the
+  form on `/private/`.
+- `NEXT_PUBLIC_REVIEW_FEE`: free text such as `From $2,500`. Shown on
+  `/private/`, `/private/review/` and under each check result. Blank shows
+  no price.
+- `npm test` runs the check's rule tests. `npm run prospects -- file.csv
+  --base https://<domain>` drafts outreach; see `LAUNCH.md`.
+
+The short owner list now lives in `LAUNCH.md`. The longer list below is kept
+for reference.
 
 ## Owner actions, in order
 

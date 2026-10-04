@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Faq } from '@/components/Faq'
 import { InquiryForm } from '@/components/InquiryForm'
 import { QuietCta } from '@/components/Cta'
+import { SITE } from '@/lib/site'
 
 export const metadata: Metadata = {
   title: { absolute: 'Freehold Private. Bespoke software for family offices' },
@@ -48,7 +49,7 @@ export default function PrivatePage() {
             <p className="serif text-2xl mt-6">The footprint and email security review.</p>
           </div>
           <div className="lg:col-span-7 rule pt-6 lg:border-t-0 lg:border-l lg:border-hairline lg:pl-10 lg:pt-0 rv" data-i={1}>
-            <p className="mono">Two weeks · fixed fee · in writing</p>
+            <p className="mono">Two weeks · {SITE.reviewFee ? `${SITE.reviewFee} fixed` : 'fixed fee'} · in writing</p>
             <p className="text-stone mt-5">
               A written report on what of the family and the office is exposed online and by email: domains and their records, mail authentication, stale pages, staff information that should not be public, and the small configuration gaps that most incidents begin with. Each finding comes with the fix, in order, and who should do it.
             </p>
@@ -57,6 +58,8 @@ export default function PrivatePage() {
             </p>
             <div className="mt-6">
               <QuietCta href="/private/review/">What the review examines</QuietCta>
+              <span className="block mt-2" />
+              <QuietCta href="/check/">Run the free ten-second check first</QuietCta>
             </div>
           </div>
         </div>
@@ -110,6 +113,12 @@ export default function PrivatePage() {
         <p className="text-stone mt-6 mb-8 max-w-[60ch] rv" data-i={1}>
           Twenty minutes with the person who does the work. You leave with a written note of what we heard, whether the review fits, and a fixed fee if it does.
         </p>
+        {SITE.booking && (
+          <p className="mb-8">
+            <a className="cta" href={SITE.booking} target="_blank" rel="noopener noreferrer"><span>Choose a time</span><span className="glyph" aria-hidden="true" /></a>
+            <span className="block text-sm text-stone mt-3">Or write below, if you would rather not book yet.</span>
+          </p>
+        )}
         <InquiryForm kind="private-call" cta="Request a call" />
       </section>
     </>
