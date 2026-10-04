@@ -4264,3 +4264,19 @@ p {
 .calendar-row {
   display: contents;
 }
+
+/* Inside the iOS app: the status bar sits over the page, the tab bar and
+   More replace the website footer, and taps don't flash grey. */
+html[data-shell='app'] .topbar {
+  padding-top: env(safe-area-inset-top);
+}
+
+html[data-shell='app'] .site-foot,
+html[data-shell='app'] .palette-btn {
+  display: none;
+}
+
+html[data-shell='app'] body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}

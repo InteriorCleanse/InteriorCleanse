@@ -9,6 +9,7 @@ import { actions, useLocal } from '@/lib/store'
 import type { Car } from '@/lib/types'
 import { CarImage } from './CarImage'
 import { Icon } from './Icons'
+import { haptic } from '@/lib/native'
 import { useSession } from './Session'
 import { useToast } from './Toast'
 import { Stars } from './ui'
@@ -34,6 +35,7 @@ export function SaveButton({ car, labelled = false }: { car: Car; labelled?: boo
         e.preventDefault()
         e.stopPropagation()
         const next = actions.toggleSaved(car.slug)
+        void haptic()
         if (user)
           void fetch('/api/favorites', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: car.slug, on: next }) })
         toast(next ? (user ? 'Saved to your favorites' : 'Saved on this device. Sign in to keep it everywhere.') : 'Removed from favorites')

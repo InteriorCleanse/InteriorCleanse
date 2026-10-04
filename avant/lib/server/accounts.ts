@@ -149,7 +149,7 @@ export async function updateProfile(id: string, patch: { name?: string; bio?: st
   return row ? toUser(row) : null
 }
 
-const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex')
+export const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex')
 
 export async function createSession(userId: string): Promise<{ token: string; expires: Date }> {
   const token = randomBytes(32).toString('base64url')

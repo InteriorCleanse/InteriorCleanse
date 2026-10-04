@@ -9,6 +9,7 @@
  */
 
 import { db } from './db.ts'
+import { deliverPushNotifications } from './push.ts'
 import { siteUrl } from './stripe.ts'
 
 export const emailConfigured = (): boolean => Boolean(process.env.RESEND_API_KEY && process.env.AVANT_EMAIL_FROM)
@@ -36,8 +37,12 @@ export async function sendEmail(msg: { to: string; subject: string; text: string
 
 const FOOTER = `\n\n—\nAVANT · Cars worth remembering, from people who care for them.\nYou’re receiving this because you have an AVANT account.`
 
-/** Emails notifications not yet sent (from the last day only). */
+/**
+ * Sends notifications not yet sent (from the last day only): pushed to the
+ * iOS app first, where it's set up, then emailed.
+ */
 export async function deliverNotificationEmails(limit = 25): Promise<number> {
+  await deliverPushNotifications().catch(() => console.error('push: delivery failed'))
   if (!emailConfigured()) return 0
   const d = await db()
   const rows = await d.query<{ id: string; title: string; body: string; href: string; email: string; name: string }>(

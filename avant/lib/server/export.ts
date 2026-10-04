@@ -38,5 +38,6 @@ export async function exportAccount(userId: string): Promise<Record<string, unkn
     favorites: await favoritesFor(userId),
     credit: await creditHistory(userId),
     notifications: await notificationsFor(userId),
+    devices: await d.query(`select platform, created_at, last_seen_at from push_devices where user_id = $1`, [userId]),
   }
 }

@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { disablePush, enablePush, inApp, pushState, shareText, type PushState } from '@/lib/native'
 import { reencodePhoto } from '@/lib/photo'
 import { clearEvidence } from '@/lib/evidence-db'
 import { clearListingPhotos } from '@/lib/listing-photos-db'
@@ -167,6 +168,7 @@ export function Account() {
       <Notice icon="lock">
         Deleting the Driver Pass also asks our verification partner to redact anything it still holds. <Link href="/security" className="link">How we protect your data</Link>
       </Notice>
+      <Notifications />
       <Security />
       <CloseAccount />
     </div>
@@ -223,6 +225,45 @@ function CloseAccount() {
   )
 }
 
+/** Inside the iOS app: trip updates and messages as notifications on this iPhone. */
+function Notifications() {
+  const toast = useToast()
+  const [state, setState] = useState<PushState | null>(null)
+  useEffect(() => {
+    void pushState().then(setState)
+  }, [])
+  if (!state || state === 'unavailable') return null
+
+  const turnOn = async () => {
+    const next = await enablePush()
+    setState(next)
+    if (next === 'on') toast('Notifications are on for this iPhone')
+  }
+  const turnOff = async () => {
+    await disablePush()
+    setState('off')
+    toast('Notifications are off for this iPhone')
+  }
+
+  return (
+    <section className="panel" aria-labelledby="notifications">
+      <h2 id="notifications" style={{ fontSize: '1.2rem' }}>Notifications</h2>
+      <p className="muted small" style={{ marginTop: 6 }}>
+        Booking requests, confirmations, messages and reminders before pickup. Message notifications say who wrote, never what they said.
+      </p>
+      <div className="row" style={{ marginTop: 14 }}>
+        {state === 'on' ? (
+          <button type="button" className="btn btn-secondary btn-md" onClick={() => void turnOff()}>Turn off on this iPhone</button>
+        ) : state === 'denied' ? (
+          <p className="small muted">Notifications are off in iOS Settings. Open Settings, then AVANT, then Notifications to allow them.</p>
+        ) : (
+          <button type="button" className="btn btn-primary btn-md" onClick={() => void turnOn()}>Turn on notifications</button>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function Security() {
   const toast = useToast()
   const [current, setCurrent] = useState('')
@@ -241,6 +282,16 @@ function Security() {
     setCurrent('')
     setNext('')
     toast('Password changed. Other devices are signed out.')
+  }
+
+  const [inside, setInside] = useState(false)
+  useEffect(() => setInside(inApp()), [])
+  // The app has no downloads folder: the export goes to the share sheet instead.
+  const exportInApp = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    const res = await fetch('/api/me/export')
+    if (!res.ok) return toast('Couldn’t prepare your data. Try again shortly.')
+    await shareText('Your AVANT data', await res.text())
   }
 
   const signOutEverywhere = async () => {
@@ -269,7 +320,7 @@ function Security() {
       </form>
       <hr className="hairline" />
       <div className="row">
-        <a href="/api/me/export" className="btn btn-secondary btn-md"><Icon name="download" size={16} /> Download all my data</a>
+        <a href="/api/me/export" className="btn btn-secondary btn-md" onClick={inside ? (e) => void exportInApp(e) : undefined}><Icon name="download" size={16} /> Download all my data</a>
         <button type="button" className="btn btn-ghost btn-md" onClick={() => void signOutEverywhere()}>Sign out on every device</button>
       </div>
       <p className="small dim" style={{ marginTop: 10 }}>The download includes your profile, trips, messages, listings, reviews, credit and the agreements you accepted.</p>

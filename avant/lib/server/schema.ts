@@ -278,4 +278,26 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       alter table bookings add column refund_error text;
     `,
   },
+  {
+    id: 6,
+    name: 'push notifications on the iOS app',
+    sql: `
+      -- One row per device that asked for notifications. The token is
+      -- Apple's and identifies an install, not a person. It belongs to the
+      -- sign-in session that registered it, so signing out, signing out
+      -- everywhere, a password change, session expiry and closing the
+      -- account all remove it; so does Apple saying it's gone.
+      create table push_devices (
+        token text primary key,
+        user_id text not null references users(id) on delete cascade,
+        session_hash text not null references sessions(token_hash) on delete cascade,
+        platform text not null check (platform in ('ios')),
+        created_at timestamptz not null default now(),
+        last_seen_at timestamptz not null default now()
+      );
+      create index push_devices_user on push_devices(user_id);
+      -- Each notification is pushed once, like the email outbox.
+      alter table notifications add column pushed_at timestamptz;
+    `,
+  },
 ]

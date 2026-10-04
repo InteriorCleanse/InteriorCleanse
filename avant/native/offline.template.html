@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>AVANT</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #121316; color: #f4f2ed; font: 16px/1.5 -apple-system, system-ui, sans-serif; }
+  main { min-height: 100%; display: grid; place-items: center; text-align: center; padding: env(safe-area-inset-top) 32px env(safe-area-inset-bottom); box-sizing: border-box; }
+  h1 { font-weight: 300; font-size: 1.6rem; letter-spacing: 0.01em; margin: 28px 0 8px; }
+  p { color: #a39f97; margin: 0 auto 28px; max-width: 30ch; }
+  button { font: inherit; font-weight: 600; color: #121316; background: #f4f2ed; border: 0; border-radius: 999px; padding: 14px 28px; min-height: 48px; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <svg width="66" height="90" viewBox="0 0 88 120" aria-hidden="true">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3e2b8"/><stop offset=".4" stop-color="#d2aa66"/><stop offset=".75" stop-color="#9c7038"/><stop offset="1" stop-color="#d9bb80"/></linearGradient>
+        <linearGradient id="p" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#e9e6df"/><stop offset="1" stop-color="#bdb7ab"/></linearGradient>
+      </defs>
+      <path d="M5 8 L44 16 L83 8 C84.5 30 84 50 80.5 66 C76 87 62 103 44 116 C26 103 12 87 7.5 66 C4 50 3.5 30 5 8 Z" fill="#17181c" stroke="url(#g)" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M26 86 L44 42 L62 86 H58 L44 52.6 L30 86 Z" fill="url(#p)"/>
+      <path d="M13 72.6 L44 71.6 L75 72.6 L44 73.6 Z" fill="url(#g)"/>
+    </svg>
+    <h1>You&rsquo;re offline</h1>
+    <p>AVANT needs a connection to show cars, trips and messages. Your trip details are safe.</p>
+    <button type="button" onclick="location.replace('__AVANT_APP_URL__')">Try again</button>
+  </div>
+</main>
+</body>
+</html>

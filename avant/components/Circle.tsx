@@ -12,6 +12,7 @@ import { CIRCLE_TIERS, PROMISE, REFERRAL, type Tier } from '@/lib/circle'
 import { moneyExact } from '@/lib/format'
 import type { CircleStatus } from '@/lib/server/advantage'
 import type { CreditEntry, CreditReason } from '@/lib/server/credit'
+import { inApp, shareLink } from '@/lib/native'
 import { Crest, Wordmark } from './Logo'
 import { useSession } from './Session'
 import { useToast } from './Toast'
@@ -90,6 +91,7 @@ export function Circle() {
   const toast = useToast()
   const [data, setData] = useState<{ circle: CircleStatus; referralCode: string; history: CreditEntry[] } | null>(null)
   const [origin, setOrigin] = useState('')
+  const [canShare, setCanShare] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/circle', { cache: 'no-store' })
@@ -97,6 +99,7 @@ export function Circle() {
   }, [])
   useEffect(() => {
     setOrigin(window.location.origin)
+    setCanShare(inApp() || typeof navigator.share === 'function')
     if (loaded && user) void load()
   }, [loaded, user, load])
 
@@ -137,11 +140,8 @@ export function Circle() {
     }
   }
   const share = async () => {
-    try {
-      await navigator.share({ title: 'AVANT', text: `Here's ${dollars(REFERRAL.friendCreditCents)} off your first car on AVANT.`, url: link })
-    } catch {
-      /* closed */
-    }
+    const out = await shareLink({ title: 'AVANT', text: `Here's ${dollars(REFERRAL.friendCreditCents)} off your first car on AVANT.`, url: link })
+    if (out === 'copied') toast('Invite link copied')
   }
 
   return (
@@ -232,7 +232,7 @@ export function Circle() {
           <button type="button" className="btn btn-primary btn-md" onClick={() => void copy()}>
             Copy link
           </button>
-          {typeof navigator !== 'undefined' && 'share' in navigator ? (
+          {canShare ? (
             <button type="button" className="btn btn-secondary btn-md" onClick={() => void share()}>
               Share
             </button>

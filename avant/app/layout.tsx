@@ -28,9 +28,12 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Reading the nonce makes every page dynamic, which is what lets each
   // response carry its own CSP nonce.
-  await headers()
+  const h = await headers()
+  // The iOS app identifies itself (capacitor.config.ts appendUserAgent), so
+  // web-only chrome is left out on the server, with no flash on load.
+  const app = /\bAVANTApp\//.test(h.get('user-agent') ?? '')
   return (
-    <html lang="en" className={sans.variable}>
+    <html lang="en" className={sans.variable} data-shell={app ? 'app' : undefined}>
       <body>
         <Shell>{children}</Shell>
       </body>

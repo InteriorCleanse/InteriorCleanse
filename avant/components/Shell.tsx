@@ -10,6 +10,7 @@ import { ConciergeProvider, useConcierge } from './Concierge'
 import { DriverProvider, useDriver } from './DriverProvider'
 import { Icon } from './Icons'
 import { Lockup } from './Logo'
+import { NativeBridge } from './NativeBridge'
 import { NAV, TABS } from './nav'
 import { SessionProvider, useSession } from './Session'
 import { Avatar } from './ui'
@@ -189,13 +190,14 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <LocalProvider>
       <SessionProvider>
-      <DriverProvider>
-        <ToastProvider>
-          <ConciergeProvider>
-            <Frame>{children}</Frame>
-          </ConciergeProvider>
-        </ToastProvider>
-      </DriverProvider>
+        <NativeBridge />
+        <DriverProvider>
+          <ToastProvider>
+            <ConciergeProvider>
+              <Frame>{children}</Frame>
+            </ConciergeProvider>
+          </ToastProvider>
+        </DriverProvider>
       </SessionProvider>
     </LocalProvider>
   )

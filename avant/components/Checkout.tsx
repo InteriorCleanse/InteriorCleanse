@@ -17,6 +17,7 @@ import { CoveragePicker } from './CoveragePicker'
 import { useDriver } from './DriverProvider'
 import { Icon } from './Icons'
 import { PriceBreakdown } from './PriceBreakdown'
+import { haptic } from '@/lib/native'
 import { useSession } from './Session'
 import { useToast } from './Toast'
 import { Breadcrumbs } from './ui'
@@ -88,6 +89,7 @@ export function Checkout({ car }: { car: Car }) {
         return
       }
       toast(json.status === 'requested' ? 'Request sent' : 'You’re booked')
+      void haptic('success')
       void session.refresh()
       router.push(`/trips/${json.bookingId}?new=1`)
     } catch (e) {

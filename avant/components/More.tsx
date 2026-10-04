@@ -96,6 +96,7 @@ export function More() {
       <ul className="menu">
         <Item href="/legal/terms" icon="list" label="Terms" />
         <Item href="/legal/privacy" icon="eye-off" label="Privacy" />
+        <Item href="/legal/host" icon="key" label="Host Agreement" />
       </ul>
 
       {user ? (
