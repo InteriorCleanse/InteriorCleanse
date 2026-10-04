@@ -16,6 +16,10 @@ import { buildDemoAgenda, buildDemoInbox, buildDemoPipeline, searchDemoKnowledge
 import { DEMO_NOW } from '@/lib/workspace-analytics'
 import { eventsIn } from '@/lib/assistant/agenda'
 import { readInbox } from '@/lib/mail/read'
+import { agentDisplayName, profileFromRow, standingOrdersBlock } from '@/lib/agents/profile'
+import { sanitiseExternalText } from '@/lib/assistant/sanitise'
+import { loadWatchedCompanies } from '@/lib/owner/load'
+import { branding } from '@/lib/env'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { isVaultConfigured } from '@/lib/vault'
 
@@ -210,6 +214,23 @@ export async function POST(request: Request) {
 
   const now = membership.isDemo ? DEMO_NOW : new Date()
 
+  // The workspace's agent: its name and standing orders, read through the
+  // person's client. The orders are text an admin typed and are sanitised
+  // like every other string a person wrote before the model sees them.
+  const { data: profileRow } = await supabase
+    .from('assistant_profiles')
+    .select('agent_name, focus, standing_orders, reports_to_owner')
+    .eq('organization_id', membership.organizationId)
+    .maybeSingle()
+  const profile = profileFromRow(profileRow)
+  const agentName = agentDisplayName(profile, branding.assistantName())
+  const standingOrders = standingOrdersBlock({
+    ...profile,
+    focus: sanitiseExternalText(profile.focus, 300),
+    standingOrders: sanitiseExternalText(profile.standingOrders, 2_000),
+  })
+  const ownsPortfolio = can(actor, 'platform:view_console')
+
   const toolContext: ToolContext = {
     organizationId: membership.organizationId,
     isDemo: membership.isDemo,
@@ -247,6 +268,12 @@ export async function POST(request: Request) {
       const read = await readInbox(supabaseAdmin(), connection, { limit, now })
       return { connected: true, accountEmail: connection.account_email, messages: read.messages, error: read.error }
     },
+    // Injected only for the owner of the deployment: the capability gate is
+    // here, before the service-role read, and a tenant's model has nothing
+    // to call.
+    ...(ownsPortfolio
+      ? { listPortfolio: () => loadWatchedCompanies(supabaseAdmin(), branding.assistantName()) }
+      : {}),
     listSites: async () => {
       const { data } = await supabase
         .from('site_builds')
@@ -352,6 +379,9 @@ export async function POST(request: Request) {
       tenantRole: membership.role,
       canApproveActions: can(actor, 'assistant:approve_action'),
       today: new Date().toISOString().slice(0, 10),
+      agentName,
+      standingOrders,
+      ownsPortfolio,
     }) + (body.voice ? VOICE_ADDENDUM : '')
 
   // Only tools the caller's role permits are advertised. A tool the model

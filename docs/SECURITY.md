@@ -183,6 +183,87 @@ also holds tools, so it is treated as hostile input end to end.
 `audit_logs` has no UPDATE or DELETE policy for anyone, including platform
 owners — append-only from the application's perspective.
 
+## Second factor, and what "signed in" means
+
+A person who enrols an authenticator app changes the definition of a session
+for themselves, everywhere. `lib/session.ts` reads Supabase's assurance level
+on every request: if a second factor is enrolled and this session has not
+presented it, `getSessionContext()` returns **null** — an API route sees no
+session and answers 401, a page is sent to `/login/verify` to finish — and
+only a verified code moves the session to `aal2`. There is no "skip" and no
+"remember this device"; a second factor that can be waived is a first factor
+with extra steps. Enrolment, listing and removal live at `/app/security`
+through Supabase's TOTP flow; this product never stores a code or a secret.
+
+The owner console demands it. `requireOwnerConsole()` requires the platform
+role *and* a second factor; an owner without one is sent to enrol, with the
+reason, and a tenant user who guesses the URL is sent to their own command
+center and never learns the route exists. The console is the one surface that
+sees every company, so it carries the highest bar in the product.
+
+## Headers every page carries
+
+`lib/security/headers.ts`, applied by `next.config.ts` and held by a test:
+
+- A Content-Security-Policy that lets scripts come from this origin only
+  (`'unsafe-inline'` is granted for Next's own boot and the no-flash theme
+  script; nothing from any other host), lets the browser talk to Supabase
+  and this origin and nothing else, plays spoken replies from a blob, and
+  lets **nobody frame the app** (`frame-ancestors 'none'`).
+- HSTS for two years with subdomains and preload; `nosniff`; `X-Frame-Options:
+  DENY`; a strict referrer policy; a permissions policy that grants the
+  microphone to this origin and nothing to anyone (camera, geolocation,
+  payment, USB all off); `Cross-Origin-Opener-Policy: same-origin`.
+- Built-site previews under `/api/sites/` are the one exception: they carry
+  their own *sandboxing* CSP (a unique origin, no outbound connections, no
+  form submission) and are framed by the preview page, so the global
+  `frame-ancestors 'none'` is excluded for them by the source pattern.
+
+## What "untouchable" means here, and what it does not
+
+The honest version, for someone who wants their businesses' information
+secure and reachable with no worries.
+
+**What the software enforces today**
+
+- Every workspace's rows are separated by database policy, and that is
+  asserted against a live Postgres on every change, including that an admin
+  in one company cannot read another company's agent, mailbox or sites.
+- Every connected key is sealed with its own data key, bound to its tenant,
+  and never readable back; a database dump yields ciphertext.
+- The assistant cannot act. It proposes; a person approves exact values; the
+  server re-derives the binding before executing, once.
+- A mailbox is read live and never stored. A built page cannot reach outside
+  itself. No request body is logged, and a test fails the build if one could be.
+- A password alone is not a session once a second factor exists, anywhere.
+
+**What only you can do** — the software cannot do these for you, and they
+matter more than any of the above:
+
+1. **Enrol a second factor on every account that matters, starting with the
+   owner's**, and keep the authenticator somewhere a lost phone does not take
+   with it (a password manager's TOTP, or a second enrolled device).
+2. **Put a KMS behind the vault before real keys go in.** The static key in an
+   environment variable is a single point of compromise with no hardware
+   boundary; `kmsProvider()` is built to be wired to one.
+3. **One Google account per business, and a separate one for you.** The mail
+   and calendar connections are per person; keep the operator's identity out
+   of each company's inbox.
+4. **Rehearse a restore**, including the vault key. A backup you have never
+   restored is a hope.
+5. **Separate the legal entities** (see the owner's own notes on structure),
+   and let the workspace boundary mirror the entity boundary: one workspace
+   per company, members who belong to that company only, the owner's platform
+   role reaching across only through mission control.
+6. **Commission an outside review** before taking a second customer's data.
+   Everything above is what the code demonstrably does; a reviewer is the one
+   who can say what it fails to do.
+
+Nothing is untouchable. What this product offers is that every layer of
+touching it has to defeat a specific, tested control, and that the person who
+owns it can see — in the launch checklist and the owner console — exactly
+which controls are in place and which are still theirs to add.
+
 ## Open items before production
 
 These are known and deliberately not done yet. None should be assumed handled.

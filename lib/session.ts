@@ -2,7 +2,8 @@ import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import { isPlatformRole, isTenantRole, type PlatformRole, type TenantRole } from '@/lib/roles'
-import { type Actor, assertCan, type Capability, ForbiddenError } from '@/lib/authz'
+import { type Actor, assertCan, can, type Capability, ForbiddenError } from '@/lib/authz'
+import { hasSecondFactor, needsStepUp, type Assurance } from '@/lib/security/mfa'
 
 /**
  * Session and tenant resolution.
@@ -38,7 +39,25 @@ export type SessionContext = {
   fullName: string | null
   platformRole: PlatformRole | null
   memberships: Membership[]
+  /** True when this person has a verified second factor and this session presented it. */
+  secondFactor: boolean
 }
+
+/**
+ * How far this session got through signing in.
+ *
+ * A person with a second factor enrolled who has only typed a password has
+ * not finished: the session could be stronger and is not. Every surface reads
+ * that through this one call, so "signed in" means one thing everywhere.
+ */
+export const sessionAssurance = cache(async (): Promise<Assurance> => {
+  const supabase = await supabaseServer()
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  return {
+    current: (data?.currentLevel ?? null) as Assurance['current'],
+    next: (data?.nextLevel ?? null) as Assurance['next'],
+  }
+})
 
 export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   const supabase = await supabaseServer()
@@ -47,6 +66,11 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return null
+
+  // Half a sign-in is no sign-in. An API route sees no session at all; a page
+  // is sent to finish the step-up by `requireSession`.
+  const assurance = await sessionAssurance()
+  if (needsStepUp(assurance)) return null
 
   const [{ data: profile }, { data: staff }, { data: memberRows }] = await Promise.all([
     supabase.from('profiles').select('email, full_name').eq('id', user.id).maybeSingle(),
@@ -96,14 +120,41 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
     fullName: profile?.full_name ?? null,
     platformRole: isPlatformRole(staff?.role) ? staff.role : null,
     memberships,
+    secondFactor: hasSecondFactor(assurance) && assurance.current === 'aal2',
   }
 })
 
 /** Session or redirect to login. Use in any protected Server Component. */
 export async function requireSession(): Promise<SessionContext> {
   const session = await getSessionContext()
-  if (!session) redirect('/login')
+  if (!session) {
+    // Signed in with a password but a second factor is enrolled: finish it.
+    redirect(needsStepUp(await sessionAssurance()) ? '/login/verify' : '/login')
+  }
   return session
+}
+
+/**
+ * The owner console: platform staff only, and only with a second factor.
+ *
+ * The console sees every company, so the bar for reaching it is the highest
+ * in the product. A tenant user who guesses the URL is sent to their own
+ * command center and never learns the route exists; an owner without a
+ * second factor is sent to enrol one, with the reason, and comes back when
+ * they have.
+ */
+export async function requireOwnerConsole(): Promise<{ session: SessionContext; actor: Actor }> {
+  const session = await requireSession()
+  const actor: Actor = { userId: session.userId, tenantRole: null, platformRole: session.platformRole }
+  if (!can(actor, 'platform:view_console')) redirect('/app/command-center')
+  if (!session.secondFactor) {
+    redirect(
+      `/app/security?notice=${encodeURIComponent(
+        'The owner console sees every company, so it needs a second factor. Enrol an authenticator app here and come back.',
+      )}`,
+    )
+  }
+  return { session, actor }
 }
 
 /**

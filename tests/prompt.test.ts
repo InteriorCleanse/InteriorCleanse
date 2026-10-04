@@ -69,6 +69,19 @@ describe('system prompt', () => {
     expect(prompt).toMatch(/check_calendar and read_inbox together/)
   })
 
+  it('takes the workspace’s agent name and standing orders, and the owner’s portfolio', () => {
+    const named = systemPrompt({ ...base, agentName: 'Nova', standingOrders: '## This workspace’s standing orders\n\nFocus: wholesale.' })
+    expect(named).toMatch(/^You are Nova, the business analyst/)
+    expect(named).toMatch(/Focus: wholesale\./)
+    // The orders come last, beneath every rule.
+    expect(named.indexOf('standing orders')).toBeGreaterThan(named.indexOf('What you never do'))
+
+    expect(systemPrompt(base)).not.toMatch(/portfolio_overview/)
+    const owner = systemPrompt({ ...base, ownsPortfolio: true })
+    expect(owner).toMatch(/portfolio_overview/)
+    expect(owner).toMatch(/never add them up across companies/)
+  })
+
   it('keeps the spoken addendum free of screen formatting', () => {
     expect(VOICE_ADDENDUM).toMatch(/No markdown/)
     expect(VOICE_ADDENDUM).not.toMatch(/^\s*[-*] /m)

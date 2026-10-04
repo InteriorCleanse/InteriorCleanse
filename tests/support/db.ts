@@ -53,6 +53,7 @@ const MIGRATIONS = [
   '0013_notion_delivery_channel.sql',
   '0014_mail_connections.sql',
   '0015_site_builds.sql',
+  '0016_assistant_profiles.sql',
 ]
 
 export async function migrate(): Promise<Client> {

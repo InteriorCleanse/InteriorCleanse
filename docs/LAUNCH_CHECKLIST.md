@@ -81,6 +81,15 @@ What follows includes the half no code can check.
 - [x] No key-shaped literals in the repository. Vendor-shaped test fixtures are
       composed at runtime in `tests/fixtures/secrets.ts` rather than
       allow-listed, so a scanner finding is always a real one.
+- [x] **A second factor changes what "signed in" means.** With a TOTP factor
+      enrolled, a password-only session is no session: API routes answer 401,
+      pages redirect to finish, and the owner console refuses to open without
+      one. Enrolment at `/app/security`; the rule in `lib/session.ts`.
+      **Still to do:** the owner enrols one. The product cannot do that.
+- [x] **Hardening headers on every page** — CSP (scripts from this origin
+      only, nobody frames the app, Supabase the only network peer), HSTS with
+      preload, `nosniff`, strict referrer, a permissions policy granting only
+      the microphone. Held by `tests/fortress.test.ts`.
 - [x] **No request body is logged in production** — made structural rather
       than confirmed once. `lib/log.ts` is the only logger; its signature takes
       primitives only, drops objects at runtime, and bounds every message to

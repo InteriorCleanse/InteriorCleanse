@@ -8,6 +8,8 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 import { CommandPalette } from '@/components/CommandPalette'
 import { CommandHint } from '@/components/CommandHint'
 import { ArchDepth } from '@/components/motion/ArchDepth'
+import { agentDisplayName, profileFromRow } from '@/lib/agents/profile'
+import { supabaseServer } from '@/lib/supabase/server'
 
 // These segments resolve the session from cookies on every request, so there
 // is nothing meaningful to prerender — and prerendering would evaluate the
@@ -24,10 +26,12 @@ const NAV = [
   { href: '/app/briefings', label: 'Briefings' },
   { href: '/app/knowledge', label: 'Knowledge' },
   { href: '/app/sites', label: 'Sites' },
+  { href: '/app/agent', label: 'Agent' },
   { href: '/app/import', label: 'Import' },
   { href: '/app/integrations', label: 'Integrations' },
   { href: '/app/notifications', label: 'Notifications' },
   { href: '/app/billing', label: 'Billing' },
+  { href: '/app/security', label: 'Security' },
   { href: '/app/onboarding', label: 'Onboarding' },
 ]
 
@@ -37,6 +41,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // the last shared point before tenant data is rendered.
   const session = await requireSession()
   const active = session.memberships[0]
+
+  // The workspace's own name for its analyst, read through the person's
+  // client so RLS decides; blank falls back to the deployment's name.
+  let assistantName = branding.assistantName()
+  if (active) {
+    const supabase = await supabaseServer()
+    const { data: profile } = await supabase
+      .from('assistant_profiles')
+      .select('agent_name, focus, standing_orders, reports_to_owner')
+      .eq('organization_id', active.organizationId)
+      .maybeSingle()
+    assistantName = agentDisplayName(profileFromRow(profile), assistantName)
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -87,7 +104,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <AssistantDock
           workspaceName={active.name}
           isDemo={active.isDemo}
-          assistantName={branding.assistantName()}
+          assistantName={assistantName}
           configured={isAssistantConfigured()}
           voiceProvider={isFishAudioConfigured() ? 'fish' : 'browser'}
           canApproveActions={can(

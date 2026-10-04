@@ -94,6 +94,7 @@ const METRIC_LABELS: Record<string, string> = {
   calendar_events: 'Calendar',
   mail_inbox: 'Inbox',
   site_builds: 'Sites',
+  portfolio: 'Mission control',
 }
 
 /**
@@ -259,6 +260,25 @@ export function AssistantDock(props: Props) {
     window.addEventListener('aurelis:open-assistant', openDock)
     return () => window.removeEventListener('aurelis:open-assistant', openDock)
   }, [])
+
+  // A link can arrive with a question — mission control's "ask for the
+  // brief" does — so the dock opens and asks it once, then clears the
+  // address so a reload does not ask again.
+  const askedFromUrlRef = useRef(false)
+  useEffect(() => {
+    if (askedFromUrlRef.current || !props.configured) return
+    const url = new URL(window.location.href)
+    const question = url.searchParams.get('ask')?.trim()
+    if (!question) return
+    askedFromUrlRef.current = true
+    url.searchParams.delete('ask')
+    window.history.replaceState(null, '', url.toString())
+    const frame = requestAnimationFrame(() => {
+      setOpen(true)
+      void askRef.current(question.slice(0, 4_000))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [props.configured])
 
   const ask = useCallback(
     async (question: string) => {
@@ -1023,6 +1043,7 @@ const TOOL_LABELS: Record<string, string> = {
   read_inbox: 'Read the inbox',
   check_calendar: 'Checked the calendar',
   list_sites: 'Listed the sites',
+  portfolio_overview: 'Checked on every company',
   create_goal: 'Proposed a goal',
   create_notification_rule: 'Proposed an alert',
   build_site: 'Proposed building a site',

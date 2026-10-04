@@ -138,6 +138,20 @@ the checkpoint that introduces them.
   well under 60 KB), and `status` is a checked enum of `generated`,
   `published`, `failed`.
 
+## Implemented — Agents
+
+`0016_assistant_profiles.sql`.
+
+| Table | Purpose | Isolation |
+| --- | --- | --- |
+| `assistant_profiles` | One row per workspace: the analyst's name, a one-line focus, standing orders in the operator's words, and whether it reports in to the owner's mission control | Members read; admins write; another tenant can do neither (asserted) |
+
+A profile is configuration, not authority. The standing orders are shown to
+the model beneath the product's rules, framed as the workspace's preferences,
+sanitised like any other text a person typed, and bounded at 2,000 characters.
+The name is letters, digits and simple punctuation — nothing that could read
+as markup or a prompt delimiter.
+
 ## Planned
 
 | Checkpoint | Tables |

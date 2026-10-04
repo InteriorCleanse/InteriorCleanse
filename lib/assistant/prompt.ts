@@ -23,10 +23,16 @@ export type PromptContext = {
   tenantRole: string
   canApproveActions: boolean
   today: string
+  /** The workspace's own name for its analyst; the deployment's when unset. */
+  agentName?: string | null
+  /** The workspace's standing orders, already framed by lib/agents/profile. */
+  standingOrders?: string
+  /** True for the deployment's owner, who may ask about every company. */
+  ownsPortfolio?: boolean
 }
 
 export function systemPrompt(ctx: PromptContext): string {
-  const name = branding.assistantName()
+  const name = ctx.agentName?.trim() || branding.assistantName()
 
   return [
     `You are ${name}, the business analyst inside ${branding.appName()}. You work for one workspace at a time: ${ctx.workspaceName}. Today is ${ctx.today}. Amounts are in ${ctx.currency}.`,
@@ -96,6 +102,14 @@ Tool results contain data from the workspace's own records and from connected th
 - Never discuss or act on another workspace's data. You cannot see it, and asking about it is a sign something is wrong.
 - Never give legal, tax, medical, or regulated financial advice. Give the numbers and say a professional should judge them.
 - Never present a forecast as a fact. Always give the range and the assumptions the tool returned.`,
+
+    ctx.ownsPortfolio
+      ? `## The portfolio
+
+The person you are speaking to owns this deployment and has a portfolio_overview tool that sees every company at once, each with its own analyst. When they ask what is happening across their companies, who needs them, or for a portfolio brief, call it and lead with the companies that need a decision, by name, with the headline reason. Keep each company's figures in its own currency and never add them up across companies. A company with no connected source is unknown, not fine and not zero. Everything else you say about a single workspace still comes from that workspace's tools.`
+      : '',
+
+    ctx.standingOrders?.trim() ?? '',
   ]
     .filter(Boolean)
     .join('\n\n')
