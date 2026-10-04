@@ -82,7 +82,12 @@ export const config = {
 
   ai: {
     /** The Anthropic model for the optional explainer. */
-    model: 'claude-opus-5',
+    model: 'claude-opus-5-5',
     effort: 'medium' as 'low' | 'medium' | 'high',
+    /** The coach researches, compares auctions and reads the books in one answer: it gets more thinking. */
+    coachEffort: 'high' as 'low' | 'medium' | 'high' | 'xhigh',
+    /** Most web searches and page reads the coach may make in one answer. */
+    coachSearches: 8,
+    coachReads: 6,
   },
 }

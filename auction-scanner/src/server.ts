@@ -84,6 +84,13 @@ import { cleanQuery, partCategories, partLinks, vehicleFrom } from './parts.ts'
 import { ebayConfigured, searchEbayParts } from './sources/ebay.ts'
 import { splitTitle } from './sources/normalize.ts'
 import { parseSearch } from './searchparse.ts'
+import { JOURNEY, LOOK_FOR, journeyStatus, stageOf, todayTasks } from './coach/journey.ts'
+import type { JourneyFacts } from './coach/journey.ts'
+import { carryOver, currentThread, dayKey, newThread, readCoach, streak, writeCoach } from './coach/store.ts'
+import type { DisplayMsg } from './coach/store.ts'
+import { coachAiStatus, coachTurn } from './coach/agent.ts'
+import type { CoachTool } from './coach/agent.ts'
+import { coachFromRules } from './coach/rules.ts'
 import type { ParsedSearch } from './searchparse.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -408,6 +415,25 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     return { kind: result.kind, scannedAt, errors: result.errors, hidden, cards, understood: parsed?.understood ?? [] }
   }
 
+  /** The deal finder for the member in scope: searched by make so each car meets its own kind. */
+  async function dealsFor(o: { budget: number; maxDamage: 'none' | 'minor'; minYear?: number; minProfitUsd?: number; makes?: string[] }) {
+    const settings = getSettings()
+    const fromTargets = [...new Set(listTargets().flatMap((t) => t.makes))]
+    const makes = o.makes && o.makes.length ? o.makes : fromTargets.length ? fromTargets.slice(0, 8) : DEAL_MAKES
+    const byId = new Map<string, Card>()
+    let kind: ScanResult['kind'] = 'EMPTY'
+    const errors = new Set<string>()
+    for (const make of makes) {
+      const r = await scanCards(make, settings)
+      if (r.kind === 'LIVE') kind = 'LIVE'
+      else if (r.kind === 'SAMPLE' && kind === 'EMPTY') kind = 'SAMPLE'
+      for (const c of r.cards) byId.set(c.listing.id, c)
+      for (const e of r.errors) errors.add(e)
+    }
+    const result = findDeals([...byId.values()], { budgetUsd: o.budget, maxDamage: o.maxDamage, minYear: o.minYear, minProfitUsd: o.minProfitUsd, feeOverrides: settings.feeOverrides, taxTitlePct: settings.taxTitlePct, allowSample: kind === 'SAMPLE', now: now() })
+    return { kind, budget: o.budget, maxDamage: o.maxDamage, minYear: o.minYear ?? null, minProfitUsd: o.minProfitUsd ?? null, makes, ...result, deals: result.deals.slice(0, 40), leads: result.leads.slice(0, 20), errors: [...errors] }
+  }
+
   /** Scan one query (cached like the feed) and score every car, starter rules not applied. */
   async function scanCards(text: string | undefined, settings: Settings): Promise<{ cards: Card[]; kind: ScanResult['kind']; errors: string[] }> {
     const allowSample = settings.allowSample
@@ -691,29 +717,18 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     }
 
     if (path === '/api/deals' && method === 'GET') {
-      // Budget in, real deals out (src/finder.ts). Searched by make so each car meets its own kind.
-      const settings = getSettings()
+      // Budget in, real deals out (src/finder.ts).
       const budget = num(url.searchParams.get('budget') ?? '', 'budget', { min: 500, max: 5_000_000 })!
-      const maxDamage = url.searchParams.get('damage') === 'none' ? 'none' as const : 'minor' as const
       const minYearN = Number(url.searchParams.get('minYear') ?? '')
-      const minYear = Number.isInteger(minYearN) && minYearN >= 1950 && minYearN <= 2050 ? minYearN : undefined
       const minProfitN = Number(url.searchParams.get('minProfit') ?? '')
-      const minProfitUsd = Number.isFinite(minProfitN) && minProfitN > 0 && minProfitN <= 1_000_000 ? minProfitN : undefined
-      const asked = str(url.searchParams.get('makes') ?? '', 300).split(',').map((m) => m.trim()).filter(Boolean).slice(0, 8)
-      const fromTargets = [...new Set(listTargets().flatMap((t) => t.makes))]
-      const makes = asked.length ? asked : fromTargets.length ? fromTargets.slice(0, 8) : DEAL_MAKES
-      const byId = new Map<string, Card>()
-      let kind: ScanResult['kind'] = 'EMPTY'
-      const errors = new Set<string>()
-      for (const make of makes) {
-        const r = await scanCards(make, settings)
-        if (r.kind === 'LIVE') kind = 'LIVE'
-        else if (r.kind === 'SAMPLE' && kind === 'EMPTY') kind = 'SAMPLE'
-        for (const c of r.cards) byId.set(c.listing.id, c)
-        for (const e of r.errors) errors.add(e)
-      }
-      const result = findDeals([...byId.values()], { budgetUsd: budget, maxDamage, minYear, minProfitUsd, feeOverrides: settings.feeOverrides, taxTitlePct: settings.taxTitlePct, allowSample: kind === 'SAMPLE', now: now() })
-      return json(res, 200, { kind, budget, maxDamage, minYear: minYear ?? null, minProfitUsd: minProfitUsd ?? null, makes, ...result, deals: result.deals.slice(0, 40), leads: result.leads.slice(0, 20), errors: session.role === 'owner' ? [...errors] : memberErrors([...errors]) })
+      const r = await dealsFor({
+        budget,
+        maxDamage: url.searchParams.get('damage') === 'none' ? 'none' : 'minor',
+        minYear: Number.isInteger(minYearN) && minYearN >= 1950 && minYearN <= 2050 ? minYearN : undefined,
+        minProfitUsd: Number.isFinite(minProfitN) && minProfitN > 0 && minProfitN <= 1_000_000 ? minProfitN : undefined,
+        makes: str(url.searchParams.get('makes') ?? '', 300).split(',').map((m) => m.trim()).filter(Boolean).slice(0, 8),
+      })
+      return json(res, 200, { ...r, errors: session.role === 'owner' ? r.errors : memberErrors(r.errors) })
     }
 
     if (path === '/api/feed' && method === 'GET') {
@@ -1101,6 +1116,139 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     }
 
     // ---- The business: companies, books, the partner, materials, P/L, parts ----
+    // ---- The coach: the first-car journey, today's three, and a coach to talk to ----
+    const journeyFacts = (): JourneyFacts => {
+      const st = getSettings()
+      const watch = listWatch()
+      const paper = listPaper()
+      const cars = listGarage()
+      return {
+        onboarded: st.onboarded, cashUsd: st.cashUsd, homeState: st.homeState, guidesRead: st.readGuides ?? [],
+        watched: watch.length, watchedSources: new Set(watch.map((w) => w.snapshot?.source ?? '')).size, imports: listImports().length,
+        paperBids: paper.length, paperDecided: paper.filter((b) => b.outcome === 'won' || b.outcome === 'lost').length,
+        carsOwned: cars.length, carsWithCosts: cars.filter((c) => c.costs.length > 0).length,
+        materialsTicked: cars.reduce((n, c) => n + (c.materialsDone?.length ?? 0), 0),
+        soldOrRented: cars.filter((c) => c.status === 'sold' || c.income.length > 0).length,
+      }
+    }
+    const coachState = (t: number) => {
+      const st = readCoach()
+      const facts = journeyFacts()
+      const status = journeyStatus(facts, st.ticked)
+      const stage = stageOf(status)
+      const input = briefingFor(t)
+      const brief = briefing(input)
+      const urgent = brief.items.find((x) => x.tone === 'hot' || x.tone === 'best')
+      const today = todayTasks({ next: stage.next, urgent, stage: stage.n, budgetUsd: facts.cashUsd, done: st.days[dayKey(t)] ?? [] })
+      return { st, facts, status, stage, input, brief, today }
+    }
+
+    /** The coach's tools: Gavel's own data, read-only except adding a car to the watchlist. */
+    const coachTools = (): CoachTool[] => {
+      const n = (v: unknown, lo: number, hi: number) => { const x = Number(v); return Number.isFinite(x) && x >= lo && x <= hi ? x : undefined }
+      const s = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+      const brief = (c: Card) => ({ id: c.listing.id, title: c.listing.title, kind: c.listing.kind, source: c.listing.source, url: c.listing.url, priceUsd: askingPrice(c.listing) ?? null, priceKind: c.listing.saleType, endsAt: c.listing.endsAt ? new Date(c.listing.endsAt).toISOString() : null, endsDateOnly: !!c.listing.endsAtDateOnly, mileage: c.listing.mileage ?? null, state: c.listing.location?.state ?? null, title_status: c.listing.titleStatus, damage: c.listing.damage, runsAndDrives: c.listing.runsAndDrives ?? null, similarCarsUsd: c.estimate.ok ? c.estimate.valueUsd : null, similarCars: c.estimate.ok ? c.estimate.comps : 0, basis: c.estimate.ok ? c.estimate.basis ?? null : null, score: c.score.total, grade: gradeWord(c.score.grade), plan: `#plan/${encodeURIComponent(c.listing.id)}` })
+      return [
+        { name: 'search_auctions', description: 'Search every auction Gavel reads live (eBay Motors, GSA Auctions, MarketCheck when connected) plus the member\'s imported lots, in plain English ("2015+ camry under 8k no damage in tx"). Returns real listings with price, end time, title, damage, similar-car value and score. Starter rules (clean title, little damage, runs) apply unless starter is false.', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Plain-English search.' }, starter: { type: 'boolean' }, limit: { type: 'integer', minimum: 1, maximum: 25 } }, required: ['query'], additionalProperties: false },
+          label: (i) => `Searched the auctions: ${s(i.query, 80)}`,
+          run: async (i) => { const p = new URLSearchParams({ q: s(i.query, 160), starter: i.starter === false ? '0' : '1' }); const f = await buildFeed(p); return { kind: f.kind, understood: f.understood, hiddenByStarter: f.hidden, found: f.cards.length, cars: f.cards.slice(0, n(i.limit, 1, 25) ?? 10).map(brief), errors: f.errors } } },
+        { name: 'find_deals', description: 'Gavel\'s deal finder: clean-title cars with little or no damage whose all-in cost (price, buyer fee, transport, likely materials, a cushion) fits the budget, ranked by estimated profit against similar cars. "deals" rest on sold or asking prices; "leads" rest mostly on bids still running.', input_schema: { type: 'object', properties: { budget: { type: 'number', minimum: 500 }, damage: { type: 'string', enum: ['none', 'minor'] }, minYear: { type: 'integer' }, minProfit: { type: 'number' }, makes: { type: 'array', items: { type: 'string' }, maxItems: 8 } }, required: ['budget'], additionalProperties: false },
+          label: (i) => `Ran the deal finder at $${Math.round(Number(i.budget) || 0).toLocaleString('en-US')}`,
+          run: async (i) => { const b = n(i.budget, 500, 5_000_000); if (!b) throw new Error('Give a budget of at least $500.'); const r = await dealsFor({ budget: b, maxDamage: i.damage === 'none' ? 'none' : 'minor', minYear: n(i.minYear, 1950, 2050), minProfitUsd: n(i.minProfit, 1, 1_000_000), makes: Array.isArray(i.makes) ? i.makes.map((m) => s(m, 40)).filter(Boolean).slice(0, 8) : undefined }); const pick = (d: typeof r.deals[number]) => ({ ...brief(d), allInUsd: d.allInUsd, estProfitUsd: d.spreadUsd, neverBidAboveUsd: d.ceilingUsd, materialsUsd: d.materialsUsd, evidence: d.evidence, cautions: d.cautions.slice(0, 4) }); return { kind: r.kind, budget: r.budget, considered: r.considered, excluded: r.excluded, deals: r.deals.slice(0, 8).map(pick), leads: r.leads.slice(0, 5).map(pick) } } },
+        { name: 'car_details', description: 'Everything Gavel knows about one listing: the facts, the similar cars behind the estimate (sold, asking or open bid, with links), the bid plan (most to bid and why), and the materials it will likely need.', input_schema: { type: 'object', properties: { listingId: { type: 'string' } }, required: ['listingId'], additionalProperties: false },
+          label: () => 'Opened a car\'s plan',
+          run: async (i) => { const l = await ensureKnown(s(i.listingId, 200)); const settings = getSettings(); const card = await cardWithValue(l, settings); const plan = planFor(l, card.estimate, {}, settings); const m = materialsFor(l, now()); return { car: { ...brief(card), description: (l.description ?? '').slice(0, 1200), vin: l.vin ?? null, year: l.year ?? null, make: l.make ?? null, model: l.model ?? null, photos: l.photos.length }, similarCars: card.estimate.ok ? (card.estimate.used ?? []) : [], estimate: card.estimate, plan: { maxBidUsd: plan.maxBidUsd, lines: plan.lines }, materials: { expectedUsd: m.expectedUsd, items: m.items.map((x) => `${x.name} (${x.need}, $${x.lowUsd}-$${x.highUsd})`) }, redFlags: card.score.redFlags } } },
+        { name: 'car_record', description: 'The public record for a year, make and model from NHTSA and fueleconomy.gov: recalls (a dealer fixes them free), owner complaints by component, crash ratings and fuel economy.', input_schema: { type: 'object', properties: { year: { type: 'integer' }, make: { type: 'string' }, model: { type: 'string' } }, required: ['year', 'make', 'model'], additionalProperties: false },
+          label: (i) => `Checked recalls and complaints: ${n(i.year, 1950, 2050) ?? ''} ${s(i.make, 40)} ${s(i.model, 60)}`,
+          run: async (i) => { const y = n(i.year, 1950, 2050); const mk = s(i.make, 40); const md = s(i.model, 60); if (!y || !mk || !md) throw new Error('Give the year, make and model.'); const timed: typeof fetch = (input, init) => fetchImpl(input, { ...init, signal: AbortSignal.timeout(8_000) }); const intel = await carIntel(y, mk, md, timed, now()); return { ...intel, summary: intelSummary(intel) } } },
+        { name: 'auction_sites', description: 'The auction directory: every auction house Gavel knows (public, government, enthusiast, salvage, local, collector, dealer-only), who may buy there, the published buyer fee and its page, how to register, what the inventory is like, a beginner caution, and a ready-made search link on that site for a query. Use it to look across many auctions at once.', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Optional search to build a link for on each site, e.g. "2016 Toyota Camry".' }, group: { type: 'string', enum: HOUSE_GROUPS.map((g) => g.id) }, publicOnly: { type: 'boolean' } }, additionalProperties: false },
+          label: (i) => s(i.query, 60) ? `Looked across the auction sites for ${s(i.query, 60)}` : 'Read the auction directory',
+          run: async (i) => { const q = s(i.query, 80); const groups = HOUSE_GROUPS.filter((g) => !i.group || g.id === i.group); return groups.map((g) => ({ group: g.title, bestFor: g.bestFor, houses: g.houses.map((id) => houseById(id)).filter((h): h is NonNullable<typeof h> => !!h && (!i.publicOnly || h.access !== 'dealer')).map((h) => ({ name: h.name, url: h.url, whoCanBuy: h.access, buyerFee: h.buyerFee, feePage: h.feeUrl, register: h.register, inventory: h.inventory, starterNote: h.starterNote, readByGavel: h.api === 'official', ...(q ? { searchLink: h.searchUrl(q) } : {}) })) })) } },
+        { name: 'my_business', description: 'The member\'s own books: profit per company and overall, cash flow, cars owned and sold, money held in cars, and the partner\'s ranked briefing.', input_schema: { type: 'object', properties: {}, additionalProperties: false },
+          label: () => 'Read your books',
+          run: async () => { const inp = briefingFor(now()); return { report: inp.report, briefing: briefing(inp), cars: inp.cars.map((c) => ({ title: c.title, status: c.status, company: inp.companies.find((x) => x.id === c.companyId)?.name ?? null, purchaseUsd: c.purchaseUsd, totals: c.totals, targetSaleUsd: c.targetSaleUsd ?? null })), budgetUsd: inp.cashUsd ?? null } } },
+        { name: 'my_journey', description: 'Where the member is on the twelve-step first-car journey, today\'s three tasks, their streak, their settings (goal, state, budget), and what they watch and have paper-bid on.', input_schema: { type: 'object', properties: {}, additionalProperties: false },
+          label: () => 'Checked your progress',
+          run: async () => { const t = now(); const c = coachState(t); const st = getSettings(); return { stage: c.stage.name, steps: JOURNEY.map((j, k) => ({ n: j.n, title: j.title, done: c.status[k].done })), today: c.today, streakDays: streak(c.st.days, t), settings: { goal: st.goal ?? null, state: st.homeState ?? null, budgetUsd: st.cashUsd ?? null, taxTitlePct: st.taxTitlePct ?? null }, watching: listWatch().slice(0, 12).map((w) => ({ id: w.listingId, title: w.title, source: w.snapshot?.source })), paperBids: listPaper().slice(0, 12).map((b) => ({ title: b.title, maxBidUsd: b.maxBidUsd, outcome: b.outcome ?? 'open' })), lookFor: LOOK_FOR } } },
+        { name: 'knowledge', description: 'Gavel\'s built-in knowledge: auction house policies, state regulations and the glossary of auction words. Fast; use the web for anything newer or more specific.', input_schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'], additionalProperties: false },
+          label: (i) => `Looked it up: ${s(i.query, 60)}`,
+          run: async (i) => searchKnowledge(s(i.query, 200), 6) },
+        { name: 'estimate_pnl', description: 'Profit and loss for one car: purchase, buyer fee (from the auction\'s published schedule when houseId is given), transport, tax and title, materials, parts, labour, holding and selling costs, against a sale price. Returns each line with its source, break-even, and the sale price for a big margin.', input_schema: { type: 'object', properties: { buyUsd: { type: 'number' }, houseId: { type: 'string' }, transportUsd: { type: 'number' }, taxTitlePct: { type: 'number' }, materialsUsd: { type: 'number' }, partsUsd: { type: 'number' }, labourUsd: { type: 'number' }, sellingUsd: { type: 'number' }, saleUsd: { type: 'number' } }, required: ['buyUsd'], additionalProperties: false },
+          label: () => 'Worked out a profit and loss',
+          run: async (i) => estimatePnl(pnlInputFrom(i)) },
+        { name: 'watch_car', description: 'Add a listing to the member\'s watchlist so Gavel alerts them when it is ending or the price moves. Only when the member asks or agrees.', input_schema: { type: 'object', properties: { listingId: { type: 'string' } }, required: ['listingId'], additionalProperties: false },
+          label: () => 'Added a car to your watchlist',
+          run: async (i) => { const l = await ensureKnown(s(i.listingId, 200)); addWatch(l); return { watching: l.title } } },
+      ]
+    }
+
+    if (path === '/api/coach' && method === 'GET') {
+      const t = now()
+      const c = coachState(t)
+      const thread = c.st.threads[c.st.threads.length - 1]
+      return json(res, 200, {
+        stage: { n: c.stage.n, name: c.stage.name, of: 6 },
+        journey: JOURNEY.map((j, k) => ({ n: j.n, title: j.title, why: j.why, do: j.do, lookFor: j.lookFor ?? null, href: j.href, action: j.action, ask: j.ask, auto: !!j.auto, ...c.status[k] })),
+        lookFor: LOOK_FOR,
+        today: { date: dayKey(t), tasks: c.today, streak: streak(c.st.days, t) },
+        headline: c.brief.headline,
+        ai: await coachAiStatus(),
+        thread: thread ? { id: thread.id, display: thread.display.slice(-40) } : null,
+      })
+    }
+    if (path === '/api/coach/tick' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const id = str(body.id, 60)
+      const done = body.done === true
+      const t = now()
+      const st = readCoach()
+      if (body.kind === 'step') {
+        if (!JOURNEY.some((j) => j.id === id)) throw new HttpError(400, 'No journey step with that id.')
+        st.ticked = done ? [...new Set([...st.ticked, id])] : st.ticked.filter((x) => x !== id)
+      } else {
+        if (!/^[a-z]+-[\w:.-]{1,120}$/.test(id)) throw new HttpError(400, 'No task with that id.')
+        const day = dayKey(t)
+        const list = st.days[day] ?? []
+        st.days[day] = done ? [...new Set([...list, id])] : list.filter((x) => x !== id)
+      }
+      writeCoach(st)
+      return json(res, 200, { ok: true, streak: streak(st.days, t) })
+    }
+    if (path === '/api/coach/new' && method === 'POST') {
+      const st = readCoach()
+      newThread(st, now())
+      writeCoach(st)
+      return json(res, 200, { ok: true })
+    }
+    if (path === '/api/coach/ask' && method === 'POST') {
+      const body = await readJsonBody(req)
+      const question = str(body.question, 2000).trim()
+      if (!question) throw new HttpError(400, 'Ask your coach something.')
+      const t = now()
+      const c = coachState(t)
+      const thread = currentThread(c.st, t)
+      const st = getSettings()
+      const listingId = str(body.listingId ?? '', 200)
+      const note = [
+        `(Today is ${new Date(t).toISOString().slice(0, 10)}. Member: stage "${c.stage.name}", next step "${c.stage.next?.title ?? 'all done'}", goal ${st.goal ?? 'not set'}, state ${st.homeState ?? 'not set'}, budget ${st.cashUsd ? '$' + st.cashUsd.toLocaleString('en-US') : 'not set'}.${listingId ? ` They are looking at listing ${listingId}.` : ''})`,
+        carryOver(c.st, thread),
+      ].filter(Boolean).join('\n')
+      const userMsg: DisplayMsg = { role: 'user', text: question, at: t }
+      const ai = await coachTurn(thread.api, `${note}\n\n${question}`, coachTools())
+      let reply: DisplayMsg
+      if (ai) {
+        thread.api.push(...ai.appended)
+        reply = { role: 'coach', text: ai.text, at: now(), source: 'ai', activity: ai.activity, citations: ai.citations }
+      } else {
+        const text = coachFromRules(question, { status: c.status, today: c.today, books: c.input, briefing: c.brief, stageName: c.stage.name })
+        reply = { role: 'coach', text, at: now(), source: 'rules' }
+      }
+      thread.display.push(userMsg, reply)
+      thread.turns++
+      writeCoach(c.st)
+      return json(res, 200, { reply, threadId: thread.id })
+    }
+
     if (path === '/api/business/export.csv' && method === 'GET') {
       const only = str(url.searchParams.get('company') ?? '', 80) || undefined
       const csv = ledgerCsv(listGarage(), listCompanies(), only)

@@ -45,7 +45,10 @@ MarketCheck adapters, the importer, directory, SAMPLE, registry) · `src/valuati
 `fees.ts` `bidplan.ts` `demand.ts` `finder.ts` (the engine) · `materials.ts`
 `pnl.ts` `parts.ts` (what a car needs, its profit and loss, parts that fit) ·
 `companies.ts` `business.ts` `advisor.ts` (companies, profit per company and
-overall, the partner's briefing) · `src/explain.ts` `ai.ts`
+overall, the partner's briefing) · `src/coach/` (the coach: the first-car
+journey and what to look for, today's three and the streak, the offline rules
+answers, and `agent.ts`: Claude with web search, web fetch and Gavel's tools,
+append-only threads in coach.json) · `src/explain.ts` `ai.ts`
 (walkthrough, optional Claude) · `src/paper.ts` `settings.ts` `garage.ts` `store.ts`
 (JSON stores; personal files resolve through `userFile()` into the
 member's folder while a request runs in `withUser()`) · `src/playbook/content.ts` `rental.ts` (the

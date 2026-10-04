@@ -18,9 +18,10 @@ import * as setup from './setup.js'
 import * as importer from './import.js'
 import * as connect from './connect.js'
 import * as deals from './deals.js'
+import * as coach from './coach.js'
 import { startMotion, newVisit } from './motion.js'
 
-const SCREENS = { home, deals, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, business, parts, setup, import: importer, connect }
+const SCREENS = { home, deals, coach, feed, plan, watch, auctions, playbook, rental, settings, admin, sniper, intel, business, parts, setup, import: importer, connect }
 const ctx = { me: null, feedKind: null, installPrompt: null }
 // Chrome and Edge offer an install prompt once per load; keep it for the button in Settings.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); ctx.installPrompt = e })
@@ -36,7 +37,7 @@ function route() {
   if ((screen === 'admin' || screen === 'connect') && ctx.me && ctx.me.role !== 'owner') { location.hash = '#home'; return }
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.dataset.screen !== screen })
   document.querySelectorAll('.tabs a').forEach((a) => {
-    const grouped = ['feed', 'watch', 'intel', 'auctions', 'playbook', 'rental', 'parts', 'settings', 'admin', 'import', 'connect']
+    const grouped = ['feed', 'sniper', 'watch', 'intel', 'auctions', 'playbook', 'rental', 'parts', 'settings', 'admin', 'import', 'connect']
     const active = a.dataset.tab === screen || (screen === 'plan' && a.dataset.tab === 'feed') || (a.dataset.tab === 'more' && grouped.includes(screen))
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current')
   })
@@ -61,7 +62,7 @@ export function setMode(kind, detail) {
 function moreSheet() {
   const owner = ctx.me.role === 'owner'
   const rental = ctx.me.goal === 'rental'
-  const items = [...(rental ? [['#rental', 'Rental', 'Your first rental car, ranked']] : []), ['#feed', 'Feed', 'Every car the scan found, ranked against similar cars'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#parts', 'Parts', 'Parts that fit the car you bought, and where to buy them'], ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
+  const items = [...(rental ? [['#rental', 'Rental', 'Your first rental car, ranked']] : []), ['#feed', 'Feed', 'Every car the scan found, ranked against similar cars'], ['#sniper', 'Sniper', 'Targets that watch the auctions for you, and their alerts'], ['#watch', 'Watch', 'Cars you watch and your paper-bid record'], ['#parts', 'Parts', 'Parts that fit the car you bought, and where to buy them'], ['#import', 'Import', 'Bring in a lot from Copart, IAA or any auction'], ['#intel', 'Intel', 'Ask the desk, car records, auction rules, the laws'], ['#auctions', 'Auctions', 'Every house: who may buy, fees, how to register'], ['#playbook', 'Playbook', 'The guides, dumbed down on purpose'], ...(rental ? [] : [['#rental', 'Rental', 'Your first rental car, ranked']]), ['#settings', 'Settings', 'Starter rules, alerts, backup, sources']]
   if (owner) items.push(['#admin', 'Members', 'Invite members, access codes, Stripe'], ['#connect', 'Connect', 'Sources, AI, hosting, payments: the go-live guide'])
   const close = sheet(`<h2>More</h2><div class="list">${items.map(([h, t, d]) => `<a class="item morelink" href="${h}"><div class="main"><b>${t}</b><div class="dim" style="font-size:14px">${d}</div></div></a>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn outline" type="button" data-close>Close</button></div>`, { label: 'More screens' })
   document.querySelectorAll('#sheet-root .morelink').forEach((a) => a.addEventListener('click', () => close()))
@@ -106,7 +107,7 @@ async function pollAlerts() {
   } catch { /* a missed poll is harmless; the next one catches up */ }
 }
 
-/** The phone bar holds Home, Deals, Feed, Business and More; Rental lives in More (first for the rental goal). */
+/** The phone bar holds Home, Deals, Coach, Business and More; Rental lives in More (first for the rental goal). */
 export function applyGoal(me) {
   document.querySelector('.tabs [data-tab="rental"]').classList.add('desk-only')
   document.body.dataset.goal = me.goal || ''

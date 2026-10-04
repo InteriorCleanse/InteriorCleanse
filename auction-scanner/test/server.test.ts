@@ -639,3 +639,26 @@ test('the deal finder answers with a budget, says when the cars are samples, and
   assert.ok(clean.body.deals.every((d: any) => d.listing.damage === 'none'))
   assert.equal((await api('/api/deals?budget=10')).status, 400)
 })
+
+test('the coach: journey and today over HTTP; without a key it answers from the rules and remembers the thread', async () => {
+  const owner = await api('/api/login', { method: 'POST', json: { pin: PIN }, noCsrf: true })
+  cookie = (owner.headers.get('set-cookie') ?? '').split(';')[0]
+  csrf = owner.body.csrf
+  const c = await api('/api/coach')
+  assert.equal(c.status, 200)
+  assert.equal(c.body.journey.length, 12)
+  assert.equal(c.body.today.tasks.length, 3)
+  assert.equal(c.body.ai.available, false)
+  const tick = await api('/api/coach/tick', { method: 'POST', json: { kind: 'task', id: c.body.today.tasks[0].id, done: true } })
+  assert.equal(tick.body.streak, 1)
+  const bad = await api('/api/coach/tick', { method: 'POST', json: { kind: 'step', id: 'nope', done: true } })
+  assert.equal(bad.status, 400)
+  const a = await api('/api/coach/ask', { method: 'POST', json: { question: 'What should I look for before I bid?' } })
+  assert.equal(a.status, 200)
+  assert.equal(a.body.reply.source, 'rules')
+  assert.match(a.body.reply.text, /VIN/)
+  const again = await api('/api/coach')
+  assert.equal(again.body.thread.display.length, 2)
+  assert.equal(again.body.today.tasks[0].done, true)
+  assert.equal((await api('/api/coach/ask', { method: 'POST', json: { question: '' } })).status, 400)
+})
