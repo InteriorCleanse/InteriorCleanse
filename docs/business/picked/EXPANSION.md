@@ -29,14 +29,20 @@ to finished goods. It makes sports nutrition and hydration products.
 - **For the next products:** the same 144-unit door opens hydration sticks,
   flavored creatine, and greens.
 
-Add Pure Private Label to the first round of quote requests in
-`LAUNCH_GUIDE.md`. It is the first call to make.
+Its published lines are electrolytes, creatine, greens, and collagen; whey
+is not confirmed, so the first call settles it.
+
+**One partner for everything.** If Picked wants one manufacturer for every
+wave, NutraSeller (clear whey, pouches and sticks in-house, electrolytes,
+creatine) is first choice and Somafina (stronger certifications, higher
+minimums) second. The trade-offs, red flags, and the rest of the supply
+chain are in `MANUFACTURING.md`.
 
 ## The waves
 
 | Wave | Product | Fits "real fruit"? | Cheapest route | Minimum | Cash to launch (estimate) | Time to launch | Starts when |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | **Real Fruit Protein, Strawberry** | Yes, the core | Pure Private Label (144) or the five manufacturers already contacted | 144 to 1,500 units | $8k to $45k | 12 to 16 weeks | Now |
+| 1 | **Real Fruit Protein, Strawberry** | Yes, the core | Pure Private Label (144) if it makes whey; otherwise NutraSeller (one partner for all waves) | 144 to 1,500 units | $8k to $45k | 12 to 16 weeks | Now |
 | 2 | **Real Fruit Hydration sticks** (electrolytes flavored by freeze-dried fruit) | Yes | Pure Private Label custom, or StickPax ($3,500 development, then $0.73 a stick to fill at 7,500) | 144 units, or 7,500 sticks | $3k to $15k | 12 to 16 weeks | Protein formula locked (start development in parallel) |
 | 3 | **Protein, Mango and Raspberry Lemon** | Yes | Same manufacturer as Strawberry | Same | $3k to $25k each | 8 to 10 weeks | First Strawberry run 50% sold |
 | 4 | **Creatine** | Unflavored now, or real-fruit flavored | Unflavored: NutraSeller from 150 units (600 g). Flavored: Pure Private Label (144) or Peak Finity Labs (2,000, 4 to 6 weeks) | 144 to 2,000 | $2k to $10k | 6 to 10 weeks | Repeat customers asking for it, and age checks in place for New York and California |

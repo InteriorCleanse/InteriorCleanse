@@ -18,7 +18,7 @@ non-milky protein, but Picked makes no medical claim of any kind.
 
 | What buyers dislike now | What Picked does |
 | --- | --- |
-| "Tastes like an orange-flavoured antibiotic" | Real fruit is the main flavour ingredient |
+| "Tastes like an orange-flavored antibiotic" | Real fruit is the main flavor ingredient |
 | Sucralose and Ace-K aftertaste | Monk fruit and/or stevia only |
 | "Natural flavors" hide what is in it | Grams of fruit per scoop on the front |
 | Heavy-metal worries in protein powder | Every lot's lab results behind a QR code |
@@ -33,7 +33,7 @@ per serving, and puts the fruit number on the front. Sources in `RESEARCH.md`.
 | --- | --- | --- | --- |
 | Pouch, Strawberry, Mango, or Raspberry Lemon | 20 | **$54.99** | $2.75 |
 | Pouch on subscription, 15% off | 20 | $46.74 | $2.34 |
-| Stick pack box, mixed or single flavour | 10 | $34.99 | $3.50 |
+| Stick pack box, mixed or single flavor | 10 | $34.99 | $3.50 |
 | Single stick at a gym or café counter | 1 | $3.99 | $3.99 |
 | Starter bundle: one pouch plus a shaker | 20 | $59.99 | |
 
@@ -102,8 +102,8 @@ the trademark is filed and the manufacturer passes Amazon's cGMP check.
 
 ## Open questions for the owner
 
-1. Budget for launch: about $35–45k (Strawberry only, then add flavours from
-   sales) or about $90–110k (all three flavours at once)? See the budget in
+1. Budget for launch: about $35–45k (Strawberry only, then add flavors from
+   sales) or about $90–110k (all three flavors at once)? See the budget in
    `LAUNCH_GUIDE.md`.
 2. Supplement or food labelling? The default is dietary supplement; a label consultant confirms.
 3. Fruit load: how cloudy and how fruity? The tasting panel decides.

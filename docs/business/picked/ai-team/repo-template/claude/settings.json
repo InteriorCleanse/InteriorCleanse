@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "Edit(outbox/**)",
+      "Write(outbox/**)",
+      "Edit(briefs/**)",
+      "Write(briefs/**)",
+      "Edit(trackers/**)",
+      "Write(trackers/**)",
+      "Edit(lots/**)",
+      "Write(lots/**)",
+      "Bash(python3:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git push -u origin agents/:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./data/private/**)",
+      "Bash(git push origin main:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(ssh:*)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)",
+      "Bash(rm -rf:*)"
+    ]
+  }
+}

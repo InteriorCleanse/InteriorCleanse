@@ -5,7 +5,7 @@ Line: *Real fruit. Real protein.* Long form: *Tastes like it was just picked.*
 
 ## Why this name
 
-- It says fresh fruit without saying "fruit", so it can grow past one flavour.
+- It says fresh fruit without saying "fruit", so it can grow past one flavor.
 - It is a past participle people already use about produce, which makes the
   promise feel literal rather than invented.
 - One syllable, six letters, easy to say in a store and to spell in a search bar.

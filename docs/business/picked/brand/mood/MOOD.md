@@ -23,15 +23,15 @@ session do this itself, add `d8j0ntlcm91z4.cloudfront.net` and
 ## Rules
 
 - These are mood images, not product photos. Never caption one as "Picked"
-  or imply it shows the finished drink's exact colour.
+  or imply it shows the finished drink's exact color.
 - Check every image before use for warped hands, odd fruit, or stray text.
 - On paid ads, label AI imagery where the platform requires it (Meta and
   TikTok both have AI-content labels).
 
 ## Prompt recipe for more
 
-> Editorial food photograph. A tall clear glass of [colour] [fruit] drink with
+> Editorial food photograph. A tall clear glass of [color] [fruit] drink with
 > ice, slightly cloudy like fresh juice, next to [cut fruit] on a warm cream
 > surface. Hard [morning/afternoon] sunlight, crisp shadows, droplets on the
-> glass. Palette of [flavour colour], cream and leaf green. No text, no logos,
+> glass. Palette of [flavor color], cream and leaf green. No text, no logos,
 > no packaging, no labels.

@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Picked profile banner</title>
+<!-- One template for every platform banner. Render at the platform size; the
+     copy stays inside a centered safe area sized for the strictest crop
+     (YouTube's 1546 x 423 on a 2560 x 1440 image). See ../../../SOCIAL_SETUP.md. -->
+<style>
+@font-face{font-family:B;src:url(../../../site/assets/fonts/bricolage-800.woff2)}
+@font-face{font-family:L;src:url(../../../site/assets/fonts/librefranklin-700.woff2);font-weight:700}
+html,body{margin:0;height:100%}
+body{background:#1F4D2C;overflow:hidden;position:relative;font-family:L;color:#FFF7EC}
+.dots{position:absolute;inset:0}
+.dot{position:absolute;border-radius:50%}
+.safe{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:calc(var(--u)*3);white-space:nowrap}
+.safe img{height:calc(var(--u)*9)}
+.rule{width:calc(var(--u)*.35);height:calc(var(--u)*10);background:#9BD36A;border-radius:9px}
+.t{font-family:B;font-weight:800;letter-spacing:-.03em;line-height:.95;font-size:calc(var(--u)*5.2)}
+.s{font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:calc(var(--u)*1.25);color:#9BD36A;margin-top:calc(var(--u)*1.2)}
+</style></head><body>
+<div class="dots">
+ <div class="dot" style="background:#F0505E;width:42vh;height:42vh;left:-12vh;top:-14vh"></div>
+ <div class="dot" style="background:#FFB01F;width:30vh;height:30vh;left:9vw;bottom:-16vh"></div>
+ <div class="dot" style="background:#B8185A;width:46vh;height:46vh;right:-14vh;bottom:-20vh"></div>
+ <div class="dot" style="background:#F6DD3D;width:20vh;height:20vh;right:12vw;top:-8vh"></div>
+</div>
+<div class="safe">
+ <img src="../../picked-wordmark-reverse.svg" alt="Picked">
+ <div class="rule"></div>
+ <div><div class="t">Real fruit.<br>Real protein.</div><div class="s">The grams are on the front</div></div>
+</div>
+<script>
+// Size the unit to the safe area so every banner keeps the same composition.
+const w=innerWidth,h=innerHeight;
+const safeW = w>=2500 ? 1546 : w*0.62, safeH = w>=2500 ? 423 : h*0.8;
+const u = Math.min(safeW/62, safeH/13);
+document.body.style.setProperty('--u', u+'px');
+</script>
+</body></html>

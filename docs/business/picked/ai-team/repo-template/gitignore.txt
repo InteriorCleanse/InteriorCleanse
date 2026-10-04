@@ -1,0 +1,16 @@
+# Copy to the picked repository root as .gitignore
+
+# Customer messages and anything with personal details. Never commit.
+data/private/
+
+# Secrets live in environment settings, never in files.
+.env
+.env.*
+*.key
+*.pem
+
+# Raw platform exports often include customer names and emails.
+# Export aggregated reports only, or keep raw ones here.
+data/raw/
+
+.DS_Store

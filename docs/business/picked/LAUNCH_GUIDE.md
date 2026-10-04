@@ -1,6 +1,6 @@
 # Picked launch guide
 
-**The plan in one line:** make one great flavour, pre-sell it to a waitlist,
+**The plan in one line:** make one great flavor, pre-sell it to a waitlist,
 sell it on your own site, sample it in person, then climb the store ladder one
 rung at a time as the numbers allow.
 
@@ -12,9 +12,11 @@ are in `RESEARCH.md`.
 
 The manufacturer is the long pole, so the request for quotes goes out first.
 
-- [ ] Email the request for quotes (`outreach/01-manufacturer-rfq.md` plus `FORMULA_BRIEF.md`) to six manufacturers. **Pure Private Label first**: its 144-unit minimum and $695 custom samples make a small test run possible. Then NutraSeller, Makers Nutrition, Nutrablend Foods, Nutracap, Cpack.
+- [ ] **Start with `START_HERE.md`.** It orders every owner task in this guide with the answers to paste.
+- [ ] Send the manufacturer emails (`outreach/manufacturer-emails.md` with `outreach/formula-brief.pdf`) to seven manufacturers. **NutraSeller and Pure Private Label first**: NutraSeller can make every Picked product under one roof, and Pure Private Label's 144-unit minimum and $695 samples make a small test run possible if it can make whey. See `MANUFACTURING.md`.
+- [ ] Send the packaging, lab, and label-review quote requests (`outreach/supplier-emails.md`).
 - [ ] Search "PICKED" at tmsearch.uspto.gov, then book a trademark attorney for a clearance opinion.
-- [ ] Register pickedprotein.com and drinkpicked.com. Claim @pickedprotein on Instagram and TikTok.
+- [ ] Register pickedprotein.com and drinkpicked.com. Claim @pickedprotein everywhere (`SOCIAL_SETUP.md`).
 - [ ] Form the company (an LLC if you're bootstrapping, a Delaware C-corp if you plan to raise money; see `LEGAL.md`), get an EIN (free, online, same day), open a business bank account, and get a home-state sales tax permit.
 - [ ] Put the waitlist site live (`site/`, see `site/README.md`) with a Klaviyo signup form.
 - [ ] Download the six mood photos (`brand/mood/MOOD.md`) and drop two into `site/assets/img/`.
@@ -24,14 +26,14 @@ The manufacturer is the long pole, so the request for quotes goes out first.
 
 ## Weeks 2 to 8: make the product
 
-- [ ] Compare quotes. Choose on four things: fruit-forward flavour skill, NSF/ANSI 455-2 or equivalent GMP certification, a lot-level heavy-metal certificate of analysis (COA), and MOQ. Price comes fifth.
+- [ ] Compare quotes. Choose on four things: fruit-forward flavor skill, NSF/ANSI 455-2 or equivalent GMP certification, a lot-level heavy-metal certificate of analysis (COA), and MOQ. Price comes fifth.
 - [ ] Order bench samples, usually 2 to 4 rounds over 4 to 6 weeks. Start with Strawberry.
-- [ ] Run a blind taste panel: 30 people from the waitlist score Picked against Ghost Clear and Myprotein Clear. Ship only if Picked wins on "tastes like real fruit".
+- [ ] Run the blind taste panel (`outreach/taste-panel/`): 30 people score Picked against two well-known clear wheys. Ship only if Picked wins on "tastes like real fruit".
 - [ ] Lock the formula. Ask for grams of fruit per serving in writing, then print that number on the pack.
-- [ ] Hire a label consultant or food lawyer to review the Supplement Facts panel, the "made with real strawberries" wording under 21 CFR 101.22, the protein %DV, and any Prop 65 warning.
+- [ ] Hire a label consultant (Dietary Supplement Experts, $599 a label; `MANUFACTURING.md`) or food lawyer to review the Supplement Facts panel, the "made with real strawberries" wording under 21 CFR 101.22, the protein %DV, and any Prop 65 warning.
 - [ ] File the trademark in classes 5 and 32 ($350 per class). Buy a GS1 US company prefix ($250 plus $50 a year).
 - [ ] Get product liability insurance at $1M per claim and $2M total. Stores will ask for it.
-- [ ] Send final art to a digital pouch printer for low minimums, using the printer's own dieline.
+- [ ] Send final art to a digital pouch printer for low minimums (ePac first), using the printer's own dieline.
 
 ## Weeks 8 to 14: produce and pre-sell
 
@@ -76,11 +78,11 @@ including hydration sticks and a second flavor. See `TIMELINE.md`. The table
 below is the standard path with 1,000-pouch runs.
 
 
-| Item | Strawberry only | All three flavours |
+| Item | Strawberry only | All three flavors |
 | --- | --- | --- |
 | LLC, trademark (2 classes), GS1, domain | $1,500 | $1,500 |
 | Label and regulatory review | $1,500–3,000 | $2,500–4,000 |
-| Flavour development | $3,000–6,000 | $6,000–12,000 |
+| Flavor development | $3,000–6,000 | $6,000–12,000 |
 | First run, pouches at about $23 | 1,000 = $23,000 | 3,000 = $69,000 |
 | Stick packs at about $1.30 | 3,000 = $3,900 | 6,000 = $7,800 |
 | Insurance, first year | $1,500–3,000 | $1,500–3,000 |
@@ -95,6 +97,10 @@ from the first run's sales, and use the waitlist vote to pick which comes next.
 - **Products:** `EXPANSION.md` sets the order: real-fruit hydration sticks,
   the second and third protein flavors, creatine, greens or collagen with
   fruit, then a ready-to-drink clear protein water. Each wave has a gate.
+- **Marketing:** `MARKETING_PLAN.md` runs the first 90 days; `BLOOM_LESSONS.md`
+  explains the creator and founder-video engine behind it.
+- **The AI team:** `ai-team/` sets up eleven agents that draft content,
+  replies, pitches, and reports for your approval.
 - **Running it:** `OPERATIONS.md` covers the $39-a-month store, the nine
   automations, and when to hand packing to a fulfillment warehouse.
 - **Legal:** `LEGAL.md` is the checklist, and `legal/` has the drafts for a
@@ -103,7 +109,7 @@ from the first run's sales, and use the waitlist vote to pick which comes next.
 ## Never do these
 
 - Claim weight loss, disease, GLP-1, or "clinically proven" anything.
-- Say "real fruit" on a flavour whose taste mostly comes from added flavours.
+- Say "real fruit" on a flavor whose taste mostly comes from added flavors.
 - Put "20g protein" on the front without the protein %DV in the facts panel.
 - Ship a lot without its heavy-metal COA.
 - Use stock or AI images of a pouch that doesn't exist yet as if it were the real product.
