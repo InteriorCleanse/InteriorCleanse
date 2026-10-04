@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Cta } from '@/components/Cta'
+import { CALL_HREF, SITE } from '@/lib/site'
 
 export const metadata: Metadata = {
   title: 'What the review examines',
@@ -114,9 +115,9 @@ export default function ReviewPage() {
       <section className="page mt-16 sm:mt-24">
         <div className="rule pt-10 flex flex-col items-start gap-6 rv">
           <p className="text-stone max-w-[56ch]">
-            Every engagement runs under our written <Link className="link" href="/discretion/">security and discretion policy</Link>. The fee is fixed and quoted after a twenty-minute call.
+            Every engagement runs under our written <Link className="link" href="/discretion/">security and discretion policy</Link>. {SITE.reviewFee ? `The fee is fixed at ${SITE.reviewFee}.` : 'The fee is fixed and quoted after a twenty-minute call.'} Start with the <Link className="link" href="/check/">free ten-second check</Link>.
           </p>
-          <Cta href="/private/#call">Request a call</Cta>
+          <Cta href={CALL_HREF}>Request a call</Cta>
         </div>
       </section>
     </>
