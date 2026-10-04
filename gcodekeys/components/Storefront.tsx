@@ -1,144 +1,76 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { LogoIcon, Wordmark } from './Logo'
-import { PRODUCTS, SHELL_COLORS, FINISHES, KEY_TYPES, DROPS } from '@/lib/catalog'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useGSAP } from '@gsap/react'
+import { useCart } from './CartProvider'
+import { KeyStudio } from './KeyStudio'
+import { PRODUCTS, DROPS } from '@/lib/catalog'
 
-type Finish = (typeof FINISHES)[number]
-type KeyType = (typeof KEY_TYPES)[number]
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export function Storefront() {
-  const [cart, setCart] = useState(0)
-  const [toast, setToast] = useState('')
-  const tRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pop = (msg: string) => {
-    setToast(msg)
-    if (tRef.current) clearTimeout(tRef.current)
-    tRef.current = setTimeout(() => setToast(''), 1400)
-  }
-  const add = (label: string) => { setCart((c) => c + 1); pop(label) }
+  const { add } = useCart()
+  const root = useRef<HTMLDivElement | null>(null)
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      // Hero: decisive, staggered entrance (energetic ease-out).
+      gsap.from('[data-hero] > *', {
+        y: 26, autoAlpha: 0, duration: 0.6, ease: 'power3.out', stagger: 0.08, delay: 0.05,
+      })
+      // Section reveals on scroll.
+      gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
+        gsap.from(el, {
+          y: 30, autoAlpha: 0, duration: 0.6, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+        })
+      })
+      // Ambient: the fob breathes.
+      gsap.to('[data-fob]', { y: -10, rotate: 1.5, duration: 3, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+    })
+    return () => mm.revert()
+  }, { scope: root })
 
   return (
-    <>
-      <div className="wrap">
-        <header className="top">
-          <a className="brand" href="#top"><LogoIcon /><Wordmark /></a>
-          <nav className="nav">
-            <a href="#build">BUILD</a><a href="#shop">SHOP</a>
-            <a href="#drops">DROPS</a><a href="#replace">REPLACE</a>
-            <a href="/operator/login/">OPERATOR</a>
-            <button className="cart" onClick={() => pop(cart ? `CART: ${cart} ITEM${cart > 1 ? 'S' : ''} · EXAMPLE` : 'CART EMPTY')}>
-              CART [{cart}]
-            </button>
-          </nav>
-        </header>
-
-        <section className="hero" id="top">
-          <p className="eyebrow">&gt;_ THE CODE THAT CUTS</p>
-          <h1>Custom car keys,<br /><span className="g">cut like code.</span></h1>
-          <p className="lede">Build your fob, pick the finish, engrave it, and we cut and code it to your exact vehicle. Replacements, spares, and limited drops. Flat price, shown before you buy.</p>
-          <div className="cta">
-            <a className="btn" href="#build">BUILD YOUR FOB</a>
-            <a className="btn ghost" href="#replace">REPLACE BY VIN</a>
-          </div>
-          <div className="trustrow">
-            <span>Flat price, in writing</span><span>Cut &amp; coded to your VIN</span><span>Ownership verified</span>
-          </div>
-        </section>
-
-        <Configurator onAdd={add} />
-        <Shop onAdd={add} />
-        <Drops />
-        <Replace onAdd={add} />
-        <Trust />
-      </div>
-
-      <footer>
-        <div className="wrap">
-          <div className="brand" style={{ marginBottom: 10 }}><Wordmark /></div>
-          <p className="disc">
-            Preview build of gcodekeys.com. Products shown are the planned catalog and all prices are <b>examples</b> to set before launch, not live charges. GCode Keys is an independent automotive key service, not a dealer or manufacturer. Keys are programmed at the vehicle after proof of ownership. Coverage is most makes and models; some late-model vehicles are dealer-only and are referred out. Drop timers are illustrative.
-          </p>
+    <div className="wrap" ref={root}>
+      <section className="hero" id="top" data-hero>
+        <p className="eyebrow">&gt;_ THE CODE THAT CUTS</p>
+        <h1>Custom car keys,<br /><span className="g">cut like code.</span></h1>
+        <p className="lede">Build your fob, pick the finish, engrave it, and we cut and code it to your exact vehicle. Replacements, spares, and limited drops. Flat price, shown before you buy.</p>
+        <div className="cta">
+          <a className="btn" href="#build">BUILD YOUR FOB</a>
+          <a className="btn ghost" href="#replace">REPLACE BY VIN</a>
         </div>
-      </footer>
+        <div className="trustrow">
+          <span>Flat price, in writing</span><span>Cut &amp; coded to your VIN</span><span>Ownership verified</span>
+        </div>
+      </section>
 
-      <div className={`toast${toast ? ' show' : ''}`} role="status" aria-live="polite">{toast}</div>
-    </>
+      <KeyStudio />
+      <Shop onAdd={add} />
+      <Drops />
+      <Replace onAdd={add} />
+      <Trust />
+    </div>
   )
 }
 
-function Configurator({ onAdd }: { onAdd: (m: string) => void }) {
-  const [color, setColor] = useState(SHELL_COLORS[0].hex)
-  const [finish, setFinish] = useState<Finish>(FINISHES[0])
-  const [ktype, setKtype] = useState<KeyType>(KEY_TYPES[0])
-  const [engrave, setEngrave] = useState('YOUR NAME')
-  const price = ktype.base + finish.premium
-  const fobClass = `fob${finish.id === 'gloss' ? '' : ' ' + finish.id}`
-
-  return (
-    <section id="build">
-      <div className="shead"><div><div className="kicker">Build your fob</div><h2>Make it yours</h2></div></div>
-      <div className="config">
-        <div className="stage">
-          <div className={fobClass} style={{ background: color, ['--shell' as string]: color }}>
-            <div className="logo">GCODE</div>
-            <div className="screen">{(engrave || 'GCODE').toUpperCase()}</div>
-            <div className="btns"><i /><i /><i /><i /></div>
-            <div className="blade" />
-          </div>
-        </div>
-        <div className="opts">
-          <div className="opt">
-            <label>::SHELL COLOR</label>
-            <div className="swatches">
-              {SHELL_COLORS.map((s) => (
-                <button key={s.hex} className="sw" style={{ background: s.hex }} aria-pressed={color === s.hex} aria-label={s.name} onClick={() => setColor(s.hex)} />
-              ))}
-            </div>
-          </div>
-          <div className="opt">
-            <label>::FINISH</label>
-            <div className="segs">
-              {FINISHES.map((f) => (
-                <button key={f.id} className="seg" aria-pressed={finish.id === f.id} onClick={() => setFinish(f)}>{f.label}</button>
-              ))}
-            </div>
-          </div>
-          <div className="opt">
-            <label htmlFor="engrave">::ENGRAVING (10 CHARS)</label>
-            <input id="engrave" className="field" maxLength={10} value={engrave} onChange={(e) => setEngrave(e.target.value)} />
-          </div>
-          <div className="opt">
-            <label>::KEY TYPE</label>
-            <div className="segs">
-              {KEY_TYPES.map((k) => (
-                <button key={k.id} className="seg" aria-pressed={ktype.id === k.id} onClick={() => setKtype(k)}>{k.label}</button>
-              ))}
-            </div>
-          </div>
-          <div className="priceline">
-            <div><div className="amt">${price}</div><div className="ex">EXAMPLE PRICING · set at launch</div></div>
-            <button className="btn" onClick={() => onAdd('CUSTOM FOB ADDED · EXAMPLE')}>ADD TO CART</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function Shop({ onAdd }: { onAdd: (m: string) => void }) {
+function Shop({ onAdd }: { onAdd: ReturnType<typeof useCart>['add'] }) {
   return (
     <section id="shop">
       <div className="shead"><div><div className="kicker">The shop</div><h2>Keys, covers, and defense</h2></div><a className="btn ghost sm" href="#build">OPEN BUILDER</a></div>
       <div className="grid">
         {PRODUCTS.map((p) => (
-          <div className="card" key={p.id}>
+          <div className="card reveal" key={p.id}>
             <div className="cat">{p.category}{p.tag ? <> · <span className="chip">{p.tag}</span></> : null}</div>
             <h3>{p.name}</h3>
             <p>{p.blurb}</p>
             <div className="row">
               <span className="p">${p.priceExample}</span>
-              <button className="btn sm" onClick={() => onAdd(`${p.name.toUpperCase()} ADDED · EXAMPLE`)}>ADD</button>
+              <button className="btn sm" onClick={() => onAdd({ key: `p-${p.id}`, name: p.name, price: p.priceExample }, `${p.name} added · example`)}>ADD</button>
             </div>
           </div>
         ))}
@@ -158,8 +90,7 @@ function Drops() {
   const [email, setEmail] = useState('')
   const [msg, setMsg] = useState('')
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const iv = setInterval(() => setMins((xs) => xs.map((m) => Math.max(0, m - 1))), 60000)
     return () => clearInterval(iv)
   }, [])
@@ -177,7 +108,7 @@ function Drops() {
       <div className="shead"><div><div className="kicker">Limited</div><h2>This month&apos;s drops</h2></div></div>
       <div className="drops">
         {DROPS.map((d, i) => (
-          <div className="drop" key={d.id}>
+          <div className="drop reveal" key={d.id}>
             <div className="tag">◆ DROP 0{i + 1} · {d.units} UNITS</div>
             <h3>{d.name}</h3>
             <div className="count">{mins[i] ? fmt(mins[i]) : 'LIVE NOW'}</div>
@@ -196,7 +127,7 @@ function Drops() {
 
 type QuoteResult = { vehicle: string; key: string; method: string; priceExample: number | null } | null
 
-function Replace({ onAdd }: { onAdd: (m: string) => void }) {
+function Replace({ onAdd }: { onAdd: ReturnType<typeof useCart>['add'] }) {
   const [vin, setVin] = useState('2018 HONDA CIVIC')
   const [res, setRes] = useState<QuoteResult>(null)
   const [busy, setBusy] = useState(false)
@@ -214,7 +145,7 @@ function Replace({ onAdd }: { onAdd: (m: string) => void }) {
   return (
     <section id="replace">
       <div className="shead"><div><div className="kicker">Lost or need a spare</div><h2>Replace by VIN or plate</h2></div></div>
-      <div className="vinbox">
+      <div className="vinbox reveal">
         <label className="ex" htmlFor="vin" style={{ color: 'var(--neon)', letterSpacing: '.2em' }}>::ENTER VIN OR PLATE</label>
         <form className="vinrow" onSubmit={submit}>
           <input id="vin" className="field" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="1HGCV1F30LA000000" />
@@ -227,7 +158,14 @@ function Replace({ onAdd }: { onAdd: (m: string) => void }) {
             <div>KEY&nbsp; <b>{res.key}</b></div>
             <div>JOB&nbsp; <b>{res.method}</b></div>
             <div style={{ marginTop: 6 }}>FLAT PRICE&nbsp; <span className="amt">{res.priceExample == null ? '$—' : '$' + res.priceExample}</span> &nbsp;·&nbsp; <span style={{ color: 'var(--amber)' }}>EXAMPLE</span></div>
-            <div style={{ marginTop: 10 }}><button className="btn sm" onClick={() => onAdd('REPLACEMENT KEY ADDED · EXAMPLE')}>BOOK / ORDER →</button></div>
+            <div style={{ marginTop: 10 }}>
+              <button
+                className="btn sm"
+                onClick={() => onAdd({ key: `vin-${res.vehicle}`, name: `Replacement key · ${res.vehicle}`, price: res.priceExample ?? 0, meta: res.key }, 'Replacement added · example')}
+              >
+                ADD TO BAG →
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -239,7 +177,7 @@ function Trust() {
   return (
     <section>
       <div className="shead"><div><div className="kicker">Why GCode</div><h2>Fast. Honest. Verified.</h2></div></div>
-      <div className="trust">
+      <div className="trust reveal">
         <div className="tbox">
           <div className="n">[✓] THE PROMISE</div>
           <h3>The price you see is the price you pay</h3>
