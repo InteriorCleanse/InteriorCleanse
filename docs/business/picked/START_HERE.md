@@ -100,7 +100,7 @@ banners ready to paste and upload.
 | 18 | Buy the GS1 US 10-item company prefix | $250, then $50 a year | gs1us.org |
 | 19 | Get product liability quotes from Insurance Canopy and Veracity. Bind before the first pre-order | About $2,800 a year | `outreach/supplier-emails.md`, 4 and 5 |
 | 20 | Ask a lawyer to review the `legal/` drafts (policies, subscription terms, privacy) | Quote | `legal/README.md` |
-| 21 | Set up the private `picked` GitHub repository and the AI team, phase 1 | Free on your Claude plan | `ai-team/README.md` |
+| 21 | Build the private `picked` repository with the AI team in one command: `bash docs/business/picked/ai-team/setup-picked-repo.sh ~/picked`, then push it to a new private GitHub repository | Free on your Claude plan | `ai-team/README.md` |
 | 22 | When samples arrive: run the blind taste panel | About $150 | `outreach/taste-panel/` |
 | 23 | Put your real numbers in the financial model: starting cash, then the pouch cost from the quotes | Free | `finance/README.md` |
 
