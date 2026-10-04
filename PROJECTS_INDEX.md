@@ -35,7 +35,7 @@ folders, and by path filters in CI.
 | Auction Scanner ("gavel") | `auction-scanner/` (on its branch only) | `claude/ai-car-auction-scanner-hogvls` | 2026-10-02 | Node + TypeScript, static `web/` UI, Docker | `auction-scanner/CLAUDE.md` | Docker |
 | AURELIS OS (voice assistant) | **separate, unrelated git history** on `aurelis-base`, `claude/aurelis-os`, `claude/jarvis-voice-assistant-h4hd42` | as listed | 2026-09-27 | Next 16, React 19, Supabase, Vitest, desktop app, browser extension | its own root `CLAUDE.md`, `.claude/`, `.mcp.json` | `aurelis` `vercel.json` |
 | Picked (protein brand) | `docs/business/picked/` | `claude/picked-protein-brand` | 2026-10-01 | documents and brand assets only | none | none |
-| KeyRaptor (vehicle keys) | `docs/business/auto-keys/` | `claude/auto-keys-brand` | 2026-10-02 | documents and brand assets only | none | none |
+| GCode Keys (vehicle keys) | `gcodekeys/`, `docs/business/auto-keys/` | `claude/gcodekeys-site` (site), `claude/auto-keys-brand` (brand docs) | 2026-10-04 | Next 14, React 18, TypeScript, GSAP | none | Vercel (root dir `gcodekeys`) — pending |
 | Get-it (workout app) | docs and assets on its branch | `claude/workout-app-premium-prompt-whe1gh` | 2026-09-13 | Base44 prompts, a design-system HTML page, logo SVGs | none | Base44 (outside this repo) |
 | Kept | moving to its own repository | `claude/automation-profit-plan-3fs3lb` | 2026-09-27 | no files beyond `main` on its branch | none | none here |
 | Cornerstone Sites | not found | `claude/eloquent-hypatia-jbkqlc` is **not on the remote** | — | — | — | — |
@@ -90,7 +90,7 @@ project's session or an owner decision.
 9. **Freehold has no `CLAUDE.md`.** Its sessions inherit the storefront's root
    rules and nothing of their own.
 10. **Business documents share the storefront's `docs/`.** Freehold, Picked
-    and KeyRaptor documents live under `docs/business/`, next to storefront
+    and GCode Keys documents live under `docs/business/`, next to storefront
     documents. That is labelled and low risk, but it is the same pattern as
     item 6.
 

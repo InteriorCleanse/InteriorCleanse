@@ -17,15 +17,15 @@ export function Storefront() {
   useGSAP(() => {
     const mm = gsap.matchMedia()
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      // Hero: decisive, staggered entrance (energetic ease-out).
+      // Hero: decisive, cinematic staggered entrance.
       gsap.from('[data-hero] > *', {
-        y: 26, autoAlpha: 0, duration: 0.6, ease: 'power3.out', stagger: 0.08, delay: 0.05,
+        y: 30, autoAlpha: 0, filter: 'blur(10px)', duration: 0.9, ease: 'expo.out', stagger: 0.09, delay: 0.05,
       })
-      // Section reveals on scroll.
+      // Section reveals on scroll — gentle heavy fade-up with blur.
       gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
         gsap.from(el, {
-          y: 30, autoAlpha: 0, duration: 0.6, ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+          y: 40, autoAlpha: 0, filter: 'blur(8px)', duration: 0.9, ease: 'expo.out',
+          scrollTrigger: { trigger: el, start: 'top 86%', once: true },
         })
       })
       // Ambient: the fob breathes.
@@ -41,8 +41,8 @@ export function Storefront() {
         <h1>Custom car keys,<br /><span className="g">cut like code.</span></h1>
         <p className="lede">Build your fob, pick the finish, engrave it, and we cut and code it to your exact vehicle. Replacements, spares, and limited drops. Flat price, shown before you buy.</p>
         <div className="cta">
-          <a className="btn" href="#build">BUILD YOUR FOB</a>
-          <a className="btn ghost" href="#replace">REPLACE BY VIN</a>
+          <a className="btn glow" href="#build">BUILD YOUR FOB<span className="arrow" aria-hidden="true">↗</span></a>
+          <a className="btn ghost" href="#replace">REPLACE BY VIN<span className="arrow" aria-hidden="true">→</span></a>
         </div>
         <div className="trustrow">
           <span>Flat price, in writing</span><span>Cut &amp; coded to your VIN</span><span>Ownership verified</span>

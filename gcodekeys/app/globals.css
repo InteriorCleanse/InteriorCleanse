@@ -272,3 +272,69 @@ h1 .g{
 .faq summary::after{content:'+';color:var(--neon);font-family:var(--mono);font-size:1.2rem;transition:transform .2s}
 .faq[open] summary::after{transform:rotate(45deg)}
 .faq p{margin:0;padding:0 18px 18px;color:var(--muted);line-height:1.7}
+
+/* ═══════════════════════════════════════════════════════════════════
+   v3 — agency-tier: floating island nav, morphing mobile menu,
+   button physics, double-bezel, grain, heavier rhythm.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{ --ease:cubic-bezier(.32,.72,0,1); }
+
+/* film grain, fixed, pointer-safe */
+.grain{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ── floating island nav ── */
+.navwrap{position:sticky;top:0;z-index:100;display:flex;justify-content:center;padding:14px 16px;pointer-events:none}
+.island{pointer-events:auto;display:flex;align-items:center;gap:18px;width:min(1120px,100%);
+  padding:9px 10px 9px 16px;border-radius:999px;background:rgba(6,16,12,.55);
+  border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(18px);
+  box-shadow:0 12px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.07)}
+.island .brand{margin-right:6px}
+.island-links{display:flex;gap:22px;justify-content:center;flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.island-links a{color:var(--muted);position:relative;padding:4px 0;transition:color .3s var(--ease)}
+.island-links a:hover{color:var(--ink)}
+.island-links a::after{content:'';position:absolute;left:0;right:100%;bottom:-3px;height:1px;background:var(--neon);box-shadow:0 0 8px var(--neon);transition:right .35s var(--ease)}
+.island-links a:hover::after{right:0}
+.island-actions{display:flex;align-items:center;gap:10px}
+.cart{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
+  padding:9px 15px;background:rgba(255,255,255,.03);color:var(--ink);font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;cursor:pointer;transition:all .3s var(--ease)}
+.cart:hover{border-color:var(--neon);box-shadow:0 0 18px rgba(21,227,122,.25)}
+.cart-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;background:var(--neon);color:#021007;font-weight:700;font-size:10px;padding:0 5px}
+.burger{display:none;width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);position:relative;cursor:pointer}
+.burger span{position:absolute;left:12px;right:12px;height:1.5px;background:var(--ink);transition:all .4s var(--ease)}
+.burger span:nth-child(1){top:17px}.burger span:nth-child(2){bottom:17px}
+.burger.on span:nth-child(1){top:calc(50% - 1px);transform:rotate(45deg)}
+.burger.on span:nth-child(2){bottom:auto;top:calc(50% - 1px);transform:rotate(-45deg)}
+@media(max-width:880px){.island-links{display:none}.burger{display:block}}
+
+.navmenu{position:fixed;inset:0;z-index:99;background:rgba(2,6,4,.86);backdrop-filter:blur(26px);
+  opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+.navmenu.open{opacity:1;pointer-events:auto}
+.navmenu-inner{display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 10vw;gap:2px}
+.navmenu-inner a{font-family:var(--disp);font-weight:700;font-size:clamp(2rem,8vw,3.4rem);letter-spacing:.01em;color:var(--ink);
+  display:flex;align-items:baseline;gap:20px;padding:6px 0;opacity:0;transform:translateY(42px);
+  transition:opacity .5s var(--ease),transform .5s var(--ease);transition-delay:calc(var(--i,0)*55ms)}
+.navmenu.open .navmenu-inner a{opacity:1;transform:none}
+.navmenu-inner a:hover{color:var(--neon)}
+.nm-num{font-family:var(--mono);font-size:13px;color:var(--neon);opacity:.7}
+
+/* ── button physics + button-in-button ── */
+.btn{transition:background .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease),transform .18s var(--ease);
+  display:inline-flex;align-items:center;justify-content:center;gap:2px}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn .arrow{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:10px;border-radius:999px;
+  background:rgba(0,0,0,.2);font-size:12px;transition:transform .3s var(--ease)}
+.btn:hover .arrow{transform:translate(3px,-1px) scale(1.05)}
+.btn.glow .arrow{background:rgba(255,255,255,.28)}
+
+/* ── double-bezel depth ── */
+.studio,.vinbox,.panel{box-shadow:0 0 0 1px rgba(255,255,255,.04),0 26px 64px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07)}
+.card{transition:transform .4s var(--ease),border-color .4s var(--ease),box-shadow .4s var(--ease);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.14);box-shadow:0 18px 44px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
+.drop{transition:transform .4s var(--ease),box-shadow .4s var(--ease)}
+.drop:hover{transform:translateY(-3px);box-shadow:0 18px 44px rgba(0,0,0,.5)}
+
+/* ── heavier rhythm ── */
+section{padding-block:64px}
+.hero{padding-block:72px 40px}
+h2{letter-spacing:-0.01em}

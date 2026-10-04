@@ -46,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartProvider>
           <MatrixRain />
           <div id="veil" aria-hidden="true" />
+          <div className="grain" aria-hidden="true" />
           <SiteHeader />
           {children}
           <SiteFooter />
