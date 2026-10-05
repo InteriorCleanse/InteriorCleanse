@@ -239,6 +239,29 @@ describe('datasetFromRows', () => {
     })
   })
 
+  it('counts a committed CSV import as a source, with its commit as the freshness', () => {
+    const d = datasetFromRows(
+      rows({
+        sources: [],
+        imports: [
+          { kind: 'orders', committed_at: '2026-06-14T20:00:00Z' },
+          { kind: 'expenses', committed_at: '2026-06-15T07:30:00Z' },
+          { kind: 'orders', committed_at: null },
+        ],
+      }),
+      'USD',
+    )
+    expect(d.system).toBe('csv import')
+    expect(d.syncedAt?.toISOString()).toBe('2026-06-15T07:30:00.000Z')
+
+    const both = datasetFromRows(
+      rows({ imports: [{ kind: 'orders', committed_at: '2026-06-16T07:30:00Z' }] }),
+      'USD',
+    )
+    expect(both.system).toBe('shopify, csv import')
+    expect(both.syncedAt?.toISOString()).toBe('2026-06-16T07:30:00.000Z')
+  })
+
   it('skips a row with an unreadable date rather than throwing', () => {
     const d = datasetFromRows(rows({ orders: [order({ placed_at: 'yesterday-ish' })] }), 'USD')
     expect(d.orders).toHaveLength(0)
@@ -367,7 +390,7 @@ function fakeClient(tables: Record<string, Record<string, unknown>[]>) {
     let ids: string[] | null = null
     const builder: Record<string, unknown> = {}
     const chain = () => builder
-    for (const method of ['select', 'order', 'gte', 'lte']) builder[method] = chain
+    for (const method of ['select', 'order', 'gte', 'lte', 'limit']) builder[method] = chain
     builder.eq = (column: string, value: unknown) => {
       call.filters[column] = value
       return builder
@@ -415,7 +438,7 @@ describe('loadWorkspaceDataset', () => {
     for (const call of calls) expect(call.filters.organization_id).toBe('org-1')
     expect(calls.find((c) => c.table === 'orders')?.filters.is_test).toBe(false)
     expect(new Set(calls.map((c) => c.table))).toEqual(
-      new Set(['orders', 'order_items', 'refunds', 'expenses', 'integration_connections']),
+      new Set(['orders', 'order_items', 'refunds', 'expenses', 'integration_connections', 'import_batches']),
     )
   })
 
@@ -462,7 +485,7 @@ describe('loadWorkspaceDataset', () => {
     const client = {
       from: () => {
         const builder: Record<string, unknown> = {}
-        for (const m of ['select', 'order', 'gte', 'eq', 'in', 'range']) builder[m] = () => builder
+        for (const m of ['select', 'order', 'gte', 'eq', 'in', 'range', 'limit']) builder[m] = () => builder
         builder.then = (onFulfilled: (v: unknown) => unknown) =>
           Promise.resolve({ data: null, error: { message: 'permission denied for table orders' } }).then(onFulfilled)
         return builder

@@ -43,8 +43,14 @@ passing, and each produces something usable rather than scaffolding.
 - [x] Deterministic demo dataset + golden snapshot — 12 tests
 - [x] `MetricCard` renders formula, sources, currency, freshness, drill-down
 - [x] Command center on real computed figures; empty state refuses to fake data
-- [ ] **Commit path**: writing validated rows to Postgres with the batch id.
-      Needs a live database to build against meaningfully.
+- [x] **Commit path** (`lib/import/commit.ts`, `POST /api/import`): the file
+      is re-parsed and re-validated on the server with the same pure
+      functions that made the preview, then written through the person's own
+      client under one batch. Orders are grouped from their lines, customers
+      keyed by email, orders already present skipped by external id, the same
+      file refused by content hash, and a failure marks the batch so an admin
+      can roll it back (`DELETE /api/import?batch=`). Advertising spend has
+      its own field set and lands in `expenses` — 17 tests.
 - [ ] Daily rollup job populating `daily_business_metrics`
 - [ ] Drill-down routes (`/app/revenue`, `/app/products`) — the `drillDown`
       targets exist on every metric but the pages land in Checkpoint 3
