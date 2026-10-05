@@ -13,6 +13,13 @@ import type { BodyType, CoveragePlan, CoverageId, Extra, ExtraId, FeatureId, Fue
 
 export const COVERAGE_TERMS_FINAL = false
 
+/**
+ * Airport pickups and drop-offs. Colorado's car-sharing act (C.R.S.
+ * 6-1-1214) needs an agreement with the airport first, and most states have
+ * similar rules. Off until the owner has one; then list the airports.
+ */
+export const AIRPORT_HANDOFFS = false
+
 export const BODY_TYPES: { id: BodyType; label: string; blurb: string }[] = [
   { id: 'suv', label: 'SUV', blurb: 'Room for people and their bags' },
   { id: 'sedan', label: 'Sedan', blurb: 'Quiet, efficient, easy to park' },
@@ -99,7 +106,7 @@ export const COVERAGE_PLANS: CoveragePlan[] = [
     pctOfTrip: 60,
     minPerDayCents: 2_500,
     depositCents: 0,
-    liability: 'Up to $750,000 third-party liability',
+    liability: 'Third-party liability included, primary during the trip',
     oneLiner: 'Pay nothing if the car is damaged.',
     includes: ['$0 damage responsibility', 'No deposit', '24/7 roadside assistance', 'Tyres, glass and towing', 'Loss-of-use waived'],
     recommendedFor: 'First trips, long trips, unfamiliar roads.',
@@ -111,7 +118,7 @@ export const COVERAGE_PLANS: CoveragePlan[] = [
     pctOfTrip: 35,
     minPerDayCents: 1_500,
     depositCents: 25_000,
-    liability: 'Up to $750,000 third-party liability',
+    liability: 'Third-party liability included, primary during the trip',
     oneLiner: 'Pay at most $500 if the car is damaged.',
     includes: ['$500 damage responsibility, max', '$250 refundable deposit', '24/7 roadside assistance', 'Tyres, glass and towing'],
     recommendedFor: 'Most trips. A modest cap and a small hold.',
@@ -123,7 +130,7 @@ export const COVERAGE_PLANS: CoveragePlan[] = [
     pctOfTrip: 15,
     minPerDayCents: 900,
     depositCents: 50_000,
-    liability: 'State-minimum third-party liability',
+    liability: 'Third-party liability included, primary during the trip',
     oneLiner: 'Lowest price. Pay at most $2,500 if the car is damaged.',
     includes: ['$2,500 damage responsibility, max', '$500 refundable deposit', 'Roadside help by phone'],
     recommendedFor: 'Experienced drivers on short, local trips.',

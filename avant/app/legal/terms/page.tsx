@@ -5,6 +5,8 @@ import { FREE_CANCEL_HOURS, HOST_SHARE_PCT } from '@/lib/catalog'
 import { CIRCLE_TIERS, MAX_CREDIT_SHARE_PCT, PROMISE, REFERRAL } from '@/lib/circle'
 import { LEGAL_VERSIONS, MIN_ACCOUNT_AGE } from '@/lib/legal'
 import { REQUEST_HOURS } from '@/lib/policy'
+import { publicInsurance } from '@/lib/server/insurance'
+import { CLAIM_WINDOW_DAYS, GUEST_RESPONSE_HOURS } from '@/lib/trip-record'
 
 export const metadata: Metadata = { title: 'Terms' }
 
@@ -12,6 +14,7 @@ const $ = (c: number) => `$${Math.round(c / 100)}`
 const gold = CIRCLE_TIERS[CIRCLE_TIERS.length - 1]
 
 export default function Terms() {
+  const roadside = publicInsurance().roadsidePhone
   return (
     <div className="page page-narrow legal stack" style={{ gap: 18 }}>
       <h1 className="page-title">Terms</h1>
@@ -83,11 +86,29 @@ export default function Terms() {
         <li>Refunds go back the way you paid: card payments to the card, AVANT credit as credit.</li>
       </ul>
       <h3>Coverage, damage, tolls and tickets</h3>
-      <p className="muted">
-        During the trip AVANT&apos;s program covers liability to third parties up to the limits in the trip&apos;s coverage, as state law requires.
-        Damage responsibility is capped by your coverage plan. Hosts must submit evidence; you have 72 hours to respond before any charge. Tolls
-        and fines incurred during the trip are passed through at cost. [Coverage terms are placeholders until the insurer signs them.]
-      </p>
+      <ul className="muted">
+        <li>
+          During the trip (from pickup until the car is returned) AVANT&apos;s programme insurance covers liability to third parties. It is primary,
+          at limits at least three times the state&apos;s minimum, and it responds even if the host&apos;s or your own policy has lapsed. It applies only
+          during the trip.
+        </li>
+        <li>Your personal auto policy and credit-card benefits may not cover peer-to-peer car sharing, and they won&apos;t defend claims AVANT makes against you.</li>
+        <li>
+          What you pay if the car is damaged is capped by your protection plan. AVANT may recover from you, up to that cap, damage, fees and costs you
+          cause, and in full any loss caused by breaking these terms (for example, letting an unverified driver drive).
+        </li>
+        <li>
+          Record the odometer and fuel or charge at pickup and return on your trip page, or confirm the host&apos;s readings. Hosts report damage
+          within {CLAIM_WINDOW_DAYS} days of the trip ending, with evidence; you have {GUEST_RESPONSE_HOURS} hours to respond, and nothing is charged
+          before AVANT&apos;s claims team decides.
+        </li>
+        <li>Tolls and fines incurred during the trip are passed through at cost.</li>
+        <li>
+          In an emergency call 911. Roadside assistance:{' '}
+          {roadside ?? '[24/7 roadside number, from the insurer]'}. What to do after an accident is at /help/accident.
+        </li>
+        <li>[Coverage terms are placeholders until the insurer signs them.]</li>
+      </ul>
 
       <h2 id="programme">AVANT credit, Circle and referrals</h2>
       <ul className="muted">

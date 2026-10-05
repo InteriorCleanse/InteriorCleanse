@@ -3,6 +3,7 @@ import { Notice } from '@/components/ui'
 import { HOST_SHARE_PCT } from '@/lib/catalog'
 import { LEGAL_VERSIONS } from '@/lib/legal'
 import { REQUEST_HOURS } from '@/lib/policy'
+import { CLAIM_WINDOW_DAYS, GUEST_RESPONSE_HOURS } from '@/lib/trip-record'
 
 export const metadata: Metadata = { title: 'Host Agreement' }
 
@@ -22,6 +23,15 @@ export default function HostAgreement() {
         <li>It has no open safety recall. If one is issued, you pause the listing until it is repaired.</li>
         <li>It is roadworthy, clean and as described, and every photo is your own photo of this car.</li>
         <li>Each VIN can be listed by one host only.</li>
+        <li>
+          <strong>If your car has a loan or lease:</strong> sharing it may break the terms of that agreement. Check with your lender or lessor before
+          you list it.
+        </li>
+        <li>
+          <strong>Your own insurance:</strong> your personal auto policy may not cover the car while it&apos;s shared through AVANT, and your insurer may
+          exclude that use. AVANT&apos;s programme covers the car&apos;s liability during each trip; your own policy covers it the rest of the time, and
+          you must keep it in force.
+        </li>
       </ul>
 
       <h2>Guests</h2>
@@ -51,11 +61,20 @@ export default function HostAgreement() {
         </li>
       </ul>
 
-      <h2>Damage and claims</h2>
-      <p className="muted">
-        Use the guided check-in and return photos as your evidence. Claims go through AVANT with the guest&apos;s evidence alongside yours.
-        [Host protection plans, deductibles and the claims process: to be completed with the insurer.]
-      </p>
+      <h2>Trips, records and claims</h2>
+      <ul className="muted">
+        <li>
+          At pickup and return, you or the guest record the odometer and the fuel or charge level, and the other confirms it. We keep these trip
+          records, with the times, places, fees and your earnings for each trip, as car-sharing law requires.
+        </li>
+        <li>
+          Report damage, cleaning, fuel, mileage, a late return, tolls or tickets within {CLAIM_WINDOW_DAYS} days of the trip ending, with photos,
+          from the trip page. The guest has {GUEST_RESPONSE_HOURS} hours to respond. AVANT&apos;s claims team decides with both sides&apos; evidence.
+        </li>
+        <li>What a guest pays for damage never exceeds their protection plan&apos;s maximum; damage above that is handled through AVANT&apos;s programme.</li>
+        <li>Don&apos;t arrange repairs on a reported claim until the claims team agrees them, and never take payment from a guest outside AVANT.</li>
+        <li>[Host protection plans, deductibles and payout timing for repairs: to be completed with the insurer.]</li>
+      </ul>
 
       <h2>Ending</h2>
       <p className="muted">

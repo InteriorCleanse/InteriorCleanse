@@ -7,6 +7,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { forgetPushToken } from '@/lib/native'
 import { actions } from '@/lib/store'
 
 export interface SessionUser {
@@ -32,12 +33,14 @@ export interface SessionState {
   unread: { messages: number; notifications: number }
   /** Circle tier and AVANT credit, for pricing previews; the server re-prices anyway. */
   advantage: Advantage | null
+  /** Updated terms or privacy notice still to accept. */
+  agreements: ('terms' | 'privacy')[]
   refresh: () => Promise<void>
   signOut: () => Promise<void>
 }
 
 const NONE = { messages: 0, notifications: 0 }
-const Ctx = createContext<SessionState>({ loaded: false, user: null, unread: NONE, advantage: null, refresh: async () => {}, signOut: async () => {} })
+const Ctx = createContext<SessionState>({ loaded: false, user: null, unread: NONE, advantage: null, agreements: [], refresh: async () => {}, signOut: async () => {} })
 
 async function syncFavorites() {
   try {
@@ -54,14 +57,14 @@ async function syncFavorites() {
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [s, setS] = useState<Omit<SessionState, 'refresh' | 'signOut'>>({ loaded: false, user: null, unread: NONE, advantage: null })
+  const [s, setS] = useState<Omit<SessionState, 'refresh' | 'signOut'>>({ loaded: false, user: null, unread: NONE, advantage: null, agreements: [] })
   const lastUser = useRef<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
       const json = await (await fetch('/api/me', { cache: 'no-store' })).json()
       const user: SessionUser | null = json.user ?? null
-      setS({ loaded: true, user, unread: json.unread ?? NONE, advantage: json.advantage ?? null })
+      setS({ loaded: true, user, unread: json.unread ?? NONE, advantage: json.advantage ?? null, agreements: json.agreements ?? [] })
       if (user && lastUser.current !== user.id) void syncFavorites()
       lastUser.current = user?.id ?? null
     } catch {
@@ -70,9 +73,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    forgetPushToken()
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
     lastUser.current = null
-    setS({ loaded: true, user: null, unread: NONE, advantage: null })
+    setS({ loaded: true, user: null, unread: NONE, advantage: null, agreements: [] })
   }, [])
 
   useEffect(() => {

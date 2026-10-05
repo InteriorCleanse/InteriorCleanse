@@ -10,13 +10,14 @@
  *
  * Without them nothing is sent and the app works the same, in-app and by
  * email. Like the email outbox, each notification is claimed (pushed_at)
- * before it is sent, so it's pushed at most once. Message notifications
- * already carry no message text, so nothing private shows on a lock screen.
+ * before it is sent, so it's pushed at most once. Only the title is pushed,
+ * so nothing private shows on a lock screen.
  */
 
 import { createPrivateKey, sign } from 'node:crypto'
 import { connect, type ClientHttp2Session } from 'node:http2'
 import { db } from './db.ts'
+import { wantsSql } from './prefs.ts'
 
 export const pushConfigured = (): boolean =>
   Boolean(process.env.APNS_KEY_P8 && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID && process.env.APNS_TOPIC)
@@ -49,12 +50,27 @@ function bearer(): string {
  * the new account.
  */
 export async function registerDevice(userId: string, sessionHash: string, token: string): Promise<void> {
-  await (await db()).query(
-    `insert into push_devices (token, user_id, session_hash, platform) values ($1, $2, $3, 'ios')
-     on conflict (token) do update set user_id = excluded.user_id, session_hash = excluded.session_hash, last_seen_at = now()`,
-    [token, userId, sessionHash],
-  )
+  await (await db()).tx(async (t) => {
+    // One device per session; a session that re-registers replaces its token.
+    await t.query(`delete from push_devices where session_hash = $1 and token <> $2`, [sessionHash, token])
+    await t.query(
+      `insert into push_devices (token, user_id, session_hash, platform) values ($1, $2, $3, 'ios')
+       on conflict (token) do update set user_id = excluded.user_id, session_hash = excluded.session_hash, last_seen_at = now()`,
+      [token, userId, sessionHash],
+    )
+    // At most MAX_DEVICES per person: the oldest goes.
+    await t.query(
+      `delete from push_devices where user_id = $1 and token not in (select token from push_devices where user_id = $1 order by last_seen_at desc limit ${MAX_DEVICES})`,
+      [userId],
+    )
+  })
 }
+
+export const MAX_DEVICES = 5
+
+/** Devices whose sign-in session is still live (not expired, not idle). */
+const LIVE_DEVICES = `select p.token from push_devices p join sessions s on s.token_hash = p.session_hash
+  where p.user_id = $1 and s.expires_at > now() and s.last_seen_at > now() - interval '14 days'`
 
 export async function removeDevice(userId: string, token: string): Promise<void> {
   await (await db()).query(`delete from push_devices where token = $1 and user_id = $2`, [token, userId])
@@ -91,13 +107,19 @@ function send(session: ClientHttp2Session, device: string, payload: object, coll
   })
 }
 
-/** Pushes notifications not yet pushed (from the last day) to every device of their person. */
-export async function deliverPushNotifications(limit = 50): Promise<number> {
+/**
+ * Pushes notifications not yet pushed (from the last day) to every live
+ * device of their person, per their preferences, until the deadline. The
+ * lock screen shows the title only ("Trip cancelled", "New message"): the
+ * details, which can say when a car is away or what a payout was, stay in
+ * the app.
+ */
+export async function deliverPushNotifications({ limit = 50, deadline = Date.now() + 10_000 } = {}): Promise<number> {
   if (!pushConfigured()) return 0
   const d = await db()
-  const rows = await d.query<{ id: string; user_id: string; title: string; body: string; href: string }>(
-    `select n.id, n.user_id, n.title, n.body, n.href from notifications n
-     where n.pushed_at is null and n.created_at > now() - interval '1 day'
+  const rows = await d.query<{ id: string; user_id: string; title: string; href: string }>(
+    `select n.id, n.user_id, n.title, n.href from notifications n join users u on u.id = n.user_id
+     where n.pushed_at is null and n.created_at > now() - interval '1 day' and ${wantsSql('push')}
        and exists (select 1 from push_devices p where p.user_id = n.user_id)
      order by n.created_at limit $1`,
     [limit],
@@ -109,11 +131,12 @@ export async function deliverPushNotifications(limit = 50): Promise<number> {
   let sent = 0
   try {
     for (const n of rows) {
+      if (Date.now() > deadline) break
       const claimed = await d.query(`update notifications set pushed_at = now() where id = $1 and pushed_at is null returning id`, [n.id])
       if (!claimed.length) continue
-      const devices = await d.query<{ token: string }>(`select token from push_devices where user_id = $1`, [n.user_id])
+      const devices = await d.query<{ token: string }>(LIVE_DEVICES, [n.user_id])
       const [{ unread }] = await d.query<{ unread: string }>(`select count(*) as unread from notifications where user_id = $1 and read_at is null`, [n.user_id])
-      const payload = { aps: { alert: { title: n.title, body: n.body }, sound: 'default', badge: Number(unread) }, href: n.href }
+      const payload = { aps: { alert: { title: n.title, body: 'Open AVANT for the details.' }, sound: 'default', badge: Number(unread) }, href: n.href }
       for (const { token } of devices) {
         const r = await send(session, token, payload, n.id)
         if (r.status === 200) sent += 1

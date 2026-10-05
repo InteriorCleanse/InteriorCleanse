@@ -12,6 +12,7 @@ import { tierForRate } from '../catalog.ts'
 import { COLORS, normaliseVin, PHOTO_ANGLES, validateListing, type ListingDraft, type ListingProblem } from '../listing.ts'
 import type { Car, City, Host } from '../types.ts'
 import { photoUrl, shortName } from './accounts.ts'
+import { recordConsent } from './consent.ts'
 import { db, type Db } from './db.ts'
 import { ownListingPhotos } from './photos.ts'
 import { HOLDS_CAR, notify } from './bookings.ts'
@@ -62,7 +63,14 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
-export async function createListing(hostId: string, draft: Omit<ListingDraft, 'photos'>, photoIds: string[], currentYear = new Date().getFullYear()) {
+export async function createListing(
+  hostId: string,
+  draft: Omit<ListingDraft, 'photos'>,
+  photoIds: string[],
+  currentYear = new Date().getFullYear(),
+  /** The host accepted the Host Agreement; recorded in the same transaction as the listing. */
+  acceptedAgreement = false,
+) {
   const d = await db()
   const photos = await ownListingPhotos(hostId, photoIds)
   const full: ListingDraft = {
@@ -98,6 +106,7 @@ export async function createListing(hostId: string, draft: Omit<ListingDraft, 'p
       JSON.stringify(data),
     ])
     await t.query(`update photos set listing_id = $1 where owner_id = $2 and id = any($3::text[])`, [id, hostId, ordered])
+    if (acceptedAgreement) await recordConsent(hostId, ['host_agreement'], 'listing', id, t)
   })
   return { id, slug }
 }
@@ -384,7 +393,7 @@ async function announcePriceDrop(t: Db, slug: string, hostId: string, title: str
     [slug, hostId, `/cars/${slug}`],
   )
   for (const f of fans) {
-    await notify(t, f.user_id, 'Price drop', `The ${title} you saved is now $${Math.round(now / 100)} a day, down from $${Math.round(was / 100)}.`, `/cars/${slug}`)
+    await notify(t, f.user_id, 'Price drop', `The ${title} you saved is now $${Math.round(now / 100)} a day, down from $${Math.round(was / 100)}.`, `/cars/${slug}`, 'offers')
   }
 }
 

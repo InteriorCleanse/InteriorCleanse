@@ -7,9 +7,9 @@
 
 export const LEGAL_VERSIONS = {
   terms: '2026-10-04',
-  privacy: '2026-10-04',
-  trip_terms: '2026-10-04',
-  host_agreement: '2026-10-04',
+  privacy: '2026-10-05',
+  trip_terms: '2026-10-05',
+  host_agreement: '2026-10-05',
 } as const
 
 export type LegalDocument = keyof typeof LEGAL_VERSIONS

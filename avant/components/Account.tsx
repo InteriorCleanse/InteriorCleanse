@@ -1,14 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
-import { disablePush, enablePush, inApp, pushState, shareText, type PushState } from '@/lib/native'
+import { useRef, useState } from 'react'
 import { reencodePhoto } from '@/lib/photo'
 import { clearEvidence } from '@/lib/evidence-db'
 import { clearListingPhotos } from '@/lib/listing-photos-db'
 import { actions, useLocal } from '@/lib/store'
 import { useDriver } from './DriverProvider'
 import { Icon } from './Icons'
+import { BlockedPeople, NotificationSettings, SecuritySettings } from './Settings'
 import { useToast } from './Toast'
 import { useSession } from './Session'
 import { Avatar, ButtonLink, Empty, Notice } from './ui'
@@ -168,8 +168,9 @@ export function Account() {
       <Notice icon="lock">
         Deleting the Driver Pass also asks our verification partner to redact anything it still holds. <Link href="/security" className="link">How we protect your data</Link>
       </Notice>
-      <Notifications />
-      <Security />
+      <NotificationSettings />
+      <SecuritySettings />
+      <BlockedPeople />
       <CloseAccount />
     </div>
   )
@@ -221,109 +222,6 @@ function CloseAccount() {
           <Icon name="trash" size={16} /> Close account
         </button>
       )}
-    </section>
-  )
-}
-
-/** Inside the iOS app: trip updates and messages as notifications on this iPhone. */
-function Notifications() {
-  const toast = useToast()
-  const [state, setState] = useState<PushState | null>(null)
-  useEffect(() => {
-    void pushState().then(setState)
-  }, [])
-  if (!state || state === 'unavailable') return null
-
-  const turnOn = async () => {
-    const next = await enablePush()
-    setState(next)
-    if (next === 'on') toast('Notifications are on for this iPhone')
-  }
-  const turnOff = async () => {
-    await disablePush()
-    setState('off')
-    toast('Notifications are off for this iPhone')
-  }
-
-  return (
-    <section className="panel" aria-labelledby="notifications">
-      <h2 id="notifications" style={{ fontSize: '1.2rem' }}>Notifications</h2>
-      <p className="muted small" style={{ marginTop: 6 }}>
-        Booking requests, confirmations, messages and reminders before pickup. Message notifications say who wrote, never what they said.
-      </p>
-      <div className="row" style={{ marginTop: 14 }}>
-        {state === 'on' ? (
-          <button type="button" className="btn btn-secondary btn-md" onClick={() => void turnOff()}>Turn off on this iPhone</button>
-        ) : state === 'denied' ? (
-          <p className="small muted">Notifications are off in iOS Settings. Open Settings, then AVANT, then Notifications to allow them.</p>
-        ) : (
-          <button type="button" className="btn btn-primary btn-md" onClick={() => void turnOn()}>Turn on notifications</button>
-        )}
-      </div>
-    </section>
-  )
-}
-
-function Security() {
-  const toast = useToast()
-  const [current, setCurrent] = useState('')
-  const [next, setNext] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const change = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    const res = await fetch('/api/me/password', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ current, next }) })
-    const json = await res.json().catch(() => ({}))
-    setBusy(false)
-    if (!res.ok) return setError(json.error ?? 'Couldn’t change it. Try again.')
-    setCurrent('')
-    setNext('')
-    toast('Password changed. Other devices are signed out.')
-  }
-
-  const [inside, setInside] = useState(false)
-  useEffect(() => setInside(inApp()), [])
-  // The app has no downloads folder: the export goes to the share sheet instead.
-  const exportInApp = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    const res = await fetch('/api/me/export')
-    if (!res.ok) return toast('Couldn’t prepare your data. Try again shortly.')
-    await shareText('Your AVANT data', await res.text())
-  }
-
-  const signOutEverywhere = async () => {
-    const res = await fetch('/api/auth/logout-all', { method: 'POST' })
-    if (res.ok) window.location.assign('/signin')
-    else toast('Couldn’t sign out everywhere. Try again.')
-  }
-
-  return (
-    <section className="panel" aria-labelledby="security">
-      <h2 id="security" style={{ fontSize: '1.2rem' }}>Security and your data</h2>
-      <form method="post" onSubmit={change} className="stack" style={{ gap: 12, marginTop: 14, maxWidth: 420 }}>
-        <label className="field">
-          <span className="label">Current password</span>
-          <input className="input" type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
-        </label>
-        <label className="field">
-          <span className="label">New password</span>
-          <input className="input" type="password" autoComplete="new-password" required minLength={10} value={next} onChange={(e) => setNext(e.target.value)} />
-          <span className="hint">At least 10 characters. Passwords found in public data breaches are refused.</span>
-        </label>
-        {error ? <p className="error-block" role="alert">{error}</p> : null}
-        <div>
-          <button type="submit" className="btn btn-secondary btn-md" disabled={busy || !current || next.length < 10}>{busy ? 'Saving…' : 'Change password'}</button>
-        </div>
-      </form>
-      <hr className="hairline" />
-      <div className="row">
-        <a href="/api/me/export" className="btn btn-secondary btn-md" onClick={inside ? (e) => void exportInApp(e) : undefined}><Icon name="download" size={16} /> Download all my data</a>
-        <button type="button" className="btn btn-ghost btn-md" onClick={() => void signOutEverywhere()}>Sign out on every device</button>
-      </div>
-      <p className="small dim" style={{ marginTop: 10 }}>The download includes your profile, trips, messages, listings, reviews, credit and the agreements you accepted.</p>
     </section>
   )
 }

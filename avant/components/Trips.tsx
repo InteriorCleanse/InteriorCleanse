@@ -17,6 +17,8 @@ import type { PersonStats, TripView } from '@/lib/server/bookings'
 import { actions, useLocal } from '@/lib/store'
 import { CarImage } from './CarImage'
 import { useConcierge } from './Concierge'
+import { SafetyMenu } from './SafetyMenu'
+import { TripRecord } from './TripRecord'
 import { EvidenceCapture } from './EvidenceCapture'
 import { Icon } from './Icons'
 import { PriceBreakdown } from './PriceBreakdown'
@@ -285,6 +287,9 @@ export function TripDetail({ id }: { id: string }) {
                   </Link>
                 ) : null}
               </div>
+              <div style={{ marginTop: 8 }}>
+                <SafetyMenu context="trip" subjectId={trip.id} name={other.firstName} />
+              </div>
             </section>
           ) : trip.car.sample ? (
             <section className="car-section">
@@ -352,6 +357,8 @@ export function TripDetail({ id }: { id: string }) {
             </>
           ) : null}
 
+          {trip.status === 'confirmed' && trip.host && trip.guest ? <TripRecord tripId={trip.id} /> : null}
+
           {trip.refund.cents > 0 ? (
             <section className="car-section" aria-labelledby="refund">
               <h2 id="refund">Refund</h2>
@@ -380,9 +387,9 @@ export function TripDetail({ id }: { id: string }) {
               <a className="btn btn-secondary btn-md" href="tel:911">
                 Emergency: 911
               </a>
-              <button type="button" className="btn btn-secondary btn-md" onClick={() => ask('I need to report an incident or damage on my trip. What do I do?')}>
-                Report an incident
-              </button>
+              <Link className="btn btn-secondary btn-md" href="/help/accident">
+                If there&apos;s an accident
+              </Link>
             </div>
           </section>
 

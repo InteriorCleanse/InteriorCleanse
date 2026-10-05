@@ -8,6 +8,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { money } from '@/lib/format'
+import { AIRPORT_HANDOFFS } from '@/lib/catalog'
 import { AIRPORTS, cities, milesBetween, nearestCity } from '@/lib/places'
 import { offersMonthly, tripTotalCents } from '@/lib/price-view'
 import { useLocal } from '@/lib/store'
@@ -23,7 +24,7 @@ type Cat = 'all' | 'airports' | 'monthly' | 'nearby' | 'delivered' | 'cities'
 
 const CATS: { id: Cat; label: string; icon: IconName }[] = [
   { id: 'all', label: 'All', icon: 'trips' },
-  { id: 'airports', label: 'Airports', icon: 'send' },
+  ...(AIRPORT_HANDOFFS ? [{ id: 'airports' as const, label: 'Airports', icon: 'send' as const }] : []),
   { id: 'monthly', label: 'Monthly', icon: 'calendar' },
   { id: 'nearby', label: 'Nearby', icon: 'pin' },
   { id: 'delivered', label: 'Delivered', icon: 'truck' },
@@ -220,7 +221,7 @@ export function Discover({ cars }: { cars: Car[] }) {
           <Rail title="Recently viewed" cars={recentCars} />
           <Rail title={`Delivered to you in ${cityLabel}`} note="Average daily prices for a 7-day trip" cars={inCity.filter((c) => c.delivery.offered)} />
           <Rail title={`Monthly rentals in ${cityLabel}`} cars={inCity.filter(offersMonthly)} mode="month" />
-          {airport ? <Rail title={`Near ${airport.code} airport`} note={`Delivered to ${airport.name}`} cars={inCity.filter((c) => c.delivery.offered)} /> : null}
+          {AIRPORT_HANDOFFS && airport ? <Rail title={`Near ${airport.code} airport`} note={`Delivered to ${airport.name}`} cars={inCity.filter((c) => c.delivery.offered)} /> : null}
           <Rail title="New on AVANT" note="Listed by hosts with their own photos" cars={fresh} />
           <Rail title={`Top rated in ${cityLabel}`} cars={[...inCity].sort(byRating)} />
           {cities
@@ -232,7 +233,7 @@ export function Discover({ cars }: { cars: Car[] }) {
         </>
       ) : null}
 
-      {cat === 'airports'
+      {AIRPORT_HANDOFFS && cat === 'airports'
         ? AIRPORTS.map((a) => (
             <Rail
               key={a.code}

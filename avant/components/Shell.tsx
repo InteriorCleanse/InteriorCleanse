@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { SAMPLE_FLEET } from '@/lib/places'
 import { LocalProvider } from '@/lib/store'
+import { AgreementPrompt } from './AgreementPrompt'
 import { CommandPalette } from './CommandPalette'
 import { ConciergeProvider, useConcierge } from './Concierge'
 import { DriverProvider, useDriver } from './DriverProvider'
@@ -85,7 +86,7 @@ function Frame({ children }: { children: ReactNode }) {
   }, [palette, router, setOpen])
 
   // Task flows get the whole screen: no tab bar over a form or a pay button.
-  const flow = /^\/(checkout|signin|forgot|reset|verify|verify-email|host\/new|trips\/confirm)(\/|$)/.test(pathname)
+  const flow = /^\/(checkout|signin|forgot|reset|verify|verify-email|confirm-email|unsubscribe|host\/new|trips\/confirm)(\/|$)/.test(pathname)
 
   const active = (href: string) => (href === '/' ? pathname === '/' || pathname.startsWith('/search') || pathname.startsWith('/cars') : pathname.startsWith(href) || (href === '/favorites' && pathname.startsWith('/saved')))
 
@@ -122,6 +123,7 @@ function Frame({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      <AgreementPrompt />
       <main id="main" data-flow={flow ? '' : undefined}>
         {children}
       </main>

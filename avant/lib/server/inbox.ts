@@ -6,6 +6,7 @@
 
 import { randomId } from '../security/crypto.ts'
 import { getUser, publicProfile, type PublicProfile } from './accounts.ts'
+import { blockedBetween } from './safety.ts'
 import { db } from './db.ts'
 import { openText, sealText } from './sealed.ts'
 
@@ -134,6 +135,9 @@ export async function messagesIn(userId: string, threadId: string, after?: strin
   return Promise.all(rows.map(async (r) => ({ id: r.id, body: await openText(r.body, ctx(r.id)), at: new Date(r.created_at).toISOString(), mine: r.sender_id === userId })))
 }
 
+export class BlockedError extends Error {}
+
+/** Sends a message; null if the thread isn't yours or has closed. Throws BlockedError if either person blocked the other. */
 export async function sendMessage(userId: string, threadId: string, body: string): Promise<Message | null> {
   const text = body.trim().slice(0, MAX_MESSAGE)
   const t = text ? await member(userId, threadId) : null
@@ -141,6 +145,7 @@ export async function sendMessage(userId: string, threadId: string, body: string
   const q = await db()
   const id = randomId(12)
   const to = t.guest_id === userId ? t.host_id : t.guest_id
+  if (await blockedBetween(userId, to, q)) throw new BlockedError('blocked')
   // Email the other person only for the first unread message, not every line.
   const [waiting] = await q.query(
     `select 1 from messages x where x.thread_id = $1 and x.sender_id = $2
@@ -156,7 +161,7 @@ export async function sendMessage(userId: string, threadId: string, body: string
     const sender = await getUser(userId, q)
     // Born read: it exists to be emailed; the inbox already shows the message.
     // The text itself is never copied here or into the email: it stays sealed.
-    await q.query(`insert into notifications (id, user_id, title, body, href, read_at) values ($1, $2, $3, $4, $5, now())`, [
+    await q.query(`insert into notifications (id, user_id, title, body, href, read_at, category) values ($1, $2, $3, $4, $5, now(), 'messages')`, [
       randomId(12),
       to,
       `New message from ${sender?.name.split(/\s+/)[0] ?? 'your trip'}`,

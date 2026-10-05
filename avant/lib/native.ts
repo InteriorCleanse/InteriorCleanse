@@ -43,19 +43,30 @@ export async function shareLink(input: { title: string; text: string; url: strin
   }
 }
 
-/** In the app, hands a document (such as the data export) to the share sheet: Save to Files, Mail, AirDrop. */
-export async function shareText(title: string, text: string): Promise<boolean> {
+/**
+ * In the app, hands a document (such as the data export) to the share
+ * sheet as a file: Save to Files, Mail, AirDrop. Never as text, so it can't
+ * land on the clipboard. The file is written to the app's cache and
+ * deleted afterwards.
+ */
+export async function shareFile(title: string, filename: string, contents: string): Promise<boolean> {
   if (!inApp()) return false
+  const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')])
+  let uri: string | null = null
   try {
-    const { Share } = await import('@capacitor/share')
-    await Share.share({ title, text, dialogTitle: title })
+    uri = (await Filesystem.writeFile({ path: filename, data: contents, directory: Directory.Cache, encoding: Encoding.UTF8 })).uri
+    await Share.share({ title, files: [uri], dialogTitle: title })
     return true
   } catch {
     return false
+  } finally {
+    if (uri) await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }).catch(() => undefined)
   }
 }
 
-const TOKEN_KEY = 'avant:push-token'
+/** The device's push token, and whose account it was registered for. */
+const TOKEN_KEY = 'avant:push'
+let forUser: string | null = null
 
 export type PushState = 'on' | 'off' | 'denied' | 'unavailable'
 
@@ -68,17 +79,31 @@ export async function pushState(): Promise<PushState> {
   return readToken() ? 'on' : 'off'
 }
 
-function readToken(): string | null {
+function readStored(): { token: string; user: string } | null {
   try {
-    return localStorage.getItem(TOKEN_KEY)
+    const v = JSON.parse(localStorage.getItem(TOKEN_KEY) ?? 'null') as { token?: unknown; user?: unknown } | null
+    return v && typeof v.token === 'string' && typeof v.user === 'string' ? { token: v.token, user: v.user } : null
   } catch {
     return null
   }
 }
 
-/** Asks iOS for permission (once; afterwards only Settings can change it) and registers this device. */
-export async function enablePush(): Promise<PushState> {
+const readToken = () => readStored()?.token ?? null
+
+/** On sign-out: this device no longer belongs to that account, so the next person must opt in themselves. */
+export function forgetPushToken(): void {
+  forUser = null
+  try {
+    localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    /* nothing stored */
+  }
+}
+
+/** Asks iOS for permission (once; afterwards only Settings can change it) and registers this device for this person. */
+export async function enablePush(userId: string): Promise<PushState> {
   if (!inApp()) return 'unavailable'
+  forUser = userId
   const { PushNotifications } = await import('@capacitor/push-notifications')
   let { receive } = await PushNotifications.checkPermissions()
   if (receive === 'prompt' || receive === 'prompt-with-rationale') receive = (await PushNotifications.requestPermissions()).receive
@@ -92,11 +117,7 @@ export async function disablePush(): Promise<void> {
   if (token) {
     await fetch('/api/me/devices', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }) }).catch(() => undefined)
   }
-  try {
-    localStorage.removeItem(TOKEN_KEY)
-  } catch {
-    /* nothing stored */
-  }
+  forgetPushToken()
   if (inApp()) {
     const { PushNotifications } = await import('@capacitor/push-notifications')
     await PushNotifications.unregister().catch(() => undefined)
@@ -121,7 +142,7 @@ export async function startNative(open: (href: string) => void): Promise<() => v
     PushNotifications.addListener('registration', async ({ value }) => {
       const res = await fetch('/api/me/devices', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: value }) }).catch(() => null)
       try {
-        if (res?.ok) localStorage.setItem(TOKEN_KEY, value)
+        if (res?.ok && forUser) localStorage.setItem(TOKEN_KEY, JSON.stringify({ token: value, user: forUser }))
       } catch {
         /* the server has it; that's what matters */
       }
@@ -135,9 +156,16 @@ export async function startNative(open: (href: string) => void): Promise<() => v
   return () => subs.forEach((s) => void s.remove())
 }
 
-/** After sign-in, re-registers a device that already allowed notifications, so it follows the new session. */
-export async function refreshPushRegistration(): Promise<void> {
-  if (!inApp()) return
+/**
+ * Re-registers this device for the same person's new session (after
+ * signing in again or changing the password). Only for the person who
+ * turned notifications on here: someone else signing in on this iPhone
+ * must turn them on themselves.
+ */
+export async function refreshPushRegistration(userId: string): Promise<void> {
+  if (!inApp() || readStored()?.user !== userId) return
   const { PushNotifications } = await import('@capacitor/push-notifications')
-  if ((await PushNotifications.checkPermissions()).receive === 'granted' && readToken()) await PushNotifications.register()
+  if ((await PushNotifications.checkPermissions()).receive !== 'granted') return
+  forUser = userId
+  await PushNotifications.register()
 }

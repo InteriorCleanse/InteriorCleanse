@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Message, Notification, ThreadSummary } from '@/lib/server/inbox'
 import { Icon } from './Icons'
 import { useSession } from './Session'
+import { SafetyMenu } from './SafetyMenu'
 import { useToast } from './Toast'
 import { Avatar, Breadcrumbs, ButtonLink, Empty } from './ui'
 
@@ -202,6 +203,11 @@ export function Thread({ id }: { id: string }) {
           </Link>
         ) : null}
       </div>
+      {summary?.other ? (
+        <div className="chat-safety">
+          <SafetyMenu context="trip" subjectId={summary.bookingId} name={summary.other.firstName} />
+        </div>
+      ) : null}
       <div className="chat-log" aria-live="polite">
         {messages === null ? <div className="skeleton" /> : null}
         {messages?.length === 0 ? (

@@ -22,7 +22,7 @@ damaged**. $0, $500 or $2,500. Everything else follows from that.
 
 - All Turo trips carry third-party liability under a policy issued to Turo
   by **Travelers Excess and Surplus Lines Company**, up to $750,000 in most
-  places; New York trips default to the state minimum as of June 2026.
+  places (AVANT no longer quotes that figure: it's Turo's, not ours); New York trips default to the state minimum as of June 2026.
   ([Turo](https://turo.com/us/en/car-rental/united-states/insurance),
   [Turo help](https://help.turo.com/en_us/protection-plans-including-insurance-or-us-guests-HkwgBNgN9))
 - Guests pick Premier ($0 out of pocket), Standard ($500 cap, $500 deposit)
@@ -38,52 +38,121 @@ damaged**. $0, $500 or $2,500. Everything else follows from that.
   ([The Points Guy](https://thepointsguy.com/travel/turo-car-rental-insurance/),
   [Thrifty Traveler](https://thriftytraveler.com/news/credit-card/turo-credit-card-car-rental-insurance/))
 
+## Who to call (researched October 2026)
+
+These place or write car-sharing cover today. Search summaries only: confirm
+appetite for a pre-launch platform with each one.
+
+| Who | What | Why them | Contact |
+| --- | --- | --- | --- |
+| **Liberty Mutual**, Sharing Economy & New Mobility practice | Turo's exclusive vehicle-damage provider; a dedicated vehicle-sharing practice ([LM](https://business.libertymutual.com/industries/sharing-economy-new-mobility/)) | The incumbent damage carrier for the category | business.libertymutual.com |
+| **Tint** (MGA, embedded insurance) | Designs and runs embedded programmes for carshare platforms; powers Turo's off-trip host cover ([Tint](https://www.tint.ai/industries/mobility/)) | Works with startups; ask whether it places on-trip platform liability | tint.ai |
+| **Roamly** (Lloyd's coverholder) | API-embedded carshare programme launched 2025 ([PRNewswire](https://www.prnewswire.com/news-releases/roamly-launches-ai-powered-carshare-insurance-following-lloyds-coverholder-appointment-and-celent-innovation-award-302533604.html)); host cover from $59/month | Built for platforms; Mobilitas among its underwriters | roamly.com |
+| **Heffernan Insurance Brokers** | P2P car rental practice; host off-platform cover from $20/month ([Heffins](https://www.heffins.com/peer-to-peer-car-rental/)) | A broker that already knows the class | heffins.com |
+| **Travelers E&S** | Issues Turo's third-party liability policy ([Turo](https://turo.com/us/en/car-rental/united-states/insurance)) | Reached through a broker | travelers.com |
+| **Mobilitas** (CSAA) | Rideshare and carshare commercial insurer; Lyft is its anchor client ([IB](https://www.insurancebusinessmag.com/us/news/auto-motor/sharing-economy-insurer-mobilitas-launches-secures-lyft-as-first-client-241889.aspx)) | Category specialist | mobilitasinsurance.com |
+| **Sedgwick**, **Gallagher Bassett** | Claims administrators (TPAs) used in the category | If the carrier doesn't bundle claims handling | sedgwick.com, gallagherbassett.com |
+
+Dead ends: Getaround left the US in February 2025, HyreCar was absorbed into
+it, and Buckle stopped writing rideshare cover in 2023.
+
+## Colorado (Denver launch)
+
+The **Peer-to-Peer Car Sharing Act, C.R.S. §§ 6-1-1201 to 6-1-1215**
+(SB19-090) sets the rules. In short:
+
+- **Insurance (§ 1203).** During every car-sharing period the programme must
+  ensure owner and driver are insured, **primary**, with liability of **at
+  least 3 × the state minimum** (Colorado's minimum is 25/50/15, so
+  75/150/45), and the programme's cover must respond from the first dollar,
+  with a duty to defend, if the owner's or driver's policy lapses.
+- **Disclosures (§ 1210).** The agreement must state the programme's
+  indemnification rights, that personal policies won't defend the
+  programme's claims, that its cover applies only during the car-sharing
+  period, all fees, and an emergency roadside number. *Done in the trip
+  terms and coverage page; the roadside number comes from
+  `AVANT_ROADSIDE_PHONE`.*
+- **Lien notice (§ 1204).** Tell owners that sharing may breach a car loan or
+  lease. *Done in the Host Agreement and the listing checkbox.*
+- **Records (§§ 1206, 1211).** Keep each trip's times, fees and owner
+  revenue for the injury limitation period, and produce them for claims.
+  *Done: trip records in the database, `npm run trip-records` exports them.*
+  § 1211 also asks for each driver's name, address, licence number and its
+  date and place of issue. **AVANT deliberately doesn't store licence
+  numbers** (see the decision below).
+- **Recalls (§ 1213).** No car with an open recall. *Done: hosts attest at
+  listing and must pause on a new recall.*
+- **Airports (§ 1214).** No airport pickups without an agreement with the
+  airport (DEN's Turo pilot: 5% of monthly revenue plus parking). *Done:
+  airport delivery is switched off (`AIRPORT_HANDOFFS = false` in
+  `lib/catalog.ts`) until you have one.*
+- **Taxes.** Colorado sales tax and the daily vehicle rental fee (form DR
+  1777; $5.23/day from January 2025, adjusted again in July 2026: confirm the
+  current rate), plus Denver's short-term rental tax. A 2020 private letter
+  ruling treated a platform as the lessor responsible for collecting them.
+
+## Decisions only you (with counsel) can make
+
+1. **Licence numbers.** § 1211 asks the programme to record each driver's
+   licence number and issue details. AVANT's privacy design stores only
+   eligibility facts. Options: store the number sealed in the privacy vault
+   (`services/vault`, built for exactly this), or rely on the verification
+   provider's record if counsel agrees it satisfies the statute.
+2. **Are the protection plans insurance or a contractual damage waiver?**
+   Turo sells its plans as contracts, not insurance. Counsel decides, and the
+   wording in `lib/catalog.ts` and `/coverage` follows.
+3. **How host physical damage is funded:** the carrier's programme, a
+   self-insured retention, or a captive. Expect underwriters to ask for a
+   retention or collateral from a platform with no loss history.
+
 ## What you do, in order
 
-### Phase 0: now, before any real trip
+1. **Hire a specialist broker and Colorado counsel.** Approach Liberty
+   Mutual's mobility practice, Tint, Roamly and Heffernan in parallel.
+2. **Send the submission pack** (below).
+3. **Bind the platform policy:** primary, at least 3 × minimum, first-dollar
+   backstop, duty to defend, UM/UIM and PIP where required, physical damage
+   for hosts' cars.
+4. **Fill in the app** (no code change):
+   - Vercel: `AVANT_INSURER_NAME`, `AVANT_POLICY_NUMBER`,
+     `AVANT_ROADSIDE_PHONE`, `AVANT_CLAIMS_PHONE`, `AVANT_CLAIMS_EMAIL` (the
+     adjuster's or TPA's intake address: every claim and incident report is
+     sent there automatically, with the trip, both parties, the plan cap,
+     the odometer readings, the words and the photos).
+   - `lib/catalog.ts`: the carrier's plan prices, caps, deposits and
+     liability wording; then `COVERAGE_TERMS_FINAL = true`. The "preview
+     terms" notices disappear and the coverage page names the insurer and
+     policy.
+   - Bump the versions in `lib/legal.ts` when the final terms go in.
+5. **Register** for Colorado sales tax, the DR 1777 fee and Denver tax.
+6. **Buy the company policies:** general liability, cyber, errors and
+   omissions.
 
-1. **Hire a broker who already places car sharing programs.** Search results
-   show mobility practices at [Aon](https://www.aon.com/unitedkingdom/insights/peer-to-peer-car-sharing-insurance),
-   [Heffernan](https://www.heffins.com/peer-to-peer-car-rental/) and
-   [Liberty Mutual](https://business.libertymutual.com/insights/three-keys-to-successful-car-sharing-and-the-role-of-insurance/);
-   ask for two or three quotes. A broker, not a single insurer, because the
-   program is custom.
-2. **Ask for a "peer-to-peer car sharing program" commercial auto policy**
-   covering, during the car sharing period: primary liability at the limits
-   each launch state requires (California requires at least three times the
-   state minimum), uninsured/underinsured motorist and PIP where required,
-   and physical damage (sometimes called contingent collision) for hosts'
-   cars. Ask what deductible and per-trip price structure they'll accept, so
-   you can set the three guest plans on top.
-3. **Hand them an underwriting pack.** Underwriters price the controls, so
-   show them the ones already built:
-   - licence + live-selfie verification before any booking (Stripe Identity);
-   - age rules by car class, young driver fee, licence-validity checks;
-   - timestamped check-in and check-out photos;
-   - server-side eligibility checks that cannot be bypassed from the browser;
-   - planned: motor vehicle record (MVR) checks through Checkr, about $9.50
-     each plus state fees ([Checkr](https://checkr.com/pricing)), and
-     continuous monitoring for repeat guests.
-4. **Buy the company policies**: general liability, cyber (you hold driver
-   data), and errors and omissions. These are ordinary small-business
-   policies.
+## The submission pack
 
-### Phase 1: pilot in one state
+Underwriters price controls and data. Send:
 
-- Launch in one state with one carrier-signed program. Choose a state whose
-  peer-to-peer statute is clear (most follow the NCOIL model act; see
-  `LEGAL_BRIEF.md`).
-- Replace the placeholder numbers in `lib/catalog.ts` (`COVERAGE_PLANS`) with
-  the carrier's: percentage of trip, daily minimum, maximum out of pocket,
-  deposit and liability limit. Then set `COVERAGE_TERMS_FINAL = true`; the
-  "preview terms" notices disappear across the site.
-- Hosts: tell them clearly that their personal policy likely does not cover
-  sharing. In California a compliant program means their insurer may not
-  cancel them for sharing
-  ([Cal. Ins. Code § 11580.24](https://codes.findlaw.com/ca/insurance-code/ins-sect-11580-24/)).
-  Several insurers sell host "carshare" endorsements for roughly $10–$40 a
-  month; Allstate has one aimed at Turo hosts
-  ([Insurance.com](https://www.insurance.com/auto-insurance/car-insurance-for-turo/)).
+- **The business:** founders, entity, launch city (Denver), launch date.
+- **Projections by month for 12 months:** hosts, cars, trips, trip-days,
+  gross booking value, average trip length.
+- **Fleet rules:** at most 12 years old, under 130,000 miles, no open
+  recalls, host-attested insurance and registration, one host per VIN
+  (`lib/listing.ts`).
+- **Driver controls:** licence and live-selfie verification (Stripe Identity)
+  before any booking; age rules by car class (18 everyday, 21 premium, 25
+  luxury and exotic, 5 years licensed for exotic); licence valid through the
+  trip; server-side checks that the browser can't bypass. Ask whether they
+  want MVR checks added (Checkr).
+- **Trip controls:** timestamped, fingerprinted check-in and return photos;
+  odometer and fuel readings at pickup and return, confirmed by both sides;
+  no self-serve cancellation once a trip has started; 3 host cancellations in
+  30 days pauses a host.
+- **Claims process:** host reports within 3 days with photos; guest responds
+  within 72 hours; guest accident and breakdown reports during the trip; every
+  report forwarded to the claims desk automatically; no charge before review;
+  guest liability capped by plan.
+- **Data you can give them:** the trip-records CSV (`npm run trip-records`).
+- **Loss history:** none (new platform); say so and lean on the controls.
 
 ### Phase 2: scale
 
@@ -110,8 +179,16 @@ damaged**. $0, $500 or $2,500. Everything else follows from that.
   ([LegalClarity](https://legalclarity.org/new-york-car-rental-age-laws-and-young-renter-policies/)).
   Adjust these in `lib/catalog.ts` if your carrier asks.
 - **Deposits** are holds, not charges, released within 48 hours.
-- **Claims fairness.** Guests see the host's photos and an itemised estimate
-  and get 72 hours to respond; they never pay more than their plan's cap.
+- **Claims.** Hosts report from the trip page within 3 days, with photos;
+  guests see it, get 72 hours to respond, and never pay more than their
+  plan's cap. Guests report accidents and breakdowns during the trip, with
+  the police report number and the other driver's details. Every report goes
+  to `AVANT_CLAIMS_EMAIL`; reports nobody answered are escalated by the daily
+  cron. Nothing is charged by the app.
+- **Trip records.** Odometer and fuel at pickup and return, entered by one
+  side and confirmed by the other, with mileage against the allowance.
+- **After an accident.** `/help/accident` walks guests through it, with 911,
+  roadside and claims numbers.
 
 ## Questions to ask every broker
 

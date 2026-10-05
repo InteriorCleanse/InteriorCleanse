@@ -6,7 +6,7 @@ import { createBooking, DatesTaken, expirePending } from '@/lib/server/bookings'
 import { creditToApply } from '@/lib/circle'
 import { circlePricing } from '@/lib/server/advantage'
 import { cityNameFor, findCar, taxRateFor, tzFor } from '@/lib/server/catalog'
-import { recordConsent } from '@/lib/server/consent'
+import { LEGAL_VERSIONS } from '@/lib/legal'
 import { creditBalance } from '@/lib/server/credit'
 import { siteUrl } from '@/lib/server/stripe'
 import { deliverNotificationEmails } from '@/lib/server/email'
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   const user = await currentUser()
   if (!user) return signInRequired()
   if (body.agreeTerms !== true) return problem(400, 'Agree to the trip terms to book.')
+  if (body.termsVersion && body.termsVersion !== LEGAL_VERSIONS.trip_terms) return problem(409, 'The trip terms were just updated. Refresh the page to read them.')
   const record = await loadRecord(driverKey(user))
   const car = await findCar(body.slug)
   // The guest's Circle rate comes from their own completed trips, on the server.
@@ -57,14 +58,13 @@ export async function POST(req: NextRequest) {
       quote: priced.quote,
       paid: stripe ? 'stripe' : 'demo',
       creditCents: wantCredit,
+      acceptedTerms: true,
     })
   } catch (err) {
     if (err instanceof DatesTaken) return problem(409, err.message)
     console.error('booking failed')
     return problem(500, 'Couldn’t book that. Nothing was charged.')
   }
-  // Clickwrap evidence: which trip terms this guest accepted, for this trip.
-  await recordConsent(user.id, ['trip_terms'], 'booking', booking.id).catch(() => console.error('consent record failed'))
   if (!stripe) {
     after(() => deliverNotificationEmails())
     return NextResponse.json({ mode: 'demo', bookingId: booking.id, status: booking.status, quote: priced.quote, creditCents: booking.creditCents })

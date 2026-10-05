@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { BODY_TYPES, FEATURE_IDS, FUELS, TRANSMISSIONS } from '@/lib/catalog'
-import { recordConsent } from '@/lib/server/consent'
+import { LEGAL_VERSIONS } from '@/lib/legal'
 import { createListing, ListingRejected } from '@/lib/server/listings'
 import { currentUser, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
@@ -48,6 +48,8 @@ const Body = z
     photoIds: z.array(z.string().max(40)).max(12),
     /** The Host Agreement, accepted on the review step: required, and recorded. */
     acceptHostAgreement: z.literal(true),
+    /** The version of the Host Agreement the host's page showed. */
+    agreementVersion: z.string().max(20).optional(),
   })
   .strict()
 
@@ -62,9 +64,10 @@ export async function POST(req: NextRequest) {
     return problem(400, agreement ? 'Agree to the Host Agreement to publish.' : 'Something in the listing is invalid. Check each step.')
   }
   try {
-    const listing = await createListing(user.id, parsed.data.draft, parsed.data.photoIds)
-    await recordConsent(user.id, ['host_agreement'], 'listing', listing.id).catch(() => console.error('consent record failed'))
-    return NextResponse.json(listing)
+    if (parsed.data.agreementVersion && parsed.data.agreementVersion !== LEGAL_VERSIONS.host_agreement) {
+      return problem(409, 'The Host Agreement was just updated. Refresh the page to read it.')
+    }
+    return NextResponse.json(await createListing(user.id, parsed.data.draft, parsed.data.photoIds, undefined, true))
   } catch (err) {
     if (err instanceof ListingRejected) return NextResponse.json({ error: err.message, problems: err.problems }, { status: 422 })
     console.error('listing create failed')

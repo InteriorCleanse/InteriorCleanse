@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { tierFor } from '@/lib/circle'
 import { NAME_PATTERN, ownProfile, updateProfile } from '@/lib/server/accounts'
 import { completedTrips } from '@/lib/server/advantage'
+import { outdatedConsents } from '@/lib/server/consent'
 import { creditBalance } from '@/lib/server/credit'
 import { unreadCounts } from '@/lib/server/inbox'
 import { currentUser, signInRequired } from '@/lib/server/session'
@@ -14,12 +15,14 @@ export const runtime = 'nodejs'
 export async function GET() {
   const user = await currentUser()
   if (!user) return NextResponse.json({ user: null })
-  const [unread, trips, creditCents] = await Promise.all([unreadCounts(user.id), completedTrips(user.id), creditBalance(user.id)])
+  const [unread, trips, creditCents, agreements] = await Promise.all([unreadCounts(user.id), completedTrips(user.id), creditBalance(user.id), outdatedConsents(user.id)])
   const tier = tierFor(trips)
   return NextResponse.json({
     user: ownProfile(user),
     unread,
     advantage: { tier: tier.name, feePct: tier.feePct, freeCancelHours: tier.freeCancelHours, creditCents },
+    /** Updated documents this person hasn't accepted yet. */
+    agreements,
   })
 }
 

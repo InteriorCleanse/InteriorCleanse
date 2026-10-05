@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { LEGAL_VERSIONS } from '@/lib/legal'
 import { BODY_TYPES, FEATURE_IDS, FEATURES, FUELS, HOST_SHARE_PCT, TRANSMISSIONS, tierForRate, VALUE_TIERS } from '@/lib/catalog'
 import { medianRateCents } from '@/lib/data'
 import { money, shortId } from '@/lib/format'
@@ -95,7 +96,7 @@ async function publish(d: ListingDraft, acceptHostAgreement: true): Promise<{ sl
   const res = await fetch('/api/listings', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ draft: { ...draft, vin: normaliseVin(d.vin) }, photoIds, acceptHostAgreement }),
+    body: JSON.stringify({ draft: { ...draft, vin: normaliseVin(d.vin) }, photoIds, acceptHostAgreement, agreementVersion: LEGAL_VERSIONS.host_agreement }),
   })
   const json = await res.json().catch(() => ({}))
   if (res.status === 401) return { signIn: true }
@@ -436,7 +437,7 @@ export function ListingWizard() {
                 <span>
                   <strong>Offer delivery</strong>
                   <span className="small muted" style={{ display: 'block' }}>
-                    Bring the car to the guest, including airports. Delivered trips book more often.
+                    Bring the car to the guest. Delivered trips book more often. Airports aren&apos;t included yet.
                   </span>
                 </span>
               </label>
@@ -583,7 +584,7 @@ export function ListingWizard() {
                 <label className="check">
                   <input type="checkbox" checked={agreed} onChange={() => setAgreed((a) => !a)} />
                   <span className="small">
-                    I own this car or may share it, it&apos;s insured and registered, and I agree to the{' '}
+                    I own this car or may share it (if it&apos;s financed or leased, my lender allows it), it&apos;s insured and registered, and I agree to the{' '}
                     <Link href="/legal/host" className="link" target="_blank">
                       Host Agreement
                     </Link>

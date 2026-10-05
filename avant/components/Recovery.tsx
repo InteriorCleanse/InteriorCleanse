@@ -171,3 +171,45 @@ export function VerifyEmail() {
     </div>
   )
 }
+
+/** The link sent to a new email address: confirms it and swaps it in. */
+export function ConfirmEmailChange() {
+  const { refresh } = useSession()
+  const [state, setState] = useState<'working' | 'done' | 'failed'>('working')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('token') ?? ''
+    window.history.replaceState(null, '', window.location.pathname)
+    fetch('/api/me/email/confirm', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }) })
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.error ?? 'This link didn’t work.')
+        await refresh()
+        setState('done')
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'This link didn’t work.')
+        setState('failed')
+      })
+  }, [refresh])
+
+  return (
+    <div className="auth fade-in">
+      <Crest height={68} />
+      <h1 className="greeting" style={{ marginTop: 10 }}>
+        {state === 'working' ? 'Confirming your new email…' : state === 'done' ? 'Your email is changed.' : 'That link didn’t work.'}
+      </h1>
+      {state === 'done' ? (
+        <p className="muted">
+          We&apos;ll use it from now on.{' '}
+          <Link href="/account" className="link">
+            Back to your Profile
+          </Link>
+        </p>
+      ) : state === 'failed' ? (
+        <p className="muted">{error}</p>
+      ) : null}
+    </div>
+  )
+}

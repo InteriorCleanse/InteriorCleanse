@@ -18,8 +18,10 @@ import type { TripRequest } from '../checkout.ts'
 import { PROMISE, splitRefund } from '../circle.ts'
 import { cancellationOutcome, REVIEW_DAYS, REQUEST_HOURS, zonedTime, type CancelOutcome } from '../policy.ts'
 import { getUser, publicProfile, type PublicProfile } from './accounts.ts'
+import { recordConsent } from './consent.ts'
 import { grantCredit, spendCredit } from './credit.ts'
 import { db, type Db } from './db.ts'
+import { blockedBetween } from './safety.ts'
 import { openText, sealText } from './sealed.ts'
 import { paymentsLive, stripe } from './stripe.ts'
 
@@ -47,6 +49,8 @@ export interface CarSnapshot {
   instantBook: boolean
   /** The city's time zone; pickup times are local. */
   tz?: string
+  /** Miles included per day (absent on trips booked before trip records). */
+  milesPerDay?: number
 }
 
 export interface ReviewView {
@@ -116,8 +120,8 @@ interface BookingRow {
   thread_id?: string | null
 }
 
-const day = (d: string | Date) => (typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10))
-const todayUtc = () => new Date().toISOString().slice(0, 10)
+export const day = (d: string | Date) => (typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10))
+export const todayUtc = () => new Date().toISOString().slice(0, 10)
 
 export function snapshot(car: Car, cityName: string, tz = DEFAULT_TZ): CarSnapshot {
   return {
@@ -131,11 +135,20 @@ export function snapshot(car: Car, cityName: string, tz = DEFAULT_TZ): CarSnapsh
     sample: Boolean(car.sample),
     instantBook: car.instantBook,
     tz,
+    milesPerDay: car.milesPerDay,
   }
 }
 
-export async function notify(q: Db, userId: string, title: string, body: string, href: string): Promise<void> {
-  await q.query(`insert into notifications (id, user_id, title, body, href) values ($1, $2, $3, $4, $5)`, [randomId(12), userId, title, body, href])
+/** An in-app notification, also pushed and emailed per the person's preferences (lib/server/prefs.ts). */
+export async function notify(q: Db, userId: string, title: string, body: string, href: string, category: 'trips' | 'messages' | 'offers' = 'trips'): Promise<void> {
+  await q.query(`insert into notifications (id, user_id, title, body, href, category) values ($1, $2, $3, $4, $5, $6)`, [
+    randomId(12),
+    userId,
+    title,
+    body,
+    href,
+    category,
+  ])
 }
 
 /** Bookings that currently hold the car, for availability. */
@@ -168,6 +181,8 @@ export async function createBooking(input: {
   paid: 'demo' | 'stripe'
   /** AVANT credit the guest wants to put towards this trip (capped by the server). */
   creditCents?: number
+  /** The guest accepted the trip terms; recorded in the same transaction as the booking. */
+  acceptedTerms?: boolean
 }): Promise<{ id: string; status: BookingStatus; creditCents: number }> {
   const { car, request } = input
   const status: BookingStatus = input.paid === 'stripe' ? 'pending_payment' : car.instantBook ? 'confirmed' : 'requested'
@@ -182,6 +197,7 @@ export async function createBooking(input: {
       hostId = l.host_id
     }
     if (hostId === input.guestId) throw new DatesTaken('You can’t book your own car.')
+    if (hostId && (await blockedBetween(hostId, input.guestId, t))) throw new DatesTaken('That car isn’t available to book.')
     if (input.paid === 'stripe') {
       // At most two unpaid checkouts at a time, so nobody can hold calendars hostage.
       const [{ n }] = await t.query<{ n: string }>(
@@ -199,6 +215,7 @@ export async function createBooking(input: {
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [id, car.slug, input.guestId, hostId, request.start, request.end, status, input.paid, JSON.stringify(stored), JSON.stringify(input.quote), JSON.stringify(snapshot(car, input.cityName, input.tz))],
     )
+    if (input.acceptedTerms) await recordConsent(input.guestId, ['trip_terms'], 'booking', id, t)
     credit = await spendCredit(t, input.guestId, Math.min(input.creditCents ?? 0, input.quote.totalCents), id)
     if (credit) await t.query(`update bookings set credit_cents = $2 where id = $1`, [id, credit])
     // Unpaid checkouts get no conversation; it opens once the trip is paid (markPaid).

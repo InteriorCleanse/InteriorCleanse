@@ -42,6 +42,8 @@ const nextConfig = {
       // Pages that carry one-time tokens never leak them in a Referer.
       { source: '/reset', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
       { source: '/verify-email', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+      { source: '/confirm-email', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+      { source: '/unsubscribe', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
       { source: '/trips/confirm', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
     ]
   },

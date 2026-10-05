@@ -4,19 +4,23 @@ import { ButtonLink, Notice } from '@/components/ui'
 import { COVERAGE_PLANS, COVERAGE_TERMS_FINAL } from '@/lib/catalog'
 import { POLICIES } from '@/lib/ai/knowledge'
 import { money } from '@/lib/format'
+import { publicInsurance } from '@/lib/server/insurance'
 
 export const metadata: Metadata = { title: 'Coverage, explained', description: 'Car sharing insurance in thirty seconds: pick the most you would pay if the car is damaged. Liability is included on every trip.' }
 
 const FAQ: [string, string][] = [
-  ['Is third-party liability included?', 'Yes, on every trip. If you injure someone or damage their property, the trip’s liability insurance responds up to the limit shown on your plan. Your plan choice only changes what you pay if the car you are driving is damaged.'],
+  ['Is third-party liability included?', 'Yes, on every trip, whichever plan you choose. If you injure someone or damage their property, AVANT’s programme insurance responds first (it is primary during the trip), at limits at least three times your state’s minimum, as car-sharing laws such as Colorado’s require. Your plan choice only changes what you pay if the car you are driving is damaged.'],
+  ['When does the coverage apply?', 'From the moment the trip starts until the car is returned (the car-sharing period). Outside a trip the host’s own policy covers their car. If the host’s or your own policy lapses during a trip, AVANT’s programme still responds.'],
   ['Will my own car insurance or credit card cover this?', 'Usually not. Most personal auto policies and most credit-card rental benefits exclude peer-to-peer car sharing, and several large card issuers say so explicitly. Check your policy wording before relying on it; if in doubt, pick Plus or Zero.'],
   ['What is the refundable hold?', 'A temporary authorisation on your card at pickup, not a charge. It is released within 48 hours after the trip unless something needs sorting out, and it can never exceed your plan’s maximum.'],
   ['What happens if the car is damaged?', POLICIES.damage_claims],
-  ['What if I have an accident?', POLICIES.accident],
+  ['What if I have an accident?', `${POLICIES.accident} Step-by-step guidance is on the accident page, and you report it from your trip.`],
+  ['How does a damage claim work?', 'The host reports it within 3 days of the trip ending, with photos. You get 72 hours to respond, with your check-in photos as evidence. Our claims team decides with both sides’ evidence, never above your plan’s maximum, and nothing is charged before then.'],
   ['Why does the price differ between cars?', 'Coverage is a percentage of the trip price, with a small daily minimum, so it scales with the value of the car and the length of the trip. You always see the exact figure before you choose.'],
 ]
 
 export default function CoveragePage() {
+  const ins = publicInsurance()
   return (
     <div className="page">
       <div className="page-narrow">
@@ -33,6 +37,22 @@ export default function CoveragePage() {
             <Notice tone="warn">These are preview terms. Final limits and prices are set with AVANT&apos;s insurance partner, and the policy documents govern.</Notice>
           </div>
         ) : null}
+        <dl className="kv small" style={{ marginTop: 20 }}>
+          <div>
+            <dt>Insured by</dt>
+            <dd>{ins.final ? `${ins.insurer}, policy ${ins.policy}` : 'Being finalised with our insurance partner'}</dd>
+          </div>
+          <div>
+            <dt>Roadside, 24/7</dt>
+            <dd>{ins.roadsidePhone ? <a className="link" href={`tel:${ins.roadsidePhone.replace(/[^\d+]/g, '')}`}>{ins.roadsidePhone}</a> : 'Shown on your trip once the programme is live'}</dd>
+          </div>
+          <div>
+            <dt>After an accident</dt>
+            <dd>
+              <Link className="link" href="/help/accident">What to do, step by step</Link>
+            </dd>
+          </div>
+        </dl>
       </div>
 
       <div className="wrap">

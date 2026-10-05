@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SafetyMenu } from '@/components/SafetyMenu'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { AvailabilityCalendar, BookingCard } from '@/components/BookingCard'
@@ -205,6 +206,11 @@ export default async function CarPage({ params }: Props) {
                   <p className="muted" style={{ marginTop: 10 }}>
                     {r.text}
                   </p>
+                  {car.sample ? null : (
+                    <div style={{ marginTop: 6 }}>
+                      <SafetyMenu context="review" subjectId={r.id} name={r.author} canBlock={false} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

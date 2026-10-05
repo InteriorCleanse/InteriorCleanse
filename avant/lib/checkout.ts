@@ -27,6 +27,8 @@ export const TripRequest = z
     useCredit: z.boolean().optional(),
     /** The guest ticked the trip terms; the booking route requires it and records it. */
     agreeTerms: z.boolean().optional(),
+    /** The version of the trip terms the guest's page showed. */
+    termsVersion: z.string().max(20).optional(),
   })
   .strict()
 

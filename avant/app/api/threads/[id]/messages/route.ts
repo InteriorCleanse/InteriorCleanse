@@ -1,7 +1,7 @@
 import { after as afterResponse, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { deliverNotificationEmails } from '@/lib/server/email'
-import { MAX_MESSAGE, messagesIn, sendMessage, threadOpen } from '@/lib/server/inbox'
+import { BlockedError, MAX_MESSAGE, messagesIn, sendMessage, threadOpen } from '@/lib/server/inbox'
 import { currentUser, signInRequired } from '@/lib/server/session'
 import { LIMITS } from '@/lib/security/rate-limit'
 import { guard, problem, readJson } from '@/lib/security/request'
@@ -30,7 +30,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const open = await threadOpen(user.id, id)
   if (open === null) return problem(404, 'Conversation not found.')
   if (!open) return problem(409, 'This conversation has closed. For anything about a past trip, ask AVANT support.')
-  const message = await sendMessage(user.id, id, parsed.data.body)
+  let message
+  try {
+    message = await sendMessage(user.id, id, parsed.data.body)
+  } catch (err) {
+    if (err instanceof BlockedError) return problem(403, 'You can’t message this person. If you need help with a trip, contact AVANT support.')
+    throw err
+  }
   if (!message) return problem(404, 'Conversation not found.')
   afterResponse(() => deliverNotificationEmails())
   return NextResponse.json({ message })

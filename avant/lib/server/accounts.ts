@@ -209,7 +209,8 @@ export async function deleteAccount(userId: string): Promise<DeleteResult> {
     await t.query(`update messages set body = '' where sender_id = $1`, [userId])
     await t.query(`update bookings set request = jsonb_set(request, '{deliveryAddress}', '""') where guest_id = $1`, [userId])
     await t.query(`delete from listings where host_id = $1`, [userId])
-    await t.query(`delete from photos where owner_id = $1`, [userId])
+    // Claim photos stay with the claim: they're evidence for the other side and the insurer.
+    await t.query(`delete from photos where owner_id = $1 and kind <> 'claim'`, [userId])
     for (const table of ['favorites', 'sessions', 'password_resets', 'email_verifications', 'notifications', 'thread_reads']) {
       await t.query(`delete from ${table} where user_id = $1`, [userId])
     }

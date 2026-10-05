@@ -11,7 +11,7 @@ import { db, type Db } from './db.ts'
 export async function recordConsent(
   userId: string,
   documents: LegalDocument[],
-  context: 'signup' | 'booking' | 'listing',
+  context: 'signup' | 'booking' | 'listing' | 'update',
   subjectId: string | null = null,
   q?: Db,
 ): Promise<void> {
@@ -42,4 +42,17 @@ export async function consentsFor(userId: string): Promise<ConsentRecord[]> {
     [userId],
   )
   return rows.map((r) => ({ document: r.document, version: r.version, context: r.context, subjectId: r.subject_id, acceptedAt: new Date(r.accepted_at).toISOString() }))
+}
+
+/** Account-wide documents (terms, privacy) whose current version this person hasn't accepted yet. */
+export async function outdatedConsents(userId: string): Promise<('terms' | 'privacy')[]> {
+  const rows = await (await db()).query<{ document: 'terms' | 'privacy'; version: string }>(
+    `select document, max(version) as version from consents where user_id = $1 and document in ('terms', 'privacy') group by document`,
+    [userId],
+  )
+  return (['terms', 'privacy'] as const).filter((doc) => {
+    const accepted = rows.find((r) => r.document === doc)?.version
+    // Accounts from before consent records existed are asked too.
+    return !accepted || accepted < LEGAL_VERSIONS[doc]
+  })
 }

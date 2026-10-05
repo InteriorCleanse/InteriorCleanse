@@ -209,7 +209,7 @@ export function ListingEditor({ id }: { id: string }) {
             <span>
               <strong>Offer delivery</strong>
               <span className="small muted" style={{ display: 'block' }}>
-                Bring the car to the guest, including airports.
+                Bring the car to the guest. Airports aren&apos;t included yet.
               </span>
             </span>
           </label>

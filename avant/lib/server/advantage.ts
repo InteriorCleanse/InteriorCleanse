@@ -111,6 +111,7 @@ export async function grantReferralWelcome(userId: string): Promise<boolean> {
       'Welcome to AVANT',
       `${referrer?.name.split(/\s+/)[0] ?? 'A friend'} invited you, so $${REFERRAL.friendCreditCents / 100} of AVANT credit is waiting. It comes off your first trip automatically.`,
       '/circle',
+      'offers',
     )
     return true
   })
@@ -147,6 +148,7 @@ export async function rewardReferrals(): Promise<number> {
           'Thank you for the introduction',
           `${r.name.split(/\s+/)[0]} just finished their first trip, so $${REFERRAL.referrerCreditCents / 100} of AVANT credit is yours.`,
           '/circle',
+          'offers',
         )
         n += 1
       }
@@ -165,8 +167,8 @@ export async function nudgeReviews(): Promise<number> {
      returning id, guest_id, host_id, car->>'title' as title`,
   )
   for (const b of rows) {
-    await notify(d, b.guest_id, 'How was the drive?', `Thank you for choosing AVANT. A line about the ${b.title} helps the next guest, and your host.`, `/trips/${b.id}#review`)
-    await notify(d, b.host_id, 'How was your guest?', `Your ${b.title} is back. A quick review helps other hosts welcome good guests.`, `/trips/${b.id}#review`)
+    await notify(d, b.guest_id, 'How was the drive?', `Thank you for choosing AVANT. A line about the ${b.title} helps the next guest, and your host.`, `/trips/${b.id}#review`, 'offers')
+    await notify(d, b.host_id, 'How was your guest?', `Your ${b.title} is back. A quick review helps other hosts welcome good guests.`, `/trips/${b.id}#review`, 'offers')
   }
   return rows.length
 }

@@ -6,7 +6,7 @@ import { guard, problem, readBytes } from '@/lib/security/request'
 
 export const runtime = 'nodejs'
 
-/** A listing photo: raw JPEG bytes (re-encoded on the device), ?angle=front. */
+/** A listing photo (?angle=front) or a claim photo (?kind=claim): raw JPEG bytes, re-encoded on the device. */
 export async function POST(req: NextRequest) {
   const blocked = await guard(req, { limit: LIMITS.upload, limitKey: 'upload', requireJson: false })
   if (blocked) return blocked
@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
   const user = await currentUser()
   if (!user) return signInRequired()
   try {
-    const photo = await savePhoto({ ownerId: user.id, kind: 'listing', angle: req.nextUrl.searchParams.get('angle'), bytes: await readBytes(req, MAX_PHOTO_BYTES) })
+    const kind = req.nextUrl.searchParams.get('kind') === 'claim' ? 'claim' : 'listing'
+    const photo = await savePhoto({ ownerId: user.id, kind, angle: req.nextUrl.searchParams.get('angle'), bytes: await readBytes(req, MAX_PHOTO_BYTES) })
     return NextResponse.json({ photo })
   } catch (err) {
     return problem(err instanceof PhotoError ? 400 : 413, err instanceof PhotoError ? err.message : 'Photos must be under 6 MB.')

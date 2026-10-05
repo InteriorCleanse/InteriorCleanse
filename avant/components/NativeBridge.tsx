@@ -19,7 +19,7 @@ export function NativeBridge() {
   }, [router])
 
   useEffect(() => {
-    if (user && lastUser.current !== user.id) void refreshPushRegistration()
+    if (user && lastUser.current !== user.id) void refreshPushRegistration(user.id)
     lastUser.current = user?.id ?? null
   }, [user])
 

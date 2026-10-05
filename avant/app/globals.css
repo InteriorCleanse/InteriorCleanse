@@ -4679,3 +4679,230 @@ html {
 .circle-progress > span {
   min-width: 6px;
 }
+
+/* Trip record and reports. */
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.record-card {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 560px) {
+  .record-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.claims {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.claim {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.claim-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.claim-photos img,
+.claim-add {
+  width: 76px;
+  height: 76px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.claim-add {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.accident-steps {
+  counter-reset: step;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 22px;
+}
+
+.accident-steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 4px 16px;
+}
+
+.accident-steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 1px var(--gold);
+  font-weight: 400;
+}
+
+.accident-steps h2 {
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 6px 0 0;
+}
+
+/* Settings: switches and device lists. */
+.switches {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.switch-row > span,
+.sessions li > span {
+  display: grid;
+  gap: 2px;
+}
+
+.switch-label {
+  font-weight: 500;
+}
+
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--surface-3);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s var(--ease);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(18, 19, 22, 0.22);
+  transition: transform 0.2s var(--ease);
+}
+
+.switch:checked {
+  background: var(--text);
+}
+
+.switch:checked::after {
+  transform: translateX(20px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.sessions {
+  list-style: none;
+  margin: 6px 0 10px;
+  padding: 0;
+}
+
+.sessions li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Report and block: quiet text links, a panel when open. */
+.safety-links {
+  display: inline-flex;
+  gap: 14px;
+}
+
+.text-btn {
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  min-height: 32px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.text-btn:hover {
+  color: var(--text);
+}
+
+.safety-panel {
+  margin-top: 8px;
+}
+
+.chat-safety {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 6px;
+}
+
+/* Updated terms: a calm bar under the header, never a blocking modal. */
+.agreement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(var(--max), 100% - var(--gutter) * 2);
+  margin: 14px auto 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: var(--bg-2);
+}
+
+@media (max-width: 560px) {
+  .agreement {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

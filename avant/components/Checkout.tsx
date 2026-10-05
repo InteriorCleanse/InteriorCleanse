@@ -17,6 +17,7 @@ import { CoveragePicker } from './CoveragePicker'
 import { useDriver } from './DriverProvider'
 import { Icon } from './Icons'
 import { PriceBreakdown } from './PriceBreakdown'
+import { LEGAL_VERSIONS } from '@/lib/legal'
 import { haptic } from '@/lib/native'
 import { useSession } from './Session'
 import { useToast } from './Toast'
@@ -80,7 +81,7 @@ export function Checkout({ car }: { car: Car }) {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slug: car.slug, start, end, startTime, endTime, coverage, extras, delivery: delivery && car.delivery.offered, deliveryAddress: delivery ? address : '', useCredit, agreeTerms: agree }),
+        body: JSON.stringify({ slug: car.slug, start, end, startTime, endTime, coverage, extras, delivery: delivery && car.delivery.offered, deliveryAddress: delivery ? address : '', useCredit, agreeTerms: agree, termsVersion: LEGAL_VERSIONS.trip_terms }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Booking failed.')
@@ -143,7 +144,7 @@ export function Checkout({ car }: { car: Car }) {
                 <label className="check">
                   <input type="checkbox" checked={delivery} onChange={() => setDelivery((d) => !d)} />
                   <span>
-                    Deliver it to me for {money(car.delivery.feeCents)} <span className="dim">(within {car.delivery.radiusMiles} mi, airports included)</span>
+                    Deliver it to me for {money(car.delivery.feeCents)} <span className="dim">(within {car.delivery.radiusMiles} mi)</span>
                   </span>
                 </label>
                 {delivery ? <input className="input" placeholder="Address, hotel or terminal" value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" aria-label="Delivery address" /> : null}

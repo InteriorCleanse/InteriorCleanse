@@ -11,6 +11,7 @@ import { creditHistory } from './credit.ts'
 import { db } from './db.ts'
 import { favoritesFor, notificationsFor, threadsFor, messagesIn } from './inbox.ts'
 import { listingForHost } from './listings.ts'
+import { prefsFor } from './prefs.ts'
 import { openText } from './sealed.ts'
 
 export async function exportAccount(userId: string): Promise<Record<string, unknown> | null> {
@@ -39,5 +40,20 @@ export async function exportAccount(userId: string): Promise<Record<string, unkn
     credit: await creditHistory(userId),
     notifications: await notificationsFor(userId),
     devices: await d.query(`select platform, created_at, last_seen_at from push_devices where user_id = $1`, [userId]),
+    notificationSettings: await prefsFor(userId),
+    tripRecords: await d.query(
+      `select l.booking_id, l.kind, l.odometer, l.fuel_pct, l.recorded_at, l.recorded_by = $1 as recorded_by_you, l.confirmed_at
+       from trip_logs l join bookings b on b.id = l.booking_id where b.guest_id = $1 or b.host_id = $1 order by l.recorded_at`,
+      [userId],
+    ),
+    reportsYouMade: await Promise.all(
+      (
+        await d.query<{ id: string; booking_id: string; kind: string; description: string; amount_cents: number | null; status: string; created_at: string }>(
+          `select id, booking_id, kind, description, amount_cents, status, created_at from claims where opened_by = $1 order by created_at`,
+          [userId],
+        )
+      ).map(async (c) => ({ ...c, description: await openText(c.description, `claim:${c.id}:description`) })),
+    ),
+    peopleYouBlocked: (await d.query<{ n: string }>(`select count(*) as n from user_blocks where blocker_id = $1`, [userId]))[0].n,
   }
 }

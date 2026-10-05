@@ -11,7 +11,7 @@
 import { createHash } from 'node:crypto'
 import { randomId } from '../security/crypto.ts'
 import { MIN_PHOTO_EDGE, PHOTO_ANGLES, type PhotoAngle } from '../listing.ts'
-import { db } from './db.ts'
+import { db, type Db } from './db.ts'
 import { jpegSize, MAX_EDGE, stripJpegMetadata } from './jpeg.ts'
 
 export const MAX_PHOTO_BYTES = 6 * 1024 * 1024
@@ -26,13 +26,13 @@ export interface StoredPhoto {
   sha256: string
 }
 
-export async function savePhoto(input: { ownerId: string; kind: 'listing' | 'avatar'; angle?: string | null; bytes: Uint8Array }): Promise<StoredPhoto> {
+export async function savePhoto(input: { ownerId: string; kind: 'listing' | 'avatar' | 'claim'; angle?: string | null; bytes: Uint8Array }): Promise<StoredPhoto> {
   if (input.bytes.length === 0 || input.bytes.length > MAX_PHOTO_BYTES) throw new PhotoError('Photos must be under 6 MB.')
   const size = jpegSize(input.bytes)
   const bytes = size ? stripJpegMetadata(input.bytes) : null
   if (!size || !bytes) throw new PhotoError('That file is not a photo we can use.')
   if (Math.max(size.width, size.height) > MAX_EDGE) throw new PhotoError('That photo is larger than we can use. Try a smaller copy.')
-  if (Math.min(size.width, size.height) < (input.kind === 'avatar' ? 200 : MIN_PHOTO_EDGE)) throw new PhotoError('That photo is too small to look sharp.')
+  if (Math.min(size.width, size.height) < (input.kind === 'listing' ? MIN_PHOTO_EDGE : 200)) throw new PhotoError('That photo is too small to look sharp.')
   const angle = input.kind === 'listing' ? (PHOTO_ANGLES.find((a) => a.id === input.angle)?.id ?? null) : null
   if (input.kind === 'listing' && !angle) throw new PhotoError('Unknown photo angle.')
   const photo: StoredPhoto = { id: randomId(16), angle, ...size, sha256: createHash('sha256').update(bytes).digest('hex') }
@@ -62,4 +62,11 @@ export async function ownListingPhotos(ownerId: string, ids: string[]): Promise<
 /** Deletes one of the owner's own photos. */
 export async function deletePhoto(ownerId: string, id: string): Promise<void> {
   await (await db()).query(`delete from photos where id = $1 and owner_id = $2`, [id, ownerId])
+}
+
+/** The owner's own claim photos by id, for attaching to a claim. */
+export async function ownClaimPhotos(ownerId: string, ids: string[], q?: Db): Promise<string[]> {
+  if (!ids.length) return []
+  const rows = await (q ?? (await db())).query<{ id: string }>(`select id from photos where owner_id = $1 and kind = 'claim' and id = any($2::text[])`, [ownerId, ids])
+  return rows.map((r) => r.id)
 }

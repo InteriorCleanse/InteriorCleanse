@@ -10,7 +10,7 @@ export async function purgeExpired(): Promise<Record<string, number>> {
   const count = async (sql: string) => (await d.query(`${sql} returning 1`)).length
   return {
     // Sign-ins past their 30-day life.
-    sessions: await count(`delete from sessions where expires_at < now()`),
+    sessions: await count(`delete from sessions where expires_at < now() or last_seen_at < now() - interval '14 days'`),
     // Reset links: used or expired, gone after a day.
     resets: await count(`delete from password_resets where expires_at < now() - interval '1 day' or used_at < now() - interval '1 day'`),
     // Rate-limit counters idle for a day are back to full anyway.
@@ -30,6 +30,13 @@ export async function purgeExpired(): Promise<Record<string, number>> {
     orphanPhotos: await count(
       `delete from photos p where p.kind = 'listing' and p.listing_id is null and p.created_at < now() - interval '2 days'
          and not exists (select 1 from listings l where l.data->'photoIds' ? p.id)`,
+    ),
+    // Driver records not renewed in a year, matching the vault's own purge.
+    driverRecords: await count(`delete from driver_records where updated_at < now() - interval '365 days'`),
+    // Claim photos uploaded for a report that was never sent.
+    orphanClaimPhotos: await count(
+      `delete from photos p where p.kind = 'claim' and p.created_at < now() - interval '2 days'
+         and not exists (select 1 from claims c where p.id = any(c.photo_ids))`,
     ),
   }
 }

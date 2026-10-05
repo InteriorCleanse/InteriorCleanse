@@ -27,8 +27,9 @@
     </svg>
     <h1>You&rsquo;re offline</h1>
     <p>AVANT needs a connection to show cars, trips and messages. Your trip details are safe.</p>
-    <button type="button" onclick="location.replace('__AVANT_APP_URL__')">Try again</button>
+    <button type="button" id="retry">Try again</button>
   </div>
 </main>
+<script>document.getElementById('retry').addEventListener('click', function () { location.replace('__AVANT_APP_URL__') })</script>
 </body>
 </html>
