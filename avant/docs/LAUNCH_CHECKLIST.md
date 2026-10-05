@@ -17,6 +17,11 @@
 | `AVANT_REQUIRE_SECRETS=1` | Set in production so a missing secret is an error, not a demo |
 | `NEXT_PUBLIC_SITE_URL` | The real `https://` domain. Required in production: links in emails and Stripe redirects are built from it, never from the request's Host header |
 | `AVANT_SECURITY_CONTACT` | A `mailto:` or `https:` address for vulnerability reports, published at `/.well-known/security.txt` |
+| `AVANT_SUPPORT_EMAIL` | The inbox for member reports (harassment, scams). Someone must act on them within a day: App Review checks that reporting works |
+| `AVANT_HOST_TEAM_EMAIL` | Where host leads from `/host` go (falls back to the support inbox). Reply within a day |
+| `AVANT_PRIVACY_CONTACT` | A `mailto:` for privacy requests, shown in the privacy notice |
+| `AVANT_INSURER_NAME`, `AVANT_POLICY_NUMBER`, `AVANT_ROADSIDE_PHONE`, `AVANT_CLAIMS_PHONE`, `AVANT_CLAIMS_EMAIL` | From the insurer once the policy binds (see `INSURANCE_PLAYBOOK.md`). Every claim and incident report is emailed to the claims address |
+| `APNS_KEY_P8`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` | Push notifications for the iOS app (see `APP_STORE.md`) |
 | `AVANT_TRUSTED_PROXY_HOPS` | Only off Vercel: the number of proxies in front of the app. With `AVANT_REQUIRE_SECRETS=1` the app refuses to guess |
 
 ## 2. The vault
@@ -54,7 +59,13 @@ ocd wrangler deploy
 - Turn on Vercel's deployment protection for previews, and two-factor authentication on Vercel, GitHub, Stripe, Resend and the database provider.
 - Keep `AVANT_INDEXABLE=0` until listings and legal review are real.
 
-## 4. Business
+## 4. Marketing
+
+- The host launch plan (segments, channels, scripts, budget, tracking) is the shared doc "AVANT host launch plan: Denver".
+- Regenerate every graphic and the flyer's QR code with your domain: `SITE=https://yourdomain npm run marketing:assets` (with the app running on :3000). Outputs: `marketing/social/`, `marketing/flyer.pdf`, and the link previews in `app/`.
+- Tag every link: `/host?utm_source=…&utm_medium=…&utm_campaign=founding-hosts`. Leads keep their tags in `host_leads`.
+
+## 5. Business
 
 - Review the AVANT Advantage amounts in `lib/circle.ts` (Circle tier fees, the
   Promise credits, the referral credits). Credit is a liability on the books:

@@ -140,6 +140,12 @@ production first (verified email, a completed trip, a message thread):
 > Account deletion: Profile → Close account. Data export: Profile →
 > Download all my data.
 >
+> User-generated content (guideline 1.2): messages and reviews can be
+> reported from the conversation, the trip and each review; members can be
+> blocked (they can no longer message or book each other) and unblocked
+> from Profile → Blocked people. Reports reach our support team, who act
+> within 24 hours. Contact: [support email].
+>
 > Licence verification uses Stripe Identity and is skipped for the demo
 > account.
 
@@ -178,5 +184,7 @@ it.
 - [ ] The privacy policy and terms are final (no "Draft" notice): App
       Review checks the privacy policy link.
 - [ ] Demo account works and is in the review notes.
+- [ ] `AVANT_SUPPORT_EMAIL` is set and someone reads it daily: reports of
+      objectionable content must be acted on within 24 hours (guideline 1.2).
 - [ ] Insurance and state requirements in `LEGAL_BRIEF.md` are done for the
       launch state; App Review can ask for proof that you may operate.

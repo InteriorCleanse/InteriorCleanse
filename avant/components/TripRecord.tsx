@@ -38,8 +38,8 @@ export function TripRecord({ tripId }: { tripId: string }) {
 
   return (
     <>
-      <section className="car-section" aria-labelledby="record" id="record">
-        <h2 id="record">Trip record</h2>
+      <section className="car-section" aria-labelledby="record-title" id="record">
+        <h2 id="record-title">Trip record</h2>
         <p className="small muted" style={{ marginBottom: 14 }}>
           The odometer and fuel or charge at pickup and at return. Either of you enters it, the other confirms. It settles mileage and fuel
           questions, and it&apos;s the record our insurer keeps for every trip.
@@ -60,8 +60,8 @@ export function TripRecord({ tripId }: { tripId: string }) {
         ) : null}
       </section>
 
-      <section className="car-section" aria-labelledby="claims" id="claims">
-        <h2 id="claims">{record.role === 'guest' ? 'Accidents and problems' : 'Damage and charges'}</h2>
+      <section className="car-section" aria-labelledby="claims-title" id="claims">
+        <h2 id="claims-title">{record.role === 'guest' ? 'Accidents and problems' : 'Damage and charges'}</h2>
         {record.claims.length ? (
           <ul className="claims">
             {record.claims.map((c) => (
@@ -71,7 +71,16 @@ export function TripRecord({ tripId }: { tripId: string }) {
         ) : null}
         {record.can.report ? (
           <ReportForm tripId={tripId} role={record.role} kinds={record.reportKinds} capCents={record.capCents} planName={record.planName} onDone={load} />
-        ) : record.claims.length ? null : (
+        ) : record.claims.length ? null : record.reportWindow === 'before' ? (
+          <p className="small muted">
+            {record.role === 'guest'
+              ? 'Once the trip starts, you can report an accident or a problem with the car here.'
+              : 'Once the trip starts, you can report damage or a charge here, until 3 days after it ends.'}{' '}
+            <Link href="/help/accident" className="link">
+              What to do after an accident
+            </Link>
+          </p>
+        ) : (
           <p className="small muted">Reports for this trip are closed. If something comes up, contact support.</p>
         )}
       </section>

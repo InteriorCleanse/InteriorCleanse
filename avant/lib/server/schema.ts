@@ -390,4 +390,29 @@ export const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 8,
+    name: 'host leads',
+    sql: `
+      -- Car owners who asked to hear more before listing, from the host page
+      -- or a campaign. Kept for follow-up; deleted after a year, or at once
+      -- on request.
+      create table host_leads (
+        id text primary key,
+        name text not null,
+        email text not null,
+        phone text,
+        city text not null,
+        car text not null,
+        cars integer not null default 1,
+        source text,
+        medium text,
+        campaign text,
+        created_at timestamptz not null default now(),
+        contacted_at timestamptz
+      );
+      create index host_leads_created on host_leads(created_at desc);
+      create unique index host_leads_email on host_leads(lower(email));
+    `,
+  },
 ]

@@ -15,7 +15,8 @@ function typeLabel(body: BodyType): string {
 
 export function Estimator() {
   const [body, setBody] = useState<BodyType>('suv')
-  const [city, setCity] = useState(cities[0].slug)
+  // The launch city first; any listed city otherwise.
+  const [city, setCity] = useState((cities.find((c) => c.slug === 'denver') ?? cities[0]).slug)
   const [days, setDays] = useState(14)
   const [own, setOwn] = useState('')
   const median = medianRateCents(body, city)

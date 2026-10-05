@@ -70,8 +70,8 @@ export function NotificationSettings() {
   }
 
   return (
-    <section className="panel" aria-labelledby="notifications" id="notifications">
-      <h2 id="notifications" style={{ fontSize: '1.2rem' }}>
+    <section className="panel" aria-labelledby="notifications-title" id="notifications">
+      <h2 id="notifications-title" style={{ fontSize: '1.2rem' }}>
         Notifications
       </h2>
       <p className="muted small" style={{ marginTop: 6 }}>
@@ -180,8 +180,8 @@ export function SecuritySettings() {
   }
 
   return (
-    <section className="panel" aria-labelledby="security" id="security">
-      <h2 id="security" style={{ fontSize: '1.2rem' }}>
+    <section className="panel" aria-labelledby="security-title" id="security">
+      <h2 id="security-title" style={{ fontSize: '1.2rem' }}>
         Security and your data
       </h2>
 
@@ -303,8 +303,8 @@ export function BlockedPeople() {
   }
 
   return (
-    <section className="panel" aria-labelledby="blocked" id="blocked">
-      <h2 id="blocked" style={{ fontSize: '1.2rem' }}>
+    <section className="panel" aria-labelledby="blocked-title" id="blocked">
+      <h2 id="blocked-title" style={{ fontSize: '1.2rem' }}>
         Blocked people
       </h2>
       {list.length ? (

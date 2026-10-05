@@ -31,6 +31,8 @@ export async function purgeExpired(): Promise<Record<string, number>> {
       `delete from photos p where p.kind = 'listing' and p.listing_id is null and p.created_at < now() - interval '2 days'
          and not exists (select 1 from listings l where l.data->'photoIds' ? p.id)`,
     ),
+    // Host leads who never listed, after a year.
+    hostLeads: await count(`delete from host_leads where created_at < now() - interval '365 days'`),
     // Driver records not renewed in a year, matching the vault's own purge.
     driverRecords: await count(`delete from driver_records where updated_at < now() - interval '365 days'`),
     // Claim photos uploaded for a report that was never sent.

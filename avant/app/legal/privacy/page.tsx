@@ -25,6 +25,10 @@ export default function Privacy() {
           reports, with their photos, and the other side&apos;s response. Reports you make about other members, and who you&apos;ve blocked.
         </li>
         <li>Your notification choices and, if you turn on notifications in the iOS app, a push token for that iPhone, tied to that sign-in.</li>
+        <li>
+          If you ask about hosting before signing up: your name, email, optional phone, city and car, and which campaign link brought you, to reply
+          about hosting and nothing else.
+        </li>
         <li>If you host: your listings, the photos you take of your car, its VIN (never shown to guests) and your pickup instructions.</li>
         <li>To pay or get paid: nothing. Card and bank details go directly to Stripe.</li>
       </ul>
@@ -88,6 +92,7 @@ export default function Privacy() {
         <li>Sign-in sessions: end after 14 idle days or 30 days in all.</li>
         <li>Driver records: deleted a year after they were last checked, or immediately when you delete your driver pass.</li>
         <li>Sign-in attempt counts: within a day. Unused verification, reset and email-change links: when they expire.</li>
+        <li>Hosting enquiries from people who never list: after a year, or at once on request.</li>
         <li>
           When you close your account, your profile, photos, listings, saved cars, sessions, devices and notifications are deleted, and your
           messages and delivery addresses are erased. Reviews you wrote stay on the car or person you reviewed, under &ldquo;Former member&rdquo;.

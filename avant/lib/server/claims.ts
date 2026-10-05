@@ -81,6 +81,8 @@ export interface TripRecordView {
   can: { recordPickup: boolean; recordReturn: boolean; confirmPickup: boolean; confirmReturn: boolean; report: boolean }
   reportKinds: { id: ClaimKind; label: string }[]
   claims: ClaimView[]
+  /** Whether reports can be made yet: before the trip starts, during the window, or after it closed. */
+  reportWindow: 'before' | 'open' | 'closed'
   /** The most the guest can be asked to pay for damage, from their protection plan. */
   capCents: number
   planName: string
@@ -135,6 +137,7 @@ export async function tripRecord(userId: string, bookingId: string): Promise<Tri
     },
     reportKinds: CLAIM_KINDS.filter((k) => k.by === role).map(({ id, label }) => ({ id, label })),
     claims: await Promise.all(rows.map((r) => claimView(r, userId))),
+    reportWindow: today < start ? 'before' : canReport(role, start, end, today) ? 'open' : 'closed',
     capCents: plan.maxOutOfPocketCents,
     planName: plan.name,
   }
