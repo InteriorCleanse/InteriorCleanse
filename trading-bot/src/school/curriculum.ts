@@ -20,7 +20,7 @@ import type { AnnotationType } from '../intel/types.ts'
 import type { CaseKind } from './caseStudies.ts'
 
 export type ConceptLevel = 'foundation' | 'intermediate' | 'advanced'
-export type ConceptTrack = 'basics' | 'priceaction' | 'scalping' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets'
+export type ConceptTrack = 'basics' | 'priceaction' | 'scalping' | 'structure' | 'liquidity' | 'imbalance' | 'sessions' | 'regimes' | 'risk' | 'statistics' | 'research' | 'markets' | 'prop'
 
 export type QuizQuestion = {
   id: string
@@ -536,6 +536,44 @@ export const CONCEPTS: Concept[] = [
     quiz: [
       q('pm-1', 'YES ask 0.46, NO ask 0.51 on one venue. Theoretical edge before costs?', ['0.03', '0.97', '−0.03', '0.05'], 0, '1 − (0.46 + 0.51) = 0.03.'),
       q('pm-2', 'Why size with a fraction of Kelly rather than full Kelly?', ['Regulations', 'Because the probability estimate is uncertain and full Kelly is unforgiving of error', 'Kelly only works for stocks', 'Fees are lower'], 1, 'Full Kelly maximises log growth only if the inputs are right.'),
+    ],
+  },
+  // ---------------------------------------------------------------- prop firms
+  // How funded-trader evaluations fail and pass. Taught with src/school/propFirm.ts; Kestrel tracks the rules and never trades a challenge.
+  {
+    id: 'prop-rules', title: 'Prop challenges: the rules that fail them', level: 'intermediate', track: 'prop',
+    summary: 'A prop firm sells an evaluation on a simulated account: reach a profit target without breaking a daily loss limit or a maximum loss limit, over at least a minimum number of trading days. Some firms add a time limit or a consistency rule (no single day may be more than a set share of the profit). Most challenges end on a rule breach, usually from sizing, not on a wrong market read. Each phase starts a fresh account at the starting balance.',
+    engineChecks: ['school/propFirm.ts evaluateChallenge replays closed trades through the rules phase by phase, using the firm\'s day-reset hour and time zone, and names the trade and rule that ended the account.', 'The School → Prop firms view runs it over the PAPER record or your own journal. Kestrel has no connection to any firm or platform.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Reaching the target is not passing while minimum days or the consistency rule are still unmet; the limits keep applying until the phase passes.', 'The daily limit is measured from the balance at the firm\'s reset time, which may be midnight in another time zone, not from your start of trading.'],
+    related: ['prop-drawdown', 'prop-sizing', 'drawdown'],
+    quiz: [
+      q('pr-1', '$100,000 account, 5% daily loss limit from the start-of-day balance. You start the day at $102,000 and are now at $97,500. Where do you stand?', ['Breached', 'Inside the limit, with $500 of room left', 'Inside the limit, with $2,500 left', 'It depends on the profit target'], 1, 'The day\'s loss is $102,000 − $97,500 = $4,500 against a $5,000 limit: $500 left.'),
+      q('pr-2', 'You reach the profit target on day 2; the phase needs 4 trading days. What happens?', ['The phase is passed', 'Not passed yet: two more trading days are needed and every limit still applies', 'The phase fails', 'The target resets'], 1, 'Minimum days are a condition of passing, and a later loss can still breach a limit.'),
+    ],
+  },
+  {
+    id: 'prop-drawdown', title: 'Static, end-of-day and intraday trailing drawdown', level: 'intermediate', track: 'prop',
+    summary: 'The maximum loss is a floor the balance must stay above. A static floor never moves. An end-of-day trailing floor rises with each day\'s closing high. An intraday trailing floor rises with the highest balance reached during the day, open profit included, so giving back an open winner can close the account. Many futures evaluations stop the trailing floor once it reaches the starting balance.',
+    engineChecks: ['school/propFirm.ts supports all three modes and the lock at the start. Intraday trailing uses each trade\'s open-profit peak when it is known and says so when it is not.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['A trailing floor does not follow your balance down; it only rises.', 'A profitable day can tighten an intraday trailing floor enough that the next small loss ends the account.'],
+    related: ['prop-rules', 'drawdown'],
+    quiz: [
+      q('pd-1', '$50,000 account, $2,000 end-of-day trailing max loss that locks at the start. Day 1 closes at $51,200. Where is the floor now?', ['$48,000', '$49,200', '$50,000', '$51,200'], 1, 'The closing high is $51,200, so the floor is $51,200 − $2,000 = $49,200. It has not reached the $50,000 lock yet.'),
+      q('pd-2', 'Intraday trailing, $50,000 start, $2,500 max loss. A trade is up $1,500 open, then closes at breakeven. Where is the floor?', ['$47,500', '$49,000', '$50,000', '$48,500'], 1, 'The open-profit high was $51,500, so the floor rose to $51,500 − $2,500 = $49,000, and it stays there after the give-back.'),
+    ],
+  },
+  {
+    id: 'prop-sizing', title: 'Sizing for a challenge', level: 'intermediate', track: 'prop',
+    summary: 'Pick the risk per trade from the limits, not from the target. Divide the daily loss limit by your risk per trade to get how many full losses in a row the day can absorb, and do the same for the maximum loss. Losing streaks of four to six happen to every method, so leave room for them. Most evaluations have no deadline; the limits are what end them.',
+    engineChecks: ['school/propFirm.ts riskRoom gives losses-to-limit and winners-to-target per phase; todayRoom gives the room left today; simulatePass plays the first phase under your own win rate and reward, labelled SIMULATED.'],
+    annotationTypes: [], caseKinds: [], strategies: [],
+    misreads: ['Doubling the risk to pass faster halves the losing streak you can survive.', 'A simulation under your typed win rate describes the rules, not what your trading will do.'],
+    related: ['prop-rules', 'position-sizing', 'r-multiple', 'expectancy'],
+    quiz: [
+      q('pz-1', 'The daily loss limit is 5% and you risk 1% per trade. How many full losses in a row end the day?', ['2', '5', '10', '50'], 1, '5% ÷ 1% = 5 full losses.'),
+      q('pz-2', 'Why size down rather than up in an evaluation with no time limit?', ['Smaller trades pay higher payouts', 'Because the limits, not a deadline, are what end most challenges, and smaller risk survives longer streaks', 'Firms require it', 'It raises the win rate'], 1, 'Room for losing streaks is what keeps the account alive long enough for the method to work.'),
     ],
   },
 ]

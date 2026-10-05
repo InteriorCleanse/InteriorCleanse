@@ -209,8 +209,16 @@ const pct = (n: number, d = 1) => `${n.toFixed(d)}%`
 
 /** The firm's trading day for a timestamp: the calendar date in its time zone after shifting back by the reset hour. */
 export function firmDayKey(ms: number, tz: string, resetHour: number): string {
-  return new Date(ms - resetHour * 3_600_000).toLocaleDateString('en-CA', { timeZone: tz })
+  // Date formatting with a time zone is slow; every zone offset is a multiple of 15 minutes, so cache per quarter hour.
+  const k = `${tz}|${resetHour}|${Math.floor(ms / 900_000)}`
+  const hit = dayKeyCache.get(k)
+  if (hit) return hit
+  if (dayKeyCache.size > 50_000) dayKeyCache.clear()
+  const d = new Date(ms - resetHour * 3_600_000).toLocaleDateString('en-CA', { timeZone: tz })
+  dayKeyCache.set(k, d)
+  return d
 }
+const dayKeyCache = new Map<string, string>()
 
 function emptyPhase(p: PhaseRules, size: number): PhaseResult {
   const floor = size * (1 - p.maxLossPct / 100)
@@ -393,7 +401,7 @@ export type MonteCarlo = {
 export function simulatePass(rules: ChallengeRules, a: { winRatePct: number; rewardR: number; riskPct: number; tradesPerDay?: number; maxTrades?: number; runs?: number; seed?: number }): MonteCarlo {
   const assumptions = {
     winRatePct: num(a.winRatePct, 1, 99, 45), rewardR: num(a.rewardR, 0.1, 10, 1.5), riskPct: num(a.riskPct, 0.05, 10, 0.5),
-    tradesPerDay: Math.floor(num(a.tradesPerDay, 1, 20, 2)), maxTrades: Math.floor(num(a.maxTrades, 10, 1000, 200)), runs: Math.floor(num(a.runs, 100, 5000, 2000)), seed: Math.floor(num(a.seed, 1, 2 ** 31, 7)),
+    tradesPerDay: Math.floor(num(a.tradesPerDay, 1, 20, 2)), maxTrades: Math.floor(num(a.maxTrades, 10, 1000, 200)), runs: Math.floor(num(a.runs, 100, 5000, 1000)), seed: Math.floor(num(a.seed, 1, 2 ** 31, 7)),
   }
   const one: ChallengeRules = { ...rules, phases: [rules.phases[0]] }
   const rand = mulberry32(assumptions.seed)
