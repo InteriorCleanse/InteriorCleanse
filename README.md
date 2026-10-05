@@ -23,7 +23,7 @@ record, and never acts without a card you approve.
 | **Talks** | Hold to speak or say "Hey Arch". Replies read by Fish Audio's expressive voice (`FISH_AUDIO_API_KEY`, server-side) or the browser's own; hands-free mode listens for the next question. `docs/CLIENTS.md`. |
 | **Runs your day** | "What's on tomorrow, and what's new in my inbox?" Read-only Google Calendar and Gmail, per person. Mail is read live and never stored; nothing can send, reply or delete. `docs/INTEGRATIONS.md`. |
 | **Builds real projects** | "Build me a site for the bakery." A one-page site from a brief, validated to reach nothing outside itself, previewed in a sandbox — and published through your own Vercel account only on a second approval. |
-| **Knows the numbers** | Revenue, profit, ad spend, ROAS, forecasts, the pipeline, your notes — each with its formula, source and freshness. |
+| **Knows the numbers** | Revenue, profit, ad spend, ROAS, forecasts, the pipeline, your notes — each with its formula, source and freshness, computed from the workspace's own synced or imported records. |
 | **Runs each business, watches all of them** | Every workspace has an agent of its own — a name, a focus, standing orders in your words (`/app/agent`). The owner's **mission control** (`/owner-admin/companies`) shows every company's standing, signals and agent, and "what is happening across my companies?" is a question the owner's assistant can answer. |
 | **Is held to a second factor** | Enrol an authenticator at `/app/security` and a password alone stops being a session, everywhere; the owner console will not open without one. `docs/SECURITY.md`. |
 

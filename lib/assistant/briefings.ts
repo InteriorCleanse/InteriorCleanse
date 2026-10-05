@@ -10,6 +10,7 @@ import {
 } from '@/lib/crm/pipeline'
 import { buildDemoPipeline } from '@/lib/demo/sources'
 import { DEMO_NOW, changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import type { Dataset } from '@/lib/workspace/dataset'
 
 /**
  * Executive briefings.
@@ -118,6 +119,12 @@ export function buildBriefing(options: {
    * a real one and the briefing carries no pipeline block at all.
    */
   deals?: readonly PipelineDeal[] | null
+  /**
+   * A real workspace's records, loaded by the caller through its own client.
+   * Omitted in a real workspace, the briefing reports that there is nothing
+   * to report; ignored in a demo, which has its own.
+   */
+  dataset?: Dataset | null
   /** The clock, for tests. A demo workspace always uses the demo clock. */
   now?: Date
 }): Briefing {
@@ -127,6 +134,8 @@ export function buildBriefing(options: {
     currency: options.currency,
     preset: PRESET_FOR[kind],
     comparison: 'previous_period',
+    now: options.now,
+    dataset: options.dataset,
   })
 
   const m = analytics.metrics
@@ -147,7 +156,7 @@ export function buildBriefing(options: {
     comparisonPeriod: analytics.comparisonPeriod?.label ?? null,
     currency,
     isDemo,
-    caveats: [...m.warnings],
+    caveats: [...m.warnings, ...analytics.caveats],
     pipeline,
   }
 

@@ -1,6 +1,7 @@
 import { formatMoney, money } from '@/lib/money'
 import type { PresetKey } from '@/lib/periods'
 import { loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import type { Dataset } from '@/lib/workspace/dataset'
 
 /**
  * Notification rule evaluation.
@@ -82,12 +83,18 @@ export function evaluateRules(input: {
   preset?: PresetKey
   /** Period key that both scopes the figures and dedupes the alert. */
   periodKey?: string
+  /** A real workspace's records, loaded by the caller; ignored for a demo. */
+  dataset?: Dataset | null
+  /** The clock, for tests. */
+  now?: Date
 }): Evaluation {
   const analytics = loadWorkspaceAnalytics({
     isDemo: input.isDemo,
     currency: input.currency,
     preset: input.preset ?? 'today',
     comparison: 'previous_period',
+    now: input.now,
+    dataset: input.dataset,
   })
 
   const raised: RaisedNotification[] = []

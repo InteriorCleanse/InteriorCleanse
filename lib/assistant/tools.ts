@@ -6,6 +6,7 @@ import { PRESET_LABELS, type PresetKey } from '@/lib/periods'
 import { QUADRANT_LABELS, layoutPortfolio } from '@/lib/charts/flow'
 import { ALLOCATION_MODEL_LABELS } from '@/lib/metrics/allocation'
 import { loadWorkspaceAnalytics, type WorkspaceAnalytics } from '@/lib/workspace-analytics'
+import type { Dataset } from '@/lib/workspace/dataset'
 import { INBOX_LIMIT, type MailMessage } from '@/lib/mail/gmail'
 import { agendaWindow, describeWhen, type AgendaDay, type AgendaEvent } from './agenda'
 import { forecast } from './forecast'
@@ -52,6 +53,12 @@ export type ToolContext = {
   now?: Date
   /** The workspace's reporting zone, which is what "today" means. */
   timeZone?: string
+  /**
+   * A real workspace's records, injected by the route and read lazily through
+   * the caller's own client the first time a figure is asked for. Absent, or
+   * in a demo workspace, the figures come from the demo dataset or are empty.
+   */
+  loadDataset?: () => Promise<Dataset | null>
   /**
    * The person's own unread mail, injected by the route only for their own
    * connected mailbox. Absent means no mailbox; the tool says so.
@@ -148,12 +155,15 @@ const PeriodArg = z
   .enum(['today', 'yesterday', 'last_7', 'last_30', 'month_to_date', 'quarter_to_date', 'year_to_date'])
   .describe('Which time range to report on.')
 
-function analyticsFor(ctx: ToolContext, preset: PresetKey): WorkspaceAnalytics {
+async function analyticsFor(ctx: ToolContext, preset: PresetKey): Promise<WorkspaceAnalytics> {
+  const dataset = ctx.isDemo ? null : ((await ctx.loadDataset?.()) ?? null)
   return loadWorkspaceAnalytics({
     isDemo: ctx.isDemo,
     currency: ctx.currency,
     preset,
     comparison: 'previous_period',
+    now: ctx.now,
+    dataset,
   })
 }
 
@@ -204,8 +214,8 @@ const queryKpis: ToolDefinition = {
   description:
     'Headline metrics for a period — revenue, profit, ad spend, ROAS, AOV, CAC, refund rate, orders. Each value comes back with its formula, currency, period and freshness. Use this for "how are we doing" questions.',
   schema: z.object({ period: PeriodArg.default('last_30') }),
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, args.period)
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, args.period)
     const m = a.metrics
     const keys = [
       'netRevenue', 'grossProfit', 'contributionProfit', 'adSpend',
@@ -241,8 +251,8 @@ const comparePeriods: ToolDefinition = {
   // The enum above is a subset of MetricsResult's keys, but Zod hands the
   // executor a widened `any` for the parsed args, so the indexes below are
   // narrowed explicitly rather than left implicit.
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, args.period)
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, args.period)
     const key = args.metric as 'netRevenue' | 'grossProfit' | 'contributionProfit' | 'adSpend' | 'orderCount' | 'aov'
     const current = a.metrics[key]
     const previous = a.comparisonMetrics?.[key]
@@ -273,8 +283,8 @@ const rankProducts: ToolDefinition = {
     by: z.enum(['revenue', 'margin', 'growth']).default('revenue'),
     limit: z.number().int().min(1).max(20).default(5),
   }),
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, args.period)
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, args.period)
     const placed = layoutPortfolio(a.portfolio).points
     const sorted = [...placed].sort((x, y) =>
       args.by === 'revenue' ? y.revenue - x.revenue
@@ -312,8 +322,8 @@ const analyzeProfitBridge: ToolDefinition = {
   description:
     'Break revenue down into every cost and what remains as profit. Use this to explain why profit moved differently from revenue.',
   schema: z.object({ period: PeriodArg.default('last_30') }),
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, args.period)
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, args.period)
     const f = fmt(a.currency)
     return {
       data: {
@@ -340,8 +350,8 @@ const inspectDataQuality: ToolDefinition = {
   description:
     'Report anything that makes the numbers partial or estimated — missing costs, unallocated ad spend, stale sources, test orders. Call this before making a confident claim.',
   schema: z.object({ period: PeriodArg.default('last_30') }),
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, args.period)
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, args.period)
     return {
       data: {
         period: a.period.label,
@@ -373,8 +383,8 @@ const getMetricDefinition: ToolDefinition = {
       'adSpend', 'roas', 'mer', 'cac', 'aov', 'refundRate', 'contributionMargin',
     ]),
   }),
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, 'last_30')
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, 'last_30')
     const m = a.metrics[args.metric as keyof typeof a.metrics] as Parameters<typeof describeMetric>[0]
     return {
       data: { key: m.key, label: m.label, formula: m.formula, excludes: m.exclusions },
@@ -393,8 +403,8 @@ const forecastRevenue: ToolDefinition = {
     period: PeriodArg.default('last_30'),
     daysAhead: z.number().int().min(1).max(90).default(30),
   }),
-  execute: (args, ctx) => {
-    const a = analyticsFor(ctx, args.period)
+  execute: async (args, ctx) => {
+    const a = await analyticsFor(ctx, args.period)
     // A workspace with no trading history has a series of zeroes, which fits a
     // flat line perfectly and would come back as "£0.00, 80% confidence". That
     // is arithmetic, not a forecast, so refuse before fitting anything.

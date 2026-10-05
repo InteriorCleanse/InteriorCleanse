@@ -3,11 +3,9 @@ import {
   computeMetrics,
   type MetricsInput,
   type MetricsResult,
-  type NormalisedOrder,
-  type NormalisedRefund,
-  type NormalisedSpend,
   type Period,
 } from '@/lib/metrics/engine'
+import { emptyDataset, type Dataset } from '@/lib/workspace/dataset'
 import { money, subtract, sum, zero, type Money } from '@/lib/money'
 import {
   bucketsFor,
@@ -31,8 +29,10 @@ import type { PortfolioPoint } from '@/lib/charts/flow'
  * Command center and every drill-down read through this, so the number on a
  * KPI tile and the number in the table it links to cannot disagree. Where the
  * data comes from is decided in one place — a demo workspace uses the
- * deterministic dataset, a real one uses its imported records, and there is no
- * path where the two mix.
+ * deterministic dataset, a real one uses the records its caller loaded with
+ * `loadWorkspaceDataset` (through the caller's own client, so RLS decides
+ * what is visible), and there is no path where the two mix: a demo workspace
+ * ignores any dataset handed to it, and a real one is never given the demo.
  */
 
 /** Anchor for the demo dataset so demo figures never drift with the clock. */
@@ -55,19 +55,12 @@ export type WorkspaceAnalytics = {
     inflow: number
     outflows: { key: string; label: string; amount: number; tone: 'cost' | 'retained' }[]
   }
-}
-
-type Dataset = {
-  orders: NormalisedOrder[]
-  refunds: NormalisedRefund[]
-  spend: NormalisedSpend[]
-  currency: string
-  syncedAt: Date | null
-  system: string
-}
-
-function emptyDataset(currency: string): Dataset {
-  return { orders: [], refunds: [], spend: [], currency, syncedAt: null, system: 'no source' }
+  /**
+   * What the figures leave out, in words the page can show: orders in another
+   * currency, or records past the row cap. Separate from the engine's own
+   * warnings, which are about the records that *were* counted.
+   */
+  caveats: string[]
 }
 
 function within(period: Period, date: Date): boolean {
@@ -99,6 +92,11 @@ export function loadWorkspaceAnalytics(options: {
   preset: PresetKey
   comparison: ComparisonKey
   now?: Date
+  /**
+   * A real workspace's records, loaded by the caller. Omitted means no
+   * source is connected and the page shows its empty state — never a zero.
+   */
+  dataset?: Dataset | null
 }): WorkspaceAnalytics {
   const currency = options.currency ?? 'USD'
 
@@ -109,15 +107,15 @@ export function loadWorkspaceAnalytics(options: {
     ? (() => {
         const d = buildDemoDataset({ endDate: DEMO_NOW, days: 120, currency })
         return {
+          ...emptyDataset(currency),
           orders: d.orders,
           refunds: d.refunds,
           spend: d.spend,
-          currency,
           syncedAt: DEMO_NOW,
           system: 'demo dataset',
         }
       })()
-    : emptyDataset(currency)
+    : (options.dataset ?? emptyDataset(currency))
 
   const period = resolvePreset(options.preset, now)
   const comparisonPeriod = resolveComparison(period, options.comparison)
@@ -143,7 +141,22 @@ export function loadWorkspaceAnalytics(options: {
     portfolio: buildPortfolio(dataset, period, comparisonPeriod),
     cashSteps: buildCashSteps(input, metrics),
     sankey: buildSankey(input, metrics),
+    caveats: datasetCaveats(dataset),
   }
+}
+
+function datasetCaveats(dataset: Dataset): string[] {
+  const caveats: string[] = []
+  const foreign = dataset.excluded.foreignCurrencyOrders
+  if (foreign > 0) {
+    caveats.push(
+      `${foreign} order${foreign === 1 ? '' : 's'} in a currency other than ${dataset.currency} ${foreign === 1 ? 'is' : 'are'} not included; money is never converted.`,
+    )
+  }
+  if (dataset.truncated) {
+    caveats.push('Only the most recent orders were loaded; older records are not in these figures.')
+  }
+  return caveats
 }
 
 // ── Time series ─────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { Eyebrow, Panel } from '@/components/ui'
 import { requireMembership } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
+import { datasetFor } from '@/lib/workspace/analytics-loader'
 
 export const metadata = { title: 'Notifications' }
 
@@ -53,6 +54,7 @@ export default async function NotificationsPage() {
     rules,
     isDemo: membership.isDemo,
     currency: membership.baseCurrency,
+    dataset: await datasetFor(supabase, membership),
   })
   const skippedById = new Map(skipped.map((s) => [s.ruleId, s.reason]))
   const raisedIds = new Set(raised.map((r) => r.ruleId))
