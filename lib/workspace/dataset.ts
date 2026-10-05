@@ -111,12 +111,19 @@ export type SourceRow = {
   last_success_at: string | null
 }
 
+/** A committed CSV import: the records arrived when it was committed. */
+export type ImportRow = {
+  kind: string
+  committed_at: string | null
+}
+
 export type DatasetRows = {
   orders: readonly OrderRow[]
   items: readonly OrderItemRow[]
   refunds: readonly RefundRow[]
   expenses: readonly ExpenseRow[]
   sources: readonly SourceRow[]
+  imports?: readonly ImportRow[]
   truncated?: boolean
 }
 
@@ -230,13 +237,21 @@ export function datasetFromRows(rows: DatasetRows, currency: string): Dataset {
     })
   }
 
+  // Freshness is the newest moment any record arrived: a connector's last
+  // successful sync, or a CSV import's commit. An import counts as a source
+  // in its own right so the provenance line can say "csv import" and the
+  // freshness is not "never synced" for a workspace that uploads monthly.
   const connected = rows.sources.filter((s) => s.status === 'connected' || s.status === 'degraded')
-  const syncedAt = connected
-    .map((s) => (s.last_success_at ? new Date(s.last_success_at) : null))
+  const imports = (rows.imports ?? []).filter((i) => i.committed_at !== null)
+  const syncedAt = [
+    ...connected.map((s) => (s.last_success_at ? new Date(s.last_success_at) : null)),
+    ...imports.map((i) => new Date(i.committed_at as string)),
+  ]
     .filter((d): d is Date => d !== null && !Number.isNaN(d.getTime()))
     .sort((a, b) => b.getTime() - a.getTime())[0] ?? null
 
   const providers = Array.from(new Set(connected.map((s) => s.provider))).sort()
+  if (imports.length > 0) providers.push('csv import')
   const system =
     providers.length > 0
       ? providers.join(', ')
@@ -344,7 +359,7 @@ export async function loadWorkspaceDataset(
     items.push(...read.rows)
   }
 
-  const [refundsRead, expensesRead, sources] = await Promise.all([
+  const [refundsRead, expensesRead, sources, imports] = await Promise.all([
     pageAll<RefundRow>(
       (from, to) =>
         db
@@ -375,6 +390,17 @@ export async function loadWorkspaceDataset(
         if (result.error) throw new Error(result.error.message)
         return (result.data ?? []) as SourceRow[]
       }),
+    db
+      .from('import_batches')
+      .select('kind, committed_at')
+      .eq('organization_id', organizationId)
+      .eq('status', 'committed')
+      .order('committed_at', { ascending: false })
+      .limit(50)
+      .then((result) => {
+        if (result.error) throw new Error(result.error.message)
+        return (result.data ?? []) as ImportRow[]
+      }),
   ])
 
   return datasetFromRows(
@@ -384,6 +410,7 @@ export async function loadWorkspaceDataset(
       refunds: refundsRead.rows,
       expenses: expensesRead.rows,
       sources,
+      imports,
       truncated: ordersRead.truncated,
     },
     currency,
