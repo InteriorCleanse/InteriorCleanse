@@ -128,11 +128,15 @@ feature, and the interface for it already exists.
 Each of these is scoped to what one person can finish and test in days, not
 a roadmap slide.
 
-1. **Real workspaces compute real metrics.** `loadWorkspaceAnalytics` still
-   returns an empty dataset for a non-demo workspace; the tables, the sync and
-   the metrics engine all exist, and the join between them is the single
-   largest gap between a demo and a product. Everything below is worth less
-   until this is done.
+1. ~~**Real workspaces compute real metrics.**~~ Done. `lib/workspace/dataset.ts`
+   joins the commerce tables to the metrics engine: a page, the assistant, a
+   briefing, a rule and the owner's mission control all read a real
+   workspace's orders, lines, refunds and advertising expenses, through the
+   caller's own client. Orders in another currency are counted and excluded,
+   never converted; a workspace past the row cap says so. What remains is a
+   writer for ad spend (the `expenses` table has none yet; a CSV import of
+   advertising expenses is the gap) and per-product attribution of that spend,
+   which today lands in the unallocated bucket by design.
 2. **A first live sync.** Point Stripe or Shopify at a real account and treat
    the first production sync as a test, as the launch checklist already says.
 3. **The morning brief as a scheduled push.** The pieces exist — briefings,

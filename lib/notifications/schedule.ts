@@ -21,7 +21,24 @@ import type { BriefingKind } from '@/lib/assistant/briefings'
  * statement about a moment; delivering it an hour late is fine, delivering it a
  * day late is misinformation. This is why the window is one hour wide and not
  * "anything not yet sent".
+ *
+ * **Unless the scheduler only runs once a day.** A hosting plan that allows a
+ * single daily cron cannot hit 08:00 in every zone. In `daily` cadence a
+ * briefing is due at any hour *from* its scheduled one until midnight, still
+ * on the same local date, and the dedupe key stops it going twice. One that
+ * falls after the sweep's local hour is not sent that day rather than sent
+ * early — a morning briefing at 03:00 is still misinformation.
  */
+
+export type Cadence = 'hourly' | 'daily'
+
+/**
+ * How often the sweep runs, from `CRON_CADENCE`. Defaults to hourly, which is
+ * what `vercel.json` ran before the daily schedule and what the tests assume.
+ */
+export function cadenceFromEnv(value: string | undefined): Cadence {
+  return value?.trim().toLowerCase() === 'daily' ? 'daily' : 'hourly'
+}
 
 export const BRIEFING_HOURS: Record<BriefingKind, number> = {
   morning: 8,
@@ -60,16 +77,18 @@ export function localMoment(timezone: string, at: Date = new Date()): LocalMomen
 export function dueBriefings(
   subscribed: readonly string[],
   moment: LocalMoment,
+  cadence: Cadence = 'hourly',
 ): BriefingKind[] {
   const wanted = new Set(subscribed)
   const due: BriefingKind[] = []
+  const at = (hour: number) => (cadence === 'daily' ? moment.hour >= hour : moment.hour === hour)
 
-  if (wanted.has('morning') && moment.hour === BRIEFING_HOURS.morning) due.push('morning')
-  if (wanted.has('end_of_day') && moment.hour === BRIEFING_HOURS.end_of_day) due.push('end_of_day')
-  if (wanted.has('weekly') && moment.weekday === 1 && moment.hour === BRIEFING_HOURS.weekly) {
+  if (wanted.has('morning') && at(BRIEFING_HOURS.morning)) due.push('morning')
+  if (wanted.has('end_of_day') && at(BRIEFING_HOURS.end_of_day)) due.push('end_of_day')
+  if (wanted.has('weekly') && moment.weekday === 1 && at(BRIEFING_HOURS.weekly)) {
     due.push('weekly')
   }
-  if (wanted.has('monthly') && moment.dayOfMonth === 1 && moment.hour === BRIEFING_HOURS.monthly) {
+  if (wanted.has('monthly') && moment.dayOfMonth === 1 && at(BRIEFING_HOURS.monthly)) {
     due.push('monthly')
   }
 

@@ -8,7 +8,9 @@ import { CashFlowWaterfall } from '@/components/charts/CashFlowWaterfall'
 import { ProductPortfolioMatrix } from '@/components/charts/ProductPortfolioMatrix'
 import { TENANT_ROLE_LABELS } from '@/lib/roles'
 import { requireMembership } from '@/lib/session'
-import { changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import { changeFor } from '@/lib/workspace-analytics'
+import { loadAnalyticsFor } from '@/lib/workspace/analytics-loader'
+import { supabaseServer } from '@/lib/supabase/server'
 import { ALLOCATION_MODEL_LABELS } from '@/lib/metrics/allocation'
 import { formatMoney, money } from '@/lib/money'
 import { COMPARISON_LABELS } from '@/lib/periods'
@@ -31,15 +33,13 @@ export default async function CommandCenterPage({
   ])
   const { preset, comparison } = readFilters(params)
 
-  const analytics = loadWorkspaceAnalytics({
-    isDemo: membership.isDemo,
-    currency: membership.baseCurrency,
-    preset,
-    comparison,
-  })
+  // Through the person's own client: RLS decides which rows exist here.
+  const analytics = await loadAnalyticsFor(await supabaseServer(), membership, { preset, comparison })
 
   const fmt = (minor: number) => formatMoney(money(Math.round(minor), analytics.currency))
   const { metrics } = analytics
+  // What was counted imperfectly, and what was not counted at all, in one list.
+  const warnings = [...metrics.warnings, ...analytics.caveats]
   const comparisonLabel =
     comparison === 'none' ? undefined : COMPARISON_LABELS[comparison].toLowerCase()
 
@@ -217,13 +217,13 @@ export default async function CommandCenterPage({
             <Panel>
               <Eyebrow>Data quality</Eyebrow>
               <h2 className="text-lg font-semibold">
-                {metrics.warnings.length === 0
+                {warnings.length === 0
                   ? 'No issues detected'
-                  : `${metrics.warnings.length} thing${metrics.warnings.length === 1 ? '' : 's'} to know`}
+                  : `${warnings.length} thing${warnings.length === 1 ? '' : 's'} to know`}
               </h2>
-              {metrics.warnings.length > 0 ? (
+              {warnings.length > 0 ? (
                 <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted">
-                  {metrics.warnings.map((warning) => (
+                  {warnings.map((warning) => (
                     <li key={warning} className="flex gap-2">
                       <span aria-hidden="true" className="text-amber">
                         ⚠

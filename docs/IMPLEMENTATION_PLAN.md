@@ -248,8 +248,9 @@ The one screen that crosses tenants, for the platform owner alone.
       from demo so a demonstration workspace can never inflate a total, revenue
       totalled per currency and never across, and an attention list for real
       subscriptions past due or canceled.
-- [x] Honest about the metrics gap: real workspaces show "connect a source"
-      rather than a zero, because only the demo dataset computes figures today.
+- [x] Honest about the metrics gap: a real workspace with no records shows
+      "connect a source" rather than a zero. One with records has its figures
+      computed from them (`lib/workspace/dataset.ts`), bounded per view.
       The isolation the view leans on is already proven in the RLS suite (a
       normal user cannot read another tenant's organizations, members, or
       platform_staff), and the authz gate is covered in the authz suite.

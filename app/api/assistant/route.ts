@@ -9,6 +9,7 @@ import { APPROVAL_TTL_MS, fingerprint } from '@/lib/assistant/approval'
 import { VOICE_ADDENDUM, systemPrompt } from '@/lib/assistant/prompt'
 import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant/sanitise'
 import { TOOLS, TOOLS_BY_NAME, type CitationSource, type ToolContext } from '@/lib/assistant/tools'
+import { loadWorkspaceDataset, type Dataset } from '@/lib/workspace/dataset'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { logFailure } from '@/lib/log'
 import { snippet, toTsQuery } from '@/lib/knowledge/search'
@@ -231,6 +232,16 @@ export async function POST(request: Request) {
   })
   const ownsPortfolio = can(actor, 'platform:view_console')
 
+  // The workspace's own records, read through the person's client the first
+  // time a figure is asked for and shared by every tool in this turn. A demo
+  // workspace never loads: its dataset is fixed and lives in code.
+  let datasetOnce: Promise<Dataset | null> | null = null
+  const loadDataset = () => {
+    if (membership.isDemo) return Promise.resolve(null)
+    datasetOnce ??= loadWorkspaceDataset(supabase, membership.organizationId, membership.baseCurrency, { now })
+    return datasetOnce
+  }
+
   const toolContext: ToolContext = {
     organizationId: membership.organizationId,
     isDemo: membership.isDemo,
@@ -238,6 +249,7 @@ export async function POST(request: Request) {
     can: (capability) => can(actor, capability),
     now,
     timeZone: membership.timezone,
+    loadDataset,
 
     // The person's own day. The mailbox is looked up through their client, so
     // RLS returns only a connection they made; a colleague's is invisible

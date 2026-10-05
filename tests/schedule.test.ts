@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
+import { briefingDedupeKey, cadenceFromEnv, dueBriefings, localMoment } from '@/lib/notifications/schedule'
 import { isCronAuthorized, timingSafeEqual } from '@/lib/cron'
 
 describe('localMoment', () => {
@@ -66,6 +66,35 @@ describe('dueBriefings', () => {
   it('sends the monthly on the first only', () => {
     expect(dueBriefings(['monthly'], moment({ dayOfMonth: 1 }))).toEqual(['monthly'])
     expect(dueBriefings(['monthly'], moment({ dayOfMonth: 2 }))).toEqual([])
+  })
+
+  describe('daily cadence', () => {
+    // One cron a day cannot hit 08:00 in every zone. Daily cadence sends any
+    // briefing whose hour has passed today; the dedupe key stops a repeat.
+    it('sends a briefing whose hour has passed', () => {
+      expect(dueBriefings(['morning'], moment({ hour: 11 }), 'daily')).toEqual(['morning'])
+      expect(dueBriefings(['morning'], moment({ hour: 8 }), 'daily')).toEqual(['morning'])
+    })
+
+    it('never sends one early', () => {
+      expect(dueBriefings(['morning'], moment({ hour: 7 }), 'daily')).toEqual([])
+      expect(dueBriefings(['end_of_day'], moment({ hour: 11 }), 'daily')).toEqual([])
+      expect(dueBriefings(['end_of_day'], moment({ hour: 20 }), 'daily')).toEqual(['end_of_day'])
+    })
+
+    it('keeps the weekday and day-of-month rules', () => {
+      expect(dueBriefings(['weekly'], moment({ hour: 15, weekday: 2 }), 'daily')).toEqual([])
+      expect(dueBriefings(['weekly'], moment({ hour: 15, weekday: 1 }), 'daily')).toEqual(['weekly'])
+      expect(dueBriefings(['monthly'], moment({ hour: 15, dayOfMonth: 1 }), 'daily')).toEqual(['monthly'])
+    })
+
+    it('reads the cadence from the environment, defaulting to hourly', () => {
+      expect(cadenceFromEnv('daily')).toBe('daily')
+      expect(cadenceFromEnv(' Daily ')).toBe('daily')
+      expect(cadenceFromEnv('hourly')).toBe('hourly')
+      expect(cadenceFromEnv(undefined)).toBe('hourly')
+      expect(cadenceFromEnv('weekly')).toBe('hourly')
+    })
   })
 
   it('can send several at once on a Monday the first', () => {

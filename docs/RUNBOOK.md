@@ -157,8 +157,10 @@ Check in this order — the first three are configuration, not faults.
 
 ### Scheduled jobs
 
-Two endpoints, both hourly, both authorised by `CRON_SECRET` and both safe to
-run more often or to miss:
+Two endpoints, both authorised by `CRON_SECRET` and both safe to run more
+often or to miss. Hourly is the design; `vercel.json` currently runs them
+once a day at 15:00 UTC because the Vercel Hobby plan allows only daily crons,
+and `CRON_CADENCE=daily` makes the briefing sweep catch up accordingly:
 
 | Endpoint | Does | If it does not run |
 | --- | --- | --- |
@@ -166,7 +168,12 @@ run more often or to miss:
 | `/api/notifications/dispatch` | Evaluates rules, sends due briefings | No alerts and no briefings. A missed hour is skipped, not sent late. |
 
 `vercel.json` declares both. On another host, point any scheduler at them with
-the secret in `x-cron-secret`.
+the secret in `x-cron-secret`. In `daily` cadence a briefing is due from its
+scheduled local hour until midnight, so one 15:00 UTC sweep delivers the
+morning briefing across the Americas and Europe; the end-of-day briefing is
+delivered only to zones already past 18:00 (Asia-Pacific). Moving to Pro and
+back to hourly (`17 * * * *`, `2 * * * *`, `CRON_CADENCE=hourly`) restores
+every briefing to its own hour.
 
 ### Suspected credential compromise
 

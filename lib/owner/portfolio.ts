@@ -10,10 +10,10 @@
  *      the service role *after* the platform-role gate, exactly as the rest of
  *      the owner console does, and hands them here. Nothing tenant-facing can
  *      import a cross-tenant read by importing this.
- *   2. **It never invents figures.** Real workspaces do not yet compute metrics
- *      from the database — only the demo dataset does — so a real company's
- *      revenue is `null` here, shown as "connect a source", not as zero. A zero
- *      that means "no data" is the lie this product is built to refuse.
+ *   2. **It never invents figures.** A real company with no records — nothing
+ *      synced, nothing imported, or past the bound of what one view reads —
+ *      has a revenue of `null` here, shown as "connect a source", not as zero.
+ *      A zero that means "no data" is the lie this product is built to refuse.
  *
  * Money is never summed across currencies, and demo figures are kept apart from
  * real ones so a demonstration workspace can never inflate a portfolio total.
@@ -38,7 +38,7 @@ export type CompanySummary = {
   memberCount: number
   currency: string
   createdAt: string
-  /** Demo headline figures; null for a real workspace with no computed metrics. */
+  /** Month-to-date headline figures; null for a workspace with no records. */
   netRevenueMinor: number | null
   contributionProfitMinor: number | null
 }

@@ -14,6 +14,7 @@ import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configure
 import { getSessionContext } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { buildZip } from '@/lib/zip'
+import { datasetFor } from '@/lib/workspace/analytics-loader'
 
 /**
  * The Obsidian vault bundle.
@@ -63,6 +64,7 @@ export async function GET() {
   const deals = membership.isDemo
     ? undefined
     : await loadDeals(supabase, membership.organizationId, closedSince(now))
+  const dataset = await datasetFor(supabase, membership, now)
 
   for (const kind of KINDS) {
     const briefing = buildBriefing({
@@ -70,6 +72,7 @@ export async function GET() {
       isDemo: membership.isDemo,
       currency: membership.baseCurrency,
       deals,
+      dataset,
       now,
     })
     notes.push(briefingNote(briefing, now, membership.name))

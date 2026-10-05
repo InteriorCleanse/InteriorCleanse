@@ -5,7 +5,9 @@ import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart'
 import { CashFlowWaterfall } from '@/components/charts/CashFlowWaterfall'
 import { MetricCard } from '@/components/MetricCard'
 import { requireMembership } from '@/lib/session'
-import { changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import { changeFor } from '@/lib/workspace-analytics'
+import { loadAnalyticsFor } from '@/lib/workspace/analytics-loader'
+import { supabaseServer } from '@/lib/supabase/server'
 import { formatMoney, money } from '@/lib/money'
 import { COMPARISON_LABELS } from '@/lib/periods'
 
@@ -20,14 +22,11 @@ export default async function RevenuePage({
   const [{ membership }, params] = await Promise.all([requireMembership(), searchParams])
   const { preset, comparison } = readFilters(params)
 
-  const analytics = loadWorkspaceAnalytics({
-    isDemo: membership.isDemo,
-    currency: membership.baseCurrency,
-    preset,
-    comparison,
-  })
+  // Through the person's own client: RLS decides which rows exist here.
+  const analytics = await loadAnalyticsFor(await supabaseServer(), membership, { preset, comparison })
   const fmt = (minor: number) => formatMoney(money(Math.round(minor), analytics.currency))
   const { metrics } = analytics
+  const warnings = [...metrics.warnings, ...analytics.caveats]
   const comparisonLabel =
     comparison === 'none' ? undefined : COMPARISON_LABELS[comparison].toLowerCase()
 
@@ -88,11 +87,11 @@ export default async function RevenuePage({
         purpose="Each cost taken out of revenue in turn, and what remains."
       />
 
-      {metrics.warnings.length > 0 ? (
+      {warnings.length > 0 ? (
         <Panel className="border-amber/40">
           <Eyebrow>Data quality</Eyebrow>
           <ul className="space-y-2 text-sm leading-relaxed text-muted">
-            {metrics.warnings.map((w) => (
+            {warnings.map((w) => (
               <li key={w}>⚠ {w}</li>
             ))}
           </ul>

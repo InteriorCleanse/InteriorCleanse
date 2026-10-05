@@ -3,7 +3,8 @@ import { Eyebrow, Panel } from '@/components/ui'
 import { GlobalFilters, readFilters } from '@/components/GlobalFilters'
 import { ProductPortfolioMatrix } from '@/components/charts/ProductPortfolioMatrix'
 import { requireMembership } from '@/lib/session'
-import { loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import { loadAnalyticsFor } from '@/lib/workspace/analytics-loader'
+import { supabaseServer } from '@/lib/supabase/server'
 import { formatMoney, money } from '@/lib/money'
 import { QUADRANT_LABELS, layoutPortfolio } from '@/lib/charts/flow'
 
@@ -22,12 +23,8 @@ export default async function ProductsPage({
   const [{ membership }, params] = await Promise.all([requireMembership(), searchParams])
   const { preset, comparison } = readFilters(params)
 
-  const analytics = loadWorkspaceAnalytics({
-    isDemo: membership.isDemo,
-    currency: membership.baseCurrency,
-    preset,
-    comparison,
-  })
+  // Through the person's own client: RLS decides which rows exist here.
+  const analytics = await loadAnalyticsFor(await supabaseServer(), membership, { preset, comparison })
   const fmt = (minor: number) => formatMoney(money(Math.round(minor), analytics.currency))
   const placed = layoutPortfolio(analytics.portfolio).points
   const ranked = [...placed].sort((a, b) => b.revenue - a.revenue)

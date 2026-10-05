@@ -10,17 +10,20 @@ import { loadDeals } from '@/lib/crm/load'
 import { closedSince } from '@/lib/crm/pipeline'
 import { openSecret, vaultProvider, type SealedSecret } from '@/lib/vault'
 import { evaluateRules, type NotificationRule } from '@/lib/notifications/evaluate'
-import { briefingDedupeKey, dueBriefings, localMoment } from '@/lib/notifications/schedule'
+import { briefingDedupeKey, cadenceFromEnv, dueBriefings, localMoment } from '@/lib/notifications/schedule'
 import { isCalendarDue, syncCalendar, type CalendarConnectionRow } from '@/lib/calendar/sync'
 import { runRetention } from '@/lib/retention'
 import { purgeCutoff, purgeExpiredWorkspaces } from '@/lib/workspace/purge'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { loadWorkspaceDataset, type Dataset } from '@/lib/workspace/dataset'
 
 /**
  * The scheduled sweep: evaluate rules, build due briefings, deliver both.
  *
  * Run it hourly. Everything about it is built to be safe to run more often than
- * that, and safe to miss an hour:
+ * that, and safe to miss an hour. On a plan that allows one cron a day, set
+ * `CRON_CADENCE=daily` and briefings whose hour has passed in the recipient's
+ * zone go out on that single sweep instead of being skipped:
  *
  * **Idempotent by dedupe key.** Notifications carry a key naming the thing
  * being reported and the period it covers. A second sweep in the same hour
@@ -50,6 +53,7 @@ export async function GET(request: Request) {
   const transport = emailTransport()
   const siteUrl = publicEnv().NEXT_PUBLIC_SITE_URL
   const now = new Date()
+  const cadence = cadenceFromEnv(process.env.CRON_CADENCE)
 
   const { data: organizations } = await admin
     .from('organizations')
@@ -71,6 +75,11 @@ export async function GET(request: Request) {
       // Once per workspace, not per recipient: every due briefing this hour
       // describes the same pipeline. A demo workspace uses its own fixtures.
       const deals = org.is_demo ? undefined : await loadDeals(admin, org.id, closedSince(now))
+      // Likewise the figures: read once per workspace with the service role,
+      // which the sweep already holds, and only for this workspace's id.
+      const dataset: Dataset | null = org.is_demo
+        ? null
+        : await loadWorkspaceDataset(admin, org.id, org.base_currency, { now })
       const context = {
         transport,
         slack: await slackFor(admin, org.id),
@@ -102,6 +111,8 @@ export async function GET(request: Request) {
           rules,
           isDemo: org.is_demo,
           currency: org.base_currency,
+          dataset,
+          now,
         })
 
         for (const raised of evaluation.raised) {
@@ -144,7 +155,7 @@ export async function GET(request: Request) {
       // ── Scheduled briefings ────────────────────────────────────────────────
       for (const recipient of recipients) {
         const moment = localMoment(recipient.timezone, now)
-        const due = dueBriefings(recipient.briefings, moment)
+        const due = dueBriefings(recipient.briefings, moment, cadence)
 
         for (const kind of due) {
           const briefing = buildBriefing({
@@ -152,6 +163,7 @@ export async function GET(request: Request) {
             isDemo: org.is_demo,
             currency: org.base_currency,
             deals,
+            dataset,
             now,
           })
 

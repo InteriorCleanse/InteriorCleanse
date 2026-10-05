@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { datasetFromRows } from '@/lib/workspace/dataset'
 import {
   SUGGESTED_COMMANDS,
   TOOLS,
@@ -188,6 +189,73 @@ describe('read tools', () => {
     const data = result.data as { hasAnyData: boolean; isDemoWorkspace: boolean }
     expect(data.hasAnyData).toBe(false)
     expect(data.isDemoWorkspace).toBe(false)
+  })
+
+  it('computes a real workspace\'s figures from the dataset the route injects, loading it once', async () => {
+    let loads = 0
+    const dataset = datasetFromRows(
+      {
+        orders: [
+          {
+            id: 'o1',
+            currency: 'GBP',
+            placed_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+            shipping_revenue_minor: 0,
+            tax_minor: 0,
+            payment_fees_minor: 0,
+            marketplace_fees_minor: 0,
+            is_test: false,
+            is_new_customer: true,
+            customer_id: null,
+            source: 'csv_import',
+          },
+        ],
+        items: [
+          { order_id: 'o1', product_id: 'p1', product_name: 'Candle', quantity: 1, gross_minor: 12_000, discount_minor: 0, cogs_minor: 4_000, fulfillment_minor: null },
+        ],
+        refunds: [],
+        expenses: [],
+        sources: [],
+      },
+      'GBP',
+    )
+    const real = ctx({
+      isDemo: false,
+      loadDataset: async () => {
+        loads += 1
+        return dataset
+      },
+    })
+
+    const kpis = TOOLS_BY_NAME.get('query_kpis')!
+    const result = await kpis.execute({ period: 'last_30' }, real)
+    const data = result.data as { isDemoWorkspace: boolean; metrics: { key: string; value: string; dataFreshAsOf: string }[] }
+    expect(data.isDemoWorkspace).toBe(false)
+    expect(data.metrics.find((m) => m.key === 'net_revenue')?.value).toBe('£120.00')
+    // Imported records have no sync time, and the tool says so rather than
+    // inventing a freshness.
+    expect(data.metrics.find((m) => m.key === 'net_revenue')?.dataFreshAsOf).toBe('never synced')
+
+    const quality = TOOLS_BY_NAME.get('inspect_data_quality')!
+    const q = await quality.execute({ period: 'last_30' }, real)
+    expect((q.data as { hasAnyData: boolean }).hasAnyData).toBe(true)
+    // Each tool call asks once; the route memoises across a turn.
+    expect(loads).toBe(2)
+  })
+
+  it('never hands the demo dataset a real workspace\'s loader, nor the reverse', async () => {
+    let loads = 0
+    const demo = ctx({
+      isDemo: true,
+      loadDataset: async () => {
+        loads += 1
+        return null
+      },
+    })
+    const kpis = TOOLS_BY_NAME.get('query_kpis')!
+    const result = await kpis.execute({ period: 'last_30' }, demo)
+    expect((result.data as { isDemoWorkspace: boolean }).isDemoWorkspace).toBe(true)
+    expect(loads).toBe(0)
   })
 
   it('marks demo output as demo, so a briefing cannot be mistaken for real trading', async () => {
