@@ -1,18 +1,45 @@
-import type { Metadata } from 'next'
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { LogoIcon } from '@/components/Logo'
 
-export const metadata: Metadata = {
-  title: 'Operator access — GCode Keys',
-  robots: { index: false, follow: false },
-}
-
-// Operator console entry. The real auth (password check + signed session
-// cookie, ownership-record access) is wired before launch; this is the themed
-// shell so the door exists. OPERATOR_PASSWORD is set in Vercel, never here.
+// Operator console entry. Posts the passkey to /api/operator/login, which sets
+// a signed httpOnly session cookie on success. OPERATOR_PASSWORD is set in
+// Vercel, never here. Until it is set, the endpoint reports it's not configured.
 export default function OperatorLogin() {
+  const router = useRouter()
+  const [pw, setPw] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setErr('')
+    try {
+      const r = await fetch('/api/operator/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setErr(d.error ?? 'Could not sign in.')
+        return
+      }
+      router.replace('/operator')
+      router.refresh()
+    } catch {
+      setErr('Could not reach the server.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="cyber-login">
-      <form className="cyber-card">
+      <form className="cyber-card" onSubmit={submit}>
         <p className="cyber-eyebrow"><span style={{ color: 'var(--neon)' }}>●</span> GCODE KEYS // SECURE NODE</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <LogoIcon size={34} />
@@ -21,10 +48,22 @@ export default function OperatorLogin() {
         <p className="cyber-sub">Operator authentication required</p>
         <div className="opt">
           <label htmlFor="pw" className="cyber-eyebrow">::PASSKEY</label>
-          <input id="pw" className="field" type="password" placeholder="••••••••••••" aria-label="Operator password" />
+          <input
+            id="pw"
+            className="field"
+            type="password"
+            placeholder="••••••••••••"
+            aria-label="Operator password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            autoComplete="current-password"
+          />
         </div>
-        <button className="btn" type="submit" style={{ textAlign: 'center' }}>JACK IN</button>
-        <p className="cyber-sub" style={{ opacity: 0.7 }}>Auth is finalized before launch. This is the themed entry point.</p>
+        <button className="btn" type="submit" style={{ textAlign: 'center' }} disabled={busy || !pw}>
+          {busy ? 'VERIFYING…' : 'JACK IN'}
+        </button>
+        {err ? <p className="ex" style={{ color: 'var(--alert)', marginTop: 4 }}>{err}</p> : null}
+        <p className="cyber-sub" style={{ opacity: 0.7 }}>Set OPERATOR_PASSWORD in Vercel to enable access.</p>
       </form>
     </section>
   )

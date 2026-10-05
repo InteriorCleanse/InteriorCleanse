@@ -1,30 +1,83 @@
 import { NextResponse } from 'next/server'
+import { getStripe, siteOrigin, stripeEnabled } from '@/lib/stripe'
 
 export const runtime = 'nodejs'
 
-// Checkout. When STRIPE_SECRET_KEY is set, create a Stripe Checkout Session
-// here and return its URL. Until then the store runs in preview mode and this
-// endpoint reports that payments are not configured. No key ever lives in the
-// repo; set it in Vercel project settings.
+// Create a Stripe Checkout Session for a CONFIRMED order.
+//
+// GCode charges on approval, not at the storefront: the customer places a
+// request (no charge), the operator verifies ownership and confirms the flat
+// price, and only then is a payment link minted here for that exact amount.
+// This route is operator-only (gated by middleware on the operator session
+// cookie); the amount is set by the operator, never by the customer's browser.
 export async function POST(req: Request) {
-  const hasStripe = !!process.env.STRIPE_SECRET_KEY
-  if (!hasStripe) {
+  if (!stripeEnabled()) {
     return NextResponse.json(
-      { preview: true, message: 'Payments are not configured yet. Add STRIPE_SECRET_KEY to enable checkout.' },
+      { preview: true, error: 'Payments are not configured yet. Set STRIPE_SECRET_KEY in Vercel.' },
       { status: 501 },
     )
   }
 
+  let body: {
+    ref?: string
+    email?: string
+    amount?: number // dollars, as the operator types it
+    description?: string
+  }
   try {
-    const { items } = (await req.json()) as { items?: Array<{ id: string; qty: number }> }
-    if (!items?.length) return NextResponse.json({ error: 'Cart is empty.' }, { status: 400 })
-
-    // TODO(launch): build line items from the server-side price table and call
-    // stripe.checkout.sessions.create({ mode: 'payment', line_items, ... }).
-    // Ownership verification (ID + registration + VIN match) is collected and
-    // checked before any key is cut. Programming happens at the vehicle.
-    return NextResponse.json({ error: 'Checkout wiring is pending.' }, { status: 501 })
+    body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Bad request.' }, { status: 400 })
+  }
+
+  const ref = (body.ref ?? '').trim()
+  const email = (body.email ?? '').trim()
+  const description = (body.description ?? '').trim() || 'GCode Keys — confirmed key service'
+  const dollars = Number(body.amount)
+
+  if (!ref) return NextResponse.json({ error: 'Order reference is required.' }, { status: 400 })
+  if (!/.+@.+\..+/.test(email)) return NextResponse.json({ error: 'A valid customer email is required.' }, { status: 400 })
+  if (!Number.isFinite(dollars) || dollars <= 0) {
+    return NextResponse.json({ error: 'Enter the confirmed amount in dollars.' }, { status: 400 })
+  }
+  // Guard against fat-finger five-figure charges; raise if a job ever needs it.
+  if (dollars > 5000) {
+    return NextResponse.json({ error: 'Amount over $5,000 — confirm and raise the cap if intended.' }, { status: 400 })
+  }
+  const amountCents = Math.round(dollars * 100)
+
+  try {
+    const stripe = getStripe()
+    const origin = siteOrigin(req)
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: email,
+      client_reference_id: ref,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: amountCents,
+            product_data: {
+              name: `GCode Keys · ${ref}`,
+              description,
+            },
+          },
+        },
+      ],
+      payment_intent_data: {
+        description: `GCode Keys ${ref}`,
+        metadata: { ref },
+      },
+      metadata: { ref },
+      success_url: `${origin}/paid/?ref=${encodeURIComponent(ref)}`,
+      cancel_url: `${origin}/paid/?ref=${encodeURIComponent(ref)}&canceled=1`,
+    })
+
+    return NextResponse.json({ ok: true, url: session.url, id: session.id })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Stripe error.'
+    return NextResponse.json({ error: message }, { status: 502 })
   }
 }
