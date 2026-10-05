@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { configured, errorBody } from '@/lib/env'
 import { allProducts } from '@/lib/content'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,6 +34,9 @@ export type IntegrationsReport = {
  * sync run, which reports its own errors.
  */
 export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const stripeKeys = configured.stripe()
     const webhookSecret = Boolean(process.env.STRIPE_WEBHOOK_SECRET)

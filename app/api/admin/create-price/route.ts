@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { readCatalog, writeCatalog } from '@/lib/catalog-store'
 import { env, errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,6 +21,9 @@ export const dynamic = 'force-dynamic'
  * is why "update" means "replace and retire", not "edit".
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { id, price: override } = (await req.json()) as { id: string; price?: number }
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })

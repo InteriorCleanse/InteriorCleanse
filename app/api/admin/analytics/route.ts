@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { env, configured, errorBody } from '@/lib/env'
 import { listContacts } from '@/lib/brevo'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,6 +20,9 @@ export type Analytics = {
 const WEEKS = 8
 
 export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const empty: Analytics = {
       totalRevenue: 0,
