@@ -1,6 +1,8 @@
 'use client'
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
+const STORE_KEY = 'gck-cart-v1'
 
 export type CartItem = {
   key: string
@@ -32,6 +34,42 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [toast, setToast] = useState('')
   const tRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Guard writes until the cart has been hydrated from storage, so the initial
+  // empty state never clobbers a saved bag before we've read it.
+  const hydrated = useRef(false)
+
+  // Load the saved bag once on mount. Done in an effect (not a lazy useState
+  // initializer) so server and first client render both start empty — no
+  // hydration mismatch on the header cart count.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(
+            (x): x is CartItem =>
+              x && typeof x.key === 'string' && typeof x.name === 'string' &&
+              typeof x.price === 'number' && typeof x.qty === 'number',
+          )
+          if (clean.length) setItems(clean)
+        }
+      }
+    } catch {
+      /* storage unavailable or corrupt — start with an empty bag */
+    }
+    hydrated.current = true
+  }, [])
+
+  // Persist on every change, but not before the initial load has run.
+  useEffect(() => {
+    if (!hydrated.current) return
+    try {
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(items))
+    } catch {
+      /* storage unavailable (private mode, quota) — cart stays in memory */
+    }
+  }, [items])
 
   const pop = useCallback((msg: string) => {
     setToast(msg)

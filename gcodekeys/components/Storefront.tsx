@@ -173,25 +173,35 @@ function Replace({ onAdd }: { onAdd: ReturnType<typeof useCart>['add'] }) {
   )
 }
 
+const GUARANTEES: [string, string, string][] = [
+  ['01', 'Flat price, in writing', 'The number you see is the number you pay. No "starting at," no upcharge when the tech arrives.'],
+  ['02', 'Verified every order', 'ID, registration, and a VIN match before we cut. A stolen car can never get a key here.'],
+  ['03', 'Coded at your vehicle', 'The programming happens at the car. We never pretend a key can be coded over the internet.'],
+  ['04', 'Backed by us', 'If a key we coded fails, we make it right. Secure checkout, your details encrypted.'],
+]
+
 function Trust() {
   return (
     <section>
-      <div className="shead"><div><div className="kicker">Why GCode</div><h2>Fast. Honest. Verified.</h2></div></div>
-      <div className="trust reveal">
-        <div className="tbox">
-          <div className="n">[✓] THE PROMISE</div>
-          <h3>The price you see is the price you pay</h3>
-          <div className="vlist">
-            <div><i>[✓]</i><span>Flat, all-in pricing in writing before anything ships.</span></div>
-            <div><i>[✓]</i><span>Ownership verified at checkout: ID, registration, VIN match.</span></div>
-            <div><i>[✓]</i><span>Anti-relay Faraday pouches to stop fob theft in your driveway.</span></div>
+      <div className="shead"><div><div className="kicker">Why GCode</div><h2>Trust, earned in the open.</h2></div></div>
+      <p className="sub reveal">This trade runs on bait pricing and sketchy vans. We built GCode to be the opposite: one honest price, every key verified, and work that speaks for itself. No pressure, no surprises.</p>
+
+      <div className="guargrid reveal">
+        {GUARANTEES.map(([n, t, body]) => (
+          <div className="guar" key={n}>
+            <span className="guar-n">{n}</span>
+            <h3>{t}</h3>
+            <p>{body}</p>
           </div>
+        ))}
+      </div>
+
+      <div className="promise reveal">
+        <div>
+          <div className="kicker" style={{ color: 'var(--cyan)' }}>The GCode promise</div>
+          <p className="promise-line">Cut, coded, and customized to your exact vehicle — for a flat price you approve before we start.</p>
         </div>
-        <div className="tbox alert">
-          <div className="n">[!] THE ONE RULE</div>
-          <h3>Keys are coded at your vehicle</h3>
-          <p>We cut, customize, and ship, and we verify ownership on every order. The final programming happens at the car. No one can safely code a key over the internet, and we won&apos;t pretend otherwise.</p>
-        </div>
+        <a className="btn glow" href="#build">BUILD YOUR KEY<span className="arrow" aria-hidden="true">↗</span></a>
       </div>
     </section>
   )

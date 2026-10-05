@@ -127,7 +127,7 @@ function Nav({ onBack, onNext, nextOk, nextLabel = 'CONTINUE', busy }: { onBack?
   return (
     <div className="navrow">
       {onBack ? <button className="btn ghost" onClick={onBack} disabled={busy}>BACK</button> : <span />}
-      <button className="btn" onClick={onNext} disabled={!nextOk || busy}>{nextLabel}</button>
+      <button className="btn glow" onClick={onNext} disabled={!nextOk || busy}>{nextLabel}<span className="arrow" aria-hidden="true">→</span></button>
     </div>
   )
 }
