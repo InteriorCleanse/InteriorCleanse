@@ -5440,7 +5440,7 @@ button:hover > .btn-orb svg { transform: translate(1px, -1px); }
   box-shadow: 0 34px 60px -26px rgba(27, 24, 21, 0.38);
 }
 .book-card:hover .book-card-image { box-shadow: 0 46px 70px -28px rgba(27, 24, 21, 0.42); }
-.article-card-image { border-radius: 16px; }
+.article-card-image { border-radius: 4px; }
 
 /* ---- Marquee: alternate lines in the swash italic, brass dots between ---- */
 .marquee-item:nth-child(even) {
@@ -6280,3 +6280,10 @@ html[data-intro='skip'] .intro-veil { display: none; }
 
 /* The quote's attribution sat at a whisper; it is the source of the claim. */
 .manifesto-attribution { color: var(--text-dim) !important; opacity: 1 !important; }
+
+/* ─── PHASE 18 · real-media QA, remaining pages ───────────────────────────── */
+/* The stage is square by default. In the sticky product column that made it
+   taller than the column on any window shorter than it is wide, so the floor
+   of the scene and the rotate caption spilled out under the footer rule. The
+   stage now fills the column instead. */
+.product-viewer-col .glb-stage { height: 100%; aspect-ratio: auto; }
