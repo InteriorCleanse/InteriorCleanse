@@ -90,8 +90,8 @@ export const articles: Article[] = [
     excerpt:
       "A quiet closing routine that keeps tomorrow from inheriting today's clutter.",
     date: '2026-06-01',
-    image: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&q=85',
-    imageAlt: 'Neutral living room with a folded throw at evening',
+    image: '/media/hf/hf_20260925_224901_39dacf9b-ba7d-4cc7-ae1f-a812ae30cc77.webp',
+    imageAlt: 'A lit candle and a stack of books on an oak console in late light',
     body: [
       'Begin where the day gathered: the entry, the sofa, the kitchen counter. A reset is not a performance; it is a small return to baseline.',
       'Choose one surface, one basket, and one closing gesture. The goal is not a perfect home, but a home that welcomes you back in the morning.',
@@ -104,8 +104,8 @@ export const articles: Article[] = [
     excerpt:
       'Keep fewer products, place them better, and make the routine easier to repeat.',
     date: '2026-05-18',
-    image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800&q=85',
-    imageAlt: 'Organized cleaning shelf with neutral bottles',
+    image: '/media/hf/hf_20260925_224901_a9fbe1d6-8801-4663-8d17-6e026debf376.webp',
+    imageAlt: 'A cleared stone counter with a folded linen cloth and a mug',
     body: [
       'Pull everything out first. Group by job, remove duplicates, and keep the products that earn their space through regular use.',
       'A beautiful shelf is useful only when it lowers friction. Label zones by action: daily wipe, laundry, glass, floors, and refills.',

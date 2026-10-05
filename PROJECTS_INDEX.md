@@ -28,7 +28,7 @@ folders, and by path filters in CI.
 
 | Project | Where it lives | Branch | Last commit | Stack | Own Claude rules | Deploys |
 |---|---|---|---|---|---|---|
-| InteriorCleanse storefront | repo root (`app/`, `components/`, `lib/`, `content/`) | `claude/interiorcleanse-3d-rebuild-ewspkq` | 2026-10-02 | Next 14, React 18, TypeScript, Babylon.js + three, GSAP, Stripe, Tailwind 3 | root `CLAUDE.md`, root `.claude/` | Vercel `interior-cleanse` (and a second project, see below) |
+| InteriorCleanse storefront | repo root (`app/`, `components/`, `lib/`, `content/`) | `claude/interiorcleanse-3d-rebuild-ewspkq` | 2026-10-02 | Next 14, React 18, TypeScript, Babylon.js + three, GSAP, Stripe, Tailwind 3 | root `CLAUDE.md`, root `.claude/` | Vercel `interior-cleanse-cr2t` serves the domain; `interior-cleanse` is a spare (see below) |
 | Kestrel (paper-trading bot) | `trading-bot/` | `claude/new-session-31dwy7` | 2026-10-01 | Node + TypeScript, no framework, static `web/` UI, Docker | `trading-bot/CLAUDE.md`, `trading-bot/.claude/` | Vercel `trading-bot`, Docker |
 | Freehold | `freehold/`, `docs/business/freehold/` | `claude/business-profit-agents-uw913k` | 2026-10-01 | Next 14, React 18, Tailwind 3, GSAP | **none** | Vercel `freehold` (`freehold/vercel.json`) |
 | AVANT (car sharing) | `avant/` (on its branch only) | `claude/app-recreation-improvement-gy1qnm` | 2026-10-02 | Next 15, React 19, TypeScript | `avant/CLAUDE.md`, `avant/.claude/` | Vercel `avant` |
@@ -63,9 +63,12 @@ project's session or an owner decision.
    other project's branch. Each other project can do the same in its own
    folder's `vercel.json`; separate repositories remove the problem.
 2. **Two Vercel projects deploy the storefront:** `interior-cleanse` and
-   `interior-cleanse-cr2t`. Only one should own interiorcleanse.com. The
-   connector available to this session cannot read either project, so which
-   one is live is unverified. The owner should delete or disconnect the spare.
+   `interior-cleanse-cr2t`. Verified 2026-10-05 through the Vercel connector:
+   **`interior-cleanse-cr2t` owns interiorcleanse.com** (`www` serves, the
+   apex redirects to it). `interior-cleanse` has only its `.vercel.app`
+   address and is the spare. Removing the spare halves the storefront's
+   deploys against the limit; deleting `interior-cleanse-cr2t` would take the
+   live site down. Only the owner should remove a project.
 3. **AURELIS shares the repository with unrelated history.** Its branches have
    their own root `app/`, `package.json` and `CLAUDE.md`. A merge into `main`
    would collide with the storefront at the top level. It should live in its own
