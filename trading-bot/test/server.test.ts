@@ -270,6 +270,23 @@ test('the AI second opinion is off without a key, needs the CSRF token, and star
   assert.match(r.error, /ANTHROPIC_API_KEY/)
 })
 
+test('the politician watcher saves a clean list behind the token, says Nothing new, and sends no orders', async () => {
+  const st = await getJson<{ data: { label: string; settings: { names: string[]; riskCapPct: number }; latest: unknown; maxRiskPct: number } }>('/api/watcher')
+  assert.match(st.data.label, /sends no orders/)
+  assert.equal(st.data.maxRiskPct, 5)
+  const noToken = await fetch(`${bot.base}/api/watcher/settings`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ names: 'Pelosi' }) })
+  assert.equal(noToken.status, 403)
+  const saved = await (await bot.post('/api/watcher/settings', { names: 'Nancy Pelosi, <b>x</b>', riskCapPct: 50 })).json() as { ok: boolean; data: { names: string[]; riskCapPct: number } }
+  assert.equal(saved.ok, true)
+  assert.deepEqual(saved.data.names, ['Nancy Pelosi', 'bxb'])
+  assert.equal(saved.data.riskCapPct, 5)
+  const check = await (await bot.post('/api/watcher/check', {})).json() as { ok: boolean; data: { nothingNew: boolean; note: string } }
+  assert.equal(check.ok, true)
+  assert.equal(check.data.nothingNew, true)
+  const log = await (await bot.post('/api/watcher/log', { key: 'nope' })).json() as { ok: boolean; error: string }
+  assert.equal(log.ok, false)
+})
+
 test('memory reset works with the token and empties the ledger', async () => {
   const r = await (await bot.post('/api/memory/reset')).json() as { ok: boolean }
   assert.equal(r.ok, true)
