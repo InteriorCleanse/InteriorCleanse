@@ -6,7 +6,7 @@ import { LogoIcon } from '@/components/Logo'
 
 type Order = {
   ref: string
-  status: 'requested' | 'quoted' | 'paid' | 'canceled'
+  status: 'requested' | 'quoted' | 'paid' | 'scheduled' | 'completed' | 'canceled'
   createdAt: string
   vehicle: string
   contact: { name: string; email: string; phone?: string; city?: string }
@@ -61,6 +61,36 @@ export default function OperatorConsole() {
       const d = await r.json().catch(() => ({}))
       if (!r.ok) { setErr(d.error ?? 'No order found.'); return }
       loadOrder(d.order)
+    } catch { setErr('Could not reach the server.') }
+  }
+
+  // Curated next-steps per status so the buttons read like a workflow, not a
+  // list of every state. 'quoted'/'paid' are driven by Stripe, not here.
+  const nextActions = (s: Order['status']): Array<{ to: Order['status']; label: string }> => {
+    switch (s) {
+      case 'requested': return [{ to: 'canceled', label: 'Cancel' }]
+      case 'quoted': return [{ to: 'canceled', label: 'Cancel' }]
+      case 'paid': return [{ to: 'scheduled', label: 'Mark scheduled' }, { to: 'canceled', label: 'Cancel' }]
+      case 'scheduled': return [{ to: 'completed', label: 'Mark completed' }, { to: 'canceled', label: 'Cancel' }]
+      case 'completed': return [{ to: 'scheduled', label: 'Reopen' }]
+      case 'canceled': return [{ to: 'requested', label: 'Reopen' }]
+      default: return []
+    }
+  }
+
+  const patchStatus = async (to: Order['status']) => {
+    if (!loaded) return
+    setErr('')
+    try {
+      const r = await fetch('/api/operator/orders/', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: loaded.ref, status: to }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setErr(d.error ?? 'Could not update status.'); return }
+      setLoaded(d.order)
+      refreshRecent()
     } catch { setErr('Could not reach the server.') }
   }
 
@@ -121,9 +151,24 @@ export default function OperatorConsole() {
             </div>
           </div>
           {loaded ? (
-            <p className="ex" style={{ color: 'var(--neon)', marginTop: -4, marginBottom: 12 }}>
-              Loaded · {loaded.contact.name} · {loaded.vehicle} · status {loaded.status}
-            </p>
+            <div style={{ marginTop: -4, marginBottom: 14 }}>
+              <p className="ex" style={{ color: 'var(--neon)', margin: '0 0 8px' }}>
+                Loaded · {loaded.contact.name} · {loaded.vehicle} · status{' '}
+                <span className={`orow-status s-${loaded.status}`} style={{ marginLeft: 4 }}>{loaded.status.toUpperCase()}</span>
+              </p>
+              <div className="statusrow">
+                {nextActions(loaded.status).map((a) => (
+                  <button
+                    key={a.to}
+                    type="button"
+                    className={`btn sm${a.to === 'canceled' ? ' ghost' : ''}`}
+                    onClick={() => patchStatus(a.to)}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
           <div className="opt" style={{ marginBottom: 12 }}>
             <label htmlFor="email">::CUSTOMER EMAIL</label>

@@ -366,4 +366,7 @@ h2{letter-spacing:-0.01em}
 .orow-status.s-requested{color:var(--amber)}
 .orow-status.s-quoted{color:var(--cyan)}
 .orow-status.s-paid{color:var(--neon);border-color:rgba(21,227,122,.4)}
+.orow-status.s-scheduled{color:var(--violet);border-color:rgba(177,77,255,.4)}
+.orow-status.s-completed{color:var(--bright);border-color:rgba(107,255,187,.45)}
 .orow-status.s-canceled{color:var(--muted)}
+.statusrow{display:flex;gap:8px;flex-wrap:wrap}

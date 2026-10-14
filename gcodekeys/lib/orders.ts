@@ -6,7 +6,15 @@
 // Without them the store is in-memory and NOT durable across serverless
 // instances — fine for preview, not for production.
 
-export type OrderStatus = 'requested' | 'quoted' | 'paid' | 'canceled'
+// Lifecycle: requested -> quoted (payment link sent) -> paid (Stripe webhook)
+// -> scheduled (appointment booked) -> completed (key cut & coded). 'canceled'
+// is reachable from any state. 'quoted' and 'paid' are system-driven (the
+// checkout route and the webhook); the operator drives the rest.
+export type OrderStatus = 'requested' | 'quoted' | 'paid' | 'scheduled' | 'completed' | 'canceled'
+
+// Statuses the operator may set by hand. 'quoted'/'paid' are excluded on
+// purpose — they follow money events, not a button.
+export const OPERATOR_STATUSES: OrderStatus[] = ['requested', 'scheduled', 'completed', 'canceled']
 
 export type Order = {
   ref: string
@@ -25,6 +33,8 @@ export type Order = {
   paidAt?: string | null
   paymentAmount?: number | null
   stripeSessionId?: string | null
+  // Set when the operator moves the order through its lifecycle.
+  statusUpdatedAt?: string | null
 }
 
 const KV_URL = process.env.KV_REST_API_URL

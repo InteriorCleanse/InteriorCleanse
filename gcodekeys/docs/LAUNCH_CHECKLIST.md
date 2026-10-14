@@ -93,6 +93,8 @@ These are the real-world steps that make the service legitimate — do not skip.
 - Encrypted upload + storage for the ownership documents (the checkout
   collects file names only in preview; wire secure upload before taking real
   document images).
-- Operator order status transitions (schedule, complete) and notes.
-- Drop-alert waitlist wired to the email provider (the `/api/notify` route is
-  stubbed to validate + log today).
+- Per-order operator notes and an audit trail of status changes (the status
+  itself already moves: requested → quoted → paid → scheduled → completed,
+  with cancel/reopen, from the operator console).
+- Drop-alert waitlist synced to a list/audience provider (today `/api/notify`
+  validates and emails the operator so no signup is lost).
