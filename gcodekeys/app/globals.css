@@ -370,3 +370,12 @@ h2{letter-spacing:-0.01em}
 .orow-status.s-completed{color:var(--bright);border-color:rgba(107,255,187,.45)}
 .orow-status.s-canceled{color:var(--muted)}
 .statusrow{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── 3D key forge ── */
+.forge{position:relative;width:100%;height:clamp(360px,56vh,520px);border-radius:22px;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 20%,rgba(21,227,122,.10),transparent 60%),radial-gradient(90% 90% at 70% 90%,rgba(56,240,255,.08),transparent 60%),#05080b;
+  border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 30px 80px -40px rgba(0,0,0,.9)}
+.forge canvas{display:block;width:100%!important;height:100%!important;touch-action:none;cursor:grab}
+.forge canvas:active{cursor:grabbing}
+.forge-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.28em;color:var(--muted);pointer-events:none;opacity:.7}
+.forge-loading{display:grid;place-items:center;height:clamp(360px,56vh,520px);border-radius:22px;background:#05080b;border:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--muted)}

@@ -1,9 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Dropdown, type Option } from './Dropdown'
-import { KeyModel } from './KeyModel'
 import { MAKES, yearsFor, type Make, type Model } from '@/lib/vehicles'
+
+// The 3D key renders client-only (WebGL); keep it out of SSR and show a
+// lightweight placeholder while the canvas boots.
+const KeyForge3D = dynamic(() => import('./KeyForge3D'), {
+  ssr: false,
+  loading: () => <div className="forge-loading">Rendering your key…</div>,
+})
 import { FAMILIES } from '@/lib/keyFamilies'
 import { SHELL_COLORS, FINISHES } from '@/lib/catalog'
 import { useCart } from './CartProvider'
@@ -59,8 +66,9 @@ export function KeyStudio() {
 
       <div className="studio reveal">
         <div className="studio-stage">
-          <div className={`keywrap finish-${finish.id}`} data-fob style={{ ['--shell' as string]: color.hex }}>
-            {ready ? <KeyModel family={family} color={color.hex} finish={finish.id} engrave={engrave || makeName} /> : <KeyModel family="smart" color={color.hex} finish={finish.id} engrave={engrave} />}
+          <div className="forge" data-fob>
+            <KeyForge3D family={ready ? family : 'smart'} color={color.hex} finish={finish.id} engrave={engrave || makeName} />
+            <div className="forge-hint">DRAG TO ROTATE · SCROLL TO ZOOM</div>
           </div>
           <div className="stage-caption">
             {ready ? (
