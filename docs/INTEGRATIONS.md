@@ -4,7 +4,7 @@
 
 | Connector | Credentials | Sync loop | Notes |
 | --- | --- | --- | --- |
-| CSV import | none | n/a by design | A file is a snapshot, not a connection. |
+| CSV import | none | n/a by design | A file is a snapshot, not a connection. Orders (one row per line) and advertising spend (one row per day per campaign) commit under a batch that an admin can roll back; the same file is never imported twice. |
 | Stripe | secret key, sealed | **yes** | Settled charges and refunds, fees from the expanded balance transaction. |
 | Shopify | admin token, sealed | **yes** | Orders, line items and nested refunds, on `updated_at`. |
 | Google / Outlook calendar | refresh token, sealed | **yes**, hourly | PKCE, read-only scopes; rotated refresh tokens written back before events are fetched. |

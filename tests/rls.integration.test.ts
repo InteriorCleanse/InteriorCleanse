@@ -495,6 +495,7 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
   let db: Client
   let ownerA: string
   let ownerB: string
+  let memberA: string
   let orgA: string
   let orgB: string
 
@@ -502,6 +503,7 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     db = await migrate()
     ownerA = await createUser(db, 'a@example.com')
     ownerB = await createUser(db, 'b@example.com')
+    memberA = await createUser(db, 'm@example.com')
 
     const mkOrg = async (slug: string, creator: string) => {
       const { rows } = await db.query<{ id: string }>(
@@ -512,6 +514,12 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     }
     orgA = await mkOrg('org-a', ownerA)
     orgB = await mkOrg('org-b', ownerB)
+
+    await db.query(
+      `insert into public.organization_members (organization_id, user_id, role, status)
+       values ($1, $2, 'member', 'active')`,
+      [orgA, memberA],
+    )
 
     for (const [org, ref] of [
       [orgA, 'A-1'],
@@ -546,6 +554,127 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
         [orgB],
       )
       expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    })
+  })
+
+  describe('CSV import batches', () => {
+    // The commit path writes through the person's client, so RLS is what
+    // keeps one tenant's import out of another's workspace; rollback is a
+    // database function that must find the batch under the same RLS.
+    const mkBatch = async (org: string, hash: string) => {
+      const { rows } = await db.query<{ id: string }>(
+        `insert into public.import_batches (organization_id, source, kind, content_hash, status)
+         values ($1, 'csv_import', 'orders', $2, 'committed') returning id`,
+        [org, hash],
+      )
+      return rows[0]!.id
+    }
+
+    it('lets a member write an import into their own workspace and nowhere else', async () => {
+      await asUser(db, memberA, async (s) => {
+        const { rows } = await s.query<{ id: string }>(
+          `insert into public.import_batches (organization_id, source, kind, content_hash)
+           values ($1, 'csv_import', 'expenses', 'hash-member') returning id`,
+          [orgA],
+        )
+        await s.query(
+          `insert into public.expenses (organization_id, category, amount_minor, currency, incurred_on, import_batch_id)
+           values ($1, 'Advertising', 4217, 'USD', current_date, $2)`,
+          [orgA, rows[0]!.id],
+        )
+        const smuggled = await s.refused(
+          `insert into public.import_batches (organization_id, source, kind, content_hash)
+           values ($1, 'csv_import', 'expenses', 'hash-smuggled')`,
+          [orgB],
+        )
+        expect(smuggled.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+      })
+    })
+
+    it("does not let another tenant see or roll back a workspace's batch", async () => {
+      const batch = await mkBatch(orgA, 'hash-cross-tenant')
+      await asUser(db, ownerB, async (s) => {
+        const visible = await s.query('select id from public.import_batches where id = $1', [batch])
+        expect(visible.rows).toHaveLength(0)
+        // The function runs as the caller, so the batch simply is not there.
+        const failure = await s.refused('select public.rollback_import_batch($1)', [batch])
+        expect(failure.message).toMatch(/not found/i)
+      })
+    })
+
+    it('refuses a rollback below Admin, since it deletes', async () => {
+      const batch = await mkBatch(orgA, 'hash-member-rollback')
+      await asUser(db, memberA, async (s) => {
+        const failure = await s.refused('select public.rollback_import_batch($1)', [batch])
+        expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+      })
+    })
+
+    it('removes exactly the batch it is given, and audits it', async () => {
+      await asUser(db, ownerA, async (s) => {
+        const batch = (
+          await s.query<{ id: string }>(
+            `insert into public.import_batches (organization_id, source, kind, content_hash, status)
+             values ($1, 'csv_import', 'orders', 'hash-rollback', 'committed') returning id`,
+            [orgA],
+          )
+        ).rows[0]!.id
+        const other = (
+          await s.query<{ id: string }>(
+            `insert into public.import_batches (organization_id, source, kind, content_hash, status)
+             values ($1, 'csv_import', 'orders', 'hash-keep', 'committed') returning id`,
+            [orgA],
+          )
+        ).rows[0]!.id
+
+        for (const [ref, b] of [
+          ['R-1', batch],
+          ['R-2', batch],
+          ['K-1', other],
+        ] as const) {
+          const order = (
+            await s.query<{ id: string }>(
+              `insert into public.orders (organization_id, currency, placed_at, order_number, source, external_id, import_batch_id)
+               values ($1, 'USD', now(), $2, 'csv_import', $2, $3) returning id`,
+              [orgA, ref, b],
+            )
+          ).rows[0]!.id
+          await s.query(
+            `insert into public.order_items (organization_id, order_id, product_name, quantity, gross_minor, currency)
+             values ($1, $2, 'Candle', 1, 1000, 'USD')`,
+            [orgA, order],
+          )
+        }
+        await s.query(
+          `insert into public.expenses (organization_id, category, amount_minor, currency, incurred_on, import_batch_id)
+           values ($1, 'Advertising', 500, 'USD', current_date, $2)`,
+          [orgA, batch],
+        )
+
+        const { rows } = await s.query<{ removed: number }>(
+          'select public.rollback_import_batch($1) as removed',
+          [batch],
+        )
+        expect(Number(rows[0]!.removed)).toBe(3) // two orders and one expense; lines cascade
+
+        const left = await s.query<{ order_number: string }>(
+          "select order_number from public.orders where source = 'csv_import' order by order_number",
+        )
+        // The other batch's order survives; the seeded A-1 is not a CSV import.
+        expect(left.rows.map((r) => r.order_number)).toEqual(['K-1'])
+        const items = await s.query('select id from public.order_items')
+        expect(items.rows).toHaveLength(1)
+        const expenses = await s.query('select id from public.expenses where import_batch_id = $1', [batch])
+        expect(expenses.rows).toHaveLength(0)
+
+        const status = await s.query<{ status: string }>('select status from public.import_batches where id = $1', [batch])
+        expect(status.rows[0]!.status).toBe('rolled_back')
+        const audit = await s.query<{ action: string }>(
+          "select action from public.audit_logs where target_id = $1 and action = 'import.rolled_back'",
+          [batch],
+        )
+        expect(audit.rows).toHaveLength(1)
+      })
     })
   })
 

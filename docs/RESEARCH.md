@@ -133,10 +133,12 @@ a roadmap slide.
    briefing, a rule and the owner's mission control all read a real
    workspace's orders, lines, refunds and advertising expenses, through the
    caller's own client. Orders in another currency are counted and excluded,
-   never converted; a workspace past the row cap says so. What remains is a
-   writer for ad spend (the `expenses` table has none yet; a CSV import of
-   advertising expenses is the gap) and per-product attribution of that spend,
-   which today lands in the unallocated bucket by design.
+   never converted; a workspace past the row cap says so. The CSV import
+   commits now, for orders and for advertising spend, so a workspace with no
+   connector can still have real figures. What remains is per-product
+   attribution of imported spend, which today lands in the unallocated bucket
+   by design, and connector-sourced ad spend (Meta, Google) rather than a
+   monthly export.
 2. **A first live sync.** Point Stripe or Shopify at a real account and treat
    the first production sync as a test, as the launch checklist already says.
 3. **The morning brief as a scheduled push.** The pieces exist — briefings,
