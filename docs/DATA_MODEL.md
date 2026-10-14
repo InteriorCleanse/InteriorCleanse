@@ -152,6 +152,31 @@ sanitised like any other text a person typed, and bounded at 2,000 characters.
 The name is letters, digits and simple punctuation — nothing that could read
 as markup or a prompt delimiter.
 
+## Implemented — Businesses and the playbook
+
+`0017_business_workflows.sql`.
+
+| Table | Purpose | Isolation |
+| --- | --- | --- |
+| `workflow_items` | One business's playbook: each step from a name to a brand that runs itself, in seven stages, with a status, an owner, a due date, a blocked reason and notes | Members read; members and above move steps; only admins delete; another tenant can do none of these (asserted) |
+
+### Invariants enforced in the database
+
+- `(organization_id, template_key)` is unique, so starting the playbook twice
+  adds nothing and a step someone already moved keeps its status. A step the
+  operator added has a NULL key, and NULLs never collide.
+- Completion is stamped by a trigger: `completed_at` and `completed_by` are set
+  when a step becomes done, kept while it stays done, and cleared when it is
+  reopened. A form cannot backdate who finished something or when.
+- `blocked_reason` is cleared whenever a step is not blocked, so a stale reason
+  never describes a step that has moved on.
+- A step's `organization_id` cannot change. Moving a row between workspaces
+  would be a way to write into one business through another.
+
+The steps themselves are defined in code (`lib/workflow/template.ts`) and
+copied into a workspace when it starts, so editing the playbook changes what
+the next business starts with and never rewrites one already under way.
+
 ## Planned
 
 | Checkpoint | Tables |

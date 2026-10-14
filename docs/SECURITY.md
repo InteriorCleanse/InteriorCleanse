@@ -46,7 +46,18 @@ PATCH from any admin deleted the workspace, skipping the owner-only endpoint,
 the typed confirmation, the audit entry and the destruction of stored
 credentials.
 
-**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 34
+**Which business a request acts on.** A person who runs several businesses
+has one membership per workspace, and every page and route acts on the one
+they last switched to. That choice is an `httpOnly` cookie
+(`lib/workspace/active.ts`), and it is a preference, never an authority: its
+value only selects among the memberships the session already holds. A forged,
+stale or cross-tenant id is ignored exactly as if the cookie were absent, so it
+can neither reach another tenant nor confirm that one exists. The switch is a
+server action that writes the cookie only after the same membership check, and
+it returns only to a path inside `/app`, so the switcher is not an open
+redirect.
+
+**This is verified, not asserted.** `tests/rls.integration.test.ts` runs 46
 isolation assertions against a real Postgres as the `authenticated` role — see
 `docs/TEST_PLAN.md`. Claims in this document that are not covered there should
 be read as intentions.

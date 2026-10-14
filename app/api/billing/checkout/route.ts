@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { publicEnv } from '@/lib/env'
 import { can } from '@/lib/authz'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { downgradeImpact, isUpgrade, planFor, type PlanKey } from '@/lib/billing/plans'
 import {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return Response.json({ error: 'Malformed request.' }, { status: 400 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = {

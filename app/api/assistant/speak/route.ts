@@ -3,7 +3,7 @@ import { can } from '@/lib/authz'
 import { isFishAudioConfigured, voiceEnv } from '@/lib/env'
 import { logFailure } from '@/lib/log'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { SynthesisError, synthesiseWithFish } from '@/lib/voice/fish'
 import { SPEECH_MAX_CHARS, prepareForSpeech } from '@/lib/voice/speech'
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return Response.json({ error: 'Malformed request.' }, { status: 400 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = {

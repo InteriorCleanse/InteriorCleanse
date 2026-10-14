@@ -1,9 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { agentDisplayName, profileFromRow } from '@/lib/agents/profile'
-import { changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
+import { loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
 import { loadWorkspaceDataset, type Dataset } from '@/lib/workspace/dataset'
-import { formatMoney, money } from '@/lib/money'
-import { computeSignals } from '@/lib/signals'
+import { summariseByWorkspace, todayIn } from '@/lib/workflow/progress'
+import { headlineFigures } from './figures'
 import type { WatchedCompany } from './mission'
 
 /**
@@ -29,17 +29,24 @@ export async function loadWatchedCompanies(
   options: { now?: Date } = {},
 ): Promise<WatchedCompany[]> {
   const now = options.now ?? new Date()
-  const [{ data: orgs }, { data: members }, { data: profiles }] = await Promise.all([
+  const [{ data: orgs }, { data: members }, { data: profiles }, { data: steps }] = await Promise.all([
     admin
       .from('organizations')
-      .select('id, name, is_demo, base_currency, plan_key, subscription_status, created_at')
+      .select('id, name, is_demo, base_currency, timezone, plan_key, subscription_status, created_at')
       .is('deleted_at', null)
       .limit(2_000),
     admin.from('organization_members').select('organization_id, status').eq('status', 'active'),
     admin
       .from('assistant_profiles')
       .select('organization_id, agent_name, focus, standing_orders, reports_to_owner'),
+    admin
+      .from('workflow_items')
+      .select('organization_id, id, stage, title, status, due_on, position, blocked_reason')
+      .limit(50_000),
   ])
+
+  const zoneByOrg = new Map((orgs ?? []).map((o) => [o.id as string, (o.timezone as string | null) ?? 'UTC']))
+  const workflowByOrg = summariseByWorkspace(steps ?? [], (org) => todayIn(zoneByOrg.get(org) ?? 'UTC', now))
 
   const memberCount = new Map<string, number>()
   for (const m of members ?? []) {
@@ -72,25 +79,21 @@ export async function loadWatchedCompanies(
     const dataset = datasets.get(org.id) ?? null
     const hasRecords = dataset ? dataset.orders.length > 0 || dataset.spend.length > 0 : false
     if (org.is_demo || hasRecords) {
-      const a = loadWorkspaceAnalytics({
-        isDemo: org.is_demo,
-        currency: org.base_currency,
-        preset: 'month_to_date',
-        comparison: 'previous_period',
-        now,
-        dataset,
-      })
-      netRevenueMinor = a.metrics.netRevenue.value.minor
-      contributionProfitMinor = a.metrics.contributionProfit.value.minor
-      signals = computeSignals({
-        revenue: changeFor(a, 'netRevenue'),
-        profit: changeFor(a, 'contributionProfit'),
-        spend: changeFor(a, 'adSpend'),
-        contributionMargin: a.metrics.contributionMargin.value,
-        refundRate: a.metrics.refundRate.value,
-        unallocatedMinor: a.metrics.allocation.unallocated.minor,
-        formatMoney: (minor) => formatMoney(money(Math.round(minor), org.base_currency)),
-      })
+      const figures = headlineFigures(
+        loadWorkspaceAnalytics({
+          isDemo: org.is_demo,
+          currency: org.base_currency,
+          preset: 'month_to_date',
+          comparison: 'previous_period',
+          // The demo dataset runs on its own fixed clock.
+          now: org.is_demo ? undefined : now,
+          dataset,
+        }),
+        org.base_currency,
+      )
+      netRevenueMinor = figures.netRevenueMinor
+      contributionProfitMinor = figures.contributionProfitMinor
+      signals = figures.signals
     }
 
     return {
@@ -107,6 +110,7 @@ export async function loadWatchedCompanies(
       agentName: agentDisplayName(profile, assistantName),
       reportsToOwner: profile?.reportsToOwner ?? true,
       signals,
+      workflow: workflowByOrg.get(org.id) ?? null,
     }
   })
 }

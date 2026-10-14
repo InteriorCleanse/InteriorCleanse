@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { siteContentSecurityPolicy } from '@/lib/sites/generate'
 import { slugify } from '@/lib/sites/vercel'
 import { supabaseServer } from '@/lib/supabase/server'
@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const session = await getSessionContext()
   if (!session) return new Response('Sign in first.', { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return new Response('No workspace available.', { status: 403 })
 
   const { id } = await params

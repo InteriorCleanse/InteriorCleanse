@@ -11,6 +11,7 @@ import {
 import { buildDemoPipeline } from '@/lib/demo/sources'
 import { DEMO_NOW, changeFor, loadWorkspaceAnalytics } from '@/lib/workspace-analytics'
 import type { Dataset } from '@/lib/workspace/dataset'
+import type { WorkflowSummary } from '@/lib/workflow/progress'
 
 /**
  * Executive briefings.
@@ -125,6 +126,12 @@ export function buildBriefing(options: {
    * to report; ignored in a demo, which has its own.
    */
   dataset?: Dataset | null
+  /**
+   * Where the business stands on its playbook. Blocked and overdue steps
+   * become attention items: a launch waiting on a supplier is a decision
+   * just as much as a margin falling.
+   */
+  workflow?: WorkflowSummary | null
   /** The clock, for tests. A demo workspace always uses the demo clock. */
   now?: Date
 }): Briefing {
@@ -172,8 +179,11 @@ export function buildBriefing(options: {
       lines: [],
       // A CRM can be connected before an order source is; an overdue deal
       // is still worth a decision on a day with no sales figures.
-      attention: pipelineAttention(pipeline),
-      followUps: ['What do I need to connect to get a briefing?'],
+      attention: [...workflowAttention(options.workflow), ...pipelineAttention(pipeline)],
+      followUps: [
+        ...(options.workflow?.started ? ['What is next on the playbook?'] : []),
+        'What do I need to connect to get a briefing?',
+      ],
     }
   }
 
@@ -239,9 +249,38 @@ export function buildBriefing(options: {
       // After the figures: a divergence in what happened outranks a date
       // slipping on what has not happened yet.
       ...pipelineAttention(pipeline),
+      ...workflowAttention(options.workflow),
     ],
-    followUps: followUpsFor(kind),
+    followUps: [
+      ...followUpsFor(kind),
+      ...(workflowNeedsAttention(options.workflow) ? ['What is blocked on the playbook, and who has it?'] : []),
+    ],
   }
+}
+
+function workflowNeedsAttention(workflow: WorkflowSummary | null | undefined): boolean {
+  return Boolean(workflow && (workflow.blocked > 0 || workflow.overdue > 0))
+}
+
+/** Blocked steps first, each with what it waits on; then overdue ones, counted. */
+function workflowAttention(workflow: WorkflowSummary | null | undefined): string[] {
+  if (!workflow?.started) return []
+  const out: string[] = []
+  for (const step of workflow.blockedSteps.slice(0, 2)) {
+    out.push(`Playbook step blocked: ${step.title}${step.reason ? ` — ${step.reason}` : ''}.`)
+  }
+  if (workflow.blockedSteps.length > 2) {
+    out.push(`${workflow.blockedSteps.length - 2} more playbook steps are blocked.`)
+  }
+  if (workflow.overdueSteps.length === 1) {
+    const step = workflow.overdueSteps[0]!
+    out.push(`Playbook step overdue: ${step.title}, due ${step.dueOn}.`)
+  } else if (workflow.overdueSteps.length > 1) {
+    out.push(
+      `${workflow.overdueSteps.length} playbook steps are overdue, the oldest “${workflow.overdueSteps[0]!.title}”.`,
+    )
+  }
+  return out
 }
 
 /** Null when there is nothing to report, so a workspace without a CRM sees no block. */

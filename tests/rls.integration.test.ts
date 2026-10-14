@@ -678,6 +678,103 @@ describe.skipIf(!hasTestDatabase)('RLS: data added after Checkpoint 1', () => {
     })
   })
 
+  describe('workflow steps', () => {
+    const mkStep = async (org: string, key: string | null, title = 'Open the bank account') => {
+      const { rows } = await db.query<{ id: string }>(
+        `insert into public.workflow_items (organization_id, stage, template_key, title)
+         values ($1, 'foundation', $2, $3) returning id`,
+        [org, key, title],
+      )
+      return rows[0]!.id
+    }
+
+    it("keeps one business's playbook out of another's", async () => {
+      const step = await mkStep(orgA, 'bank')
+      await asUser(db, ownerB, async (s) => {
+        const seen = await s.query('select id from public.workflow_items where id = $1', [step])
+        expect(seen.rows).toHaveLength(0)
+        const moved = await s.query("update public.workflow_items set status = 'done' where id = $1", [step])
+        expect(moved.rowCount).toBe(0)
+        const smuggled = await s.refused(
+          `insert into public.workflow_items (organization_id, stage, title) values ($1, 'brand', 'Smuggled')`,
+          [orgA],
+        )
+        expect(smuggled.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+      })
+    })
+
+    it('lets a member move a step, and stamps who finished it and when', async () => {
+      const step = await mkStep(orgA, 'entity', 'Form the entity')
+      await asUser(db, memberA, async (s) => {
+        // A forged completion date and author are overwritten by the database.
+        await s.query(
+          `update public.workflow_items
+             set status = 'done', completed_at = '2001-01-01', completed_by = $2
+           where id = $1`,
+          [step, ownerB],
+        )
+        const { rows } = await s.query<{ completed_by: string; completed_at: Date }>(
+          'select completed_by, completed_at from public.workflow_items where id = $1',
+          [step],
+        )
+        expect(rows[0]!.completed_by).toBe(memberA)
+        expect(new Date(rows[0]!.completed_at).getUTCFullYear()).toBeGreaterThan(2001)
+
+        // Re-opening clears it; blocking keeps a reason only while blocked.
+        await s.query("update public.workflow_items set status = 'blocked', blocked_reason = 'EIN letter' where id = $1", [step])
+        await s.query("update public.workflow_items set status = 'todo' where id = $1", [step])
+        const after = await s.query<{ completed_at: Date | null; blocked_reason: string | null }>(
+          'select completed_at, blocked_reason from public.workflow_items where id = $1',
+          [step],
+        )
+        expect(after.rows[0]).toEqual({ completed_at: null, blocked_reason: null })
+      })
+    })
+
+    it('refuses a step moved into another workspace', async () => {
+      const step = await mkStep(orgA, 'positioning', 'Positioning')
+      await asUser(db, ownerA, async (s) => {
+        const failure = await s.refused('update public.workflow_items set organization_id = $2 where id = $1', [step, orgB])
+        expect(failure.code).toBe(PG_INSUFFICIENT_PRIVILEGE)
+      })
+    })
+
+    it('lets only an admin delete a step', async () => {
+      const step = await mkStep(orgA, null, 'A custom step')
+      await asUser(db, memberA, async (s) => {
+        const removed = await s.query('delete from public.workflow_items where id = $1', [step])
+        expect(removed.rowCount).toBe(0)
+      })
+      await asUser(db, ownerA, async (s) => {
+        const removed = await s.query('delete from public.workflow_items where id = $1', [step])
+        expect(removed.rowCount).toBe(1)
+      })
+    })
+
+    it('makes starting the playbook twice add nothing, while custom steps never collide', async () => {
+      await asUser(db, memberA, async (s) => {
+        const seed = `insert into public.workflow_items (organization_id, stage, template_key, title)
+                      values ($1, 'launch', 'waitlist', 'Build a launch list')
+                      on conflict (organization_id, template_key) do nothing`
+        await s.query(seed, [orgA])
+        await s.query(seed, [orgA])
+        const { rows } = await s.query<{ n: string }>(
+          "select count(*)::text as n from public.workflow_items where template_key = 'waitlist'",
+        )
+        expect(rows[0]!.n).toBe('1')
+
+        for (const title of ['Custom one', 'Custom two']) {
+          await s.query(
+            `insert into public.workflow_items (organization_id, stage, template_key, title) values ($1, 'growth', null, $2)`,
+            [orgA, title],
+          )
+        }
+        const custom = await s.query("select id from public.workflow_items where stage = 'growth' and template_key is null")
+        expect(custom.rows).toHaveLength(2)
+      })
+    })
+  })
+
   it('hides integration_credentials from the workspace owner themselves', async () => {
     // The strongest statement RLS can make: forced, with no policy at all, so
     // only the service role can read it. Even the person whose key it is cannot

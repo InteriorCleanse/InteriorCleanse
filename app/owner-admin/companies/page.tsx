@@ -195,6 +195,21 @@ function CompanyCard({ company: c, cash }: { company: CompanyWatch; cash: (minor
         </div>
       </dl>
 
+      {c.workflow?.started ? (
+        <div className="mt-4 border-t border-hairline pt-3">
+          <div className="flex items-baseline justify-between gap-2 text-xs">
+            <span className="uppercase tracking-[0.14em] text-muted">Playbook</span>
+            <span className="tabular text-muted">{c.workflow.line}</span>
+          </div>
+          <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-hairline">
+            <span
+              className={`block h-full rounded-full ${c.workflow.blocked > 0 || c.workflow.overdue > 0 ? 'bg-amber' : 'bg-signal'}`}
+              style={{ width: `${Math.max(c.workflow.percent, 2)}%` }}
+            />
+          </span>
+        </div>
+      ) : null}
+
       {c.signals.length > 0 ? (
         <ul className="mt-4 space-y-1.5 border-t border-hairline pt-3">
           {c.signals.slice(0, 2).map((s) => (

@@ -22,7 +22,16 @@ const WRITE_ARGS: Record<string, unknown> = {
   create_notification_rule: { name: 'Spend guard', metric: 'adSpend', comparator: 'above', threshold: 100_000 },
   build_site: { name: 'Sunrise Bakery', brief: 'A one-page site for a bakery with the menu, opening hours and where to find us.' },
   publish_site: { siteId: '6f1a2b3c-4d5e-4f60-8a9b-0c1d2e3f4a5b', siteName: 'Sunrise Bakery' },
+  update_workflow_step: { stepId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d', status: 'done' },
 }
+
+/** A playbook part-way through, as the route would read it. */
+const WORKFLOW = [
+  { id: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d', stage: 'foundation' as const, title: 'Open a business bank account and card', status: 'doing' as const, dueOn: '2026-02-01', position: 20, blockedReason: null },
+  { id: '8b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e', stage: 'foundation' as const, title: 'Form the business entity', status: 'done' as const, dueOn: null, position: 10, blockedReason: null },
+  { id: '9c3d4e5f-6a7b-4c8d-0e9f-1a2b3c4d5e6f', stage: 'product' as const, title: 'Two quotes, one sample round, terms in writing', status: 'blocked' as const, dueOn: null, position: 20, blockedReason: 'Supplier has not sent the second sample' },
+  { id: '0d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f70', stage: 'growth' as const, title: 'First paid test, with a kill rule', status: 'todo' as const, dueOn: null, position: 10, blockedReason: null },
+]
 
 /** What a connected workspace would hand the two injected readers. */
 const KNOWLEDGE_HITS = [
@@ -51,6 +60,9 @@ function ctx(over: Partial<ToolContext> = {}): ToolContext {
     // Injected readers, as the route injects them with the user's client.
     searchKnowledge: async () => KNOWLEDGE_HITS,
     queryPipeline: async () => PIPELINE,
+    queryWorkflow: async () => WORKFLOW,
+    now: new Date('2026-03-01T12:00:00Z'),
+    timeZone: 'UTC',
     ...over,
   }
 }
@@ -221,6 +233,7 @@ describe('read tools', () => {
     )
     const real = ctx({
       isDemo: false,
+      now: new Date(),
       loadDataset: async () => {
         loads += 1
         return dataset
@@ -490,5 +503,140 @@ describe('knowledge and pipeline tools', () => {
     expect(search.schema.safeParse({ question: 'x' }).success).toBe(false)
     expect(search.schema.safeParse({ question: 'refunds', limit: 50 }).success).toBe(false)
     expect(search.schema.safeParse({ question: 'refunds' }).success).toBe(true)
+  })
+})
+
+describe('workflow and businesses', () => {
+  it('reports the playbook: blocked and overdue first, with ids to act on', async () => {
+    const tool = TOOLS_BY_NAME.get('workflow_status')!
+    const result = await tool.execute(tool.schema.parse({}), ctx())
+    const data = result.data as {
+      started: boolean
+      percentDone: number
+      currentStage: string
+      nextUp: { id: string; title: string; status: string }[]
+      blocked: { title: string; blockedOn: string }[]
+      overdue: { title: string; due: string }[]
+      steps: { title: string }[]
+    }
+    expect(data.started).toBe(true)
+    expect(data.percentDone).toBe(25)
+    expect(data.currentStage).toBe('Foundation')
+    expect(data.nextUp[0]!.id).toBe('7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d')
+    expect(data.blocked).toEqual([
+      expect.objectContaining({ title: 'Two quotes, one sample round, terms in writing', blockedOn: 'Supplier has not sent the second sample' }),
+    ])
+    // Due 1 February, read on 1 March.
+    expect(data.overdue.map((o) => o.title)).toEqual(['Open a business bank account and card'])
+    // Finished steps are left out unless asked for.
+    expect(data.steps.map((x) => x.title)).not.toContain('Form the business entity')
+    expect(result.sources?.[0]?.url).toBe('/app/workflow')
+  })
+
+  it('says the playbook has not started rather than inventing progress', async () => {
+    const tool = TOOLS_BY_NAME.get('workflow_status')!
+    const result = await tool.execute(tool.schema.parse({}), ctx({ queryWorkflow: async () => [] }))
+    expect((result.data as { started: boolean }).started).toBe(false)
+  })
+
+  it('reports no playbook when no reader was injected', async () => {
+    const tool = TOOLS_BY_NAME.get('workflow_status')!
+    const result = await tool.execute(tool.schema.parse({}), ctx({ queryWorkflow: undefined }))
+    expect((result.data as { available: boolean }).available).toBe(false)
+  })
+
+  it('previews a step move by name and status, never by id alone', async () => {
+    const tool = TOOLS_BY_NAME.get('update_workflow_step')!
+    const args = tool.schema.parse({
+      stepId: '9c3d4e5f-6a7b-4c8d-0e9f-1a2b3c4d5e6f',
+      status: 'doing',
+      dueOn: '2026-03-10',
+      note: 'Second sample arrived',
+    })
+    const result = await tool.execute(args, ctx())
+    expect(result.preview!.summary).toBe('Move “Two quotes, one sample round, terms in writing” from blocked to in progress.')
+    const shown = result.preview!.fields.map((f) => `${f.label}: ${f.value}`)
+    expect(shown).toContain('From: Blocked')
+    expect(shown).toContain('To: In progress')
+    expect(shown).toContain('Due: 2026-03-10')
+    expect(shown.join(' ')).not.toContain('9c3d4e5f')
+    expect(result.preview!.details).toEqual(args)
+  })
+
+  it('stages nothing for a step that is not in this business', async () => {
+    const tool = TOOLS_BY_NAME.get('update_workflow_step')!
+    const result = await tool.execute(
+      tool.schema.parse({ stepId: '11111111-2222-4333-8444-555555555555', status: 'done' }),
+      ctx(),
+    )
+    expect(result.preview).toBeUndefined()
+    expect((result.data as { staged: boolean }).staged).toBe(false)
+  })
+
+  it('summarises every business by name, each in its own currency', async () => {
+    const tool = TOOLS_BY_NAME.get('my_businesses')!
+    const company = (over: Record<string, unknown>) => ({
+      id: 'b1',
+      name: 'Candle Co',
+      isDemo: false,
+      planKey: 'growth',
+      subscriptionStatus: 'active',
+      memberCount: 1,
+      currency: 'USD',
+      createdAt: '',
+      netRevenueMinor: 1_234_500,
+      contributionProfitMinor: 400_000,
+      agentName: 'Arch',
+      reportsToOwner: true,
+      signals: [],
+      workflow: null,
+      ...over,
+    })
+    const result = await tool.execute(
+      tool.schema.parse({}),
+      ctx({
+        listMyBusinesses: async () => [
+          company({}),
+          company({
+            id: 'b2',
+            name: 'Fruit Protein',
+            currency: 'GBP',
+            netRevenueMinor: null,
+            contributionProfitMinor: null,
+            workflow: {
+              started: true,
+              percent: 30,
+              stage: 'Product',
+              blocked: 1,
+              overdue: 0,
+              line: '30% done · Product · 1 blocked',
+              nextUp: ['Two quotes, one sample round, terms in writing'],
+              blockedSteps: [{ title: 'Two quotes, one sample round, terms in writing', reason: 'Waiting on supplier' }],
+              overdueSteps: [],
+            },
+          }),
+        ],
+      }),
+    )
+    const data = result.data as {
+      summary: string
+      needsYou: { name: string; headline: string }[]
+      businesses: { name: string; revenueMonthToDate: string | null; playbook: unknown }[]
+    }
+    expect(data.summary).toMatch(/^You are watching 2 companies; 1 needs you\.$/)
+    // The blocked brand needs its owner even before it has any figures.
+    expect(data.needsYou).toEqual([
+      { name: 'Fruit Protein', standing: 'watch', headline: 'Blocked: Two quotes, one sample round, terms in writing — Waiting on supplier' },
+    ])
+    const byName = new Map(data.businesses.map((b) => [b.name, b]))
+    expect(byName.get('Candle Co')!.revenueMonthToDate).toBe('$12,345.00')
+    expect(byName.get('Fruit Protein')!.revenueMonthToDate).toBeNull()
+    expect(byName.get('Candle Co')!.playbook).toBe('not started')
+  })
+
+  it('offers the businesses view only where the route injected it', async () => {
+    const tool = TOOLS_BY_NAME.get('my_businesses')!
+    const result = await tool.execute(tool.schema.parse({}), ctx())
+    expect((result.data as { available: boolean }).available).toBe(false)
   })
 })

@@ -4,7 +4,7 @@ import { cronDenied, isCronAuthorized } from '@/lib/cron'
 import { ADAPTERS, syncConnection, type ConnectionRow } from '@/lib/integrations/sync'
 import { SOURCE_ADAPTERS, syncSource } from '@/lib/knowledge/sync'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseAdmin, supabaseServer } from '@/lib/supabase/server'
 import { isVaultConfigured } from '@/lib/vault'
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const session = await getSessionContext()
   if (!session) return Response.json({ error: 'Sign in first.' }, { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = {

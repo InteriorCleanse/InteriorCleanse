@@ -1,4 +1,5 @@
 import type { Signal, SignalSeverity } from '@/lib/signals'
+import { workflowNeedsYou, type WorkflowSummary } from '@/lib/workflow/progress'
 import { needsAttention, statusHealth, type CompanySummary } from './portfolio'
 
 /**
@@ -23,6 +24,8 @@ export type WatchedCompany = CompanySummary & {
   reportsToOwner: boolean
   /** The workspace's own signals, when it has figures to compute them from. */
   signals: Signal[]
+  /** Where the business stands on its playbook; absent when nobody loaded it. */
+  workflow?: WorkflowSummary | null
 }
 
 export type CompanyWatch = WatchedCompany & {
@@ -54,6 +57,9 @@ export function standingFor(company: WatchedCompany): Standing {
   const signal = loudest(company.signals)
   if (signal === 'critical') return 'critical'
   if (needsAttention(company) || signal === 'warning') return 'watch'
+  // A blocked or overdue step is a decision waiting on someone, whether or
+  // not the business has figures yet — often most of all before it does.
+  if (workflowNeedsYou(company.workflow)) return 'watch'
   if (company.netRevenueMinor === null) return 'unknown'
   if (billing === 'healthy' || company.isDemo) return 'healthy'
   return 'watch'
@@ -65,6 +71,11 @@ export function headlineFor(company: WatchedCompany, standing: Standing): string
   if (needsAttention(company)) return `Subscription ${company.subscriptionStatus.replace(/_/g, ' ')}`
   const warning = company.signals.find((s) => s.severity === 'warning')
   if (warning) return warning.title
+  const blocked = company.workflow?.blockedSteps[0]
+  if (blocked) return `Blocked: ${blocked.title}${blocked.reason ? ` — ${blocked.reason}` : ''}`
+  const overdue = company.workflow?.overdue ?? 0
+  if (overdue > 0) return `${overdue} playbook ${overdue === 1 ? 'step is' : 'steps are'} overdue`
+  if (standing === 'unknown' && company.workflow?.started) return `Building: ${company.workflow.line}`
   if (standing === 'unknown') return 'No data source connected yet'
   if (!company.reportsToOwner) return 'Running quietly; not reporting in'
   return 'Nothing needs a decision'
