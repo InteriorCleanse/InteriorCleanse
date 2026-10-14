@@ -197,6 +197,43 @@ export async function askAIJson(
   try { return { ...base, json: JSON.parse(text), refused: false, reason: null } } catch { return { ...base, json: null, refused: false, reason: 'The answer was not valid JSON.' } }
 }
 
+/**
+ * A text-only structured call with its own system prompt (not Kestrel's
+ * voice). Used by the AI second opinion, which must read the state without
+ * the bot's own framing. Same structured-output and cost reporting as
+ * askAIJson; returns null json with the reason when declined or cut short.
+ */
+export async function askAIStructured(
+  system: string,
+  user: string,
+  schema: Record<string, unknown>,
+  model: string | null = null,
+): Promise<{ json: unknown | null; refused: boolean; reason: string | null; costUsd: number; model: string }> {
+  loadEnv()
+  const Sdk = await loadSdk()
+  if (!Sdk) throw new Error('Anthropic SDK not installed')
+  const client = new Sdk()
+  const params = {
+    model: model || config.ai.model,
+    max_tokens: 8000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    thinking: { type: 'adaptive' },
+    output_config: { effort: config.ai.effort, format: { type: 'json_schema', schema } },
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: user }],
+  }
+  const stream = client.beta.messages.stream(params as unknown as Parameters<typeof client.beta.messages.stream>[0])
+  const final = await stream.finalMessage()
+  const usage = { input: final.usage.input_tokens, output: final.usage.output_tokens, cacheRead: final.usage.cache_read_input_tokens ?? 0 }
+  const price = config.ai.prices[final.model] ?? config.ai.prices[config.ai.model] ?? { input: 5, output: 25 }
+  const costUsd = (usage.input * price.input + usage.cacheRead * price.input * 0.1 + usage.output * price.output) / 1_000_000
+  if (final.stop_reason === 'refusal') return { json: null, refused: true, reason: 'The model declined to answer.', costUsd, model: final.model }
+  if (final.stop_reason === 'max_tokens') return { json: null, refused: false, reason: 'The answer was cut short before it finished.', costUsd, model: final.model }
+  const text = final.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
+  try { return { json: JSON.parse(text), refused: false, reason: null, costUsd, model: final.model } } catch { return { json: null, refused: false, reason: 'The answer was not valid JSON.', costUsd, model: final.model } }
+}
+
 /** A free call that proves the key works, for `npm run doctor`. */
 export async function pingAI(): Promise<{ ok: boolean; detail: string }> {
   loadEnv()

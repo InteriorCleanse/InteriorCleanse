@@ -40,7 +40,7 @@ import { getNews, summarizeNews, upcomingEvents } from './news.ts'
 import { buildBrief } from './brief.ts'
 import { readPlan, writePlan, clearPlan } from './plan.ts'
 import type { DayPlan } from './plan.ts'
-import { aiStatus, askAI, askAIJson, explainAiError, PICTURE_QUESTION } from './ai.ts'
+import { aiStatus, askAI, askAIJson, askAIStructured, explainAiError, PICTURE_QUESTION } from './ai.ts'
 import { scanPatterns, UNTESTED } from './scanner/patterns.ts'
 import { biasScore, confluence, patternEvidence } from './scanner/priceAction.ts'
 import { PICTURE_INSTRUCTIONS, PICTURE_SCHEMA, cleanPictureRead } from './scanner/picture.ts'
@@ -66,6 +66,7 @@ import * as opsApi from './ops/api.ts'
 import { runDoctor, lanUrls } from './doctor.ts'
 import { allowedHosts, forwardedBy, hostAllowed } from './security/origin.ts'
 import { askWeb, webStatus, recentAnswers, LABEL as WEB_LABEL } from './ai/perplexity.ts'
+import * as secondOpinion from './ai/secondOpinion.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
@@ -643,6 +644,25 @@ const server = createServer(async (req, res) => {
         if (path === '/api/web/ask' && req.method === 'POST') {
           const b = JSON.parse((await readBody(req, 4 * 1024)) || '{}') as Record<string, unknown>
           json(res, 200, { ok: true, data: await askWeb({ preset: typeof b.preset === 'string' ? b.preset : undefined, symbol: typeof b.symbol === 'string' ? b.symbol : undefined, q: typeof b.q === 'string' ? b.q : undefined }) }); return
+        }
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 300) }); return }
+      json(res, 404, { ok: false, error: 'not found' }); return
+    }
+    // AI second opinion: Claude's own call on the state Kestrel saw, recorded before the outcome and scored on paper. Nothing in the engine reads it.
+    if (path === '/api/second-opinion' || path === '/api/second-opinion/ask') {
+      try {
+        if (path === '/api/second-opinion' && req.method === 'GET') {
+          const rows = secondOpinion.readLog()
+          json(res, 200, { ok: true, data: { status: secondOpinion.status((await aiStatus()).available), recent: rows.slice(-20).reverse(), scoreboard: secondOpinion.scoreboard(rows) } }); return
+        }
+        if (path === '/api/second-opinion/ask' && req.method === 'POST') {
+          const st = secondOpinion.status((await aiStatus()).available)
+          if (!st.available) throw new Error(st.reason)
+          if (st.usedToday >= st.dailyCap) throw new Error(st.reason)
+          const snap = await snapshot()
+          const r = await secondOpinions.askNow(snap)
+          if (!r) throw new Error('Not enough candles yet to describe the market.')
+          json(res, 200, { ok: true, data: r }); return
         }
       } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 300) }); return }
       json(res, 404, { ok: false, error: 'not found' }); return
@@ -1774,6 +1794,19 @@ const watcher = startWatch(config.app.watchEveryMinutes, (e) => {
 // current regime and nothing else; the watcher never reads it back.
 startResearchOps({
   deps: { currentRegime: () => watcher.current()?.snap.analysis?.features.regime.value?.state ?? null },
+  log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
+})
+// AI second opinion: listens to the same cycle event, asks Claude only when a
+// setup is forming (capped per day), and scores due calls from stored candles.
+// The watcher never waits for it and never reads it back.
+const secondOpinions = secondOpinion.startSecondOpinion({
+  on: (h) => bus.on('watch:cycle', h),
+  available: async () => (await aiStatus()).available,
+  ask: askAIStructured,
+  candles: (sym, interval, from, to) => store().candlesBetween(sym, interval, from, to),
+  symbol: config.symbol,
+  interval: config.interval,
+  intervalMs: INTERVAL_MS[config.interval] ?? 300_000,
   log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
 })
 // Phase 25: the ops monitor — heartbeat, feed health, soak counters, daily
