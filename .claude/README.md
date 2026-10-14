@@ -31,6 +31,7 @@ nothing under `.claude/` is built, served, or linted.
 | frontend-design | github.com/anthropics/claude-plugins-official (`plugins/frontend-design`), taken from the vendored copy in github.com/JackInSightsV2/Automated-Agentic-AI-Web-Agency (`packages/api/claude/skills/`) | main @ 2026-09-27 | Apache-2.0 (`LICENSE.txt`) |
 | public-api-feature | written here from the owner's "PUB" guide (Public APIs + Claude Code) | — | this repository |
 | model-compare (+ `scripts/compare.mjs`) | written here from the owner's G0DM0D3 guide: the side-by-side comparison only; G0DM0D3 itself (github.com/elder-plinius/G0DM0D3, AGPL-3.0) is not vendored | — | this repository |
+| animated-chart, apple-launch-film, brand-intake, launch-video, loop-cover, milestone-reveal, model-showdown, motion-brief-writer, motion-effects, motion-prompt-writer, newsletter-promo, reel-export, reference-to-motion, title-sequence-3d, vox-explainer (15 skills; README assets, demo GIFs and duplicate zips left out; one marked local note added to brand-intake) | github.com/charlie947/motion-graphics-skills (`skills/*`) | 229022e | MIT |
 
 `/watch <video-url-or-path> [question]` lets Claude watch a video: it pulls
 captions and frames and answers from them. It runs Python scripts that need
@@ -193,3 +194,14 @@ descriptions (~180 tokens) to every session.
 
 To remove a set, delete its folders and the row above. To update, re-copy from
 the upstream commit you want and change the commit here.
+
+The motion graphics pack (Charlie Hills) makes marketing video, not site
+animation: launch films, animated charts, looping covers, reels and explainers,
+written as HTML, SVG or Three.js and rendered to MP4 or GIF. Run `brand-intake`
+first for each business; in this repository it writes `brand.md` and
+`MOTION.md` into that project's own folder, never the root. Rendering uses
+HyperFrames (`npx skills add heygen-com/hyperframes`, from HeyGen), and two
+skills suggest `npx skills add emilkowalski/skills --skill apple-design`. Neither
+is vendored here; review each before installing it on the machine that renders.
+`reel-export` and `loop-cover` need `ffmpeg`. For the storefront's own on-page
+animation, use `motion-design` and the `gsap-*` skills instead.
