@@ -71,7 +71,7 @@ export class BigMoney {
   private seen = new Map<string, InsiderTrade[]>()
   private readonly file: string
   private morning: NodeJS.Timeout | null = null
-  private readonly opts: { everyHours?: number; fetchImpl?: FetchLike; now?: () => number; dir?: string; tickers?: string[]; gapMs?: number; alert?: (title: string, body: string) => void; morningHourNy?: number }
+  private readonly opts: { everyHours?: number; fetchImpl?: FetchLike; now?: () => number; dir?: string; tickers?: string[]; gapMs?: number; alert?: (title: string, body: string) => void; morningHourNy?: number; onRefresh?: (congress: CongressTrade[]) => void }
   constructor(opts: BigMoney['opts'] = {}) {
     this.opts = opts
     this.file = join(opts.dir ?? DATA_DIR, 'bigmoney.json')
@@ -164,6 +164,8 @@ export class BigMoney {
         note: NOTE,
       }
       this.save()
+      // Readers that want every congress row in the window (the politician watcher), not the trimmed list.
+      try { this.opts.onRefresh?.(congress) } catch { /* a reader's failure never breaks the refresh */ }
       return this.snap
     } finally { this.running = false }
   }

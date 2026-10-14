@@ -3348,3 +3348,35 @@ html[data-tone="dark"] .hm-hero, html[data-tone="dark"].has-film .hm-hero { back
 .so-more .cc-tbl { margin-top:var(--sp-2); border:var(--rule); border-radius:var(--rad-2); background:var(--panel); }
 .so-more .faint { color:var(--faint); }
 @media (max-width:640px) { .so-pair { grid-template-columns:1fr; } .so-side + .so-side { border-left:0; border-top:var(--rule); } .so-board { grid-template-columns:1fr 1fr; } .cc-opinion .cc-h .so-ask { margin-left:0; } }
+
+/* ---------- Politician watcher (Big Money tab) ---------- */
+.pw .cc-h span.badge { color:var(--text); }
+.pw-lede { font-size:var(--fs-sm); color:var(--dim); margin:0 0 var(--sp-3); max-width:80ch; }
+.pw-form { display:flex; flex-wrap:wrap; gap:var(--sp-3); align-items:flex-end; margin-bottom:var(--sp-3); }
+.pw-form label { display:grid; gap:2px; font-size:var(--fs-2xs); color:var(--faint); }
+.pw-form label:first-child { flex:1 1 280px; }
+.pw-form input { font:inherit; font-size:var(--fs-sm); color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:var(--rad-2); padding:6px 8px; min-width:0; }
+.pw-msg, .pw-note { font-size:var(--fs-sm); color:var(--dim); margin:var(--sp-2) 0; }
+.pw-none { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-3); padding:var(--sp-4); border:1px dashed var(--line); border-radius:var(--rad-2); }
+.pw-none b { font-size:var(--fs-lg); }
+.pw-none span { font-size:var(--fs-sm); color:var(--dim); }
+.pw-items { display:grid; gap:var(--sp-3); }
+.pw-item { border:var(--rule); border-radius:var(--rad-3); background:var(--panel); padding:var(--sp-4); display:grid; gap:var(--sp-3); }
+.pw-item header { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-2); }
+.pw-item header b { font-size:var(--fs-md); }
+.pw-item header span { font-size:var(--fs-xs); color:var(--faint); }
+.pw-trade { display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3); }
+.pw-tk { font:600 var(--fs-xl)/1 var(--type-figure); letter-spacing:-.01em; }
+.pw-trade > span:last-child { font-size:var(--fs-sm); color:var(--dim); font-family:var(--type-figure); font-variant-numeric:tabular-nums; }
+.pw-facts { display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; margin:0; background:var(--line); border:var(--rule); border-radius:var(--rad-2); overflow:hidden; }
+.pw-facts > div { background:var(--panel); padding:var(--sp-2) var(--sp-3); }
+.pw-facts dt { font-size:var(--fs-2xs); color:var(--faint); }
+.pw-facts dd { margin:2px 0 0; font-size:var(--fs-sm); color:var(--text); }
+.pw-facts dd small { color:var(--faint); }
+.pw-facts .up { color:var(--chart-up); } .pw-facts .down { color:var(--chart-down); }
+.pw-plan { display:grid; gap:var(--sp-2); justify-items:start; padding:var(--sp-3); background:var(--panel2); border-radius:var(--rad-2); }
+.pw-plan ol { margin:0; padding-left:var(--sp-5); font-size:var(--fs-sm); display:grid; gap:2px; }
+.pw-more { margin-top:var(--sp-3); font-size:var(--fs-sm); color:var(--dim); }
+.pw-more ul { margin:var(--sp-2) 0 0; padding-left:var(--sp-5); display:grid; gap:2px; }
+.pw-more time { color:var(--faint); margin-right:var(--sp-2); }
+@media (max-width:640px) { .pw-facts { grid-template-columns:1fr 1fr; } }

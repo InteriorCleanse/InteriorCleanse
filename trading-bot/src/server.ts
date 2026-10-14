@@ -67,6 +67,8 @@ import { runDoctor, lanUrls } from './doctor.ts'
 import { allowedHosts, forwardedBy, hostAllowed } from './security/origin.ts'
 import { askWeb, webStatus, recentAnswers, LABEL as WEB_LABEL } from './ai/perplexity.ts'
 import * as secondOpinion from './ai/secondOpinion.ts'
+import * as polWatch from './bigmoney/watcher.ts'
+import type { CongressTrade } from './bigmoney/parse.ts'
 import { readJournal, upsertEntry, deleteEntry, readGoals, saveGoals, computeStats, buildReview, entryFromSnapshot, journalSummaryForAI, EMOTIONS, TAGS } from './journal.ts'
 import { paperStats, closeManually, readPositions, equity, equityPeak, openNotionalUsd, todaysPaperStats } from './paperTrader.ts'
 import { paperByStrategy, comparePaperToOos } from './paper/metrics.ts'
@@ -663,6 +665,31 @@ const server = createServer(async (req, res) => {
           const r = await secondOpinions.askNow(snap)
           if (!r) throw new Error('Not enough candles yet to describe the market.')
           json(res, 200, { ok: true, data: r }); return
+        }
+      } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 300) }); return }
+      json(res, 404, { ok: false, error: 'not found' }); return
+    }
+    // Politician watcher: new congress disclosures for the owner's list, overlap with the linked account, the move already missed, and a paper idea. Sends no orders.
+    if (path.startsWith('/api/watcher')) {
+      const body = async () => JSON.parse((await readBody(req, 4 * 1024)) || '{}') as Record<string, unknown>
+      try {
+        if (path === '/api/watcher' && req.method === 'GET') {
+          const reports = polWatch.readReports(), bm = bigMoney.snapshot()
+          json(res, 200, { ok: true, data: { label: polWatch.LABEL, settings: polWatch.readSettings(), latest: reports[0] ?? null, recent: reports.slice(0, 10), quiver: bm.sources.quiver, filingsAsOf: bm.asOf || null, maxRiskPct: polWatch.MAX_RISK_PCT } }); return
+        }
+        if (path === '/api/watcher/settings' && req.method === 'POST') {
+          const before = polWatch.readSettings().names.join('|').toLowerCase()
+          const saved = polWatch.saveSettings(await body())
+          if (saved.names.join('|').toLowerCase() !== before) polWatch.resetMemory()  // a new list starts with the 14-day look-back, not a flood
+          json(res, 200, { ok: true, data: saved }); return
+        }
+        if (path === '/api/watcher/check' && req.method === 'POST') { json(res, 200, { ok: true, data: await runWatcher() }); return }
+        if (path === '/api/watcher/log' && req.method === 'POST') {
+          const key = String((await body()).key ?? '')
+          const item = polWatch.readReports().flatMap((r) => r.items).find((i) => i.key === key)
+          if (!item) throw new Error('That trade is no longer in the recent reports.')
+          if (item.plan.action !== 'PAPER IDEA') throw new Error('Only a paper idea can be logged as a plan.')
+          json(res, 200, { ok: true, data: upsertEntry(polWatch.journalEntryFor(item) as Parameters<typeof upsertEntry>[0]) }); return
         }
       } catch (e) { json(res, 200, { ok: false, error: (e as Error).message.slice(0, 300) }); return }
       json(res, 404, { ok: false, error: 'not found' }); return
@@ -1825,7 +1852,21 @@ const marketWatch = new MarketWatch({ alert: (title, body) => { eventLog.push('i
 // Big money: disclosed congress and insider trades, off-exchange volume, most-traded stocks.
 // Read-only, a few times a day, and never seen by the engine. Follows the same switch.
 const evidenceCache = new Map<string, { at: number; data: unknown }>()
-const bigMoney = new BigMoney({ alert: (title, body) => { eventLog.push('info', title, body, 'info') } })
+let watchedCongress: CongressTrade[] | null = null
+const bigMoney = new BigMoney({
+  alert: (title, body) => { eventLog.push('info', title, body, 'info') },
+  onRefresh: (rows) => { watchedCongress = rows; void runWatcher(true).catch(() => {}) },
+})
+// The politician watcher runs after every Big Money refresh and on demand. It reads; it never sends an order.
+async function runWatcher(bell = false): Promise<polWatch.WatchReport> {
+  const report = await polWatch.runCheck({
+    congress: () => watchedCongress ?? bigMoney.snapshot().congress,
+    portfolio: async () => { const p = await fetchPortfolio(); return { connected: p.connected, equity: p.account?.equity ?? null, positions: p.positions.map((x) => ({ symbol: x.symbol, qty: x.qty, side: x.side, marketValue: x.marketValue })), note: p.note } },
+    bars: async (tickers, start) => { const r = await fetchStockBars(tickers, '1Day', start); return r.ok ? r.bars : null },
+  })
+  if (bell && report.items.length) eventLog.push('info', 'Politician watcher', report.note, 'info')
+  return report
+}
 // The prediction desk: public Polymarket and Kalshi prices read by ten minds, paper positions sized by a capped
 // quarter-Kelly, settled only when the venue resolves. No wallet, no key, no order; the engine never sees it.
 // MRCASH_PREDICT=0 turns it off. MRCASH_PREDICT_AI=1 lets the ORACLE mind ask the model about flagged markets (costs money).
