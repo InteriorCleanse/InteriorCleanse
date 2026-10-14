@@ -24,15 +24,15 @@ text out of the top 250 px and bottom 340 px. Display type Bricolage Grotesque
 
 **Name field:** Picked | Real Fruit Protein
 
-**Bio (134 characters):**
+**Bio (118 characters):**
 
 ```
-Real fruit. Real protein.
-Whey isolate drink mix, flavored with freeze-dried fruit.
-Strawberry first. Waitlist: 20% off + free shaker.
+The fruit is in it.
+Clear whey drink mix, flavored with real fruit.
+Grams on the front. Lot 001 is small: get in line.
 ```
 
-**Avatar:** `brand/picked-mark.svg`, the leaf in a strawberry disc.
+**Avatar:** `brand/picked-mark.svg`, the "p" sprouting a leaf on deep green.
 
 ## Link in bio
 

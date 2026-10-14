@@ -22,7 +22,7 @@ FLAVORS = {
     'strawberry': ('Strawberry,', 'from strawberries.', '#F0505E', '#D93A4A', INK, '#FFD3D9',
                    lambda: D.strawberry_half(456, 566, 0.92)),
     'mango': ('Mango,', 'from mangoes.', '#FFB01F', '#F29A0C', INK, '#FFF0C7',
-              lambda: D.mango_cheek(462, 580, 0.86, cid='mcp')),
+              lambda: D.mango_cheek(456, 566, 0.78, cid='mcp')),
     'raspberry-lemon': ('Raspberry Lemon,', 'from raspberries and lemons.', '#B8185A', '#9C1049', CREAM, '#F9C6DA',
                         lambda: D.raspberry_lemon_cut(446, 584, 1.0)),
 }

@@ -26,6 +26,23 @@ even at 7% and gives a real signal for the second run. These are targets,
 not forecasts. Track the real number weekly and adjust the run size to the
 list you actually have, not the one you hoped for.
 
+## Three mechanics from the growth review
+
+1. **Lot 001, not a coupon.** The first run is small, so the line orders
+   first, in order. The site, bios and emails say "Get in line for Lot 001".
+   The founding price (20% off the first pouch plus a shaker) runs for a set
+   window. Never stack it on subscriptions.
+2. **Send us your label.** A form on the home page (`site/#send`) collects a
+   product name and an email; each submission joins the line and becomes a
+   numbered Real Fruit Test video. The person who sent it gets the link.
+   Score labels on facts only: is the fruit named, where it sits in the list,
+   and are grams on the front, yes or no.
+3. **Refer to move up the line.** The thanks page (`site/thanks/`) has a share
+   link today. Moving up the line for referrals needs a waitlist tool that syncs
+   to Klaviyo (Viral Loops, KickoffLabs or GetWaitlist; check current
+   pricing). Add it before week 5, count only confirmed signups, and track
+   referred signups ÷ all signups each Sunday (target 0.3).
+
 ## The engine
 
 What Bloom proved, done the Picked way (`BLOOM_LESSONS.md`):

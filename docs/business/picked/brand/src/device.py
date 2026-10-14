@@ -65,30 +65,50 @@ def strawberry_half(cx=200, cy=240, s=1.0):
     return ''.join(out)
 
 # ---------------------------------------------------------------- mango
+def _mango(cx, cy, k):
+    """Mango outline: a leaning kidney with a beak at the lower left."""
+    P = [(14, -146), (112, -150), (160, -40), (138, 62), (116, 160), (20, 196), (-56, 172),
+         (-118, 152), (-150, 96), (-128, 40), (-108, -6), (-124, -50), (-104, -100), (-84, -142)]
+    pts = [(cx + x*k, cy + y*k) for x, y in P]
+    d = f'M{f(pts[0][0])} {f(pts[0][1])} '
+    d += f'C{f(pts[1][0])} {f(pts[1][1])} {f(pts[2][0])} {f(pts[2][1])} {f(pts[3][0])} {f(pts[3][1])} '
+    d += f'C{f(pts[4][0])} {f(pts[4][1])} {f(pts[5][0])} {f(pts[5][1])} {f(pts[6][0])} {f(pts[6][1])} '
+    d += f'C{f(pts[7][0])} {f(pts[7][1])} {f(pts[8][0])} {f(pts[8][1])} {f(pts[9][0])} {f(pts[9][1])} '
+    d += f'C{f(pts[10][0])} {f(pts[10][1])} {f(pts[11][0])} {f(pts[11][1])} {f(pts[12][0])} {f(pts[12][1])} '
+    d += f'C{f(pts[13][0])} {f(pts[13][1])} {f(pts[0][0]-40*k)} {f(pts[0][1])} {f(pts[0][0])} {f(pts[0][1])}Z'
+    return d
+
 def mango_cheek(cx=200, cy=236, s=1.0, cid='mc'):
-    """A mango cheek, cut from the stone and scored in diamonds."""
-    def cheek(k, dx=0, dy=0):
-        x, y = cx + dx, cy + dy
-        return (f'M{f(x-20*k)} {f(y-150*k)} '
-                f'C{f(x+90*k)} {f(y-160*k)} {f(x+150*k)} {f(y-40*k)} {f(x+128*k)} {f(y+60*k)} '
-                f'C{f(x+104*k)} {f(y+160*k)} {f(x-30*k)} {f(y+190*k)} {f(x-104*k)} {f(y+120*k)} '
-                f'C{f(x-170*k)} {f(y+56*k)} {f(x-140*k)} {f(y-140*k)} {f(x-20*k)} {f(y-150*k)}Z')
-    out = [f'<defs><clipPath id="{cid}"><path d="{cheek(s*0.9, 4*s, 6*s)}"/></clipPath></defs>',
-           f'<path d="{cheek(s)}" fill="#7DA62E"/>',
-                      f'<path d="{cheek(s*0.95, 2*s, 3*s)}" fill="#F08A24"/>',
-           f'<path d="{cheek(s*0.9, 4*s, 6*s)}" fill="#FFB01F"/>',
-           f'<g clip-path="url(#{cid})" stroke="#E8890B" stroke-width="{f(5*s)}" stroke-linecap="round">']
-    step = 46*s
-    for i in range(-8, 9):
-        o = i*step
-        out.append(f'<line x1="{f(cx+o-260*s)}" y1="{f(cy-260*s)}" x2="{f(cx+o+260*s)}" y2="{f(cy+260*s)}"/>')
-        out.append(f'<line x1="{f(cx+o+260*s)}" y1="{f(cy-260*s)}" x2="{f(cx+o-260*s)}" y2="{f(cy+260*s)}"/>')
+    """A mango cut lengthwise: green and blush skin, gold flesh, and the flat
+    pale stone with its fibres."""
+    out = [f'<defs><clipPath id="{cid}"><path d="{_mango(cx, cy, s)}"/></clipPath></defs>',
+           f'<path d="{_mango(cx, cy, s)}" fill="#5E9A2E"/>',
+           f'<circle cx="{f(cx+150*s)}" cy="{f(cy+150*s)}" r="{f(200*s)}" fill="#E2552B" clip-path="url(#{cid})"/>',
+           f'<path d="{_mango(cx+2*s, cy+6*s, s*0.9)}" fill="#F08A24"/>',
+           f'<path d="{_mango(cx+3*s, cy+9*s, s*0.86)}" fill="#FFB01F"/>']
+    # the stone: a flat pale oval, leaning with the fruit, with fibres
+    sx, sy, rot = cx + 2*s, cy + 16*s, -14
+    out.append(f'<g transform="rotate({rot} {f(sx)} {f(sy)})">')
+    out.append(f'<ellipse cx="{f(sx)}" cy="{f(sy)}" rx="{f(52*s)}" ry="{f(112*s)}" fill="#FFD98A"/>')
+    out.append(f'<ellipse cx="{f(sx)}" cy="{f(sy)}" rx="{f(40*s)}" ry="{f(98*s)}" fill="#FFF0C7"/>')
+    for i in range(-3, 4):
+        yy = sy + i*26*s
+        w = 40*s*math.sqrt(max(0, 1 - (i*26/98)**2))
+        out.append(f'<path d="M{f(sx-w*0.8)} {f(yy+8*s)} Q{f(sx)} {f(yy-10*s)} {f(sx+w*0.8)} {f(yy+8*s)}" stroke="#F5C55A" '
+                   f'stroke-width="{f(3*s)}" stroke-linecap="round" fill="none"/>')
     out.append('</g>')
-    # soft highlight on the flesh
-    out.append(f'<path d="M{f(cx-90*s)} {f(cy-40*s)} C{f(cx-92*s)} {f(cy-100*s)} {f(cx-50*s)} {f(cy-128*s)} {f(cx-6*s)} {f(cy-128*s)}" '
-               f'stroke="#FFD27A" stroke-width="{f(12*s)}" stroke-linecap="round" fill="none"/>')
+    # glint on the flesh
+    out.append(f'<path d="M{f(cx+92*s)} {f(cy-40*s)} Q{f(cx+100*s)} {f(cy+10*s)} {f(cx+86*s)} {f(cy+54*s)}" stroke="#FFD27A" '
+               f'stroke-width="{f(9*s)}" stroke-linecap="round" fill="none"/>')
+    # stem and one leaf
+    tx, ty = cx + 14*s, cy - 146*s
+    out.append(f'<path d="M{f(tx)} {f(ty+4*s)} q{f(-2*s)} {f(-22*s)} {f(10*s)} {f(-36*s)}" stroke="{DEEP}" stroke-width="{f(9*s)}" stroke-linecap="round" fill="none"/>')
+    lx, ly = tx + 8*s, ty - 26*s
+    out.append(f'<path d="M{f(lx)} {f(ly)} C{f(lx+30*s)} {f(ly-44*s)} {f(lx+86*s)} {f(ly-40*s)} {f(lx+110*s)} {f(ly-18*s)} '
+               f'C{f(lx+80*s)} {f(ly+12*s)} {f(lx+30*s)} {f(ly+14*s)} {f(lx)} {f(ly)}Z" fill="{LEAF}"/>')
+    out.append(f'<path d="M{f(lx+6*s)} {f(ly-2*s)} Q{f(lx+56*s)} {f(ly-22*s)} {f(lx+100*s)} {f(ly-18*s)}" stroke="#8CC063" stroke-width="{f(3*s)}" fill="none" stroke-linecap="round"/>')
     defs = out.pop(0)
-    return defs + f'<g transform="rotate(-78 {f(cx)} {f(cy)})">' + ''.join(out) + '</g>'
+    return defs + ''.join(out)
 
 # ---------------------------------------------------------------- raspberry + lemon
 def lemon_wheel(cx, cy, r):
