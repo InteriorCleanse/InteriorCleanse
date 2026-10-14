@@ -146,8 +146,6 @@ export type SpiritBook = {
   imageAlt: string
   description: string
   amazonUrl: string
-  price: string
-  badge?: string
 }
 
 export type Article = {

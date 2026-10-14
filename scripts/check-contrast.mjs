@@ -111,25 +111,44 @@ async function measure(page, surface, base) {
   await el.scrollIntoViewIfNeeded()
   await page.waitForTimeout(700)
 
-  const raw = await el.boundingBox()
-  if (!raw || raw.width < 4 || raw.height < 4) return { ...surface, skipped: 'element has no box' }
-
-  // Clamp to the viewport so the clip is always inside the captured image.
+  // Sample only where the letters sit. An element's box can be far wider than
+  // its words (a full-width headline on a phone), and the backdrop behind
+  // empty space says nothing about legibility.
   const vp = page.viewportSize()
-  const box = {
-    x: Math.max(0, Math.min(raw.x, vp.width - 4)),
-    y: Math.max(0, Math.min(raw.y, vp.height - 4)),
-    width: Math.min(raw.width, vp.width - Math.max(0, raw.x)),
-    height: Math.min(raw.height, vp.height - Math.max(0, raw.y)),
-  }
-  if (box.width < 4 || box.height < 4) return { ...surface, skipped: 'element off-screen' }
+  const lines = await el.evaluate((root) => {
+    const out = []
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent.trim()) continue
+      const style = getComputedStyle(node.parentElement)
+      if (style.visibility === 'hidden' || style.display === 'none') continue
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      for (const r of range.getClientRects()) {
+        if (r.width > 1 && r.height > 1) out.push({ x: r.x, y: r.y, w: r.width, h: r.height })
+      }
+    }
+    return out
+  })
+  const boxes = lines
+    .map((r) => {
+      const x0 = Math.max(0, Math.floor(r.x))
+      const y0 = Math.max(0, Math.floor(r.y))
+      const x1 = Math.min(vp.width, Math.ceil(r.x + r.w))
+      const y1 = Math.min(vp.height, Math.ceil(r.y + r.h))
+      return { x0, y0, x1, y1 }
+    })
+    .filter((b) => b.x1 - b.x0 >= 2 && b.y1 - b.y0 >= 2)
+  if (!boxes.length) return { ...surface, skipped: 'no visible text on screen' }
 
   // Hide the interface so the sample reads the backdrop, not the type itself.
+  // The fixed site header floats over every backdrop, so it is always hidden.
+  const hide = [...surface.hide, '.site-header']
   await page.evaluate((sels) => {
     for (const s of sels) {
       document.querySelectorAll(s).forEach((e) => (e.style.visibility = 'hidden'))
     }
-  }, surface.hide)
+  }, hide)
   await page.waitForTimeout(400)
 
   // Whether a real photograph is actually behind this surface. Without one the
@@ -142,27 +161,33 @@ async function measure(page, surface, base) {
     return imgs.some((i) => i.complete && i.naturalWidth > 0 && i.style.display !== 'none')
   })
 
-  const png = PNG.sync.read(await page.screenshot({ clip: box }))
+  const png = PNG.sync.read(await page.screenshot())
 
   await page.evaluate((sels) => {
     for (const s of sels) {
       document.querySelectorAll(s).forEach((e) => (e.style.visibility = ''))
     }
-  }, surface.hide)
+  }, hide)
 
   let worst = Infinity
   let sum = 0
   let n = 0
   let thin = 0
-  for (let y = 1; y < png.height - 1; y += 2) {
-    for (let x = 1; x < png.width - 1; x += 2) {
+  // Device pixels per CSS pixel, so line boxes map onto the screenshot.
+  const scale = png.width / vp.width
+  const seen = new Set()
+  for (const b of boxes) for (let cy = b.y0; cy < b.y1; cy += 2) for (let cx = b.x0; cx < b.x1; cx += 2) {
+      const key = cy * 100000 + cx
+      if (seen.has(key)) continue
+      seen.add(key)
+      const x = Math.min(png.width - 1, Math.round(cx * scale))
+      const y = Math.min(png.height - 1, Math.round(cy * scale))
       const i = (png.width * y + x) << 2
       const c = contrast(BONE, [png.data[i], png.data[i + 1], png.data[i + 2]])
       sum += c
       n++
       if (c < AA_NORMAL) thin++
       if (c < worst) worst = c
-    }
   }
 
   return {
@@ -179,13 +204,15 @@ async function main() {
   const base =
     (args.includes('--url') ? args[args.indexOf('--url') + 1] : null) || 'http://localhost:3000'
   const asJson = args.includes('--json')
+  // --width 390 measures the phone layout; the scrims change below 900px.
+  const width = Number(args.includes('--width') ? args[args.indexOf('--width') + 1] : 1440) || 1440
 
   // A pinned Chromium where one is provided (the build agent), Playwright's own
   // install everywhere else (a laptop, a CI runner after `playwright install`).
   const { existsSync } = await import('node:fs')
   const pinned = process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium'
   const browser = await chromium.launch(existsSync(pinned) ? { executablePath: pinned } : {})
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const page = await browser.newPage({ viewport: { width, height: width < 900 ? 844 : 900 } })
   // Keep the modal and popup out of the way of every measurement.
   await page.addInitScript(() => {
     try {
@@ -210,7 +237,7 @@ async function main() {
   if (asJson) {
     console.log(JSON.stringify(results, null, 2))
   } else {
-    console.log('\nText-over-image contrast (against bone #F7F4EF)\n')
+    console.log(`\nText-over-image contrast (against bone #F7F4EF) at ${width}px wide\n`)
     for (const r of results) {
       if (r.skipped) {
         console.log(`  ${r.name.padEnd(26)} — skipped (${r.skipped})`)
