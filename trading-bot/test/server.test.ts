@@ -257,6 +257,19 @@ test('web research is off without a key, needs the CSRF token, and never trades'
   assert.match(r.error, /PERPLEXITY_API_KEY/)
 })
 
+test('the AI second opinion is off without a key, needs the CSRF token, and starts with NOT ENOUGH DATA', async () => {
+  const st = await getJson<{ data: { status: { available: boolean; reason: string; label: string }; recent: unknown[]; scoreboard: { sampleStatus: string; scored: number } } }>('/api/second-opinion')
+  assert.equal(st.data.status.available, false)
+  assert.match(st.data.status.reason, /ANTHROPIC_API_KEY/)
+  assert.match(st.data.status.label, /never trades/)
+  assert.equal(st.data.scoreboard.sampleStatus, 'NOT ENOUGH DATA')
+  const noToken = await fetch(`${bot.base}/api/second-opinion/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+  assert.equal(noToken.status, 403)
+  const r = await (await bot.post('/api/second-opinion/ask', {})).json() as { ok: boolean; error: string }
+  assert.equal(r.ok, false)
+  assert.match(r.error, /ANTHROPIC_API_KEY/)
+})
+
 test('memory reset works with the token and empties the ledger', async () => {
   const r = await (await bot.post('/api/memory/reset')).json() as { ok: boolean }
   assert.equal(r.ok, true)
