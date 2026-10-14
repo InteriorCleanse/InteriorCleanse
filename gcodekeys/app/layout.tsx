@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { MatrixRain } from '@/components/MatrixRain'
 import { CartProvider } from '@/components/CartProvider'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -10,7 +9,7 @@ import { Toast } from '@/components/Toast'
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gcodekeys.com'
 
 export const viewport: Viewport = {
-  themeColor: '#020604',
+  themeColor: '#070708',
 }
 
 export const metadata: Metadata = {
@@ -39,12 +38,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
         />
       </head>
       <body>
         <CartProvider>
-          <MatrixRain />
           <div id="veil" aria-hidden="true" />
           <div className="grain" aria-hidden="true" />
           <SiteHeader />

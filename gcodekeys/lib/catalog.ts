@@ -22,12 +22,12 @@ export const PRODUCTS: Product[] = [
 
 // Fob configurator options.
 export const SHELL_COLORS = [
-  { name: 'Neon green', hex: '#15e37a' },
-  { name: 'Noir black', hex: '#141414' },
-  { name: 'Hot pink', hex: '#ff2e88' },
-  { name: 'Cyber blue', hex: '#3da5ff' },
-  { name: 'Amber', hex: '#ffcf4d' },
-  { name: 'Silver', hex: '#e6e6e6' },
+  { name: 'Carbon black', hex: '#15161a' },
+  { name: 'Platinum', hex: '#cfd4da' },
+  { name: 'Champagne gold', hex: '#c9a86a' },
+  { name: 'Racing green', hex: '#17432e' },
+  { name: 'Rosso red', hex: '#b31425' },
+  { name: 'Midnight blue', hex: '#16294d' },
 ]
 
 export const FINISHES = [

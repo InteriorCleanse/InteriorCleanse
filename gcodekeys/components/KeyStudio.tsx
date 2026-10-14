@@ -67,7 +67,7 @@ export function KeyStudio() {
       <div className="studio reveal">
         <div className="studio-stage">
           <div className="forge" data-fob>
-            <KeyForge3D family={ready ? family : 'smart'} color={color.hex} finish={finish.id} engrave={engrave || makeName} />
+            <KeyForge3D family={ready ? family : 'smart'} color={color.hex} finish={finish.id} engrave={engrave || makeName} accent="#c9a86a" />
             <div className="forge-hint">DRAG TO ROTATE · SCROLL TO ZOOM</div>
           </div>
           <div className="stage-caption">
