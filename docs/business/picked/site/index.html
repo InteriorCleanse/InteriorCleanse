@@ -3,26 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Picked | Protein that tastes like real fruit</title>
-<meta name="description" content="Picked is a 20g whey protein drink made with real fruit. Strawberry from strawberries. Join the waitlist for the first batch.">
+<title>Picked | The fruit is in it.</title>
+<meta name="description" content="Picked is a clear whey protein drink mix flavored mainly by real fruit. The grams of fruit go on the front of the pack and every lot's lab results go online. Get in line for Lot 001.">
 <link rel="canonical" href="https://pickedprotein.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Picked">
-<meta property="og:title" content="Picked | Protein that tastes like real fruit">
-<meta property="og:description" content="A 20g whey protein drink made with real fruit. Join the waitlist for the first batch.">
+<meta property="og:title" content="Picked | The fruit is in it.">
+<meta property="og:description" content="A clear whey protein drink mix flavored mainly by real fruit, with the grams on the front. Get in line for Lot 001.">
 <meta property="og:url" content="https://pickedprotein.com/">
 <meta property="og:image" content="https://pickedprotein.com/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#FFF7EC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#14110E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1F4D2C">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <link rel="preload" href="assets/fonts/bricolage-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
-<style>.hero-art:not(:has(.photo)) .pouch { display: none; }</style>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
  {"@type":"Organization","name":"Picked","url":"https://pickedprotein.com/","logo":"https://pickedprotein.com/assets/apple-touch-icon.png","email":"hello@pickedprotein.com"},
@@ -35,13 +33,12 @@
 <header class="site-head">
   <div class="wrap">
     <a class="logo" href="./" aria-label="Picked home">
-      <img class="logo-light" src="assets/picked-wordmark.svg" alt="picked" width="124" height="40">
-      <img class="logo-dark" src="assets/picked-wordmark-reverse.svg" alt="picked" width="124" height="40">
+      <img class="logo-dark" src="assets/picked-wordmark-reverse.svg" alt="picked" width="128" height="48">
     </a>
     <nav aria-label="Main">
-      <a class="hide-sm" href="#flavors">Flavors</a>
+      <a class="hide-sm" href="lots/">Lot Book</a>
       <a class="hide-xs" href="real-fruit-test/">Real Fruit Test</a>
-      <a class="btn sm" href="#join">Join the waitlist</a>
+      <a class="btn sm" href="#join">Get in line</a>
     </nav>
   </div>
 </header>
@@ -50,54 +47,50 @@
 <section class="hero" aria-labelledby="hero-h">
   <div class="wrap">
     <div class="hero-copy">
-      <span class="eyebrow">Real fruit protein drink mix</span>
-      <h1 id="hero-h">Protein that tastes like it was just <em>picked</em>.</h1>
-      <p class="lede">20g of whey protein, flavored with real fruit. Shake it with cold water. It drinks like juice.</p>
-      <form class="signup" novalidate>
+      <h1 id="hero-h">The fruit is in it.</h1>
+      <p class="lede">A clear whey protein drink mix, flavored mainly by freeze-dried fruit. The grams of fruit go on the front of every pack. Every lot's lab results go online.</p>
+      <form class="signup" novalidate data-source="hero" data-thanks="thanks/">
         <label class="field-label" for="email-hero">Email address</label>
         <div class="row">
           <input id="email-hero" name="email" type="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="help-hero">
-          <button class="btn" type="submit">Join the waitlist</button>
+          <button class="btn" type="submit">Get in line</button>
         </div>
-        <p class="help" id="help-hero">Founding members get 20% off their first pouch and a free shaker. A few emails while we make it: the founding offer, the flavor vote, a monthly note from the bench, and the ship date. Unsubscribe anytime.</p>
+        <p class="help" id="help-hero">Lot 001 is the first batch, and it's small. The line orders first, in order. Founding price: 20% off your first pouch, plus a free shaker. A few emails while we make it. Unsubscribe anytime.</p>
         <p class="status" role="status" aria-live="polite"></p>
       </form>
     </div>
-    <figure class="hero-fig">
-    <div class="hero-art">
-      <img class="photo" src="assets/img/strawberry-glass.png" alt="Illustration: strawberries and a pink fruit drink. Not the Picked product." width="896" height="1120" fetchpriority="high" onerror="this.remove()">
-      <img class="pouch" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch" width="300" height="430">
-      <img class="pouch-solo" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch" width="420" height="602">
-    </div>
-    <figcaption class="concept">Concept pouch, not final packaging.<span class="ai-note"> Photo is AI-generated mood imagery, not our drink.</span></figcaption>
+    <figure class="hero-pack">
+      <img class="pouch" data-flavor-pouch data-base="assets/" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch: a strawberry-red pack with a green leafy top, a cut strawberry and the fruit sticker" width="440" height="631" fetchpriority="high">
+      <figcaption class="concept">Concept pouch, not final packaging.</figcaption>
     </figure>
   </div>
 </section>
 
-<section class="band" id="flavors" aria-labelledby="flavors-h">
+<section class="flavors" id="flavors" aria-labelledby="flavors-h">
   <div class="wrap">
     <div>
-      <h2 id="flavors-h">If it says mango, there's mango in it.</h2>
-      <p>Each scoop will be flavored mainly by freeze-dried fruit, and the pack will print how many grams. Strawberry ships first. You pick what's next.</p>
+      <h2 id="flavors-h" class="lockup"><span class="name" data-flavor-name>Strawberry,</span><span class="from" data-flavor-from>from strawberries.</span></h2>
+      <p class="intro">Every flavor is named for its fruit, and the fruit is the main flavor ingredient. Strawberry is first. You pick what comes next.</p>
       <div class="tabs" role="tablist" aria-label="Flavors">
         <button class="tab" role="tab" id="tab-strawberry" data-flavor="strawberry" aria-selected="true" aria-controls="flavor-panel">Strawberry</button>
         <button class="tab" role="tab" id="tab-mango" data-flavor="mango" aria-selected="false" aria-controls="flavor-panel" tabindex="-1">Mango</button>
         <button class="tab" role="tab" id="tab-raspberry-lemon" data-flavor="raspberry-lemon" aria-selected="false" aria-controls="flavor-panel" tabindex="-1">Raspberry Lemon</button>
       </div>
-      <div id="flavor-panel" role="tabpanel" aria-live="polite">
+      <div id="flavor-panel" role="tabpanel" aria-labelledby="tab-strawberry">
         <p data-flavor-line>Sweet, a little tart, and the seedy bit you get from a real one.</p>
-        <dl class="facts" style="margin-top:24px">
+        <dl class="facts">
           <div><dt>Flavored by</dt><dd data-flavor-fruit>Freeze-dried strawberries</dd></div>
-          <div><dt>Status</dt><dd data-flavor-status>First batch</dd></div>
+          <div><dt>Status</dt><dd data-flavor-status>Lot 001</dd></div>
           <div><dt>Protein</dt><dd>20g whey isolate (planned)</dd></div>
           <div><dt>Sweetened with</dt><dd>Monk fruit and/or stevia. No sucralose.</dd></div>
         </dl>
         <div class="actions"><button class="btn" type="button" data-flavor-vote hidden></button></div>
       </div>
     </div>
-    <figure class="stage">
-      <img data-flavor-pouch data-base="assets/" src="assets/pouch-strawberry.svg" alt="Concept of the Picked Strawberry pouch" width="400" height="573">
-      <figcaption class="concept">Concept art, not final packaging.</figcaption>
+    <figure class="stage" data-stage>
+      <span class="halo" aria-hidden="true"></span>
+      <img class="fruit" data-flavor-art data-base="assets/fruit/" src="assets/fruit/strawberry.svg" alt="A strawberry cut in half" width="400" height="460">
+      <img class="sticker" data-flavor-sticker data-base="assets/sticker/" src="assets/sticker/sticker-strawberry.svg" alt="The Picked fruit sticker: the grams of real strawberry in every scoop, printed once the recipe is final" width="388" height="276">
     </figure>
   </div>
 </section>
@@ -105,9 +98,8 @@
 <section class="labels" aria-labelledby="labels-h">
   <div class="wrap">
     <div class="head">
-      <span class="eyebrow">Turn the tub around</span>
       <h2 id="labels-h">Plenty of fruit proteins have never met a fruit.</h2>
-      <p>The front says strawberry. The back says what's really doing the work.</p>
+      <p>The front says strawberry. Turn it around: the back says what's really doing the work.</p>
     </div>
     <div class="label-pair">
       <div>
@@ -123,13 +115,32 @@
         <div class="panel ours">
           <div class="t">Other ingredients</div>
           <p>Whey protein isolate (milk), <mark>freeze-dried strawberry ([x]%)</mark>, citric acid, <mark>monk fruit and/or stevia extract</mark>.</p>
-          <p class="cap">Final list comes from the finished formula. The fruit number goes on the front of the pack.</p>
+          <p class="cap">The final list comes from the finished formula. The fruit number goes on the front.</p>
         </div>
       </div>
     </div>
-    <div class="more">
-      <a class="btn ghost" href="real-fruit-test/">Take the Real Fruit Test</a>
-      <span class="muted">Five label checks, about a minute.</span>
+
+    <div class="send" id="send">
+      <div>
+        <h3>Send us your label. We'll read it on camera.</h3>
+        <p>Tell us the protein in your cupboard. We'll find the fruit in it, fairly and by the label alone, in a Real Fruit Test video. You'll get the link when it's up.</p>
+        <div class="more"><a class="btn ghost sm" href="real-fruit-test/">Read the Real Fruit Test</a><span class="fine">Five label checks, about a minute.</span></div>
+      </div>
+      <form class="signup" novalidate data-source="send-your-label" data-thanks="thanks/?from=label">
+        <div class="two">
+          <div>
+            <label class="field-label" for="label-product">Product and flavor</label>
+            <input id="label-product" name="label_product" type="text" autocomplete="off" placeholder="Brand, flavor" required maxlength="120">
+          </div>
+          <div>
+            <label class="field-label" for="email-label">Email address</label>
+            <input id="email-label" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" name="age_18_plus" value="yes" required> <span>I'm 18 or older, and you can add me to the Lot 001 line.</span></label>
+        <div><button class="btn" type="submit">Send it</button></div>
+        <p class="status" role="status" aria-live="polite"></p>
+      </form>
     </div>
   </div>
 </section>
@@ -139,14 +150,15 @@
     <div class="std-head">
       <h2 id="standard-h">The Picked Standard</h2>
       <p>Five promises, written so you can check every one. Breaking any of them would be obvious, so we won't.</p>
-      <a class="btn ghost" href="lots/">Open the Lot Book</a>
+      <a class="btn cream" href="lots/">Open the Lot Book</a>
+      <img class="sticker-blank" src="assets/sticker/sticker-blank.svg" alt="A blank fruit sticker reading question mark grams: we print it when it's real" width="388" height="276">
     </div>
     <ol class="std-list">
-      <li><b>The fruit is in it.</b> Real fruit is the main flavor ingredient in every flavored product.</li>
-      <li><b>The grams are on the front.</b> Every pack prints how much real fruit is in a serving.</li>
-      <li><b>No sucralose, no acesulfame K, no artificial colors.</b> Sweetened with monk fruit and/or stevia, colored by the fruit.</li>
-      <li><b>Every lot is tested.</b> An independent lab checks each batch for heavy metals and microbiology before it ships.</li>
-      <li><b>The results are public.</b> Every lot's results go in the Lot Book, one scan from the QR code on the pack.</li>
+      <li><b>The fruit is in it.</b><span>Real fruit is the main flavor ingredient in every flavored product.</span></li>
+      <li><b>The grams are on the front.</b><span>Every pack prints how much real fruit is in a serving, on the sticker.</span></li>
+      <li><b>No sucralose. No acesulfame K. No artificial colors.</b><span>Sweetened with monk fruit and/or stevia, colored by the fruit.</span></li>
+      <li><b>Every lot will be tested.</b><span>An independent lab checks each batch for heavy metals and microbiology before it ships.</span></li>
+      <li><b>The results go public.</b><span>Every lot's results go in the <a href="lots/">Lot Book</a>, one scan from the QR code on the pack.</span></li>
     </ol>
   </div>
 </section>
@@ -154,28 +166,13 @@
 <section class="ritual" aria-labelledby="ritual-h">
   <div class="wrap">
     <div>
-      <h2 id="ritual-h"><span>Scoop.</span><span>Pour.</span><span>Shake.</span></h2>
-      <p>One scoop, 10 to 12 oz of cold water, about 10 seconds in a shaker. It looks like juice because there's fruit in it.</p>
+      <h2 id="ritual-h"><span>Cold water.</span><span>Ten seconds.</span><span>Cloudy on purpose.</span></h2>
+      <p>One scoop in 10 to 12 oz of cold water, about ten seconds in a shaker. It drinks light, like juice, and it's a little cloudy, because real fruit is.</p>
     </div>
     <figure>
-      <img class="photo" src="assets/img/runner-shaker.png" alt="Illustration: a runner after a morning run. Not the Picked product." width="896" height="1120" onerror="this.remove()">
-      <img class="shaker" src="assets/shaker.svg" alt="Concept of the Picked shaker" width="180" height="360">
-      <figcaption class="concept">Concept shaker.<span class="ai-note"> Photo is AI-generated mood imagery.</span></figcaption>
+      <img class="shaker" src="assets/shaker.svg" alt="Concept of the Picked shaker" width="260" height="520">
+      <figcaption class="concept">Concept shaker.</figcaption>
     </figure>
-  </div>
-</section>
-
-<section class="stock" aria-labelledby="stock-h">
-  <div class="wrap">
-    <figure class="display-fig">
-      <img src="assets/counter-display.svg" alt="Concept of a Picked counter display holding single-serve sticks" width="900" height="760">
-      <figcaption class="concept">Concept art, not final packaging.</figcaption>
-    </figure>
-    <div>
-      <h2 id="stock-h">Run a gym, studio or café?</h2>
-      <p>Single-serve sticks at the counter for $3.99. We bring cold samples and run the first tasting with your members.</p>
-      <p class="email">Email <code>hello@pickedprotein.com</code></p>
-    </div>
   </div>
 </section>
 
@@ -183,47 +180,59 @@
   <div class="wrap">
     <h2 id="faq-h">Questions, answered.</h2>
     <div>
-      <details><summary>When can I buy it?</summary><p>We plan to ship the first Strawberry batch in early 2027. The waitlist hears first and gets founding pricing.</p></details>
-      <details><summary>Is it a clear protein?</summary><p>It's designed to mix like a clear whey: light, juice-like, not milky. It's a little cloudy, because real fruit is.</p></details>
+      <details><summary>When can I buy it?</summary><p>We plan to open pre-orders for Lot 001 in early 2027, to the line first, in the order people joined. The line hears the date before anyone else.</p></details>
+      <details><summary>What's Lot 001?</summary><p>The first batch of Picked Strawberry. It's a small run, so the line gets first go. Its lab results post in the Lot Book before a single pouch ships.</p></details>
+      <details><summary>Is it a clear protein?</summary><p>It's designed to mix like a clear whey: light and juice-like, not milky. It's a little cloudy, because real fruit is.</p></details>
       <details><summary>How is it sweetened?</summary><p>With the fruit, plus monk fruit and/or stevia. No sucralose, no acesulfame potassium, no aspartame.</p></details>
       <details><summary>What's in it besides fruit?</summary><p>Whey protein isolate, so it contains milk. The full ingredient list goes up here when the recipe is final.</p></details>
-      <details><summary>How do you test it?</summary><p>Every batch will be lab tested for heavy metals, and a QR code on the pack will open that batch's results. First results post when the first batch is made.</p></details>
-      <details><summary>How much does it cost?</summary><p>The plan is $54.99 for a 20-serving pouch, or 15% less on subscription. Founding members get 20% off their first pouch. Founding pricing runs for a set window once pre-orders open, and the waitlist gets the date first.</p></details>
+      <details><summary>How much will it cost?</summary><p>The plan is $54.99 for a 20-serving pouch, or 15% less on subscription. The founding price is 20% off your first pouch plus a free shaker, for a set window once pre-orders open. The line gets the date first.</p></details>
     </div>
   </div>
 </section>
 
 <section class="closer" id="join" aria-labelledby="join-h">
   <div class="wrap">
-    <h2 id="join-h">Be first in line for the first batch.</h2>
-    <form class="signup" novalidate>
+    <div>
+    <h2 id="join-h">Get in line for Lot 001.</h2>
+    <form class="signup" novalidate data-source="closer" data-thanks="thanks/">
       <label class="field-label" for="email-join">Email address</label>
       <div class="row">
         <input id="email-join" name="email" type="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="help-join">
-        <button class="btn" type="submit">Join the waitlist</button>
+        <button class="btn" type="submit">Get in line</button>
       </div>
       <fieldset class="vote">
         <legend>Which flavor should come after Strawberry?</legend>
         <label class="chip"><input type="radio" name="next_flavor" value="mango" id="vote-mango"><span>Mango</span></label>
         <label class="chip"><input type="radio" name="next_flavor" value="raspberry-lemon" id="vote-raspberry-lemon"><span>Raspberry Lemon</span></label>
       </fieldset>
-      <p class="help" id="help-join">A few emails while we make it: the founding offer, the flavor vote, a monthly note from the bench, and the ship date. Unsubscribe anytime.</p>
+      <p class="help" id="help-join">A few emails while we make it: the flavor vote, a monthly note from the bench, and the date pre-orders open. Unsubscribe anytime.</p>
       <p class="status" role="status" aria-live="polite"></p>
     </form>
+    </div>
+    <figure class="lineup">
+      <img src="assets/pouch-mango.svg" alt="" width="300" height="430">
+      <img src="assets/pouch-raspberry-lemon.svg" alt="" width="300" height="430">
+      <img src="assets/pouch-strawberry.svg" alt="Concepts of the three Picked pouches: Strawberry first, then Mango and Raspberry Lemon by vote" width="300" height="430">
+      <figcaption class="concept">Concept pouches. Strawberry first; the next flavor is up to the line.</figcaption>
+    </figure>
   </div>
 </section>
 </main>
 
 <footer class="site-foot">
   <div class="wrap">
-    <span>© 2026 Picked. Contains milk.</span>
-    <nav aria-label="Footer">
-      <a href="real-fruit-test/">Real Fruit Test</a>
-      <a href="lots/">Lot Book</a>
-      <a href="privacy/">Privacy</a>
-      <a href="https://www.instagram.com/pickedprotein/">Instagram</a>
-      <a href="https://www.tiktok.com/@pickedprotein">TikTok</a>
-    </nav>
+    <p class="statement">The fruit is <span>in it.</span></p>
+    <p class="stock">Run a gym, studio or café? Single-serve sticks for the counter are planned. Email <a href="mailto:hello@pickedprotein.com">hello@pickedprotein.com</a>.</p>
+    <div class="base">
+      <span>© 2026 Picked. Contains milk.</span>
+      <nav aria-label="Footer">
+        <a href="real-fruit-test/">Real Fruit Test</a>
+        <a href="lots/">Lot Book</a>
+        <a href="privacy/">Privacy</a>
+        <a href="https://www.instagram.com/pickedprotein/">Instagram</a>
+        <a href="https://www.tiktok.com/@pickedprotein">TikTok</a>
+      </nav>
+    </div>
   </div>
 </footer>
 <script src="assets/site.js" defer></script>

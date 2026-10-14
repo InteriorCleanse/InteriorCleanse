@@ -61,12 +61,12 @@ without a license can get a takedown.
 
 ### Bios (character counts checked)
 
-**Instagram** (134 of 150)
+**Instagram** (118 of 150)
 
 ```
-Real fruit. Real protein.
-Whey isolate drink mix, flavored with freeze-dried fruit.
-Strawberry first. Waitlist: 20% off + free shaker.
+The fruit is in it.
+Clear whey drink mix, flavored with real fruit.
+Grams on the front. Lot 001 is small: get in line.
 ```
 
 **TikTok** (75 of 80)
@@ -128,7 +128,7 @@ profile updates.
 
 | Use | File | Size |
 | --- | --- | --- |
-| Profile picture, every platform | `brand/png/picked-mark-1024.png` (the leaf in a strawberry circle) | 1024 × 1024 |
+| Profile picture, every platform | `brand/png/picked-mark-1024.png` (the "p" sprouting a leaf, on deep green) | 1024 × 1024 |
 | YouTube banner | `brand/social/profile/youtube-banner-2560x1440.png` | 2560 × 1440; the text sits inside YouTube's 1546 × 423 safe area |
 | X header | `brand/social/profile/x-header-1500x500.png` | 1500 × 500 |
 | Facebook cover | `brand/social/profile/facebook-cover-1640x624.png` | 1640 × 624 |

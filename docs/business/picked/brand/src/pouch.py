@@ -7,7 +7,7 @@ W,vby,vbh,icx,by=[float(v) for v in meta.split('|')]
 INK='#1E1A17'; CREAM='#FFF7EC'
 def wordmark(x,y,width,ink,leaf):
     s=width/W
-    return f'<g transform="translate({x} {y}) scale({s:.4f})"><path fill="{ink}" d="{word}"/><g fill="{leaf}">{lf}</g></g>'
+    return f'<g transform="translate({x} {y}) scale({s:.4f})"><path fill="{ink}" d="{word}"/><g fill="{leaf}">{lf.replace("LEAFC", leaf)}</g></g>'
 def strawberry(cx,cy,s=1):
     seeds=''.join(f'<ellipse cx="{cx+dx*s}" cy="{cy+dy*s}" rx="{3.2*s}" ry="{5*s}" fill="#FFE9A8" transform="rotate({r} {cx+dx*s} {cy+dy*s})"/>' for dx,dy,r in [(-40,-20,-20),(-10,-30,0),(22,-25,15),(48,-12,25),(-50,15,-25),(-20,8,-8),(12,5,8),(42,20,20),(-30,45,-15),(0,40,0),(28,50,12),(-8,75,-5),(15,78,6)])
     body=f'<path d="M{cx-78*s} {cy-35*s} C{cx-90*s} {cy+30*s} {cx-30*s} {cy+110*s} {cx} {cy+118*s} C{cx+30*s} {cy+110*s} {cx+90*s} {cy+30*s} {cx+78*s} {cy-35*s} C{cx+60*s} {cy-70*s} {cx-60*s} {cy-70*s} {cx-78*s} {cy-35*s}Z" fill="#C81E3A"/>'
@@ -63,6 +63,9 @@ def pouch(key,name,col,ink,soft,fruit,fruitline):
 </g>
 <path d="M40 58 l10 6 l-10 6" fill="#fff" opacity=".7"/>
 </svg>'''
-for f in FLAVORS:
-    open(f'{OUT}/pouch-{f[0]}.svg','w').write(pouch(*f))
-print('ok')
+# v1 pouch fronts. The current fronts come from pack.py; this module now only
+# supplies shared helpers (wordmark, fruit, palette) unless run directly.
+if __name__ == '__main__':
+    for f in FLAVORS:
+        open(f'{OUT}/pouch-{f[0]}-v1.svg','w').write(pouch(*f))
+    print('ok')

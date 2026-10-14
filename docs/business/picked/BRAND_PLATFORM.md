@@ -48,12 +48,17 @@ and never change them casually.
 
 | Asset | What it is | Where it shows up |
 | --- | --- | --- |
-| **The leaf on the i** | The wordmark's one flourish | Logo, favicon, scoop, stickers |
-| **The fruit number** | "[x]g real strawberry" set big on the front | Pack, ads, shelf talker, product page hero |
+| **The fruit sticker** | A produce-style oval with the grams of real fruit and the lot number | Every pack front, sticks, the site, social, real stickers in every box |
+| **The green crown** | A deep-green leafy top on every pack and page | Pouches, sticks, the site header, banners |
+| **Cut-open fruit** | Each fruit drawn sliced, showing what's inside | Packs, site, social, sampling cups |
+| **The leaf on the i** | The wordmark's one flourish, sprouting on a stalk | Logo, the "p" mark, favicon, scoop |
+| **The fruit number** | "[x]g real strawberry", the biggest number on the pack | The sticker, ads, shelf talker, product page hero |
 | **Flavor colors** | Each flavor owns one color | Pack, site switcher, social, stick packs |
 | **The Lot Book** | The public page of lot results | QR on pack, site footer, every "is it clean?" reply |
 | **The Real Fruit Test** | Five checks to read any label | Lead magnet, TikTok series, store demos |
 | **"Picked" as a verb** | "Picked for you", "freshly picked", "you picked Mango" | Emails, votes, launches |
+
+**Master line:** "The fruit is in it." Full theme and competitor map: `BRAND_THEME.md`.
 
 ## Community: First Picks
 

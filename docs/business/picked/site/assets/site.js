@@ -1,4 +1,4 @@
-/* Picked site script: flavor switcher and waitlist signup. No dependencies. */
+/* Picked site script: flavor switcher, signup forms (Lot 001 line, send-your-label), source tracking. No dependencies. */
 
 /* Klaviyo public identifiers. Replace both. They are public, not secret.
    Site key: Klaviyo > Settings > Account > API keys (6 characters).
@@ -9,15 +9,19 @@ const KLAVIYO_LIST_ID = "REPLACE_WITH_LIST_ID";
 const FLAVORS = {
   strawberry: {
     name: "Strawberry",
+    from: "from strawberries.",
     pouch: "pouch-strawberry.svg",
+    art: "strawberry.svg", artAlt: "A strawberry cut in half",
     fruit: "Freeze-dried strawberries",
-    status: "First batch",
+    status: "Lot 001",
     line: "Sweet, a little tart, and the seedy bit you get from a real one.",
     vote: null
   },
   mango: {
     name: "Mango",
+    from: "from mangoes.",
     pouch: "pouch-mango.svg",
+    art: "mango.svg", artAlt: "A mango cheek, scored and ready to eat",
     fruit: "Freeze-dried mango",
     status: "Up for a vote",
     line: "Ripe, round and sunny. The flavor of the fruit, not of a smoothie chain.",
@@ -25,7 +29,9 @@ const FLAVORS = {
   },
   "raspberry-lemon": {
     name: "Raspberry Lemon",
+    from: "from raspberries and lemons.",
     pouch: "pouch-raspberry-lemon.svg",
+    art: "raspberry-lemon.svg", artAlt: "A raspberry and a lemon slice",
     fruit: "Freeze-dried raspberries, lemon juice",
     status: "Up for a vote",
     line: "Bright raspberry with a squeeze of lemon. The tart one.",
@@ -49,18 +55,31 @@ function setFlavor(key, { focus = false } = {}) {
     if (on && focus) tab.focus();
   });
 
-  const img = document.querySelector("[data-flavor-pouch]");
-  if (img && !img.src.endsWith(f.pouch)) {
+  const pouch = document.querySelector("[data-flavor-pouch]");
+  if (pouch && !pouch.src.endsWith(f.pouch)) {
+    pouch.src = pouch.dataset.base + f.pouch;
+    pouch.alt = `Concept of the Picked ${f.name} pouch: a green leafy top, the cut fruit and the fruit sticker`;
+  }
+  const stage = document.querySelector("[data-stage]");
+  const art = document.querySelector("[data-flavor-art]");
+  const sticker = document.querySelector("[data-flavor-sticker]");
+  if (stage && art && !art.src.endsWith(f.art)) {
     const swap = () => {
-      img.src = img.dataset.base + f.pouch;
-      img.alt = `Concept of the Picked ${f.name} pouch`;
-      requestAnimationFrame(() => img.classList.remove("is-swapping"));
+      art.src = art.dataset.base + f.art; art.alt = f.artAlt;
+      if (sticker) {
+        sticker.src = `${sticker.dataset.base}sticker-${key}.svg`;
+        sticker.alt = `The Picked fruit sticker: the grams of real ${f.name.toLowerCase()} in every scoop, printed once the recipe is final`;
+      }
+      requestAnimationFrame(() => stage.classList.remove("is-swapping"));
     };
     if (prefersReduced) swap();
-    else { img.classList.add("is-swapping"); setTimeout(swap, 220); }
+    else { stage.classList.add("is-swapping"); setTimeout(swap, 200); }
   }
   const set = (sel, text) => { const el = document.querySelector(sel); if (el) el.textContent = text; };
-  set("[data-flavor-name]", f.name);
+  set("[data-flavor-name]", `${f.name},`);
+  set("[data-flavor-from]", f.from);
+  const panel = document.getElementById("flavor-panel");
+  if (panel) panel.setAttribute("aria-labelledby", `tab-${key}`);
   set("[data-flavor-fruit]", f.fruit);
   set("[data-flavor-status]", f.status);
   set("[data-flavor-line]", f.line);
@@ -101,6 +120,21 @@ function initSwitcher() {
   });
 }
 
+/* Where a visitor came from: UTM tags and a ?ref= code, kept for this visit only. */
+const SOURCE_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ref"];
+function captureSource() {
+  const params = new URLSearchParams(location.search);
+  SOURCE_KEYS.forEach((k) => {
+    const v = params.get(k);
+    if (v) { try { sessionStorage.setItem(`picked-${k}`, v.slice(0, 80)); } catch (e) { /* fine */ } }
+  });
+}
+function readSource() {
+  const out = {};
+  SOURCE_KEYS.forEach((k) => { try { const v = sessionStorage.getItem(`picked-${k}`); if (v) out[k] = v; } catch (e) { /* fine */ } });
+  return out;
+}
+
 function initSignup() {
   document.querySelectorAll("form.signup").forEach((form) => {
     form.addEventListener("submit", async (event) => {
@@ -118,12 +152,27 @@ function initSignup() {
         return;
       }
       input.removeAttribute("aria-invalid");
+      for (const field of form.querySelectorAll("input[required]:not([type=email])")) {
+        const empty = field.type === "checkbox" ? !field.checked : !field.value.trim();
+        if (empty) {
+          say(field.type === "checkbox" ? "Tick the box to confirm you're 18 or older." : "Tell us which product, so we know what to read.", "error");
+          field.setAttribute("aria-invalid", "true");
+          field.focus();
+          return;
+        }
+        field.removeAttribute("aria-invalid");
+      }
       if (KLAVIYO_COMPANY_ID.startsWith("REPLACE")) {
-        say("The waitlist opens soon. For now, email hello@pickedprotein.com and we'll add you.", "error");
+        say("The line opens soon. For now, email hello@pickedprotein.com and we'll add you.", "error");
         return;
       }
+      const properties = { waitlist_terms: "updates", next_flavour: vote ? vote.value : null, signup_page: location.pathname, signup_form: form.dataset.source || "site", ...readSource() };
+      form.querySelectorAll("input[name]:not([type=email]):not([name=next_flavor])").forEach((field) => {
+        if (field.type === "checkbox") properties[field.name] = field.checked ? field.value : null;
+        else if (field.value.trim()) properties[field.name] = field.value.trim().slice(0, 120);
+      });
       form.classList.add("is-busy");
-      say("Adding you...");
+      say("Adding you\u2026");
       try {
         const res = await fetch(`https://a.klaviyo.com/client/subscriptions/?company_id=${KLAVIYO_COMPANY_ID}`, {
           method: "POST",
@@ -132,18 +181,16 @@ function initSignup() {
             data: {
               type: "subscription",
               attributes: {
-                profile: { data: { type: "profile", attributes: {
-                  email,
-                  properties: { waitlist_terms: "updates", next_flavour: vote ? vote.value : null, signup_page: location.pathname }
-                } } },
-                custom_source: "pickedprotein.com waitlist"
+                profile: { data: { type: "profile", attributes: { email, properties } } },
+                custom_source: `pickedprotein.com ${form.dataset.source || "waitlist"}`
               },
               relationships: { list: { data: { type: "list", id: KLAVIYO_LIST_ID } } }
             }
           })
         });
         if (!res.ok) throw new Error(String(res.status));
-        say("You're on the list. Check your inbox to confirm.");
+        if (form.dataset.thanks) { location.href = form.dataset.thanks; return; }
+        say("You're in line. Check your inbox to confirm.");
         form.reset();
       } catch (err) {
         say("That didn't go through. Try again in a minute, or email hello@pickedprotein.com.", "error");
@@ -154,5 +201,19 @@ function initSignup() {
   });
 }
 
+/* Thanks page: copy the share link. */
+function initShare() {
+  const btn = document.querySelector("[data-copy]");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const field = document.getElementById(btn.dataset.copy);
+    try { await navigator.clipboard.writeText(field.value); btn.textContent = "Copied"; }
+    catch (e) { field.select(); btn.textContent = "Press copy"; }
+    setTimeout(() => { btn.textContent = "Copy link"; }, 1800);
+  });
+}
+
+captureSource();
 initSwitcher();
 initSignup();
+initShare();

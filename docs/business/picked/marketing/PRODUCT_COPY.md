@@ -502,8 +502,8 @@ Same layout for all three flavors. Swap the flavor name and line.
 
 ### 3.3 Counter display header
 
-1. **Protein that tastes like it was just picked.**
-2. **Real fruit. Real protein. Grab a stick.**
+1. **The fruit is in it.**
+2. **The grams are on the front. Grab a stick.**
 
 ---
 

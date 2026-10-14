@@ -1,7 +1,7 @@
 # Name: Picked
 
 **Recommendation:** Picked, written as the lowercase wordmark `picked`.
-Line: *Real fruit. Real protein.* Long form: *Tastes like it was just picked.*
+Line: *The fruit is in it.* ("Tastes like it was just picked" is for TikTok voiceovers only.)
 
 ## Why this name
 
