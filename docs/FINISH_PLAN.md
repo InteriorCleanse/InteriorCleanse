@@ -20,7 +20,7 @@ it and what "done" looks like. Steps are ordered by what unblocks what.
 ## Step 1 — Make the admin able to save (10 minutes, you)
 
 1. github.com → Settings → Developer settings → Personal access tokens → **Tokens (classic)** → Generate new token (classic) → tick **`repo`** → generate → copy.
-2. Vercel → `interior-cleanse-cr2t` → Settings → Environment Variables → `GITHUB_TOKEN` → paste → all environments → Save → Deployments → Redeploy.
+2. Vercel → `interiorcleanse-storefront` → Settings → Environment Variables → `GITHUB_TOKEN` → paste → all environments → Save → Deployments → Redeploy.
 3. Open `/admin/products`. The banner must read "Edits commit to InteriorCleanse/InteriorCleanse@main".
 
 Done when: you change a product's name in the admin and a commit by `InteriorCleanse Admin` appears on GitHub within a minute.
