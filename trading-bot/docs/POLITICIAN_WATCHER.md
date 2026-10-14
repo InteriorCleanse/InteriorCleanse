@@ -56,8 +56,9 @@ and whenever you press **Check now**. New trades also ring the bell.
 - `MRCASH_QUIVER_KEY` for congress trades.
 - `MRCASH_ALPACA_KEY` and `MRCASH_ALPACA_SECRET` for prices and the read-only
   account. Paper keys work.
-- The list and the cap are set on the page. `MRCASH_WATCH_POLITICIANS` and
-  `MRCASH_WATCH_RISK_CAP` give the starting values.
+- The list starts with **Nancy Pelosi**, the owner's choice. Change it on the
+  page, or set `MRCASH_WATCH_POLITICIANS`. `MRCASH_WATCH_RISK_CAP` sets the
+  starting cap.
 
 "Liquid", named in the original brief, is not connected. Kestrel reads
 holdings from Alpaca. A read-only reader for another broker can be added if it

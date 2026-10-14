@@ -64,6 +64,15 @@ test('closeOn uses the last session on or before the trade date', () => {
   assert.equal(w.closeOn(b, '2026-09-01'), null)
 })
 
+test('with nothing saved and no env setting, the watch list starts with Nancy Pelosi', () => {
+  reset()
+  assert.deepEqual(w.readSettings({}).names, ['Nancy Pelosi'])
+  assert.deepEqual(w.readSettings({ MRCASH_WATCH_POLITICIANS: 'Tuberville' }).names, ['Tuberville'])
+  w.saveSettings({ names: 'Someone Else', riskCapPct: 2 })
+  assert.deepEqual(w.readSettings({}).names, ['Someone Else'], 'the list saved on the page wins')
+  reset()
+})
+
 test('no names: a note, no report flood', async () => {
   reset()
   const r = await w.runCheck({ congress: () => [row({})], portfolio: async () => noPf, bars: async () => null, now: NOW }, { names: [], riskCapPct: 5 })
