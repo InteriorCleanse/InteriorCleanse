@@ -28,9 +28,11 @@ export function checkWatch(items: WatchItem[], fresh: (id: string) => Listing | 
   for (const w of items) {
     const f = fresh(w.listingId)
     const l = f ?? w.snapshot
+    // A watch item from before snapshots existed has nothing to compare; it waits for a scan to find it.
+    if (!l) continue
     const a = (w.alerted ??= {})
     // The price last seen, read before the snapshot is replaced by the fresh listing.
-    const before = a.lastPriceUsd ?? askingPrice(w.snapshot)
+    const before = a.lastPriceUsd ?? (w.snapshot ? askingPrice(w.snapshot) : undefined)
     if (f && f !== w.snapshot) { w.snapshot = f; changed = true }
     const price = askingPrice(l)
     const ended = l.soldUsd !== undefined || (l.endsAt !== undefined && l.endsAt <= now)
@@ -52,8 +54,9 @@ export function checkWatch(items: WatchItem[], fresh: (id: string) => Listing | 
       alerts.push({ listingId: w.listingId, title: `Price ${price > before ? 'up' : 'down'} to ${usd(price)}: ${w.title}`, body: `It was ${usd(before)} when Gavel last looked. ${price > before ? 'Check it is still under your number.' : 'It may now have more room under your number.'}` })
       a.lastPriceUsd = price
       changed = true
-    } else if (a.lastPriceUsd === undefined && price !== undefined) {
-      a.lastPriceUsd = price
+    } else if (a.lastPriceUsd === undefined && before !== undefined) {
+      // The baseline is the price the member watched it at, so small steps cannot creep past the threshold unannounced.
+      a.lastPriceUsd = before
       changed = true
     }
   }

@@ -68,13 +68,13 @@ export function materialsFor(c: MaterialsInput, now = Date.now()): MaterialsList
     add('dentRepair', 'Paintless dent repair', 'Looks', 'check', 'Small dents come out without paint. Priced per panel; get a quote from photos.', 'paintless dent repair kit')
     add('clips', 'Bumper and trim clips', 'Looks', 'check', 'Loose bumpers and trim usually need only clips.', 'bumper clips')
   }
-  if (c.runsAndDrives === undefined) add('battery', 'Jump pack or battery on pick-up day', 'Service', 'check', 'The listing does not say it runs. Bring a jump pack; plan a tow if it does not start.', 'jump starter')
+  if (c.runsAndDrives === undefined) add('jumpPack', 'Jump pack on pick-up day', 'Service', 'check', 'The listing does not say it runs. Bring a jump pack; plan a tow if it does not start.', 'jump starter')
   add('spareKey', 'Spare key or fob', 'Keys and paperwork', 'check', 'Auction cars often come with one key. A second one matters to a buyer and to a rental.', 'key fob')
   add('mats', 'Floor mats', 'Looks', 'check', 'Missing or stained mats are cheap to replace and change the first look.', 'floor mats')
 
-  // One line per id: the jump-pack check never doubles the battery line.
+  // One line per id, so a checklist tick (by id) means one thing.
   const seen = new Set<string>()
-  const list = items.filter((m) => (seen.has(m.id + m.name) ? false : (seen.add(m.id + m.name), true)))
+  const list = items.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)))
   const counted = list.filter((m) => m.need !== 'check')
   const checks = list.filter((m) => m.need === 'check')
   const sum = (xs: Material[], f: (m: Material) => number) => xs.reduce((s, m) => s + f(m), 0)

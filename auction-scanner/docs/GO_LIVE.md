@@ -53,6 +53,14 @@ Gavel say one is cheap. Connect eBay next.
 
 Add the same names as repository secrets and the live probe checks them.
 
+**Find deals from GitHub, before the server is even up.** Actions → **Gavel
+deal finder** → Run workflow: type a budget (and, if you like, the most
+damage, the oldest year, a profit floor and the makes). It reads every source
+whose key is a repository secret and prints the clean-title cars that fit,
+with the estimated profit and the most to bid on each. With GSA alone most
+results are leads (their value rests on bids still running); eBay and
+auto.dev keys turn leads into confirmed deals.
+
 **More auctions.** `docs/AUCTIONS.md` ranks the best auctions for each goal
 and lists the partnerships worth asking for (Cox/Manheim for wholesale
 values, Collecting Cars, Classic.com, Municibid and GovDeals, Copart and IAA).
@@ -68,9 +76,16 @@ adapter can be added next to `src/sources/gsa.ts` in an afternoon.
 ## 3. Turn on the intelligence
 
 `ANTHROPIC_API_KEY=…` from console.anthropic.com (pay as you go). Then
-`npm install` once and restart. This unlocks: walkthroughs rewritten for each
-car, the Intel desk searching the live web with its sources, and an AI reader
-for lot pages the rule reader cannot parse.
+`npm install` once and restart. This unlocks: the **Coach** as Claude with
+web search, page reading and Gavel's own tools (every live auction, the deal
+finder, a car's plan and similar cars, recalls, the auction directory, the
+member's books and journey); walkthroughs rewritten for each car; the Intel
+desk searching the live web with its sources; the business partner answering
+any question from the books; and an AI reader for lot pages the rule reader
+cannot parse. Each member gets twenty coach questions per ten minutes, one
+at a time, and a question can use up to eight web searches and six page
+reads (`config.ts` → `ai`). Without the key, every screen works from the
+rules, the journey and the books, and says so.
 
 ## 4. Put it on the internet
 
@@ -139,8 +154,10 @@ server. Each member can also download their own backup in Settings.
 ## 6. Before you tell anyone
 
 - `npm run check` passes and `npm run doctor` shows PASS on what you set up.
-- Sign in as a test member on your phone. Their watchlist, targets and garage
-  are empty (every member's data is their own).
+- Sign in as a test member on your phone. Their watchlist, targets, books
+  and coach are empty (every member's data is their own).
+- Open Coach and ask one question with the key set: the answer should show
+  the steps it took and its sources. Open Deals at your budget.
 - Read `docs/SECURITY.md`'s operator checklist.
 - Bidding stays PAPER: the Bid button and the Sniper record your number and
   open the lot; you place the real bid on the auction's site. None of the

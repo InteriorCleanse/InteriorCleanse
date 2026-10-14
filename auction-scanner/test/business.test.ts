@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { withUser } from '../src/store.ts'
 import type { Listing } from '../src/types.ts'
 import { addCompany, addOverhead, listCompanies, removeCompany, updateCompany, validateCompaniesFile } from '../src/companies.ts'
-import { addCar, addCost, addIncome, listGarage, totalsFor, unassignCompany, updateCar } from '../src/garage.ts'
+import { addCar, addCost, addIncome, listGarage, totalsFor, unassignCompany, updateCar, validateGarageFile } from '../src/garage.ts'
 import { businessReport } from '../src/business.ts'
 import { answerFromBooks, briefing } from '../src/advisor.ts'
 import type { BriefingInput } from '../src/advisor.ts'
@@ -183,4 +183,42 @@ test('watch alerts: ending soon once, a real price move, the end; never a countd
   assert.match(r.alerts[0].body, /\$6,100/)
   const gsa = { ...item, alerted: undefined, snapshot: { ...base, endsAt: now + 3600_000, endsAtDateOnly: true } }
   assert.equal(checkWatch([gsa], () => undefined, now).alerts.length, 0, 'a date-only close gets no countdown')
+})
+
+test('a restored garage file must carry real dates and amounts; a car with a Sale logged stays sold', () => withUser('b5@example.com', () => {
+  const ok = { id: 'a', title: 'x', purchaseUsd: 1000, boughtAt: T0, costs: [{ id: 'c', label: 'x', usd: 5, date: T0 }], income: [], status: 'owned' }
+  assert.equal(validateGarageFile([ok]).length, 1)
+  assert.throws(() => validateGarageFile([{ ...ok, boughtAt: undefined }]), /missing/)
+  assert.throws(() => validateGarageFile([{ ...ok, costs: [{ id: 'c', label: 'x' }] }]), /not a dollar entry/)
+  const car = addCar({ title: 'TEST FIXTURE car', purchaseUsd: 100, boughtAt: T0 }, T0)
+  addIncome(car.id, { label: 'Sale', usd: 300, date: T0 + DAY }, T0 + DAY)
+  assert.throws(() => updateCar(car.id, { status: 'owned' }, T0 + 2 * DAY), /Sale logged/)
+}))
+
+test('watch alerts skip an item with no snapshot and measure moves from the watched price', async () => {
+  const { checkWatch } = await import('../src/watchalerts.ts')
+  const now = T0
+  const base: Listing = { id: 'ebay:w2', source: 'ebay', externalId: 'w2', url: 'https://example.invalid/w2', title: 'TEST FIXTURE 2017 Civic', titleStatus: 'clean', damage: 'none', saleType: 'auction', currentBidUsd: 1000, photos: [], kind: 'LIVE', fetchedAt: now, endsAt: now + 9 * 3600_000 }
+  const bare = { listingId: 'ebay:old', title: 'old', url: '', addedAt: now } as unknown as import('../src/types.ts').WatchItem
+  const item = { listingId: 'ebay:w2', title: base.title, url: base.url, addedAt: now, snapshot: base }
+  let r = checkWatch([bare, item], (id) => (id === 'ebay:w2' ? { ...base, currentBidUsd: 1090 } : undefined), now)
+  assert.equal(r.alerts.length, 0, 'a $90 step is under the threshold')
+  r = checkWatch(r.items, (id) => (id === 'ebay:w2' ? { ...base, currentBidUsd: 1180 } : undefined), now + 600_000)
+  assert.equal(r.alerts.length, 1, 'but two small steps add up against the watched price')
+  assert.match(r.alerts[0].body, /It was \$1,000/)
+})
+
+test('the search parser keeps words it did not understand and reads <8k', async () => {
+  const { parseSearch } = await import('../src/searchparse.ts')
+  assert.equal(parseSearch('interested in camry').model, 'Camry')
+  assert.equal(parseSearch('mustang in black').text, 'Ford Mustang black')
+  assert.equal(parseSearch('camry <8k').maxPriceUsd, 8000)
+  assert.equal(parseSearch('civic in tx').state, 'TX')
+})
+
+test('materials: one line per id, the jump pack apart from the battery', () => {
+  const m = materialsFor({ year: 2021, mileage: 50_000 }, Date.UTC(2026, 9, 1))
+  const ids = m.items.map((x) => x.id)
+  assert.equal(new Set(ids).size, ids.length)
+  assert.ok(ids.includes('jumpPack') && ids.includes('battery'))
 })

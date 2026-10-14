@@ -275,6 +275,20 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
     return true
   }
 
+  /** The coach can run a full research loop per question: COACH_MAX a member per ten minutes, one at a time. */
+  const COACH_MAX = 20
+  const coachLog = new Map<string, number[]>()
+  const coachBusy = new Set<string>()
+  function coachAllows(email: string): boolean {
+    const since = now() - 10 * 60_000
+    const recent = (coachLog.get(email) ?? []).filter((t) => t > since)
+    if (recent.length >= COACH_MAX) { coachLog.set(email, recent); return false }
+    recent.push(now())
+    coachLog.set(email, recent)
+    if (coachLog.size > 10_000) coachLog.delete(coachLog.keys().next().value as string)
+    return true
+  }
+
   /** Keep the scan cache small: drop what has expired, and the oldest past 300 entries. */
   function cacheScan(key: string, entry: { at: number; result: ScanResult }): void {
     const t = now()
@@ -419,7 +433,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   async function dealsFor(o: { budget: number; maxDamage: 'none' | 'minor'; minYear?: number; minProfitUsd?: number; makes?: string[] }) {
     const settings = getSettings()
     const fromTargets = [...new Set(listTargets().flatMap((t) => t.makes))]
-    const makes = o.makes && o.makes.length ? o.makes : fromTargets.length ? fromTargets.slice(0, 8) : DEAL_MAKES
+    // Only makes in the catalogue: each one is a live scan, and a free string would be a way round the cache.
+    const asked = (o.makes ?? []).map((m) => CATALOG.find((c) => c.make.toLowerCase() === m.toLowerCase())?.make).filter((m): m is string => !!m)
+    const makes = asked.length ? asked : fromTargets.length ? fromTargets.slice(0, 8) : DEAL_MAKES
     const byId = new Map<string, Card>()
     let kind: ScanResult['kind'] = 'EMPTY'
     const errors = new Set<string>()
@@ -552,8 +568,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
   async function ensureKnown(id: string): Promise<Listing> {
     let l = findListing(id)
     if (!l && !id.startsWith('import:')) {
-      // A fresh process: repopulate from a default scan.
-      remember(await scanAll({ limit: 100 }, { allowSample: getSettings().allowSample, fetchImpl }))
+      // A fresh process: repopulate from the default scan (cached, so a made-up id cannot drive live calls).
+      await scanCards(undefined, getSettings())
       l = findListing(id)
     }
     if (!l) throw new HttpError(404, 'That car is not in the current scan any more. Go back to the Feed and open it again.')
@@ -1004,7 +1020,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         { id: 'autodev', group: 'Prices', name: 'auto.dev (dealer prices)', done: autodevConfigured(), unlocks: 'Dealer asking prices for the same make, model and year behind every estimate, so many more cars in the Feed get a price instead of "not enough comps".', cost: 'A free tier (about 1,000 calls a month) and paid plans, as listed on their pricing page.', link: 'https://auto.dev/pricing', env: ['GAVEL_AUTODEV_API_KEY'], steps: ['Create a free account at auto.dev (no card needed for the free tier, as listed).', 'Copy your API key into GAVEL_AUTODEV_API_KEY.', 'Restart Gavel, then run npm run probe to check it answers.'] },
         { id: 'vinaudit', group: 'Prices', name: 'VinAudit market value', done: vinauditConfigured(), unlocks: 'A market value for any car with a VIN, from the sales VinAudit has recorded, shown on its plan when the scan has too few comparables (GSA and imported cars especially).', cost: 'A free developer account to start; check their data pricing page for paid use.', link: 'https://data.vinaudit.com/market-values-api', env: ['GAVEL_VINAUDIT_API_KEY'], steps: ['Open a developer account at data.vinaudit.com.', 'Copy your API key into GAVEL_VINAUDIT_API_KEY.', 'Restart Gavel, then run npm run probe to check it answers.'] },
         { id: 'import', group: 'Auction sources', name: 'Copart, IAA, Bring a Trailer, Cars & Bids and every other house', done: listImports().length > 0, unlocks: 'Any lot you are looking at, scored against live comparables with a full bid plan.', cost: 'Free. Copart and IAA need their own membership to bid.', env: [], steps: ['Open Import in Gavel and drag the Send to Gavel button to your bookmarks bar.', 'On any lot page (Copart, IAA, BaT, Cars & Bids, GovDeals, a dealer), click the bookmark.', 'Check the fields Gavel found, fill any blanks, save. The car appears in your feed and can be planned and watched.', 'For many lots at once, export a CSV from your auction account and upload it on the same screen.'] },
-        { id: 'anthropic', group: 'Intelligence', name: 'Claude (the AI explainer, web research and lot reader)', done: ai.available, unlocks: 'Walkthroughs rewritten for each car, a research desk that searches the live web with sources, and a reader for messy lot pages.', cost: 'Pay as you go; see the Anthropic pricing page.', link: 'https://console.anthropic.com', env: ['ANTHROPIC_API_KEY'], steps: ['Create an account at console.anthropic.com and add a payment method.', 'Create an API key and put it in ANTHROPIC_API_KEY.', 'Run npm install once in the Gavel folder, then restart.'] },
+        { id: 'anthropic', group: 'Intelligence', name: 'Claude (the Coach, the explainer, web research and the lot reader)', done: ai.available, unlocks: 'The Coach searches the web, reads auction pages and uses every Gavel tool to answer any question; walkthroughs rewritten for each car; a research desk with sources; a reader for messy lot pages.', cost: 'Pay as you go; see the Anthropic pricing page.', link: 'https://console.anthropic.com', env: ['ANTHROPIC_API_KEY'], steps: ['Create an account at console.anthropic.com and add a payment method.', 'Create an API key and put it in ANTHROPIC_API_KEY.', 'Run npm install once in the Gavel folder, then restart.'] },
       ]
       if (owner) {
         items.push(
@@ -1131,7 +1147,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         soldOrRented: cars.filter((c) => c.status === 'sold' || c.income.length > 0).length,
       }
     }
-    const coachState = (t: number) => {
+    /** The member's own calendar day (sent by the app), so today's tasks turn over at their midnight, not UTC's. */
+    const localDay = (v: unknown, t: number): string => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Math.abs(Date.parse(v + 'T12:00:00Z') - t) < 2 * 86_400_000 ? v : dayKey(t))
+    const coachState = (t: number, day = dayKey(t)) => {
       const st = readCoach()
       const facts = journeyFacts()
       const status = journeyStatus(facts, st.ticked)
@@ -1139,7 +1157,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const input = briefingFor(t)
       const brief = briefing(input)
       const urgent = brief.items.find((x) => x.tone === 'hot' || x.tone === 'best')
-      const today = todayTasks({ next: stage.next, urgent, stage: stage.n, budgetUsd: facts.cashUsd, done: st.days[dayKey(t)] ?? [] })
+      const today = todayTasks({ next: stage.next, urgent, stage: stage.n, budgetUsd: facts.cashUsd, done: st.days[day] ?? [] })
       return { st, facts, status, stage, input, brief, today }
     }
 
@@ -1184,13 +1202,14 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
 
     if (path === '/api/coach' && method === 'GET') {
       const t = now()
-      const c = coachState(t)
+      const day = localDay(url.searchParams.get('day'), t)
+      const c = coachState(t, day)
       const thread = c.st.threads[c.st.threads.length - 1]
       return json(res, 200, {
         stage: { n: c.stage.n, name: c.stage.name, of: 6 },
         journey: JOURNEY.map((j, k) => ({ n: j.n, title: j.title, why: j.why, do: j.do, lookFor: j.lookFor ?? null, href: j.href, action: j.action, ask: j.ask, auto: !!j.auto, ...c.status[k] })),
         lookFor: LOOK_FOR,
-        today: { date: dayKey(t), tasks: c.today, streak: streak(c.st.days, t) },
+        today: { date: day, tasks: c.today, streak: streak(c.st.days, Date.parse(day + 'T12:00:00Z')) },
         headline: c.brief.headline,
         ai: await coachAiStatus(),
         thread: thread ? { id: thread.id, display: thread.display.slice(-40) } : null,
@@ -1207,12 +1226,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
         st.ticked = done ? [...new Set([...st.ticked, id])] : st.ticked.filter((x) => x !== id)
       } else {
         if (!/^[a-z]+-[\w:.-]{1,120}$/.test(id)) throw new HttpError(400, 'No task with that id.')
-        const day = dayKey(t)
+        const day = localDay(body.day, t)
         const list = st.days[day] ?? []
-        st.days[day] = done ? [...new Set([...list, id])] : list.filter((x) => x !== id)
+        st.days[day] = (done ? [...new Set([...list, id])] : list.filter((x) => x !== id)).slice(0, 50)
       }
       writeCoach(st)
-      return json(res, 200, { ok: true, streak: streak(st.days, t) })
+      return json(res, 200, { ok: true, streak: streak(st.days, body.kind === 'step' ? t : Date.parse(localDay(body.day, t) + 'T12:00:00Z')) })
     }
     if (path === '/api/coach/new' && method === 'POST') {
       const st = readCoach()
@@ -1224,6 +1243,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       const body = await readJsonBody(req)
       const question = str(body.question, 2000).trim()
       if (!question) throw new HttpError(400, 'Ask your coach something.')
+      if (coachBusy.has(session.email)) throw new HttpError(409, 'The coach is still answering your last question. Give it a moment.')
+      if (!coachAllows(session.email)) throw new HttpError(429, `That is ${COACH_MAX} questions in ten minutes. Take a short break, then carry on.`)
+      coachBusy.add(session.email)
+      try {
       const t = now()
       const c = coachState(t)
       const thread = currentThread(c.st, t)
@@ -1247,6 +1270,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<Started> {
       thread.turns++
       writeCoach(c.st)
       return json(res, 200, { reply, threadId: thread.id })
+      } finally {
+        coachBusy.delete(session.email)
+      }
     }
 
     if (path === '/api/business/export.csv' && method === 'GET') {

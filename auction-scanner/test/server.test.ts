@@ -662,3 +662,16 @@ test('the coach: journey and today over HTTP; without a key it answers from the 
   assert.equal(again.body.today.tasks[0].done, true)
   assert.equal((await api('/api/coach/ask', { method: 'POST', json: { question: '' } })).status, 400)
 })
+
+test("the coach honours the member's day, caps questions, and refuses a far-off day", async () => {
+  const day = new Date().toISOString().slice(0, 10)
+  const c = await api('/api/coach?day=' + day)
+  assert.equal(c.body.today.date, day)
+  const far = await api('/api/coach?day=2001-01-01')
+  assert.notEqual(far.body.today.date, '2001-01-01', 'a day far from now falls back to the server day')
+  const t = await api('/api/coach/tick', { method: 'POST', json: { kind: 'task', id: 'habit-x', done: true, day } })
+  assert.equal(t.status, 200)
+  let last = 200
+  for (let i = 0; i < 22 && last === 200; i++) last = (await api('/api/coach/ask', { method: 'POST', json: { question: 'plan my day' } })).status
+  assert.equal(last, 429)
+})

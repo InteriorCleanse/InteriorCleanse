@@ -14,7 +14,7 @@ that client for fifteen minutes.
 
 ## Each member's own data
 
-Watchlist, paper bids, Sniper targets, alerts, settings and the garage live
+Watchlist, paper bids, Sniper targets, alerts, settings, the books (cars and companies) and the coach live
 in `data/users/<id>/`, where the id is a hash of the email (the email never
 appears in a path; `who.json` inside maps it back). Every signed-in request
 runs in the member's scope, so no member can read another's files. The owner

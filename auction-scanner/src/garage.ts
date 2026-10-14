@@ -167,6 +167,8 @@ export function updateCar(id: string, input: unknown, now = Date.now()): GarageC
   return mutate(id, (c) => {
     if ('status' in p) {
       if (typeof p.status !== 'string' || !STATUSES.has(p.status as CarStatus)) throw new Error('Status must be owned, fixing, listed, rented or sold.')
+      // A car with a sale logged stays sold: the books would otherwise count the sale as income on a car still held.
+      if (p.status !== 'sold' && c.income.some((m) => /^sale$/i.test(m.label))) throw new Error('This car has a Sale logged. Remove that entry first if it was not sold.')
       c.status = p.status as CarStatus
       if (c.status === 'sold' && !c.soldAt) c.soldAt = now
       if (c.status !== 'sold') delete c.soldAt
@@ -240,7 +242,11 @@ export function validateGarageFile(v: unknown): GarageCar[] {
   return v.map((c, i) => {
     if (!c || typeof c !== 'object') throw new Error(`garage[${i}] is not a car.`)
     const car = c as GarageCar
-    if (typeof car.id !== 'string' || typeof car.title !== 'string' || typeof car.purchaseUsd !== 'number' || !Array.isArray(car.costs) || !Array.isArray(car.income) || !STATUSES.has(car.status)) throw new Error(`garage[${i}] is missing a field.`)
+    if (typeof car.id !== 'string' || typeof car.title !== 'string' || typeof car.purchaseUsd !== 'number' || !Number.isFinite(car.purchaseUsd) || typeof car.boughtAt !== 'number' || !Number.isFinite(car.boughtAt) || !Array.isArray(car.costs) || !Array.isArray(car.income) || !STATUSES.has(car.status)) throw new Error(`garage[${i}] is missing a field.`)
+    for (const [kind, list] of [['costs', car.costs], ['income', car.income]] as const) {
+      for (const [j, m] of list.entries()) if (!m || typeof m.id !== 'string' || typeof m.label !== 'string' || typeof m.usd !== 'number' || !Number.isFinite(m.usd) || typeof m.date !== 'number' || !Number.isFinite(m.date)) throw new Error(`garage[${i}].${kind}[${j}] is not a dollar entry.`)
+    }
+    if (car.soldAt !== undefined && (typeof car.soldAt !== 'number' || !Number.isFinite(car.soldAt))) throw new Error(`garage[${i}].soldAt is not a date.`)
     return car
   })
 }

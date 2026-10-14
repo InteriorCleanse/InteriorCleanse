@@ -1,5 +1,5 @@
 // The Feed: filters, the scan, the lot tags.
-import { getJson, postJson, del, esc, debounce, store, when } from './api.js'
+import { getJson, postJson, del, esc, money, debounce, store, when } from './api.js'
 import { cardHtml, wireCards, loading, errorStrip, toast } from './ui.js'
 import { setMode } from './app.js'
 
@@ -94,7 +94,7 @@ async function load() {
     if (feed.kind === 'LIVE' && feed.errors && feed.errors.length) html += feed.errors.map((e) => errorStrip(e)).join('')
     if (feed.kind === 'SAMPLE') html += `<div class="strip wait"><b>Practice cars, not for sale.</b> ${me.role === 'owner' ? 'Real auctions appear here once a source is connected: <a href="#connect">Connect</a>.' : 'Use them to learn the plan. Real auctions appear here when the owner connects them.'}</div>`
     if (feed.kind === 'EMPTY') html += emptyHtml(me)
-    else if (!feed.cards.length) html += `<div class="tag empty"><h2>Nothing matches</h2><p>Loosen a filter, or turn Starter mode off to see the cars it hid (each one says why).</p></div>`
+    else if (!feed.cards.length) html += `<div class="tag empty"><h2>Nothing matches</h2><p>${state.maxPrice ? `Nothing in this scan is under ${esc(money(Number(state.maxPrice)))}. Raise the cap in Filters, or open <a href="#deals">Deals</a>, which searches every make for your budget. ` : ''}${feed.hidden ? `Starter mode hid ${feed.hidden}; turn it off to see them (each one says why). ` : 'Loosen a filter, or turn Starter mode off to see the cars it hid (each one says why).'}</p></div>`
     html += `<div class="feed">${feed.cards.map((c, i) => cardHtml(c, { watched: watched.has(c.listing.id), showBlocks: state.showHidden, pos: state.sort === 'score' ? i + 1 : 0 })).join('')}</div>`
     list.innerHTML = html
     wireCards(list, { onWatch: toggleWatch })

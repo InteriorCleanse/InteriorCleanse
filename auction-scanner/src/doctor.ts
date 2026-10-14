@@ -25,7 +25,7 @@ if (major > 22 || (major === 22 && minor >= 18)) say('PASS', `Node ${process.ver
 else say('WARN', `Node ${process.versions.node} is too old`, 'Install Node 22.18 or newer from nodejs.org.')
 
 if (existsSync(ENV_PATH)) say('PASS', '.env found')
-else say('INFO', 'No .env file', 'Copy .env.example to .env to connect a source, fix the PIN or turn on the AI explainer. The app runs without it, showing SAMPLE cars.')
+else say('INFO', 'No .env file', 'Copy .env.example to .env to connect a source, fix the PIN or turn on the AI (the Coach with web search, the explainer, the desk). The app runs without it, showing SAMPLE cars.')
 
 for (const s of sourceStatuses()) {
   if (s.kind !== 'api') continue
@@ -34,7 +34,7 @@ for (const s of sourceStatuses()) {
 say('INFO', 'Every other auction house is directory-only', 'They publish no API. Gavel opens their search and tells you how to register.')
 
 const ai = await aiStatus()
-say(ai.available ? 'PASS' : 'INFO', `AI explainer: ${ai.available ? `on (${ai.model})` : 'off'}`, ai.available ? '' : ai.reason)
+say(ai.available ? 'PASS' : 'INFO', `AI (Coach, explainer, desk): ${ai.available ? `on (${ai.model})` : 'off'}`, ai.available ? '' : ai.reason)
 
 if (flag('GAVEL_LIVE_BIDDING')) say('WARN', 'GAVEL_LIVE_BIDDING=1 is set', 'No connected source can take a bid by API, so every bid still stays on paper. The switch changes nothing today.')
 else say('PASS', 'Bidding is PAPER (GAVEL_LIVE_BIDDING is off)', 'The Bid button records a paper bid and opens the lot with your number.')

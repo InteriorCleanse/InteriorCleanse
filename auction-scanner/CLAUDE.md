@@ -107,4 +107,8 @@ screenshots. Data for a test run goes in a temp `GAVEL_DATA_DIR`, never `data/`.
 - No paid value guide: estimates are medians of the comparables in the scan,
   plus MarketCheck dealer prices when connected and the sold prices each
   member adds (`src/sold.ts`; a sold price counts ahead of an ask or a bid).
-- No two-factor login; no rate limit on the feed beyond the scan cache.
+- No two-factor login; no rate limit on the feed beyond the scan cache (the
+  coach and the lot reader are throttled per member).
+- The coach's live loop (`src/coach/agent.ts`) is tested with a stand-in
+  client only: the sandbox and CI have no Anthropic access. The first real
+  conversation after a key is set is its first live run; read the server log.

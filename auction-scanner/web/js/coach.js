@@ -7,6 +7,8 @@ import { toast, loading, errorStrip } from './ui.js'
 
 const KIND_ICON = { search: '⌕', read: '↗', tool: '◆' }
 let busy = false
+/** The member's own calendar day, so today's three turn over at their midnight. */
+const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 
 /** A small, safe Markdown: escape first, then bold, links, lists and paragraphs. */
 function md(text) {
@@ -72,7 +74,7 @@ function todayHtml(c) {
 export async function render(el, ctx, args = []) {
   el.innerHTML = `<div class="head"><div><h1>Coach</h1></div></div>${loading('Getting your day ready…')}`
   let c
-  try { c = await getJson('/api/coach') } catch (e) { el.innerHTML += errorStrip(e.message); return }
+  try { c = await getJson('/api/coach?day=' + localDay()) } catch (e) { el.innerHTML += errorStrip(e.message); return }
   const pct = Math.round((c.journey.filter((j) => j.done).length / c.journey.length) * 100)
   const msgs = c.thread && c.thread.display.length ? c.thread.display : [greeting(c)]
   const next = c.journey.find((j) => !j.done)
@@ -131,7 +133,7 @@ export async function render(el, ctx, args = []) {
   el.querySelector('#c-new').addEventListener('click', async () => { try { await postJson('/api/coach/new', {}); render(el, ctx) } catch (e) { toast(e.message, 'hot') } })
   el.querySelectorAll('[data-task]').forEach((x) => x.addEventListener('change', async () => {
     x.closest('.ttask').classList.toggle('done', x.checked)
-    try { const r = await postJson('/api/coach/tick', { kind: 'task', id: x.dataset.task, done: x.checked }); el.querySelector('#c-streak').textContent = r.streak ? `${r.streak}-day streak` : 'start a streak'; if (x.checked && el.querySelectorAll('[data-task]:checked').length === el.querySelectorAll('[data-task]').length) toast('All three done today. That is how it compounds.') } catch (e) { toast(e.message, 'hot') }
+    try { const r = await postJson('/api/coach/tick', { kind: 'task', id: x.dataset.task, done: x.checked, day: localDay() }); el.querySelector('#c-streak').textContent = r.streak ? `${r.streak}-day streak` : 'start a streak'; if (x.checked && el.querySelectorAll('[data-task]:checked').length === el.querySelectorAll('[data-task]').length) toast('All three done today. That is how it compounds.') } catch (e) { toast(e.message, 'hot') }
   }))
   el.querySelectorAll('[data-tick-step]').forEach((b) => b.addEventListener('click', async () => {
     try { await postJson('/api/coach/tick', { kind: 'step', id: b.dataset.tickStep, done: b.dataset.done === 'true' }); render(el, ctx) } catch (e) { toast(e.message, 'hot') }

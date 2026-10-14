@@ -69,12 +69,7 @@ export async function render(el, ctx) {
   }))
   el.querySelectorAll('[data-yr]').forEach((b) => b.addEventListener('click', () => {
     state.minYear = b.dataset.yr
-    el.querySelectorAll('[data-pf]').forEach((b) => b.addEventListener('click', () => {
-    state.minProfit = b.dataset.pf
-    el.querySelectorAll('[data-pf]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
-    save(); load()
-  }))
-  el.querySelectorAll('[data-yr]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+    el.querySelectorAll('[data-yr]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
     save(); load()
   }))
 

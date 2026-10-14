@@ -63,6 +63,20 @@ so the owner can rename it in one line.
    reasons, and a checklist to the first rental.
 7. **Settings / Account** — starter rules, sample data toggle, your
    membership, connected sources, and the live-bidding gate.
+8. **Deals** — a budget in, real cars out: clean title, little or no damage,
+   all-in cost (price, fee, transport, likely materials, cushion) inside the
+   budget, ranked by estimated profit against similar cars, with a profit
+   floor and a model year. Deals rest on sold or asking prices; leads on
+   bids still running. P/L, materials and **I bought it** on every card.
+9. **Coach** — the day-to-day business coach: a twelve-step first-car
+   journey with what to look for, today's three tasks and a streak, and a
+   coach to talk to (Claude with web search, web fetch and Gavel's tools
+   when a key is set; the journey and the books otherwise).
+10. **Business** — companies (flip, rental, mixed) with their own cars and
+    overhead; profit per company and overall, cash flow, held in cars, a
+    twelve-month chart, the partner's ranked briefing, a CSV export.
+11. **Parts** — parts that fit a car in the books: eBay fitment search when
+    connected, store and salvage-yard searches for the exact car, recalls.
 
 ## Non-negotiable product rules
 
@@ -120,7 +134,13 @@ auction-scanner/
     paper.ts                watchlist + PAPER bids + outcomes (JSON store)
     settings.ts             per-install settings (starter rules, sample toggle, demand edits)
     explain.ts              rule-based "how to buy this car" walkthrough
-    ai.ts                   optional Claude explainer (claude-opus-5, adaptive thinking, fallbacks default, streaming); falls back to explain.ts
+    ai.ts                   optional Claude explainer and business answers (claude-opus-5-5, adaptive thinking, fallbacks default, streaming); falls back to the rules
+    finder.ts find.ts       the deal finder and its CLI (budget → deals and leads, every exclusion counted)
+    materials.ts pnl.ts parts.ts   what a car will need (config.materials ranges, labelled), P/L line by line with sources, parts that fit
+    searchparse.ts          plain English → feed filters, every phrase applied returned as a chip
+    watchalerts.ts          watched cars: ending within two hours, price moved, ended (once each; no made-up countdown)
+    garage.ts companies.ts business.ts advisor.ts   the cars owned, the companies and overhead, profit per company and overall + CSV, the partner's briefing
+    coach/journey.ts store.ts rules.ts agent.ts   the first-car journey and what to look for, coach.json (ticks, days, append-only threads), offline answers, Claude with web_search + web_fetch + Gavel tools
     playbook/content.ts     the guides as structured data
     rental.ts               first-car finder + rental startup checklist
     security/harden.ts      CSP with nonce, security headers, constant-time compare
@@ -182,11 +202,11 @@ GET  /api/vin/:vin             → VinDecode | 400
 GET  /api/settings             → Settings           POST /api/settings {…partial} → Settings
 GET  /api/home                 → {goal, onboarded, liveSource, sniper:{targets, active, armed, picks, lastRunAt, endingSoon:Pick[]}, alerts:{unread, latest}, watch, paper, garage, next:[{id,title,body,href,done}]}
 POST /api/onboard              {goal:'rental'|'flip'|'keep', homeState?, budgetUsd, makes[], models[]} → {settings, target}
-GET  /api/garage               → {cars:(GarageCar & {totals})[], summary}    POST /api/garage {title, purchaseUsd, …}
-POST /api/garage/:id           {status?, channel?, notes?, soldAt?}          DELETE /api/garage/:id
+GET  /api/garage               → {cars:(GarageCar & {totals})[], summary}    POST /api/garage {title, purchaseUsd, companyId?, targetSaleUsd?, mileage?, …}
+POST /api/garage/:id           {status?, channel?, notes?, soldAt?, companyId?, targetSaleUsd?, materialsDone?}   DELETE /api/garage/:id
 POST /api/garage/:id/cost      {label, usd, date?}    POST /api/garage/:id/income {label, usd, date?} ("Sale" marks it sold)
 DELETE /api/garage/:id/entry/:entryId
-GET  /api/backup               → {app, version, exportedAt, email, files:{watchlist.json, paper-bids.json, targets.json, alerts.json, settings.json, garage.json}}
+GET  /api/backup               → {app, version, exportedAt, email, files:{watchlist.json, paper-bids.json, targets.json, alerts.json, settings.json, garage.json, companies.json, coach.json, imports.json, sold.json}}
 POST /api/backup               that same shape → {restored:[names]}; validated first, nothing written on a bad file
 POST /api/import/parse         {text, url?, useAi?} → {fields, found[], missing[], usedAi}
 POST /api/import               {fields} → Card (the lot is saved to the member's imports)
@@ -197,6 +217,15 @@ GET  /api/sold                 → Listing[]          DELETE /api/sold/:id
 GET  /healthz                  → "ok" (no session; for the host's health check)
 GET  /share?title&text&url     → 302 to /#import/<payload> (the manifest's Android share target)
 GET  /api/connect              → {items:[{id, group, name, done, unlocks, cost, steps[], env[], link?}], done, total} (booleans only, never a secret)
+GET  /api/deals?budget=&damage=none|minor&minYear=&minProfit=&makes=  → {kind, budget, considered, excluded:{reason:count}, deals:Deal[], leads:Deal[], errors}
+GET  /api/materials?listingId=|carId=   → MaterialsList (expectedUsd, items with need/why/range/partQuery, notes)
+GET  /api/pnl/prefill?listingId=|carId= → {title, kind, input:PnlInput, estimate?, materials}   POST /api/pnl PnlInput → Pnl (lines with basis, costUsd, profitUsd?, breakEvenUsd, bigProfitSaleUsd, scenarios, verdict, missing)
+GET  /api/parts?carId=|year=&make=&model=[&q=] → {vehicle, categories, ebayConnected} | {vehicle, query, items:EbayPart[], error, links:PartLink[]}
+GET  /api/business             → {report:BusinessReport, briefing, companies, cars:(GarageCar & {totals, materials})[]}   GET /api/business/export.csv[?company=id|none]
+POST /api/companies {name, kind} · POST /api/companies/:id {name?, kind?, notes?} · DELETE /api/companies/:id · POST /api/companies/:id/overhead {label, usd, date?} · DELETE /api/companies/:id/overhead/:entryId
+POST /api/assistant/ask        {question} → {answer, source:'ai'|'rules'}
+GET  /api/coach?day=YYYY-MM-DD → {stage, journey:[step & {done, by}], lookFor, today:{date, tasks, streak}, headline, ai:{available, reason}, thread}
+POST /api/coach/tick           {kind:'step'|'task', id, done, day?}   POST /api/coach/new   POST /api/coach/ask {question, listingId?} → {reply:DisplayMsg, threadId}  (409 while one is in flight, 429 past 20 in ten minutes)
 Every route after sign-in reads and writes only the signed-in member's files.
 GET  /api/admin/members        owner only → Member[] (codes never echoed in full; show last 4)
 POST /api/admin/members        {email} → {member, code}  (the only time the full code is shown)

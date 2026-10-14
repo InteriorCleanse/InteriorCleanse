@@ -45,10 +45,11 @@ const thisYear = () => new Date().getUTCFullYear()
 export function parseSearch(input: string): ParsedSearch {
   let s = ` ${String(input ?? '').toLowerCase().replace(/\s+/g, ' ').slice(0, 160)} `
   const out: ParsedSearch = { text: '', understood: [] }
-  const take = (re: RegExp, fn: (m: RegExpMatchArray) => void): void => {
+  // `fn` may return false to leave the phrase in the text (it understood nothing).
+  const take = (re: RegExp, fn: (m: RegExpMatchArray) => void | false): void => {
     const m = s.match(re)
     if (!m) return
-    fn(m)
+    if (fn(m) === false) return
     s = s.replace(m[0], ' ')
   }
   const year = (y: string) => { const n = Number(y.length === 2 ? '20' + y : y); return n >= 1950 && n <= thisYear() + 1 ? n : undefined }
@@ -60,11 +61,11 @@ export function parseSearch(input: string): ParsedSearch {
   take(/\b(?:older than|before)\s+(19[5-9]\d|20[0-4]\d)\b/, (m) => { const y = year(m[1]); if (y) { out.maxYear = y - 1; out.understood.push(`${y - 1} or older`) } })
 
   // Miles before price, so "under 100k miles" is never read as a price.
-  take(/\b(?:under|below|less than|max|<)\s*\$?(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*(?:miles|mi|mileage)\b/, (m) => { out.maxMileage = dollars(m[1], m[2]); out.understood.push(`under ${out.maxMileage.toLocaleString('en-US')} miles`) })
+  take(/(?:\b(?:under|below|less than|max)|<)\s*\$?(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*(?:miles|mi|mileage)\b/, (m) => { out.maxMileage = dollars(m[1], m[2]); out.understood.push(`under ${out.maxMileage.toLocaleString('en-US')} miles`) })
   take(/\blow (?:miles|mileage)\b/, () => { out.maxMileage = 80_000; out.understood.push('under 80,000 miles ("low miles")') })
 
   // Price: "under 8k", "below $8,000", "max 8000", "<8k", "8k budget".
-  take(/\b(?:under|below|less than|max|up to|<)\s*\$?(\d[\d,]*(?:\.\d+)?)\s*(k)?\b/, (m) => { out.maxPriceUsd = dollars(m[1], m[2]); out.understood.push(`under ${fmt(out.maxPriceUsd)}`) })
+  take(/(?:\b(?:under|below|less than|max|up to)|<)\s*\$?(\d[\d,]*(?:\.\d+)?)\s*(k)?\b/, (m) => { out.maxPriceUsd = dollars(m[1], m[2]); out.understood.push(`under ${fmt(out.maxPriceUsd)}`) })
   take(/\$?(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*budget\b/, (m) => { out.maxPriceUsd = dollars(m[1], m[2]); out.understood.push(`under ${fmt(out.maxPriceUsd)}`) })
 
   // Damage and title words.
@@ -76,7 +77,9 @@ export function parseSearch(input: string): ParsedSearch {
   take(/\bin ((?:new|north|south|west|rhode|district of) ?\w+|\w+)\b/, (m) => {
     const w = m[1].trim()
     const code = STATES[w] ?? (w.length === 2 && CODES.has(w.toUpperCase()) ? w.toUpperCase() : undefined)
-    if (code) { out.state = code; out.understood.push(NAME_OF[code] ?? code) } else s = s.replace(m[0], ` ${m[0]} `)
+    if (!code) return false
+    out.state = code
+    out.understood.push(NAME_OF[code] ?? code)
   })
 
   // Make and model from the catalogue; a model alone ("camry") finds its make.
@@ -98,7 +101,7 @@ export function parseSearch(input: string): ParsedSearch {
   }
   if (out.make) out.understood.unshift(out.model ? `${out.make} ${out.model}` : out.make)
 
-  const rest = s.replace(/\b(?:a|an|the|cars?|for|with|and|me|find|show|looking|want|i)\b/g, ' ').replace(/\s+/g, ' ').trim()
+  const rest = s.replace(/\b(?:a|an|the|cars?|for|with|and|me|find|show|looking|want|i|in|interested)\b/g, ' ').replace(/\s+/g, ' ').trim()
   out.text = [out.make, out.model, rest].filter(Boolean).join(' ').trim()
   return out
 }

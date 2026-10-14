@@ -68,6 +68,17 @@ How you talk:
 
 const TOOL_RESULT_LIMIT = 15_000
 
+/**
+ * A promise word in a sentence with no negation is a promise ("this flip is
+ * guaranteed"); with one it is a caution ("nothing at auction is guaranteed").
+ * An answer that promises is dropped and the rules speak instead.
+ */
+export function promises(text: string): boolean {
+  const WORDS = /\b(?:guaranteed?|risk[- ]free|sure thing|can'?t\s+lose|proven\s+(?:profitable|investment)|best\s+investment|get\s+rich)\b/i
+  const NEGATED = /\b(?:nothing|no|not|never|isn'?t|aren'?t|cannot|can'?t\s+be|nobody|none)\b/i
+  return text.split(/(?<=[.!?])\s+|\n+/).some((sentence) => WORDS.test(sentence) && !NEGATED.test(sentence))
+}
+
 export type CoachAnswer = { text: string; activity: Activity[]; citations: Citation[]; appended: unknown[]; model: string }
 
 /**
@@ -95,7 +106,9 @@ export async function coachTurn(history: unknown[], userText: string, tools: Coa
       output_config: { effort: config.ai.coachEffort },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
-      system: [{ type: 'text', text: COACH_RULES, cache_control: { type: 'ephemeral' } }],
+      // The thread grows with every tool result: cache the whole prefix, not only the rules.
+      cache_control: { type: 'ephemeral' },
+      system: [{ type: 'text', text: COACH_RULES }],
       tools: [
         { type: 'web_search_20260209', name: 'web_search', max_uses: config.ai.coachSearches },
         { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: config.ai.coachReads, citations: { enabled: true } },
@@ -103,8 +116,11 @@ export async function coachTurn(history: unknown[], userText: string, tools: Coa
       ],
     }
     let last: Msg | null = null
-    for (let round = 0; round < 10; round++) {
-      const msg = await client.beta.messages.stream({ ...params, messages: [...history, ...appended] }).finalMessage()
+    const ROUNDS = 10
+    for (let round = 0; round <= ROUNDS; round++) {
+      // Out of rounds with tools still wanted: one last call, tools off, for the answer so far.
+      const final = round === ROUNDS
+      const msg = await client.beta.messages.stream({ ...params, messages: [...history, ...appended], ...(final ? { tool_choice: { type: 'none' } } : {}) }).finalMessage()
       last = msg
       if (msg.stop_reason === 'refusal') return null
       appended.push({ role: 'assistant', content: msg.content })
@@ -117,7 +133,7 @@ export async function coachTurn(history: unknown[], userText: string, tools: Coa
         if (b.type === 'text') for (const c of b.citations ?? []) if (c.url && !citations.has(c.url)) citations.set(c.url, { url: c.url, title: c.title || c.url })
       }
       if (msg.stop_reason === 'pause_turn') continue
-      if (msg.stop_reason !== 'tool_use') break
+      if (msg.stop_reason !== 'tool_use' || final) break
       const calls = msg.content.filter((b) => b.type === 'tool_use')
       const results = await Promise.all(calls.map(async (call) => {
         const tool = byName.get(call.name ?? '')
@@ -136,7 +152,7 @@ export async function coachTurn(history: unknown[], userText: string, tools: Coa
     if (!last) return null
     const text = last.content.filter((b) => b.type === 'text' && b.text).map((b) => b.text).join('').trim()
     if (!text) return null
-    if (/\b(guaranteed|risk[- ]free|proven\s+(?:profitable|investment)|best\s+investment|sure thing)\b/i.test(text)) return null
+    if (promises(text)) return null
     return { text, activity, citations: [...citations.values()], appended, model: last.model }
   } catch (e) {
     console.error('[coach]', e instanceof Error ? e.message : e)

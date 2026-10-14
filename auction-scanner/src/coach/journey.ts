@@ -136,7 +136,11 @@ export function todayTasks(input: { next?: JourneyStep; urgent?: { id: string; t
   }
   out.push({ ...habit[input.stage], done: false })
   // Nothing urgent today: one more small habit, so there are always three.
-  if (out.length < 3) out.push({ id: input.stage <= 2 ? 'habit-words' : 'habit-ask', title: input.stage <= 2 ? 'Learn three auction words in the glossary' : 'Ask your coach about one car you are watching', why: input.stage <= 2 ? 'Knowing the words on a listing is most of the protection.' : 'A second look before the auction is how you avoid the expensive mistakes.', href: input.stage <= 2 ? '#intel' : '#coach', done: false })
+  const fillers: Array<Omit<TodayTask, 'done'>> = [
+    { id: input.stage <= 2 ? 'habit-words' : 'habit-ask', title: input.stage <= 2 ? 'Learn three auction words in the glossary' : 'Ask your coach about one car you are watching', why: input.stage <= 2 ? 'Knowing the words on a listing is most of the protection.' : 'A second look before the auction is how you avoid the expensive mistakes.', href: input.stage <= 2 ? '#intel' : '#coach' },
+    { id: 'habit-books', title: 'Open the books and check every car has its costs logged', why: 'True books are the only way to know what each car really made.', href: '#business' },
+  ]
+  for (const f of fillers) if (out.length < 3 && !out.some((t) => t.id === f.id)) out.push({ ...f, done: false })
   for (const t of out) t.done = done.has(t.id)
   return out.slice(0, 3)
 }

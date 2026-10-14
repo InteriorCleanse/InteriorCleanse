@@ -97,3 +97,19 @@ test('the agent refuses to pass on a promise word, and a refusal falls back to t
   assert.equal(await coachTurn([], 'q', [], one({ model: 't', stop_reason: 'refusal', content: [] })), null)
   assert.equal(await coachTurn([], 'q', []), null, 'no key, no AI')
 })
+
+test("today's three stays three when the journey is done; a caution is not a promise; the loop ends cleanly", async () => {
+  assert.equal(todayTasks({ stage: 6, done: [] }).length, 3)
+  const one = (msg: CoachMsg): CoachClient => ({ beta: { messages: { stream: () => ({ finalMessage: async () => msg }) } } })
+  const a = await coachTurn([], 'q', [], one({ model: 't', stop_reason: 'end_turn', content: [{ type: 'text', text: 'TEST FIXTURE: nothing at auction is guaranteed; set your number first.' }] }))
+  assert.ok(a && /guaranteed/.test(a.text), 'a caution passes')
+  assert.equal(await coachTurn([], 'q', [], one({ model: 't', stop_reason: 'end_turn', content: [{ type: 'text', text: 'TEST FIXTURE: this is a guaranteed profit.' }] })), null)
+  // A model that wants a tool every round: after the cap, one last call with tools off returns the answer.
+  const seen: Array<{ tool_choice?: { type: string } }> = []
+  const forever: CoachClient = { beta: { messages: { stream: (p) => { const req = p as { tool_choice?: { type: string } }; seen.push(req); return { finalMessage: async () => (req.tool_choice?.type === 'none' ? { model: 't', stop_reason: 'end_turn', content: [{ type: 'text', text: 'TEST FIXTURE: here is what I found so far.' }] } : { model: 't', stop_reason: 'tool_use', content: [{ type: 'tool_use', id: 'x', name: 'my_journey', input: {} }] }) } } } } }
+  const tools: CoachTool[] = [{ name: 'my_journey', description: 'd', input_schema: { type: 'object' }, label: () => 'j', run: async () => ({}) }]
+  const b = await coachTurn([], 'q', tools, forever)
+  assert.ok(b && /so far/.test(b.text))
+  assert.equal(seen.length, 11)
+  assert.equal(seen[10].tool_choice?.type, 'none')
+})

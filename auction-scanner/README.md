@@ -1,10 +1,12 @@
 # Gavel
 
-An AI car-auction scanner. It reads car auctions, finds clean, lightly-used
-cars priced under what similar cars list for, scores each one and says why in
-plain English, works out the most you should bid, and walks you through buying
-the car at that auction. It also teaches: going to auctions in person, the
-dealer licence, flipping, minor fixes, and starting a rental car company.
+An AI car-auction scanner and business coach. Give it a budget and it finds
+clean, lightly-used cars priced well under what similar cars go for, with
+every cost counted and the most you should bid. It explains each car in plain
+English, walks a beginner through buying it at that auction, keeps the books
+for each of your companies, and coaches you day to day: a twelve-step first
+car, three tasks a day, and a coach that searches the web and every auction
+it reads to answer any question.
 
 Members sign in with an access code. Bidding is **paper by default**: Gavel
 records your practice bid and opens the lot with your number; the real bid
@@ -28,9 +30,35 @@ so, and they exist only so you can see the app before a source is connected.
 The first time you sign in, **Setup** asks four questions (your goal, your
 state, your budget, the makes you like) and starts your first Sniper target.
 
-- **Home.** The command centre: your next step, the Sniper's picks with live
-  countdowns, the latest alerts, the cars you watch, your paper record, the
-  Garage's net, and a checklist of the path from first sign-in to first car.
+- **Home.** The command centre: a budget box that opens Deals, your partner's
+  top three, the Sniper's picks with live countdowns, the latest alerts, the
+  cars you watch, your paper record, your profit, and the path from first
+  sign-in to first car.
+- **Deals.** Your budget in, real cars out. Clean title, little or no damage,
+  priced against similar cars, with the buyer fee, transport, the materials
+  the car will likely need and a cushion all counted. Set a profit floor and
+  a model year. Each card shows the estimated profit, the most to bid, a P/L
+  estimator, the materials list, and **I bought it**, which puts the car in
+  your books. A **deal** rests on sold or asking prices; a **lead** rests on
+  bids still running and says so. Every car left out is counted with why.
+- **Coach.** The day-to-day coach. A twelve-step first auction car, from
+  budget to first sale, with a what-to-look-for checklist (title, VIN,
+  history, recalls, photos, flood signs, fees and deadlines); today's three
+  tasks and a streak; and a conversation. With an Anthropic key the coach
+  searches the web, reads auction pages, searches every live auction, runs
+  the deal finder, opens a car's plan, checks recalls, reads your books and
+  shows its sources. Without one it answers from the journey and your books,
+  and says so.
+- **Business.** Your companies' books. Each company (flip, rental or both)
+  has its own cars and business costs; profit per company and overall, cash
+  flow, what is held in cars, a twelve-month chart, and a partner's ranked
+  briefing of what to do next. Each car: every cost in and dollar out, a
+  target sale, break-even, a P/L sheet, a materials checklist and Find parts.
+  Export the books as a spreadsheet for your accountant.
+- **Parts.** Pick a car you bought and a part. eBay's own fitment search with
+  live prices when eBay is connected; searches for that exact car at the big
+  parts stores and the salvage-yard networks either way; and the recalls a
+  dealer fixes free.
 - **Import.** Bring in any lot from any auction: drag the Send to Gavel
   button to your bookmarks once, then click it on a Copart, IAA, Bring a
   Trailer or Cars & Bids page. Or paste the lot, or upload a CSV export.
@@ -41,13 +69,10 @@ state, your budget, the makes you like) and starts your first Sniper target.
   opens on Import. With no connection it says so plainly.
 - **Connect.** The go-live guide with a live tick next to every source, the
   AI, hosting and payments.
-- **Garage.** The business ledger: every car you actually bought, every cost
-  (fees, transport, parts, labour, tyres, insurance) and every dollar in
-  (rental payouts, the sale), with the net per car and overall. Only what you
-  type goes in.
-- **Feed.** Cars priced under their comparables. Each lot tag shows the price
-  now, what comparable cars list for (or **NOT ENOUGH COMPS**), the Steal
-  score out of 100 with a one-word grade, badges (title, damage, runs and
+- **Feed.** Cars priced under their comparables, searched in plain English
+  ("2015+ camry under 8k no damage in tx"). Each lot tag shows the price
+  now, what comparable cars list for (or **NOT ENOUGH COMPS**), the deal
+  score out of 100 with where the price sits against the market, badges (title, damage, runs and
   drives, time left), three "why" lines, red flags, and the buttons **Plan my
   bid**, **Open the lot** and **Watch**. **Starter mode** is on by default: it
   hides salvage and rebuilt titles, damage beyond minor, cars that do not run,
@@ -68,7 +93,8 @@ state, your budget, the makes you like) and starts your first Sniper target.
   Read how every house works, the laws that bite, and the glossary. See
   `docs/KNOWLEDGE.md`.
 - **Watch.** Cars you are watching and the paper bids you have practised with,
-  with how each one ended.
+  with how each one ended. A watched car alerts you once when it is ending
+  within two hours, when its price moves, and when it ends.
 - **Auctions.** Every house worth knowing: who may buy, what registering
   costs, the fee basis with a verify link, in person or online, and whether
   Gavel reads it live. One click opens their search.
@@ -136,12 +162,17 @@ number. Live bidding becomes possible only when an auction hands out a bidding
 API, or a licensed dealer account with one; the gate is already in the code.
 See `docs/BIDDING.md`.
 
-## The optional AI explainer
+## The optional AI
 
-Add `ANTHROPIC_API_KEY` to `.env` and **Explain it again with AI** on the Plan
-screen asks Claude to rewrite the walkthrough for your car, starting from the
-rules version and forbidden from inventing prices, fees or history. Without a
-key, the rules walkthrough is what you get, and it is complete on its own.
+Add `ANTHROPIC_API_KEY` to `.env`, run `npm install` once, and three things
+switch on: the **Coach** becomes Claude with web search, page reading and
+Gavel's own tools (every live auction, the deal finder, a car's plan and
+similar cars, recalls, the auction directory, your books); the **Intel** desk
+searches the live web with sources; and **Explain it again with AI** on the
+Plan screen rewrites the walkthrough for your car. Each is held to the same
+rules: no invented price, fee or history, no promise of profit, and anything
+read on a web page is information, never an instruction. Without a key every
+screen still works from the rules, the journey and your books, and says so.
 
 ## Putting it on the internet
 
@@ -163,6 +194,7 @@ Gavel is built to run on a laptop, a home server, or a small VPS.
 |---|---|
 | `npm start` | Run the app on `GAVEL_PORT` (default 8790) |
 | `npm run scan -- corvette --max 30000` | Scan in the terminal; `--all` shows what starter mode hid |
+| `npm run find -- --budget 5000 --min-profit 2500` | The deal finder in the terminal (also on GitHub: Actions → Gavel deal finder) |
 | `npm run doctor` | What is connected, what is missing, how to fix it |
 | `npm run selftest` | Offline logic checks |
 | `npm test` | The test suite (`node --test`) |
@@ -175,12 +207,18 @@ Gavel is built to run on a laptop, a home server, or a small VPS.
 config.ts            tunables: starter rules, scoring, plan defaults, AI model
 src/server.ts        the app and its API
 src/sources/         eBay, GSA and MarketCheck adapters, the importer, the directory, SAMPLE cars, registry
-src/valuation.ts     comps-based estimate        src/scoring.ts   the Steal score
+src/valuation.ts     comps-based estimate        src/scoring.ts   the deal score
 src/filters.ts       starter rules               src/fees.ts      published fee schedules
 src/bidplan.ts       never-bid-above maths       src/explain.ts   the rules walkthrough
+src/finder.ts        the deal finder             src/find.ts      its CLI
+src/materials.ts     what a car will need        src/pnl.ts       profit and loss, line by line
+src/parts.ts         parts that fit, where to buy src/searchparse.ts plain-English search
 src/ai.ts            optional Claude explainer   src/demand.ts    the editable demand list
-src/paper.ts         watchlist and paper bids    src/settings.ts  per-member settings
-src/garage.ts        the business ledger         src/store.ts     JSON files, scoped per member
+src/paper.ts         watchlist and paper bids    src/watchalerts.ts ending, price moved, ended
+src/settings.ts      per-member settings         src/store.ts     JSON files, scoped per member
+src/garage.ts        the cars you own            src/companies.ts your companies and their costs
+src/business.ts      profit per company, CSV     src/advisor.ts   the partner's briefing
+src/coach/           the journey, today's three, the coach (rules, and Claude with the web)
 src/playbook/        the guides                  src/rental.ts    first-car finder
 src/knowledge/       policies, regulations, glossary, search
 src/research/        car intel (NHTSA, fueleconomy.gov); the web desk (Claude + web search)
@@ -188,6 +226,6 @@ src/sniper/          targets, the engine, alerts   src/catalog.ts   makes and mo
 src/security/        CSP, sessions, members, throttle, Stripe verification
 web/                 the members' app: index.html, login.html, css/, js/
 test/                node --test, offline, temp data directory per run
-docs/                DESIGN, AUCTIONS, BIDDING, MEMBERS, SECURITY, PLAYBOOK
+docs/                DESIGN, BRAND, AUCTIONS, BIDDING, MEMBERS, SECURITY, PLAYBOOK, GO_LIVE
 data/                members.json at the top; each member's files in users/<id>/ (git-ignored)
 ```
