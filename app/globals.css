@@ -1909,19 +1909,6 @@ textarea {
   object-fit: cover;
 }
 
-.spirit-badge {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  background: #D4AF6A;
-  color: #0F0A1E;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 700;
-  padding: 0.3rem 0.6rem;
-}
-
 .spirit-category {
   font-size: 10px;
   letter-spacing: 0.2em;
@@ -3471,6 +3458,20 @@ html[data-cursor='globe'] * { cursor: none !important; }
   .featured-slot { position: static; flex: 0 0 100%; margin: 0 auto; padding: 0 5vw 3rem; }
   .featured-card { width: 100%; max-width: 340px; margin: 0 auto; }
   .residence-copy { flex: 0 0 100%; max-width: none; padding-bottom: 3rem; margin-left: 0; padding-left: 5vw; }
+  /* Full-width copy here, so the desktop ramp (clear by 82%) left the ends of
+     long headlines on bare photograph: 1.75:1 on the library band at 390px.
+     Keep the scrim heavy across the whole copy width on phones and tablets. */
+  .residence-scrim {
+    background:
+      linear-gradient(
+        100deg,
+        rgba(10, 10, 10, 0.9) 0%,
+        rgba(10, 10, 10, 0.82) 45%,
+        rgba(10, 10, 10, 0.72) 75%,
+        rgba(10, 10, 10, 0.62) 100%
+      ),
+      linear-gradient(rgba(10, 10, 10, 0.4), rgba(10, 10, 10, 0) 30%);
+  }
 }
 
 @media (max-width: 767px) {
@@ -3636,15 +3637,18 @@ html[data-cursor='globe'] * { cursor: none !important; }
 /* The scene wrapper is a clip for the over-sized living still. */
 .guestbook-scene { overflow: hidden; }
 
-/* Warm scrim weighted to the right, where the copy sits. */
+/* Warm scrim weighted to the right, where the copy sits. The copy column
+   starts at 50%, so the scrim is already heavy there: at 0.55 a bright patch
+   of the still left parts of the body copy at 1.5:1 (check:contrast). */
 .guestbook-scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     90deg,
     rgba(10, 10, 10, 0.15) 0%,
-    rgba(20, 16, 12, 0.55) 45%,
-    rgba(20, 16, 12, 0.88) 100%
+    rgba(20, 16, 12, 0.62) 38%,
+    rgba(20, 16, 12, 0.86) 52%,
+    rgba(20, 16, 12, 0.92) 100%
   );
 }
 
@@ -3757,8 +3761,9 @@ html[data-cursor='globe'] * { cursor: none !important; }
 @media (max-width: 900px) {
   .guestbook { grid-template-columns: 1fr; }
   .guestbook-panel { grid-column: 1; padding: 3.5rem 5vw; }
+  /* Stacked, the copy starts near the top, so the top of the scrim carries it too. */
   .guestbook-scrim {
-    background: linear-gradient(rgba(10, 10, 10, 0.5), rgba(20, 16, 12, 0.92));
+    background: linear-gradient(rgba(10, 10, 10, 0.72), rgba(20, 16, 12, 0.92));
   }
 }
 

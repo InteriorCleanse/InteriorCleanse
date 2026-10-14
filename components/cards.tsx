@@ -78,14 +78,14 @@ export function SpiritCard({ book }: { book: SpiritBook }) {
     <article className="spirit-card">
       <div className="spirit-card-image">
         <ProductImage src={book.coverImage} alt={book.imageAlt} label={book.title} />
-        {book.badge ? <span className="spirit-badge">{book.badge}</span> : null}
       </div>
       <p className="spirit-category">{book.category}</p>
       <h3 className="spirit-title">{book.title}</h3>
       <p className="spirit-subtitle">{book.subtitle}</p>
       <p className="spirit-desc">{book.description}</p>
       <div className="spirit-foot">
-        <span className="spirit-price">{book.price}</span>
+        {/* Amazon owns the price; quoting one here would go stale and mislead. */}
+        <span className="spirit-price">On Amazon</span>
         <a href={book.amazonUrl} target="_blank" rel="noreferrer" className="spirit-buy">
           Buy ↗
         </a>

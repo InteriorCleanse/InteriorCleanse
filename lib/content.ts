@@ -36,8 +36,6 @@ export const spiritBooks: SpiritBook[] = [
     description:
       'The complete King James Version. A timeless cornerstone for faith, reflection, and daily devotion.',
     amazonUrl: 'https://www.amazon.com/s?k=holy+bible+kjv',
-    price: 'From $8.99',
-    badge: 'FEATURED',
   },
   {
     slug: 'daily-devotional-journal',
@@ -49,8 +47,6 @@ export const spiritBooks: SpiritBook[] = [
     description:
       'A year of guided daily devotions — scripture readings, reflection prompts, and space for prayer journaling.',
     amazonUrl: 'https://www.amazon.com/',
-    price: '$14.99',
-    badge: 'NEW',
   },
   {
     slug: 'kids-bible-story-coloring-book',
@@ -62,8 +58,6 @@ export const spiritBooks: SpiritBook[] = [
     description:
       'Fun Bible story scenes for young readers to colour and enjoy. Bold thick lines, easy for little hands.',
     amazonUrl: 'https://www.amazon.com/',
-    price: '$7.99',
-    badge: 'NEW',
   },
   {
     slug: 'bible-verse-coloring-book-adults',
@@ -75,8 +69,6 @@ export const spiritBooks: SpiritBook[] = [
     description:
       'Calming botanical illustrations paired with scripture verses. Premium paper, 50 unique designs.',
     amazonUrl: 'https://www.amazon.com/',
-    price: '$9.99',
-    badge: 'BESTSELLER',
   },
 ]
 
