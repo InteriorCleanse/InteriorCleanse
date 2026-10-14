@@ -37,6 +37,7 @@ const REPORTS_KEY = 'polwatch:reports'
 const FIRST_LOOKBACK_DAYS = 14
 const DESK_RISK_PCT = 1
 export const MAX_RISK_PCT = 5
+export const DEFAULT_NAMES = 'Nancy Pelosi'
 
 export type WatchSettings = { names: string[]; riskCapPct: number }
 
@@ -78,7 +79,8 @@ export function sanitiseSettings(input: unknown): WatchSettings {
 export function readSettings(env: NodeJS.ProcessEnv = process.env): WatchSettings {
   const saved = store().getJson<WatchSettings | null>(SETTINGS_KEY)
   if (saved) return sanitiseSettings(saved)
-  return sanitiseSettings({ names: env.MRCASH_WATCH_POLITICIANS ?? '', riskCapPct: env.MRCASH_WATCH_RISK_CAP ?? MAX_RISK_PCT })
+  // The owner chose Nancy Pelosi; MRCASH_WATCH_POLITICIANS or the list saved on the page replaces it.
+  return sanitiseSettings({ names: env.MRCASH_WATCH_POLITICIANS ?? DEFAULT_NAMES, riskCapPct: env.MRCASH_WATCH_RISK_CAP ?? MAX_RISK_PCT })
 }
 export function saveSettings(input: unknown): WatchSettings { const s = sanitiseSettings(input); store().setJson(SETTINGS_KEY, s); return s }
 
