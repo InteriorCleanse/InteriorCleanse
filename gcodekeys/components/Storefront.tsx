@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import Link from 'next/link'
 import { useCart } from './CartProvider'
 import { KeyStudio } from './KeyStudio'
+import { EmailCapture } from './EmailCapture'
 import { PRODUCTS, DROPS } from '@/lib/catalog'
+import { GUIDES } from '@/lib/guides'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -53,8 +56,35 @@ export function Storefront() {
       <Shop onAdd={add} />
       <Drops />
       <Replace onAdd={add} />
+      <GarageTeaser />
       <Trust />
     </div>
+  )
+}
+
+function GarageTeaser() {
+  const guides = GUIDES.slice(0, 3)
+  return (
+    <section id="garage">
+      <div className="shead">
+        <div><div className="kicker">The Garage</div><h2>Know your keys. Keep your money.</h2></div>
+        <Link className="btn ghost sm" href="/garage/">ALL GUIDES</Link>
+      </div>
+      <p className="sub reveal">Short, honest guides for car owners — what key you have, what to do if you lose it, and how to never overpay. Free to read.</p>
+      <div className="guidegrid reveal">
+        {guides.map((g) => (
+          <Link key={g.slug} href={`/garage/${g.slug}/`} className="guidecard">
+            <div className="guidecard-tag">{g.tag}{g.flagship ? ' · Free guide' : ''}</div>
+            <h2 style={{ fontSize: '1.2rem' }}>{g.title}</h2>
+            <p>{g.dek}</p>
+            <div className="guidecard-foot"><span>{g.readMins} min read</span><span className="arrow" aria-hidden="true">→</span></div>
+          </Link>
+        ))}
+      </div>
+      <div className="reveal" style={{ marginTop: 22 }}>
+        <EmailCapture source="home" />
+      </div>
+    </section>
   )
 }
 

@@ -13,6 +13,7 @@ export function SiteFooter() {
           <nav className="footnav" aria-label="Footer">
             <Link href="/#build">Build a fob</Link>
             <Link href="/#shop">Shop</Link>
+            <Link href="/garage/">The Garage</Link>
             <Link href="/#replace">Replace by VIN</Link>
             <Link href="/coverage/">Coverage</Link>
             <Link href="/how-it-works/">How it works</Link>

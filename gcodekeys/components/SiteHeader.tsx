@@ -8,7 +8,7 @@ import { useCart } from './CartProvider'
 const LINKS = [
   ['/#build', 'Build'],
   ['/#shop', 'Shop'],
-  ['/#drops', 'Drops'],
+  ['/garage/', 'Garage'],
   ['/coverage/', 'Coverage'],
   ['/how-it-works/', 'How it works'],
   ['/faq/', 'FAQ'],

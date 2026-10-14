@@ -386,3 +386,30 @@ h2{letter-spacing:-0.01em}
 .forge canvas:active{cursor:grabbing}
 .forge-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.28em;color:var(--muted);pointer-events:none;opacity:.7}
 .forge-loading{display:grid;place-items:center;height:clamp(360px,56vh,520px);border-radius:22px;background:#05080b;border:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--muted)}
+
+/* ── The Garage (guides) + email capture ── */
+.guidegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:28px}
+.guidecard{display:flex;flex-direction:column;gap:10px;padding:22px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel),var(--panel2));transition:.3s cubic-bezier(.32,.72,0,1)}
+.guidecard:hover{border-color:rgba(201,168,106,.4);transform:translateY(-3px);box-shadow:0 30px 60px -40px rgba(0,0,0,.9)}
+.guidecard-tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.guidecard h2{font-size:1.25rem;font-weight:600;margin:0;letter-spacing:-.01em}
+.guidecard p{color:var(--muted);margin:0;font-size:.96rem;line-height:1.55}
+.guidecard-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted)}
+.guidecard:hover .guidecard-foot .arrow{color:var(--gold)}
+
+.guidebody{margin-top:30px;border-top:1px solid var(--line);padding-top:8px}
+.guidebody section{margin-top:30px}
+.guidebody h2{font-size:1.4rem;font-weight:600;letter-spacing:-.01em;margin:0 0 12px}
+.guidebody p{color:var(--muted);line-height:1.72;font-size:1.05rem;margin:0 0 14px;max-width:64ch}
+.guidebody ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.guidebody li{position:relative;padding-left:22px;color:var(--muted);line-height:1.6;max-width:64ch}
+.guidebody li::before{content:'';position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+.capture{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;padding:30px;border:1px solid var(--line);border-radius:18px;
+  background:radial-gradient(120% 120% at 0% 0%,rgba(201,168,106,.08),transparent 55%),linear-gradient(180deg,var(--panel),var(--panel2));box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.capture-copy h3{font-size:clamp(1.2rem,2.6vw,1.6rem);font-weight:600;letter-spacing:-.01em;margin:.3rem 0 0}
+.capture-copy .sub{margin-top:8px;font-size:.98rem}
+.capture-form{display:flex;flex-direction:column;gap:10px}
+.capture-done{display:flex;align-items:center;gap:14px}
+.capture-check{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--holo);color:#04140c;font-weight:700;flex:0 0 auto}
+@media(max-width:720px){.capture{grid-template-columns:1fr}}
