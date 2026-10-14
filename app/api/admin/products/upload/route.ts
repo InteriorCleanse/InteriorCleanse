@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readCatalog, writeCatalog, writePublicAsset } from '@/lib/catalog-store'
 import { errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,9 @@ const TYPES: Record<string, string> = {
  * step, not an upload followed by a copy-and-paste of the URL.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const form = await req.formData()
     const slug = String(form.get('slug') ?? '')

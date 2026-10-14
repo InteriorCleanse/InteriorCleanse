@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,9 @@ export type GumroadCheck = {
  * writes the URL onto the product only after seeing the answer.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { url } = (await req.json()) as { url?: string }
     let parsed: URL

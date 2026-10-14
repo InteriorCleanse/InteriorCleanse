@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { SITE } from '@/lib/site'
 
-type Kind = 'build-waitlist' | 'private-call' | 'general'
+type Kind = 'build-waitlist' | 'private-call' | 'general' | 'check-report'
 
 export function InquiryForm({ kind, cta }: { kind: Kind; cta: string }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'unconfigured' | 'error'>('idle')

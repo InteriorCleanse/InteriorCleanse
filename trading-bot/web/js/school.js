@@ -8,8 +8,9 @@
  */
 import { getJson, esc } from './api.js'
 import { holoGraph, mountHolo } from './viz.js'
+import { renderProp } from './prop.js'
 
-const VIEWS = [['concepts', 'Concepts'], ['lesson', 'Lesson'], ['cases', 'Case studies'], ['replay', 'Replay School'], ['debate', 'Debate'], ['teacher', 'Teacher'], ['learning', 'My Learning'], ['markets', 'Other markets']]
+const VIEWS = [['concepts', 'Concepts'], ['lesson', 'Lesson'], ['cases', 'Case studies'], ['replay', 'Replay School'], ['debate', 'Debate'], ['teacher', 'Teacher'], ['learning', 'My Learning'], ['markets', 'Other markets'], ['prop', 'Prop firms']]
 let view = 'concepts'
 let conceptId = 'liquidity-sweep'
 let caseKind = ''
@@ -29,7 +30,7 @@ async function postJson(path, body) {
 const growthBar = (g) => `<div class="sc-growth"><div class="sc-growth-bar"><div style="width:${g.pct}%"></div></div><span class="muted">${g.n} trades · ${esc(g.band)} · ${esc(g.status)}${g.toNext ? ` · ${g.toNext} to next band` : ''}</span></div>`
 const notEnough = (what) => `<div class="ev-empty"><div class="ev-empty-big">NOT ENOUGH DATA</div><div class="muted">${esc(what)}</div></div>`
 
-const TRACK_LABEL = { basics: 'Start here: the basics, in order', priceaction: 'Price action: candles in context', scalping: 'Scalping: the technical and fundamental side' }
+const TRACK_LABEL = { basics: 'Start here: the basics, in order', priceaction: 'Price action: candles in context', scalping: 'Scalping: the technical and fundamental side', prop: 'Prop firms: passing a funded challenge' }
 
 
 /** The concept graph as 3D data: concepts grouped by track, plus the strategies and case kinds they link to. */
@@ -145,6 +146,7 @@ async function renderView() {
       case 'teacher': html = renderTeacher(); break
       case 'learning': html = await renderLearning(); break
       case 'markets': html = await renderMarkets(); break
+      case 'prop': html = await renderProp(); break
     }
     out.innerHTML = html
     mountHolo(out)

@@ -40,6 +40,9 @@ import type { AnnotationType } from '../intel/types.ts'
 import { marketDebate } from '../school/debate.ts'
 import { buildLesson, dataGrowth, gradeQuiz } from '../school/lessons.ts'
 import { kellyFraction, netEdge, netOdds, singleVenueEdge, workedExample } from '../school/predictionMarket.ts'
+import { BOT_POLICY, JOURNEY, TEMPLATES, evaluateChallenge, riskRoom, sanitiseRules, simulatePass, todayRoom } from '../school/propFirm.ts'
+import type { ChallengeRules, ChallengeTrade } from '../school/propFirm.ts'
+import { readJournal } from '../journal.ts'
 import { masteryFrom, progressSummary, readEngagements, recordEngagement } from '../school/progress.ts'
 import type { EngagementKind } from '../school/progress.ts'
 import { buildReplayLesson, revealStop, stopView } from '../school/replaySchool.ts'
@@ -243,6 +246,71 @@ export function schoolPredictionMarket(q: { yes?: string | null; no?: string | n
   const p = Number(q.p)
   const kelly = p > 0 && p < 1 ? kellyFraction(p, netOdds(yes)) : null
   return { example, calc: { single, net, kelly, provenance: 'SIMULATED' } }
+}
+
+// ---------------------------------------------------------------
+// PROP FIRM ACADEMY — rules, replay, risk room, journey. Read-only over the
+// paper record and the journal; nothing here reaches the engine or any broker.
+// ---------------------------------------------------------------
+
+const PROP_RULES_KEY = 'prop:rules'
+
+function propRules(templateId: string | null): { rules: ChallengeRules; source: 'saved' | 'template'; templateId: string | null } {
+  if (templateId) {
+    const t = TEMPLATES.find((x) => x.id === templateId)
+    if (!t) throw new ApiError(400, 'unknown template')
+    return { rules: t, source: 'template', templateId: t.id }
+  }
+  const saved = store().getJson<ChallengeRules | null>(PROP_RULES_KEY)
+  if (saved) return { rules: sanitiseRules(saved), source: 'saved', templateId: null }
+  return { rules: TEMPLATES[0], source: 'template', templateId: TEMPLATES[0].id }
+}
+
+/** Closed trades scaled to the challenge account. `as-traded` keeps Kestrel's own sizing as a share of its paper account; `risk` re-sizes every trade to riskPct of the challenge account per 1R. */
+function propTrades(source: string, sizing: string, riskPct: number, accountSize: number, since: number | null): { trades: ChallengeTrade[]; provenance: 'PAPER' | 'JOURNAL'; sizing: 'as-traded' | 'risk'; note: string } {
+  const riskUsd = accountSize * riskPct / 100
+  if (source === 'journal') {
+    const trades = readJournal()
+      .filter((e) => e.rMultiple !== null && (e.outcome === 'win' || e.outcome === 'loss' || e.outcome === 'flat') && (since === null || e.tradeTime >= since))
+      .map((e) => ({ at: e.tradeTime, pnl: (e.rMultiple as number) * riskUsd }))
+    return { trades, provenance: 'JOURNAL', sizing: 'risk', note: `Your journal trades, each re-sized to ${riskPct}% of the account per 1R. Entered by you; Kestrel cannot check them against a broker.` }
+  }
+  const closed = readPositions().closed.filter((p) => p.exitReason !== 'missed' && p.closedAt !== undefined && (since === null || (p.closedAt ?? 0) >= since))
+  if (sizing === 'risk') return { trades: closed.filter((p) => Number.isFinite(p.rMultiple)).map((p) => ({ at: p.closedAt as number, pnl: (p.rMultiple as number) * riskUsd })), provenance: 'PAPER', sizing: 'risk', note: `Kestrel's paper trades, each re-sized to ${riskPct}% of the account per 1R.` }
+  return { trades: closed.map((p) => ({ at: p.closedAt as number, pnl: (p.pnlUsd ?? 0) / config.accountSizeUsd * accountSize })), provenance: 'PAPER', sizing: 'as-traded', note: `Kestrel's paper trades at its own sizing, scaled from its $${config.accountSizeUsd.toLocaleString('en-US')} paper account to this account size.` }
+}
+
+const propSample = (n: number) => (n === 0 ? 'NO TRADES' : n < SAMPLE_BARS.early ? 'NOT ENOUGH DATA' : 'SMALL SAMPLE')
+
+export function schoolProp(q: { template?: string | null; source?: string | null; sizing?: string | null; risk?: string | null; since?: string | null }, now = Date.now()) {
+  const { rules, source, templateId } = propRules(q.template ?? null)
+  const riskPct = Math.min(10, Math.max(0.05, Number(q.risk) || 0.5))
+  const sinceMs = q.since ? Date.parse(q.since) : NaN
+  const since = Number.isFinite(sinceMs) ? sinceMs : null
+  const data = propTrades(q.source === 'journal' ? 'journal' : 'paper', q.sizing === 'risk' ? 'risk' : 'as-traded', riskPct, rules.accountSize, since)
+  const result = evaluateChallenge(rules, data.trades)
+  return {
+    templates: TEMPLATES.map((t) => ({ id: t.id, label: t.label, market: t.market, summary: t.summary, accountSize: t.accountSize })),
+    rules, rulesSource: source, templateId,
+    replay: { ...result, provenance: data.provenance, sizing: data.sizing, dataNote: data.note, trades: data.trades.length, sampleStatus: propSample(data.trades.length) },
+    riskRoom: riskRoom(rules, riskPct),
+    today: todayRoom(result, riskPct, now),
+    journey: JOURNEY,
+    policy: BOT_POLICY,
+  }
+}
+
+export function schoolPropSaveRules(body: Record<string, unknown>) {
+  if (body.reset === true) { store().setJson(PROP_RULES_KEY, null); return { saved: false, rules: TEMPLATES[0] } }
+  let rules: ChallengeRules
+  try { rules = sanitiseRules(body.rules) } catch (e) { throw new ApiError(400, (e as Error).message) }
+  store().setJson(PROP_RULES_KEY, rules)
+  return { saved: true, rules }
+}
+
+export function schoolPropSimulate(q: { template?: string | null; win?: string | null; rr?: string | null; risk?: string | null; perDay?: string | null }) {
+  const { rules } = propRules(q.template ?? null)
+  return simulatePass(rules, { winRatePct: Number(q.win), rewardR: Number(q.rr), riskPct: Number(q.risk), tradesPerDay: Number(q.perDay) })
 }
 
 // ---------------------------------------------------------------

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { validateForPublish, type ValidationIssue } from '@/lib/catalog-schema'
 import { readCatalog } from '@/lib/catalog-store'
 import { errorBody } from '@/lib/env'
+import { requireAdmin } from '@/lib/require-admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,9 @@ const report = (p: Awaited<ReturnType<typeof readCatalog>>[number]): ValidationR
 
 /** Every product's publish readiness. `?id=` narrows to one. */
 export async function GET(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const id = new URL(req.url).searchParams.get('id')
     const all = await readCatalog()
@@ -38,6 +42,9 @@ export async function GET(req: Request) {
 
 /** Validates a product body without saving it — for the editor's live checks. */
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const body = (await req.json()) as Parameters<typeof validateForPublish>[0]
     const issues = validateForPublish(body)

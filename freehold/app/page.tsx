@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Cta, QuietCta } from '@/components/Cta'
 import { Plat } from '@/components/Plat'
 import { Mark } from '@/components/Mark'
+import { CALL_HREF } from '@/lib/site'
 
 export const metadata: Metadata = { alternates: { canonical: '/' }, openGraph: { url: '/' } }
 
@@ -24,7 +25,7 @@ export default function Home() {
             Built into accounts you own, on infrastructure you control. If we disappeared tomorrow, what we built would not.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
-            <Cta href="/private/#call">Request a call</Cta>
+            <Cta href={CALL_HREF}>Request a call</Cta>
             <QuietCta href="/build/">Freehold Build waitlist</QuietCta>
           </div>
         </div>
@@ -32,6 +33,21 @@ export default function Home() {
           <div className="bg-plate p-4 sm:p-8">
             <Plat />
           </div>
+        </div>
+      </section>
+
+      {/* The check: the free tool that starts most conversations. */}
+      <section className="page mt-24 sm:mt-32" aria-labelledby="check">
+        <div className="bg-plate px-6 py-10 sm:px-12 sm:py-14 grid gap-8 lg:grid-cols-12 lg:items-center rv">
+          <div className="lg:col-span-7">
+            <h2 id="check" className="text-4xl sm:text-5xl max-w-[18ch]">Can someone else send email as you?</h2>
+            <p className="text-stone mt-4 max-w-[48ch]">A free ten-second check of the seven public records that decide it. Each finding comes with its fix.</p>
+          </div>
+          <form action="/check/" method="get" className="lg:col-span-5 flex flex-col sm:flex-row gap-3" role="search" aria-label="Check a domain">
+            <label className="sr-only" htmlFor="home-check">Domain</label>
+            <input id="home-check" name="d" className="field flex-1 bg-paper" placeholder="yourdomain.com" autoCapitalize="none" spellCheck={false} required />
+            <button type="submit" className="cta justify-between"><span>Check</span><span className="glyph" aria-hidden="true" /></button>
+          </form>
         </div>
       </section>
 
@@ -98,7 +114,7 @@ export default function Home() {
           <Mark size={44} />
           <h2 className="text-4xl sm:text-6xl max-w-[16ch]">Start with the thing that is smallest and yours.</h2>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-            <Cta href="/private/#call">Request a call</Cta>
+            <Cta href={CALL_HREF}>Request a call</Cta>
             <QuietCta href="/build/#waitlist">Join the waitlist</QuietCta>
           </div>
         </div>

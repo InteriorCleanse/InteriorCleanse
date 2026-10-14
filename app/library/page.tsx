@@ -22,7 +22,12 @@ export default function Library() {
     <>
       {library ? <EnvironmentHero scene={library} height="band" /> : null}
 
-      <section className="section" style={{ background: 'var(--mind-bg)', paddingTop: 0 }}>
+      {/* Padding, not a child margin: a margin here collapses through the
+          section and shows the page cream between the hero and the sage band. */}
+      <section
+        className="section"
+        style={{ background: 'var(--mind-bg)', paddingTop: 'clamp(2.5rem, 5vw, 4rem)' }}
+      >
         <div className="section-inner">
           <h2 className="sr-only">Interior design and home books</h2>
           <div className="book-grid gsap-stagger" style={{ marginTop: 0 }}>

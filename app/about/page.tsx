@@ -37,15 +37,16 @@ export default function About() {
               Christian literature for the spirit.
             </p>
             <p>
-              Commerce is handled honestly. Product picks route outward to TikTok Shop and
-              Amazon, where affiliate attribution and checkout belong. Books route to
-              Amazon KDP, where readers can buy paperbacks and Kindle editions directly.
-              We never collect payment details on this site.
+              Commerce is handled honestly. Candles and objects are sold here, and
+              checkout runs on Stripe, so card details go to Stripe and never to us.
+              Partner picks link out to the partner&apos;s own site, and every one is
+              disclosed. Books route to Amazon KDP, where readers can buy paperbacks
+              and Kindle editions directly.
             </p>
           </div>
           <img
-            src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=85"
-            alt="A warm editorial interior with considered furniture and natural light"
+            src="/media/hf/hf_20260925_224901_3ec3cf93-a32b-49c0-aead-249d0bcb268e.webp"
+            alt="A linen-made bed and a stone side table in soft morning light"
             data-reveal
           />
         </div>

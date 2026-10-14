@@ -4,3 +4,5 @@ out
 .env
 .env*.local
 tsconfig.tsbuildinfo
+prospects*.csv
+!prospects.example.csv

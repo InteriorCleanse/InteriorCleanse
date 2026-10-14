@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-const KINDS = new Set(['build-waitlist', 'private-call', 'general'])
+const KINDS = new Set(['build-waitlist', 'private-call', 'general', 'check-report'])
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 // Best-effort limiter for one instance. Vercel's WAF rate limit is the real
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   const name = clean(b.name, 120)
   const email = clean(b.email, 254)
   const context = clean(b.context, 200)
-  const message = clean(b.message, 2000)
+  const message = clean(b.message, 4000)
 
   if (!KINDS.has(kind)) return bad('Unknown form.', 400)
   if (!name) return bad('Name is required.', 400)

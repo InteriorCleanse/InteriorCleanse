@@ -13,6 +13,9 @@ An app builder for people burned by hosted builders. Describe the app; it is gen
 ## Freehold Private
 Bespoke software for family offices and the people who run them, delivered into the client's own infrastructure. Starts with a fixed-fee digital footprint and email security review, two weeks, in writing. Fees quoted after a twenty-minute call. ${SITE.url}/private/
 
+## Free email security check
+At ${SITE.url}/check/ anyone can enter a domain and see, in about ten seconds, its SPF, DMARC, DKIM, MTA-STS, TLS reporting and CAA posture, each with a plain-language fix. It reads public DNS only.
+
 ## Facts
 - One person. No client names or testimonials are published.
 - No prices are published until they are final.
@@ -21,6 +24,7 @@ Bespoke software for family offices and the people who run them, delivered into 
 
 ## Pages
 - ${SITE.url}/
+- ${SITE.url}/check/
 - ${SITE.url}/build/
 - ${SITE.url}/private/
 - ${SITE.url}/private/review/

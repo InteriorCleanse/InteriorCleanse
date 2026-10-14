@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   alternates: { canonical: '/contact/' },
 }
 
+// The form appears only once a hosted form endpoint is configured; until then
+// email is the one way in, rather than a form that posts nowhere.
+const FORM_ENDPOINT = process.env.NEXT_PUBLIC_CONTACT_FORM_ENDPOINT
+
 export default function Contact() {
   return (
     <>
@@ -27,35 +31,32 @@ export default function Contact() {
         <div className="section-inner">
           <div className="prose">
             <p>
-              Email <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>. The
-              form below posts to a hosted form endpoint; set{' '}
-              <code>NEXT_PUBLIC_CONTACT_FORM_ENDPOINT</code> before launch so submissions
-              reach an inbox.
+              Write to <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+              Order questions, corrections, press and collaborations all come to the same
+              inbox, and every note is read. We reply within two working days.
             </p>
           </div>
 
-          <form
-            action={process.env.NEXT_PUBLIC_CONTACT_FORM_ENDPOINT || '#'}
-            method="post"
-            className="contact-form"
-          >
-            <input required name="name" placeholder="Name" aria-label="Name" />
-            <input
-              required
-              type="email"
-              name="email"
-              placeholder="Email"
-              aria-label="Email"
-            />
-            <textarea
-              required
-              name="message"
-              placeholder="Message"
-              rows={6}
-              aria-label="Message"
-            />
-            <button type="submit">Send</button>
-          </form>
+          {FORM_ENDPOINT && (
+            <form action={FORM_ENDPOINT} method="post" className="contact-form">
+              <input required name="name" placeholder="Name" aria-label="Name" />
+              <input
+                required
+                type="email"
+                name="email"
+                placeholder="Email"
+                aria-label="Email"
+              />
+              <textarea
+                required
+                name="message"
+                placeholder="Message"
+                rows={6}
+                aria-label="Message"
+              />
+              <button type="submit">Send</button>
+            </form>
+          )}
         </div>
       </section>
     </>

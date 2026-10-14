@@ -56,7 +56,10 @@ export function FeaturedCard({ product }: { product: Product }) {
           </svg>
         </button>
 
-        <Link href={`/shop/${product.slug}/`}>
+        {/* A second way in for pointer users only: the name link below is the
+            accessible one, so this duplicate stays out of the tab order and
+            the accessibility tree instead of reading as an unnamed link. */}
+        <Link href={`/shop/${product.slug}/`} tabIndex={-1} aria-hidden="true">
           <ProductImage
             src={product.heroImage}
             /* The product name is the very next element as a link, so the image
