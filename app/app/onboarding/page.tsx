@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Button, Eyebrow, Field, inputClass, Panel } from '@/components/ui'
 import { requireSession } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
+import { setActiveWorkspace } from '@/lib/workspace/active-cookie'
 
 export const metadata = { title: 'Onboarding' }
 
@@ -61,21 +62,37 @@ async function createWorkspace(formData: FormData) {
 
   // created_by must be the session user: the RLS insert policy requires
   // created_by = auth.uid(), and a trigger makes that user the tenant_owner.
-  const { error } = await supabase.from('organizations').insert({
-    name: parsed.data.name,
-    slug: toSlug(parsed.data.name),
-    business_type: parsed.data.businessType,
-    base_currency: parsed.data.currency,
-    timezone: parsed.data.timezone,
-    is_demo: parsed.data.isDemo,
-    created_by: session.userId,
-  })
+  // Read back through RETURNING, which 0008 made safe for the creator in the
+  // instant before the owner trigger runs.
+  const { data: created, error } = await supabase
+    .from('organizations')
+    .insert({
+      name: parsed.data.name,
+      slug: toSlug(parsed.data.name),
+      business_type: parsed.data.businessType,
+      base_currency: parsed.data.currency,
+      timezone: parsed.data.timezone,
+      is_demo: parsed.data.isDemo,
+      created_by: session.userId,
+    })
+    .select('id')
+    .single()
 
   if (error) {
     redirect(`/app/onboarding?error=${encodeURIComponent(error.message)}`)
   }
 
-  redirect('/app/command-center')
+  // A new business is the one the person wants to work in next. The id came
+  // back from their own insert, so it is a workspace they now own.
+  if (created?.id) await setActiveWorkspace(String(created.id))
+
+  // A product or brand business starts on its playbook; anything else on the
+  // command center.
+  redirect(
+    parsed.data.businessType === 'ecommerce' || parsed.data.businessType === 'digital_products'
+      ? '/app/workflow?welcome=1'
+      : '/app/command-center',
+  )
 }
 
 export default async function OnboardingPage({

@@ -55,7 +55,7 @@ database. That is the point of `lib/authz.ts` existing as its own module.
 
 ## Tenant isolation, against a real Postgres
 
-`tests/rls.integration.test.ts` — **34 assertions, passing.** This was the
+`tests/rls.integration.test.ts` — **46 assertions, passing.** This was the
 longest-standing gap in the product: isolation is enforced by RLS in the
 database, so no TypeScript test could ever prove it.
 

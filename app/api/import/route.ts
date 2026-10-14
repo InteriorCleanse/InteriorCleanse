@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { can } from '@/lib/authz'
 import { commitImport, MAX_IMPORT_BYTES, rollbackImport } from '@/lib/import/commit'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 
 /**
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const session = await getSessionContext()
   if (!session) return Response.json({ error: 'Sign in first.' }, { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = { userId: session.userId, tenantRole: membership.role, platformRole: session.platformRole }
@@ -112,7 +112,7 @@ export async function DELETE(request: Request) {
   const session = await getSessionContext()
   if (!session) return Response.json({ error: 'Sign in first.' }, { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = { userId: session.userId, tenantRole: membership.role, platformRole: session.platformRole }

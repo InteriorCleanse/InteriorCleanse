@@ -16,6 +16,7 @@ import { runRetention } from '@/lib/retention'
 import { purgeCutoff, purgeExpiredWorkspaces } from '@/lib/workspace/purge'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { loadWorkspaceDataset, type Dataset } from '@/lib/workspace/dataset'
+import { loadWorkflowSummary } from '@/lib/workflow/load'
 
 /**
  * The scheduled sweep: evaluate rules, build due briefings, deliver both.
@@ -80,6 +81,8 @@ export async function GET(request: Request) {
       const dataset: Dataset | null = org.is_demo
         ? null
         : await loadWorkspaceDataset(admin, org.id, org.base_currency, { now })
+      // The playbook too, once per workspace, so a briefing can say what is stuck.
+      const workflow = await loadWorkflowSummary(admin, org.id, org.timezone ?? 'UTC', now)
       const context = {
         transport,
         slack: await slackFor(admin, org.id),
@@ -164,6 +167,7 @@ export async function GET(request: Request) {
             currency: org.base_currency,
             deals,
             dataset,
+            workflow,
             now,
           })
 

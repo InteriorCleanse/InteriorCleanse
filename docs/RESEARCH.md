@@ -139,6 +139,9 @@ a roadmap slide.
    attribution of imported spend, which today lands in the unallocated bucket
    by design, and connector-sourced ad spend (Meta, Google) rather than a
    monthly export.
+   Also done: every business a person runs is reachable (the app used to act
+   only on their first workspace), with a product and brand playbook per
+   business that the assistant, the briefings and mission control all read.
 2. **A first live sync.** Point Stripe or Shopify at a real account and treat
    the first production sync as a test, as the launch checklist already says.
 3. **The morning brief as a scheduled push.** The pieces exist — briefings,

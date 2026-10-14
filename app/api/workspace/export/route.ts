@@ -1,7 +1,7 @@
 import { can } from '@/lib/authz'
 import { buildWorkspaceExport, EXPORTED_TABLES } from '@/lib/workspace/export'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 
 /**
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const session = await getSessionContext()
   if (!session) return Response.json({ error: 'Sign in first.' }, { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = {

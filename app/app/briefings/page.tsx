@@ -5,6 +5,8 @@ import { BriefingPanel } from '@/components/assistant/BriefingPanel'
 import { BRIEFING_LABELS, type BriefingKind } from '@/lib/assistant/briefings'
 import { loadDeals } from '@/lib/crm/load'
 import { closedSince } from '@/lib/crm/pipeline'
+import { datasetFor } from '@/lib/workspace/analytics-loader'
+import { loadWorkflowSummary } from '@/lib/workflow/load'
 
 export const metadata = { title: 'Briefings' }
 
@@ -35,9 +37,15 @@ export default async function BriefingsPage({
 
   // The pipeline block reads the CRM mirror through the person's own client.
   // A demo workspace has its own fixtures; leaving `deals` undefined selects them.
-  const deals = membership.isDemo
-    ? undefined
-    : await loadDeals(await supabaseServer(), membership.organizationId, closedSince(new Date()))
+  // The figures and the playbook come the same way: until these were passed,
+  // a real workspace's briefing here said "no data" whatever it had.
+  const supabase = await supabaseServer()
+  const now = new Date()
+  const [deals, dataset, workflow] = await Promise.all([
+    membership.isDemo ? undefined : loadDeals(supabase, membership.organizationId, closedSince(now)),
+    datasetFor(supabase, membership, now),
+    loadWorkflowSummary(supabase, membership.organizationId, membership.timezone, now),
+  ])
 
   return (
     <div className="space-y-6">
@@ -71,6 +79,8 @@ export default async function BriefingsPage({
         isDemo={membership.isDemo}
         currency={membership.baseCurrency}
         deals={deals}
+        dataset={dataset}
+        workflow={workflow}
       />
     </div>
   )

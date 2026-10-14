@@ -116,6 +116,26 @@ export async function executeApprovedAction(input: {
       return { ok: true, summary: `Alert “${a.name}” created.`, recordId: data.id }
     }
 
+    case 'update_workflow_step': {
+      const a = parsed.data as { stepId: string; status: string; dueOn?: string; note?: string }
+      const patch: Record<string, unknown> = { status: a.status }
+      if (a.dueOn) patch.due_on = a.dueOn
+      // The database clears the reason unless the step is blocked, and
+      // stamps completion itself; nothing here sets either.
+      if (a.status === 'blocked') patch.blocked_reason = a.note?.trim() || null
+      const { data, error } = await input.supabase
+        .from('workflow_items')
+        .update(patch)
+        .eq('id', a.stepId)
+        .eq('organization_id', input.organizationId)
+        .select('id, title')
+        .maybeSingle()
+
+      if (error) return { ok: false, reason: describe(error.message) }
+      if (!data) return { ok: false, reason: 'That step is no longer in this business’s playbook.' }
+      return { ok: true, summary: `“${data.title}” moved to ${a.status}.`, recordId: data.id }
+    }
+
     case 'build_site': {
       const a = parsed.data as { name: string; brief: string; style?: string }
       if (!services.generateSite) {

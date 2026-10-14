@@ -7,7 +7,7 @@ import {
   type CalendarProvider,
 } from '@/lib/calendar/oauth'
 import { publicEnv } from '@/lib/env'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 
 /**
  * Starting a calendar OAuth flow.
@@ -40,7 +40,7 @@ export async function GET(
   const session = await getSessionContext()
   if (!session) return Response.json({ error: 'Sign in first.' }, { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const { provider } = await params

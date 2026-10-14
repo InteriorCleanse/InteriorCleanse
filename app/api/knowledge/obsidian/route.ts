@@ -11,10 +11,11 @@ import {
   type VaultNote,
 } from '@/lib/knowledge/obsidian'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { buildZip } from '@/lib/zip'
 import { datasetFor } from '@/lib/workspace/analytics-loader'
+import { loadWorkflowSummary } from '@/lib/workflow/load'
 
 /**
  * The Obsidian vault bundle.
@@ -40,7 +41,7 @@ export async function GET() {
   const session = await getSessionContext()
   if (!session) return Response.json({ error: 'Sign in first.' }, { status: 401 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = { userId: session.userId, tenantRole: membership.role, platformRole: session.platformRole }
@@ -65,6 +66,7 @@ export async function GET() {
     ? undefined
     : await loadDeals(supabase, membership.organizationId, closedSince(now))
   const dataset = await datasetFor(supabase, membership, now)
+  const workflow = await loadWorkflowSummary(supabase, membership.organizationId, membership.timezone, now)
 
   for (const kind of KINDS) {
     const briefing = buildBriefing({
@@ -73,6 +75,7 @@ export async function GET() {
       currency: membership.baseCurrency,
       deals,
       dataset,
+      workflow,
       now,
     })
     notes.push(briefingNote(briefing, now, membership.name))

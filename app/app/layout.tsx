@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { branding, isAssistantConfigured, isFishAudioConfigured } from '@/lib/env'
 import { can } from '@/lib/authz'
-import { requireSession } from '@/lib/session'
+import { activeMembership, requireSession } from '@/lib/session'
 import { DemoBadge } from '@/components/ui'
 import { AssistantDock } from '@/components/assistant/AssistantDock'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 import { CommandPalette } from '@/components/CommandPalette'
 import { CommandHint } from '@/components/CommandHint'
 import { ArchDepth } from '@/components/motion/ArchDepth'
+import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 import { agentDisplayName, profileFromRow } from '@/lib/agents/profile'
 import { supabaseServer } from '@/lib/supabase/server'
 
@@ -19,7 +20,9 @@ export const dynamic = 'force-dynamic'
 export const metadata = { robots: { index: false, follow: false } }
 
 const NAV = [
+  { href: '/app/businesses', label: 'Businesses' },
   { href: '/app/command-center', label: 'Command center' },
+  { href: '/app/workflow', label: 'Workflow' },
   { href: '/app/revenue', label: 'Revenue' },
   { href: '/app/pipeline', label: 'Pipeline' },
   { href: '/app/products', label: 'Products' },
@@ -40,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // authoritative check, since middleware only authenticates and a layout is
   // the last shared point before tenant data is rendered.
   const session = await requireSession()
-  const active = session.memberships[0]
+  const active = await activeMembership(session)
 
   // The workspace's own name for its analyst, read through the person's
   // client so RLS decides; blank falls back to the deployment's name.
@@ -67,7 +70,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {active ? (
             <span className="flex items-center gap-2 text-sm text-muted">
               <span aria-hidden="true">/</span>
-              {active.name}
+              {session.memberships.length > 1 ? (
+                <WorkspaceSwitcher
+                  activeId={active.organizationId}
+                  workspaces={session.memberships.map((m) => ({
+                    id: m.organizationId,
+                    name: m.name,
+                    isDemo: m.isDemo,
+                  }))}
+                />
+              ) : (
+                active.name
+              )}
               {active.isDemo ? <DemoBadge /> : null}
             </span>
           ) : null}

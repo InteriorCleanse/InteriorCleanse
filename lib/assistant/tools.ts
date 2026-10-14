@@ -7,6 +7,8 @@ import { QUADRANT_LABELS, layoutPortfolio } from '@/lib/charts/flow'
 import { ALLOCATION_MODEL_LABELS } from '@/lib/metrics/allocation'
 import { loadWorkspaceAnalytics, type WorkspaceAnalytics } from '@/lib/workspace-analytics'
 import type { Dataset } from '@/lib/workspace/dataset'
+import { progressOf, todayIn, type WorkflowItem } from '@/lib/workflow/progress'
+import { STAGE_LABELS, STATUSES, STATUS_LABELS } from '@/lib/workflow/template'
 import { INBOX_LIMIT, type MailMessage } from '@/lib/mail/gmail'
 import { agendaWindow, describeWhen, type AgendaDay, type AgendaEvent } from './agenda'
 import { forecast } from './forecast'
@@ -74,6 +76,17 @@ export type ToolContext = {
    * so the tool is not merely hidden from a tenant — it has nothing to read.
    */
   listPortfolio?: () => Promise<WatchedCompany[]>
+  /**
+   * This business's playbook steps, read through the person's own client.
+   * Absent means no reader was injected; the tool says so.
+   */
+  queryWorkflow?: () => Promise<WorkflowItem[]>
+  /**
+   * Every business this person belongs to — their own memberships only,
+   * read through their own client. Not the deployment's companies: that is
+   * `listPortfolio`, and it is the owner's alone.
+   */
+  listMyBusinesses?: () => Promise<WatchedCompany[]>
 }
 
 export type SiteRecord = {
@@ -865,7 +878,7 @@ const portfolioOverview: ToolDefinition = {
     return {
       data: {
         available: true,
-        summary: mission.summary.replace(/^The assistant/, 'You are'),
+        summary: mission.summary.replace(/^The assistant is/, 'You are'),
         counts: mission.counts,
         needsYou: mission.needsYou.map((c) => ({ name: c.name, standing: c.standing, headline: c.headline })),
         companies: mission.companies.map((c) => ({
@@ -892,6 +905,155 @@ const portfolioOverview: ToolDefinition = {
   },
 }
 
+// ── Workflow and businesses ─────────────────────────────────────────────────
+
+const workflowStatus: ToolDefinition = {
+  name: 'workflow_status',
+  kind: 'read',
+  capability: 'data:view',
+  description:
+    'This business’s product and brand playbook: how far along it is, which stage it is on, what is next, what is blocked and on what, and what is overdue. Each step has an id you can pass to update_workflow_step. Use it for "what should I do next", "where are we on the launch", "what is stuck".',
+  schema: z.object({
+    includeDone: z.boolean().default(false).describe('Also list finished and set-aside steps.'),
+  }),
+  execute: async (args, ctx) => {
+    if (!ctx.queryWorkflow) {
+      return { data: { available: false, reason: 'The playbook is not available here.' }, citations: ['workflow'] }
+    }
+    const items = await ctx.queryWorkflow()
+    const today = todayIn(ctx.timeZone ?? 'UTC', ctx.now ?? new Date())
+    const p = progressOf(items, today)
+    if (!p.started) {
+      return {
+        data: {
+          started: false,
+          note: 'The playbook has not been started for this business. It can be started on the Workflow page.',
+        },
+        citations: ['workflow'],
+        sources: [{ key: 'workflow', label: 'Workflow', url: '/app/workflow' }],
+      }
+    }
+    const describe = (i: WorkflowItem) => ({
+      id: i.id,
+      title: i.title,
+      stage: STAGE_LABELS[i.stage],
+      status: STATUS_LABELS[i.status],
+      due: i.dueOn,
+      blockedOn: i.status === 'blocked' ? (i.blockedReason ?? 'no reason given') : undefined,
+    })
+    return {
+      data: {
+        started: true,
+        percentDone: p.percent,
+        currentStage: p.currentStageLabel,
+        done: p.done,
+        total: p.total,
+        nextUp: p.nextUp.map(describe),
+        blocked: p.blockedItems.map(describe),
+        overdue: p.overdue.map(describe),
+        stages: p.perStage.map((s) => ({ stage: s.label, done: s.done, total: s.total })),
+        steps: args.includeDone
+          ? items.map(describe)
+          : items.filter((i) => i.status === 'todo' || i.status === 'doing' || i.status === 'blocked').map(describe),
+        note: 'Lead with what is blocked or overdue, then the next step. Never mark a step done yourself; propose it with update_workflow_step.',
+      },
+      citations: ['workflow'],
+      sources: [{ key: 'workflow', label: 'Workflow', url: '/app/workflow' }],
+    }
+  },
+}
+
+const updateWorkflowStep: ToolDefinition = {
+  name: 'update_workflow_step',
+  kind: 'write',
+  capability: 'assistant:approve_action',
+  description:
+    'Propose moving one playbook step to a new status, optionally with a due date or a note. Use the step id from workflow_status. Returns a preview for approval; it changes nothing by itself.',
+  schema: z.object({
+    stepId: z.string().uuid(),
+    status: z.enum(STATUSES),
+    dueOn: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+      .optional(),
+    note: z.string().max(500).optional().describe('Why, in a sentence. Becomes the blocked reason when blocking.'),
+  }),
+  execute: async (args, ctx) => {
+    const items = ctx.queryWorkflow ? await ctx.queryWorkflow() : []
+    const step = items.find((i) => i.id === args.stepId)
+    if (!step) {
+      return { data: { staged: false, reason: 'No step with that id in this business’s playbook.' } }
+    }
+    const status = args.status as (typeof STATUSES)[number]
+    const fields = [
+      { label: 'Step', value: step.title },
+      { label: 'Stage', value: STAGE_LABELS[step.stage] },
+      { label: 'From', value: STATUS_LABELS[step.status] },
+      { label: 'To', value: STATUS_LABELS[status] },
+    ]
+    if (args.dueOn) fields.push({ label: 'Due', value: args.dueOn })
+    if (args.note) fields.push({ label: status === 'blocked' ? 'Blocked on' : 'Note', value: args.note })
+    return {
+      data: { staged: true },
+      preview: {
+        summary: `Move “${step.title}” from ${STATUS_LABELS[step.status].toLowerCase()} to ${STATUS_LABELS[status].toLowerCase()}.`,
+        targetIntegration: null,
+        fields,
+        details: args,
+      },
+    }
+  },
+}
+
+const myBusinesses: ToolDefinition = {
+  name: 'my_businesses',
+  kind: 'read',
+  capability: 'data:view',
+  description:
+    'Every business this person belongs to, each with its standing (critical, watch, healthy, unknown), its headline, its own agent, month-to-date revenue in its own currency, and where its playbook stands — what is next, blocked or overdue. Use it for "what is happening across my businesses", "which brand needs me", or a morning rundown of all of them. Lead with what needs a decision.',
+  schema: z.object({}),
+  execute: async (_args, ctx) => {
+    if (!ctx.listMyBusinesses) {
+      return { data: { available: false, reason: 'The businesses view is not available here.' }, citations: ['businesses'] }
+    }
+    const mission = watch(await ctx.listMyBusinesses(), 'The assistant')
+    return {
+      data: {
+        available: true,
+        summary: mission.summary.replace(/^The assistant is/, 'You are'),
+        needsYou: mission.needsYou.map((c) => ({ name: c.name, standing: c.standing, headline: c.headline })),
+        businesses: mission.companies.map((c) => ({
+          name: c.name,
+          agent: c.agentName,
+          demo: c.isDemo,
+          standing: c.standing,
+          headline: c.headline,
+          currency: c.currency,
+          revenueMonthToDate: c.netRevenueMinor === null ? null : fmt(c.currency)(c.netRevenueMinor),
+          contributionProfit:
+            c.contributionProfitMinor === null ? null : fmt(c.currency)(c.contributionProfitMinor),
+          signals: c.signals.map((s) => ({ severity: s.severity, title: s.title })),
+          playbook: c.workflow?.started
+            ? {
+                percentDone: c.workflow.percent,
+                stage: c.workflow.stage,
+                next: c.workflow.nextUp,
+                blocked: c.workflow.blockedSteps,
+                overdue: c.workflow.overdueSteps,
+              }
+            : 'not started',
+        })),
+        note: 'Each business is reported in its own currency; never add revenue across businesses. A null revenue means no data source is connected, not zero. To act on one business, the person switches to it.',
+      },
+      citations: ['businesses', ...mission.companies.map((c) => `business:${c.id}`)],
+      sources: [
+        { key: 'businesses', label: 'Businesses', url: '/app/businesses' },
+        ...mission.companies.map((c) => ({ key: `business:${c.id}`, label: c.name, url: '/app/businesses' })),
+      ],
+    }
+  },
+}
+
 export const TOOLS: ToolDefinition[] = [
   searchKnowledge,
   queryPipeline,
@@ -899,6 +1061,8 @@ export const TOOLS: ToolDefinition[] = [
   checkCalendar,
   listSites,
   portfolioOverview,
+  myBusinesses,
+  workflowStatus,
   queryKpis,
   comparePeriods,
   rankProducts,
@@ -910,6 +1074,7 @@ export const TOOLS: ToolDefinition[] = [
   createNotificationRule,
   buildSite,
   publishSite,
+  updateWorkflowStep,
 ]
 
 export const TOOLS_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]))
@@ -933,6 +1098,8 @@ export const SUGGESTED_COMMANDS = [
   'What did we decide about refunds?',
   'What is in the pipeline this month?',
   'Build me a one-page site for the business — ask me what it should say.',
+  'Go through each of my businesses: what needs me today?',
+  'What is next on the playbook, and what is blocked?',
 ] as const
 
 export { PRESET_LABELS }

@@ -1,9 +1,11 @@
 import { cache } from 'react'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import { isPlatformRole, isTenantRole, type PlatformRole, type TenantRole } from '@/lib/roles'
 import { type Actor, assertCan, can, type Capability, ForbiddenError } from '@/lib/authz'
 import { hasSecondFactor, needsStepUp, type Assurance } from '@/lib/security/mfa'
+import { ACTIVE_WORKSPACE_COOKIE, pickActive } from '@/lib/workspace/active'
 
 /**
  * Session and tenant resolution.
@@ -178,7 +180,7 @@ export async function requireMembership(requested?: string): Promise<{
     ? session.memberships.find(
         (m) => m.organizationId === requested || m.slug === requested,
       )
-    : session.memberships[0]
+    : await activeMembership(session)
 
   if (!membership) redirect('/app/onboarding')
 
@@ -191,6 +193,18 @@ export async function requireMembership(requested?: string): Promise<{
       platformRole: session.platformRole,
     },
   }
+}
+
+/**
+ * The business this person is working in: the one they last switched to, if
+ * they still belong to it, else their first. Every page and route that acts
+ * on "the current workspace" reads it here, so switching moves all of them
+ * together. The cookie only chooses among the session's own memberships.
+ */
+export async function activeMembership(session: SessionContext): Promise<Membership | undefined> {
+  if (session.memberships.length <= 1) return session.memberships[0]
+  const store = await cookies()
+  return pickActive(session.memberships, store.get(ACTIVE_WORKSPACE_COOKIE)?.value)
 }
 
 /** Membership plus a capability check, for pages that gate on permission. */

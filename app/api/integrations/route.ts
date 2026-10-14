@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { can } from '@/lib/authz'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseAdmin, supabaseServer } from '@/lib/supabase/server'
 import { connector, validateCredential } from '@/lib/integrations/registry'
 import { isVaultConfigured, maskSecret, sealSecret, vaultProvider } from '@/lib/vault'
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const parsed = connectSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return Response.json({ error: 'Malformed request.' }, { status: 400 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = {
@@ -192,7 +192,7 @@ export async function DELETE(request: Request) {
   const parsed = disconnectSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return Response.json({ error: 'Malformed request.' }, { status: 400 })
 
-  const membership = session.memberships[0]
+  const membership = await activeMembership(session)
   if (!membership) return Response.json({ error: 'No workspace available.' }, { status: 403 })
 
   const actor = {

@@ -40,6 +40,9 @@ export type Capability =
   | 'data:view'
   | 'data:import'
   | 'data:export'
+  // Workflow
+  | 'workflow:edit'
+  | 'workflow:manage'
   // Assistant
   | 'assistant:query'
   | 'assistant:approve_action'
@@ -72,6 +75,11 @@ const TENANT_REQUIREMENTS: Record<Capability, TenantRole | null> = {
   'data:view': 'viewer',
   'data:import': 'member',
   'data:export': 'analyst',
+
+  // The person doing a step is the one who knows it is done; rewriting the
+  // plan itself (deleting steps) is an admin's call.
+  'workflow:edit': 'member',
+  'workflow:manage': 'tenant_admin',
 
   'assistant:query': 'viewer',
   // Approving a write action is a commercial decision, not a reporting one.
@@ -120,6 +128,8 @@ const IMPERSONATION_FORBIDDEN: ReadonlySet<Capability> = new Set<Capability>([
   'integrations:disconnect',
   'assistant:approve_action',
   'data:import',
+  'workflow:edit',
+  'workflow:manage',
   'platform:manage_staff',
 ])
 

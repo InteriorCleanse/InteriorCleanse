@@ -3,13 +3,15 @@ import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { assistantEnv, isAssistantConfigured } from '@/lib/env'
 import { can } from '@/lib/authz'
-import { getSessionContext } from '@/lib/session'
+import { getSessionContext, activeMembership } from '@/lib/session'
 import { supabaseServer } from '@/lib/supabase/server'
 import { APPROVAL_TTL_MS, fingerprint } from '@/lib/assistant/approval'
 import { VOICE_ADDENDUM, systemPrompt } from '@/lib/assistant/prompt'
 import { redactSecrets, sanitiseToolResult, wrapExternal } from '@/lib/assistant/sanitise'
 import { TOOLS, TOOLS_BY_NAME, type CitationSource, type ToolContext } from '@/lib/assistant/tools'
 import { loadWorkspaceDataset, type Dataset } from '@/lib/workspace/dataset'
+import { itemFromRow } from '@/lib/workflow/progress'
+import { loadMyBusinesses } from '@/lib/businesses/load'
 import { limitKey, rateLimit, rateLimitHeaders } from '@/lib/ratelimit-configured'
 import { logFailure } from '@/lib/log'
 import { snippet, toTsQuery } from '@/lib/knowledge/search'
@@ -103,7 +105,7 @@ export async function POST(request: Request) {
   // one that does not exist.
   const membership = body.organizationId
     ? session.memberships.find((m) => m.organizationId === body.organizationId)
-    : session.memberships[0]
+    : await activeMembership(session)
 
   if (!membership) {
     return Response.json({ error: 'No workspace available.' }, { status: 403 })
@@ -250,6 +252,20 @@ export async function POST(request: Request) {
     now,
     timeZone: membership.timezone,
     loadDataset,
+
+    // The playbook and the person's own businesses, both through their own
+    // client: RLS decides, and "my businesses" can only ever be workspaces
+    // their session already holds.
+    queryWorkflow: async () => {
+      const { data } = await supabase
+        .from('workflow_items')
+        .select('id, stage, title, status, due_on, position, blocked_reason, assignee_id, template_key')
+        .eq('organization_id', membership.organizationId)
+        .order('position', { ascending: true })
+        .limit(500)
+      return (data ?? []).map(itemFromRow)
+    },
+    listMyBusinesses: () => loadMyBusinesses(supabase, session, branding.assistantName()),
 
     // The person's own day. The mailbox is looked up through their client, so
     // RLS returns only a connection they made; a colleague's is invisible

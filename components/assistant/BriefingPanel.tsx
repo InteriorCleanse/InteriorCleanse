@@ -7,6 +7,8 @@ import {
   type BriefingKind,
 } from '@/lib/assistant/briefings'
 import type { PipelineDeal } from '@/lib/crm/pipeline'
+import type { Dataset } from '@/lib/workspace/dataset'
+import type { WorkflowSummary } from '@/lib/workflow/progress'
 
 /**
  * The briefing surface.
@@ -29,14 +31,20 @@ export function BriefingPanel({
   isDemo,
   currency,
   deals,
+  dataset,
+  workflow,
 }: {
   kind: BriefingKind
   isDemo: boolean
   currency: string
   /** The CRM mirror, loaded by the page through the person's own client. */
   deals?: readonly PipelineDeal[] | null
+  /** A real workspace's records, loaded the same way; ignored for a demo. */
+  dataset?: Dataset | null
+  /** Where the playbook stands, for its blocked and overdue steps. */
+  workflow?: WorkflowSummary | null
 }) {
-  const briefing = buildBriefing({ kind, isDemo, currency, deals })
+  const briefing = buildBriefing({ kind, isDemo, currency, deals, dataset, workflow })
 
   return (
     <Panel>
