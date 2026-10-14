@@ -24,7 +24,7 @@ stop rather than doing it here.
 | AVANT (car sharing) | AVANT — car-sharing app | `avant/` | `claude/app-recreation-improvement-gy1qnm` |
 | Auction Scanner | Auction Scanner — AI car auction scanner | `auction-scanner/` | `claude/ai-car-auction-scanner-hogvls` |
 | Picked (protein brand) | Picked — fruit protein powder brand | `docs/business/picked/` | `claude/picked-protein-brand` |
-| KeyRaptor (vehicle keys) | KeyRaptor — vehicle key reprogramming business | its own folder, not the storefront's | a branch of its own (see below) |
+| GCode Keys (custom car keys) | GCode Keys — custom car-key storefront | `gcodekeys/`, `docs/business/auto-keys/` | `claude/gcodekeys-site` (site), `claude/auto-keys-brand` (brand docs) |
 | Kept | Kept — automation and profit plan | moving to its own `kept` repository | `claude/automation-profit-plan-3fs3lb` |
 | Get-it (workout app) | Get-it — workout app premium features | its own folder | `claude/workout-app-premium-prompt-whe1gh` |
 | Cornerstone Sites | Cornerstone Sites — Webild website clone | its own folder | `claude/eloquent-hypatia-jbkqlc` |

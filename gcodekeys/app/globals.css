@@ -356,3 +356,14 @@ h2{letter-spacing:-0.01em}
 .footcontact a,.footcontact span{color:var(--muted)}
 .footcontact b{color:var(--neon);font-weight:500;letter-spacing:.1em;display:block;font-size:9px;margin-bottom:4px}
 .footcontact a:hover{color:var(--neon)}
+
+/* ── operator recent-order rows ── */
+.orow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:12px;cursor:pointer;transition:border-color .2s ease,transform .18s cubic-bezier(.32,.72,0,1)}
+.orow:hover{border-color:var(--neon);transform:translateY(-1px)}
+.orow-ref{color:var(--bright);font-weight:600}
+.orow-mid{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.orow-status{letter-spacing:.14em;font-size:10px;padding:3px 8px;border-radius:999px;border:1px solid var(--line)}
+.orow-status.s-requested{color:var(--amber)}
+.orow-status.s-quoted{color:var(--cyan)}
+.orow-status.s-paid{color:var(--neon);border-color:rgba(21,227,122,.4)}
+.orow-status.s-canceled{color:var(--muted)}

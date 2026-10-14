@@ -1,8 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogoIcon } from '@/components/Logo'
+
+type Order = {
+  ref: string
+  status: 'requested' | 'quoted' | 'paid' | 'canceled'
+  createdAt: string
+  vehicle: string
+  contact: { name: string; email: string; phone?: string; city?: string }
+  items: Array<{ name: string; qty: number; price: number; meta?: string }>
+  quotedAmount?: number | null
+  paymentAmount?: number | null
+}
 
 // Operator console. After verifying ownership and confirming a flat price,
 // the operator mints a Stripe payment link here for that exact amount and
@@ -17,8 +28,41 @@ export default function OperatorConsole() {
   const [err, setErr] = useState('')
   const [link, setLink] = useState('')
   const [copied, setCopied] = useState(false)
+  const [recent, setRecent] = useState<Order[]>([])
+  const [loaded, setLoaded] = useState<Order | null>(null)
 
   const ok = ref.trim() && /.+@.+\..+/.test(email) && Number(amount) > 0
+
+  const refreshRecent = useCallback(async () => {
+    try {
+      const r = await fetch('/api/operator/orders/', { cache: 'no-store' })
+      if (r.ok) { const d = await r.json(); setRecent(d.orders ?? []) }
+    } catch { /* noop */ }
+  }, [])
+
+  useEffect(() => { refreshRecent() }, [refreshRecent])
+
+  const loadOrder = useCallback((o: Order) => {
+    setLoaded(o)
+    setRef(o.ref)
+    setEmail(o.contact.email)
+    const suggested = o.quotedAmount ?? o.items.reduce((n, i) => n + i.qty * i.price, 0)
+    setAmount(suggested ? String(suggested) : '')
+    setDescription(`${o.vehicle} · ${o.items.map((i) => i.name).join(', ')}`)
+    setLink(''); setErr('')
+  }, [])
+
+  const lookup = async () => {
+    setErr(''); setLoaded(null)
+    const q = ref.trim()
+    if (!q) return
+    try {
+      const r = await fetch(`/api/operator/orders/?ref=${encodeURIComponent(q)}`, { cache: 'no-store' })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setErr(d.error ?? 'No order found.'); return }
+      loadOrder(d.order)
+    } catch { setErr('Could not reach the server.') }
+  }
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +76,7 @@ export default function OperatorConsole() {
       const d = await r.json().catch(() => ({}))
       if (!r.ok) { setErr(d.error ?? 'Could not create the payment link.'); return }
       setLink(d.url)
+      refreshRecent()
     } catch {
       setErr('Could not reach the server.')
     } finally {
@@ -50,7 +95,7 @@ export default function OperatorConsole() {
   }
 
   return (
-    <main className="wrap" style={{ paddingBlock: '34px 60px', maxWidth: 720 }}>
+    <main className="wrap" style={{ paddingBlock: '34px 60px', maxWidth: 760 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <LogoIcon size={30} />
@@ -65,13 +110,21 @@ export default function OperatorConsole() {
       <div className="panel" style={{ marginTop: 20 }}>
         <h2 className="pstep">Charge a confirmed order</h2>
         <p className="muted" style={{ fontFamily: 'var(--mono)', fontSize: 12, marginTop: 0 }}>
-          Verify ownership and confirm the flat price first. The customer is charged only through the link you send — nothing is charged at the storefront.
+          Verify ownership and confirm the flat price first. Look up an order to prefill, then send the link. Nothing is charged at the storefront.
         </p>
         <form onSubmit={create}>
           <div className="opt" style={{ marginBottom: 12 }}>
             <label htmlFor="ref">::ORDER REFERENCE</label>
-            <input id="ref" className="field" style={{ textTransform: 'none' }} value={ref} onChange={(e) => setRef(e.target.value)} placeholder="GCK-XXXXX-XXXX" />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input id="ref" className="field" style={{ textTransform: 'none', flex: 1 }} value={ref} onChange={(e) => setRef(e.target.value)} placeholder="GCK-XXXXX-XXXX" />
+              <button type="button" className="btn ghost sm" onClick={lookup}>LOOK UP</button>
+            </div>
           </div>
+          {loaded ? (
+            <p className="ex" style={{ color: 'var(--neon)', marginTop: -4, marginBottom: 12 }}>
+              Loaded · {loaded.contact.name} · {loaded.vehicle} · status {loaded.status}
+            </p>
+          ) : null}
           <div className="opt" style={{ marginBottom: 12 }}>
             <label htmlFor="email">::CUSTOMER EMAIL</label>
             <input id="email" className="field" style={{ textTransform: 'none' }} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com" />
@@ -82,7 +135,7 @@ export default function OperatorConsole() {
           </div>
           <div className="opt" style={{ marginBottom: 12 }}>
             <label htmlFor="desc">::DESCRIPTION (OPTIONAL)</label>
-            <input id="desc" className="field" style={{ textTransform: 'none' }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="2018 Honda Civic · smart key cut + coded" />
+            <input id="desc" className="field" style={{ textTransform: 'none' }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="2018 Honda Civic · smart key cut + coded at vehicle" />
           </div>
           <button className="btn glow" type="submit" disabled={!ok || busy}>
             {busy ? 'CREATING…' : 'CREATE PAYMENT LINK'}<span className="arrow" aria-hidden="true">→</span>
@@ -100,6 +153,26 @@ export default function OperatorConsole() {
             <p className="ex" style={{ marginTop: 10 }}>Send this to {email}. They pay the exact confirmed amount on Stripe&apos;s secure page.</p>
           </div>
         ) : null}
+      </div>
+
+      <div className="panel" style={{ marginTop: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 className="pstep" style={{ margin: 0 }}>Recent orders</h2>
+          <button className="btn ghost sm" onClick={refreshRecent}>REFRESH</button>
+        </div>
+        {recent.length === 0 ? (
+          <p className="ex" style={{ marginTop: 10 }}>No orders yet. New requests from checkout appear here.</p>
+        ) : (
+          <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+            {recent.map((o) => (
+              <button key={o.ref} type="button" className="orow" onClick={() => loadOrder(o)}>
+                <span className="orow-ref">{o.ref}</span>
+                <span className="orow-mid">{o.contact.name} · {o.vehicle}</span>
+                <span className={`orow-status s-${o.status}`}>{o.status.toUpperCase()}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   )

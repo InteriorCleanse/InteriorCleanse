@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStripe, siteOrigin, stripeEnabled } from '@/lib/stripe'
+import { updateOrder } from '@/lib/orders'
 
 export const runtime = 'nodejs'
 
@@ -74,6 +75,14 @@ export async function POST(req: Request) {
       success_url: `${origin}/paid/?ref=${encodeURIComponent(ref)}`,
       cancel_url: `${origin}/paid/?ref=${encodeURIComponent(ref)}&canceled=1`,
     })
+
+    // Record the confirmed quote on the order if it exists (tolerant: the
+    // operator may also charge an ad-hoc reference that isn't in the store).
+    try {
+      await updateOrder(ref, { status: 'quoted', quotedAmount: dollars, stripeSessionId: session.id })
+    } catch (err) {
+      console.error('[checkout] order update failed', err)
+    }
 
     return NextResponse.json({ ok: true, url: session.url, id: session.id })
   } catch (err) {
