@@ -69,9 +69,11 @@ and publish its own lab results. That's the point.
 | **Cut fruit** | Strawberry halved, mango halved to its flat stone, raspberry with a lemon wheel. Flat, bold, no gradients. |
 | **Master line** | "The fruit is in it." Closes every ad, the back panel, and the site. |
 | **Flavor lockup** | "Strawberry, from strawberries." The flavor big, the source under it. |
+| **The seal** | On the mailer, one fruit sticker across the lid edge seals the box. Opening it means breaking the sticker (`brand/unboxing/`). |
+| **The sting** | 3.6 seconds: crown drops, leaf sprouts, fruit pops, sticker slaps, line lands. Ends every video (`brand/motion/`). |
 
 Source files: `brand/src/` (`wordmark.py`, `mark.py`, `device.py`, `pack.py`,
-`packaging2.py`). The website follows `design.md`.
+`packaging2.py`, `unboxing.py`, `sting.py`). The website follows `design.md`.
 
 ## Rules that keep it
 

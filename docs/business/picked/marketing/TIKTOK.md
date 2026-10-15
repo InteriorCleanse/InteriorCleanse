@@ -35,6 +35,7 @@ pre-orders open (#30).
 ## Rules for every video
 
 - **Hook in the first 2 seconds:** put text on screen at frame one and say the line at the same moment. No logo intro.
+- **End on the sting:** the last 3 seconds of every video are `brand/motion/picked-sting-1080x1920.mp4`, so viewers learn the crown and the sticker. Never open with it: the first 2 seconds belong to the hook.
 - **On-screen text:** no emojis and no exclamation marks. Lowercase is fine. Leave room for TikTok's UI: keep text out of the bottom fifth and the right edge.
 - **Never say:** gains, shred, beast, guilt-free, skinny, detox, cleanse, superfood, clinically proven, "the best". Make no health, weight-loss, disease, or GLP-1 claim, and don't reply to one in comments beyond "we don't make health claims."
 - **No invented numbers.** That covers waitlist size, scores, and follower counts. Use the real figure or leave it out. `[x]g` stays `[x]g` until the formula is locked.

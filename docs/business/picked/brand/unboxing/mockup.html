@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Picked unboxing mockup</title>
+<!-- Concept mockup of the Lot 001 mailer and insert card, built from the face
+     artwork in this folder. Render at 1600 x 1000 for the brand book. -->
+<style>
+@font-face{font-family:B;src:url(../../site/assets/fonts/bricolage-800.woff2)}
+@font-face{font-family:L;src:url(../../site/assets/fonts/librefranklin-700.woff2);font-weight:700}
+html,body{margin:0;height:100%}
+body{background:#F6EADB;overflow:hidden;position:relative;font-family:L}
+.stage{position:absolute;left:42%;top:50%;transform-style:preserve-3d;
+  transform:translate(-50%,-50%) rotateX(56deg) rotateZ(32deg)}
+/* box: 500 x 350 x 150, half scale of the 10 x 7 x 3 in faces; z is up */
+.box{position:relative;width:500px;height:350px;transform-style:preserve-3d}
+.f{position:absolute;background-size:100% 100%;backface-visibility:hidden}
+.top{width:500px;height:350px;left:0;top:0;background-image:url(mailer-lid.svg);transform:translateZ(150px)}
+.front{width:500px;height:150px;left:0;top:350px;background-image:url(mailer-front.svg);transform-origin:0 0;transform:translateZ(150px) rotateX(-90deg);filter:brightness(.86)}
+.side{width:350px;height:150px;left:500px;top:350px;background-image:url(mailer-side.svg);transform-origin:0 0;transform:translateZ(150px) rotateZ(-90deg) rotateX(-90deg);filter:brightness(.74)}
+.shadow{position:absolute;width:520px;height:380px;left:20px;top:20px;background:rgba(30,26,23,.28);filter:blur(22px);transform:translateZ(0)}
+/* the sticker seal: half on the lid, half folded down the front */
+.seal-top,.seal-front{position:absolute;width:150px;height:50px;left:175px;overflow:hidden}
+.seal-top{top:300px;transform:translateZ(150.6px)}
+.seal-front{top:350px;transform-origin:0 0;transform:translateZ(150px) rotateX(-90deg) translateZ(.6px);filter:brightness(.86)}
+.seal-top img,.seal-front img{position:absolute;width:150px;height:100px;left:0}
+.seal-top img{top:0}.seal-front img{top:-50px}
+.card{position:absolute;right:7%;top:14%;width:300px;height:420px;background:url(insert-card-front.svg) 0 0/100% 100%;
+  transform:rotate(7deg);box-shadow:0 24px 40px rgba(30,26,23,.22);border-radius:4px}
+.cap{position:absolute;left:56px;bottom:44px;font:700 15px L;letter-spacing:.16em;text-transform:uppercase;color:#5A514A}
+.cap b{font:800 34px/1 B;letter-spacing:-.03em;text-transform:none;color:#1E1A17;display:block;margin-bottom:10px}
+</style></head><body>
+<div class="stage"><div class="box">
+  <div class="shadow"></div>
+  <div class="f top"></div><div class="f front"></div><div class="f side"></div>
+  <div class="seal-top"><img src="../sticker/sticker-strawberry.svg" alt=""></div>
+  <div class="seal-front"><img src="../sticker/sticker-strawberry.svg" alt=""></div>
+</div></div>
+<div class="card" role="img" aria-label="Insert card"></div>
+<div class="cap"><b>The Lot 001 box.</b>Concept mockup · sealed with the fruit sticker</div>
+</body></html>
