@@ -27,12 +27,12 @@
   <button class="cd-chip hidden" id="cond-chip" data-tab="conditions" title="Market conditions: open the Conditions page"><i></i><span>Conditions</span></button>
   <span class="muted" id="clock"></span>
   <span class="spacer"></span>
-  <button class="hbtn" id="btn-palette" title="Jump anywhere (Ctrl/⌘ K)">⌘K</button>
+  <button class="hbtn" id="btn-palette" title="Jump anywhere (Ctrl/⌘ K)">Search</button>
   <button class="hbtn" id="btn-voice" title="Kestrel speaks alerts and answers aloud">Voice</button>
   <button class="hbtn" id="btn-install" title="Install as an app">Install</button>
   <button class="hbtn" id="btn-notify" title="Get alerts as notifications">Alerts</button>
-  <button class="hbtn" id="btn-vault" title="Your vault: real balances behind a passcode and a code" aria-label="Open the vault"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 7.5v2M12 14.5v2M7.5 12h2M14.5 12h2"/></svg></button>
-  <button class="hbtn" id="btn-bell" title="What happened" aria-label="What happened"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/></svg><span class="n hidden" id="bell-n">0</span></button>
+  <button class="hbtn" id="btn-vault" title="Your vault: real balances behind a passcode and a code" aria-label="Open the vault"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 7.5v2M12 14.5v2M7.5 12h2M14.5 12h2"/></svg><span class="hl" aria-hidden="true">Vault</span></button>
+  <button class="hbtn" id="btn-bell" title="What happened" aria-label="What happened"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/></svg><span class="hl" aria-hidden="true">Activity</span><span class="n hidden" id="bell-n">0</span></button>
   <button class="hbtn stopbtn hidden" id="btn-stopped" title="Kill switch is on — no new positions. Click to release.">⏹ STOPPED</button>
   <span class="safe">PAPER · no real money</span>
 </header>
@@ -238,7 +238,7 @@
   </section>
 
   <section id="tab-vault" class="hidden">
-    <div class="row"><button class="btn ghost" id="btn-vault">Reload vault</button><span class="muted" id="vault-status"></span></div>
+    <div class="row"><button class="btn ghost" id="btn-vault-reload">Reload vault</button><span class="muted" id="vault-status"></span></div>
     <div id="vault-out"><div class="plain">The vault is the lifecycle every factory survivor enters before it can trade: a <b>passport</b> records its genome, its out-of-sample evidence, and every result it gathers as it moves candidate → paper → shadow → live. Each passport is watched for <b>decay</b> — its edge fading below the out-of-sample floor — and demoted to watch if it fades. Promotion is champion-challenger: a new instance only takes over when it beats the current champion out-of-sample <i>and</i> on paper. Nothing is ever promoted to live automatically.</div></div>
   </section>
 
@@ -650,7 +650,7 @@ function renderEvents(evs, prepend=false) {
 $('btn-vault').onclick = () => showTab('portfolio')
 $('btn-accounts').onclick = () => showTab('portfolio')
 $('btn-bell').onclick = () => { $('events').classList.toggle('hidden'); $('bell-n').textContent = '0'; $('bell-n').classList.add('hidden') }
-document.addEventListener('click', (e) => { if (!$('events').contains(e.target) && e.target !== $('btn-bell')) $('events').classList.add('hidden') })
+document.addEventListener('click', (e) => { if (!$('events').contains(e.target) && !$('btn-bell').contains(e.target)) $('events').classList.add('hidden') })
 setInterval(() => { if (document.visibilityState === 'visible') pollEvents() }, 30000)
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pollEvents(); tickClock() } })
 
@@ -1477,7 +1477,7 @@ async function loadVault() {
   }
   $('vault-out').innerHTML = `<div class="card"><h2>Passports — the strategy lifecycle</h2><div class="scroll"><table><tr><th>Strategy</th><th>Settings</th><th>Stage</th><th>OOS trades</th><th>OOS avg</th><th>Decay floor</th><th>Decay</th><th>Promotion</th></tr>${passports.map(row).join('')}</table></div><div class="plain">Stage is where it sits in its life (candidate → paper → shadow → live). The decay floor is the out-of-sample lower bound its live results must stay above; fall below it (confirmed) and it is demoted to watch. Promotion is champion-challenger and never reaches live automatically.</div></div>`
 }
-$('btn-vault') && ($('btn-vault').onclick = loadVault)
+$('btn-vault-reload') && ($('btn-vault-reload').onclick = loadVault)
 
 // ---------- paper validation ----------
 async function loadValidation() {
