@@ -1367,6 +1367,9 @@ const server = createServer(async (req, res) => {
         'GET /api/school/prop': () => learn.schoolProp({ template: q('template'), source: q('source'), sizing: q('sizing'), risk: q('risk'), since: q('since') }),
         'POST /api/school/prop/rules': async () => learn.schoolPropSaveRules(await body()),
         'GET /api/school/prop/simulate': () => learn.schoolPropSimulate({ template: q('template'), win: q('win'), rr: q('rr'), risk: q('risk'), perDay: q('perDay') }),
+        'GET /api/school/prop/copilot': () => learn.schoolPropCopilot(watcher.current()?.snap ?? null),
+        'POST /api/school/prop/copilot/profile': async () => learn.schoolPropCopilotSaveProfile(await body()),
+        'POST /api/school/prop/copilot/check': async () => learn.schoolPropCopilotCheck(await body(), watcher.current()?.snap ?? null),
         'GET /api/school/prediction-market': () => learn.schoolPredictionMarket({ yes: q('yes'), no: q('no'), fee: q('fee'), slip: q('slip'), p: q('p') }),
         'GET /api/research': () => learn.researchIndex(q('strategy')),
         'GET /api/research/questions': () => learn.researchIndex(q('strategy')).questions,
@@ -1835,6 +1838,15 @@ const secondOpinions = secondOpinion.startSecondOpinion({
   interval: config.interval,
   intervalMs: INTERVAL_MS[config.interval] ?? 300_000,
   log: (line) => console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ ${line}`)),
+})
+// Challenge copilot: when Kestrel has a ready setup and the owner saved a
+// challenge profile, the setup is sized for the challenge account and rings
+// the bell. It sends nothing; the owner places the trade or skips it.
+bus.on('watch:cycle', ({ at, snap }) => {
+  try {
+    const s = learn.propCopilotOnCycle(snap, at)
+    if (s?.sizing && s.check) eventLog.push('info', `Challenge-sized setup: ${s.direction.toUpperCase()} ${s.sizing.size} ${s.sizing.unit}${s.sizing.size === 1 ? '' : 's'} ${s.instrument}`, `From Kestrel's ${s.source.toLowerCase()}: risks $${s.sizing.actualRiskUsd.toFixed(2)} at the stop. Pre-trade check: ${s.check.verdict}. Levels are from Binance BTCUSDT; re-read them on your platform and place it yourself, or skip it. Details on Market School → Prop firms → Copilot.`, s.check.verdict === 'NO' ? 'warn' : 'info')
+  } catch (e) { console.log(ui.dim(`${new Date().toLocaleTimeString()}  ○ challenge copilot: ${(e as Error).message}`)) }
 })
 // Phase 25: the ops monitor — heartbeat, feed health, soak counters, daily
 // integrity and alerts through the bell. It reads; the bell is passed in.

@@ -7,7 +7,7 @@
  */
 import { getJson, esc } from './api.js'
 
-const st = { template: '', source: 'paper', sizing: 'as-traded', risk: '0.5', since: '', open: 'replay' }
+const st = { template: '', source: 'paper', sizing: 'as-traded', risk: '0.5', since: '', open: 'copilot' }
 
 const money = (n) => (n === null || n === undefined ? '—' : `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 })}`)
 const pct = (n, d = 0) => (n === null || n === undefined ? '—' : `${Number(n).toFixed(d)}%`)
@@ -105,7 +105,86 @@ function readEditor(form) {
   return { label: g('label'), accountSize: g('size'), dayResetHour: g('hour'), dayResetTz: g('tz'), phases }
 }
 
-const VIEWS = [['replay', 'Challenge replay'], ['rules', 'My rules'], ['risk', 'Risk room'], ['practice', 'Practice odds'], ['journey', 'The journey']]
+// ---------------------------------------------------------------- the challenge copilot
+
+const money2 = (n) => (n === null || n === undefined ? '—' : `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+const VERDICT = { GO: 'ok', CAUTION: 'warn', NO: 'bad' }
+const LEVEL = { ok: 'ok', warn: 'warn', fail: 'bad' }
+const when = (ms) => new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+const ago = (ms) => { const h = (Date.now() - ms) / 3_600_000; return h < 1 ? `${Math.max(1, Math.round(h * 60))} min ago` : h < 48 ? `${Math.round(h)} h ago` : `${Math.round(h / 24)} days ago` }
+const plural = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'}`
+
+function verdictCard(sizing, check) {
+  const size = sizing.tooSmall ? 'No size fits this stop' : `${plural(sizing.size, sizing.unit)} of ${esc(sizing.instrument)}`
+  return `<div class="pf-verdict pf-${VERDICT[check.verdict]}">
+    <div class="pf-verdict-head"><span class="pf-verdict-word">${esc(check.verdict)}</span><b>${size}</b>${sizing.tooSmall ? '' : `<span>risks ${money2(sizing.actualRiskUsd)} at the stop${sizing.rewardUsd !== null ? ` · about ${money2(sizing.rewardUsd)} at the target` : ''}</span>`}</div>
+    <ul class="pf-lines">${check.lines.map((l) => `<li class="pf-${LEVEL[l.level]}"><i></i><b>${esc(l.label)}</b> ${esc(l.detail)}</li>`).join('')}</ul>
+    <p class="pf-dim">${esc(sizing.specNote)} Stop distance ${sizing.distance.toLocaleString('en-US', { maximumFractionDigits: 5 })}; ${money2(sizing.lossPerUnit)} lost per ${sizing.unit} at the stop${sizing.rawSize ? `; exact size ${sizing.rawSize}, rounded down` : ''}.</p>
+  </div>`
+}
+
+function profileForm(c) {
+  const p = c.profile
+  const kinds = [['futures', 'Futures'], ['forex', 'Forex'], ['cfd', 'CFDs']]
+  const opt = (i) => `<option value="${esc(i.id)}" ${p.instrumentId === i.id ? 'selected' : ''}>${esc(i.label)}</option>`
+  const val = (v) => (v === null || v === undefined ? '' : esc(String(v)))
+  return `<form id="pf-co-profile" class="pf-editor" autocomplete="off">
+    <div class="pf-ph">
+      <label>What you trade <select name="instrumentId">${kinds.map(([k, l]) => `<optgroup label="${l}">${c.instruments.filter((i) => i.kind === k).map(opt).join('')}</optgroup>`).join('')}</select></label>
+      <label>$ per point per ${esc(c.instruments.find((i) => i.id === p.instrumentId)?.unit || 'lot')} (only if your platform differs) <input name="pointValueOverride" value="${val(p.pointValueOverride)}" inputmode="decimal" placeholder="default"></label>
+      <label>Commission, round trip $ <input name="commission" value="${val(p.commission)}" inputmode="decimal"></label>
+      <label>Risk per trade % <input name="riskPct" value="${val(p.riskPct)}" inputmode="decimal"></label>
+      <label>Phase <select name="phaseIndex">${c.rules.phases.map((n, i) => `<option value="${i}" ${p.phaseIndex === i ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+      <label>Max position size (if your firm has one) <input name="maxSize" value="${val(p.maxSize)}" inputmode="decimal" placeholder="none"></label>
+    </div>
+    <div class="pf-ph">
+      <label>Balance now $ <input name="balance" value="${val(p.balance)}" inputmode="decimal"></label>
+      <label>Balance at today's reset $ <input name="dayStartBalance" value="${val(p.dayStartBalance)}" inputmode="decimal"></label>
+      <label>Highest balance this phase $ <input name="highWater" value="${val(p.highWater)}" inputmode="decimal"></label>
+    </div>
+    <div class="pf-row"><button class="btn" type="submit">Save my account</button>${c.profileSaved ? `<button class="btn ghost" type="button" id="pf-co-forget">Forget</button><span class="pf-dim">Saved ${esc(ago(p.updatedAt))}. Loss floor ${money2(c.floor)}.</span>` : '<span class="pf-dim">Nothing saved yet.</span>'}<span id="pf-co-profile-out" class="pf-dim"></span></div>
+  </form>`
+}
+
+function setupItem(s) {
+  return `<li class="pf-setup">
+    <header><b>${esc(s.direction.toUpperCase())}</b><span class="pf-dim">${esc(when(s.at))} · Kestrel's ${esc(s.source.toLowerCase())}</span></header>
+    <div class="pf-figs"><div><span>Entry</span><b>${money2(s.entry)}</b></div><div><span>Stop</span><b>${money2(s.stop)}</b></div><div><span>Target</span><b>${money2(s.target)}</b></div></div>
+    ${s.sizing && s.check ? verdictCard(s.sizing, s.check) : ''}
+    <p class="pf-dim">${esc(s.note)}</p>
+  </li>`
+}
+
+async function renderCopilot() {
+  const { data: c } = await getJson('/api/school/prop/copilot')
+  const inst = c.instruments.find((i) => i.id === c.profile.instrumentId)
+  const rulesNote = c.rules.source === 'saved' ? `Checking against your saved rules: <b>${esc(c.rules.label)}</b>, ${money(c.rules.accountSize)}.` : `Checking against the <b>default example</b> rules. <button class="pf-link" data-pf-open="rules">Enter your firm's rules</button> first so the limits are yours.`
+  const news = c.newsRead === null ? '<p class="pf-dim">Kestrel has not read the news calendar yet.</p>' : c.news.length ? `<ul class="pf-lines">${c.news.map((e) => `<li class="pf-warn"><i></i><b>${esc(when(e.time))}</b> ${esc(e.country)} ${esc(e.title)}</li>`).join('')}</ul>` : '<p class="pf-dim">No high-impact releases in the next 24 hours on Kestrel\'s calendar.</p>'
+  const setups = !c.profileSaved ? '<p class="pf-dim">Save your account below and pick a Bitcoin instrument. Kestrel\'s setups will then be sized for it here and ring the bell.</p>'
+    : !inst?.tracksBtc ? `<p class="pf-dim">Kestrel's setups are on Bitcoin, and you trade ${esc(inst?.label || 'another market')}. Pick Micro Bitcoin futures, Bitcoin futures or a BTCUSD CFD to get them sized. The pre-trade check above works for any market.</p>`
+      : c.setups.length ? `<ol class="pf-setups">${c.setups.map(setupItem).join('')}</ol>` : '<p class="pf-dim">No ready setup since you saved your account. They appear here when Kestrel has one.</p>'
+  return `<section class="pf-sec">
+    <p class="pf-dim"><span class="ev-src paper">PRE-TRADE CHECK</span> ${esc(c.label)}</p>
+    <p>${rulesNote}</p>
+    <h3>Before every trade</h3>
+    <form id="pf-co-check" class="pf-controls" autocomplete="off">
+      <label>Direction <select name="direction"><option value="long">Long (buy)</option><option value="short">Short (sell)</option></select></label>
+      <label>Entry <input name="entry" inputmode="decimal" size="9" required></label>
+      <label>Stop <input name="stop" inputmode="decimal" size="9" required></label>
+      <label>Target (optional) <input name="target" inputmode="decimal" size="9"></label>
+      <button class="btn" type="submit">Check this trade</button>
+    </form>
+    <p class="pf-dim">On ${esc(inst?.label || '—')}, risking ${esc(String(c.profile.riskPct))}% (${money2(c.rules.accountSize * c.profile.riskPct / 100)}) per trade. Change it under Your account today.</p>
+    <div id="pf-co-out" aria-live="polite"></div>
+    <h3>High-impact news</h3>${news}
+    <h3>Kestrel setups sized for you</h3>${setups}
+    <h3>Your account today</h3>
+    <p class="pf-dim">Copy these from your firm's dashboard at the start of each day and after each trade. Kestrel cannot read your platform.</p>
+    ${profileForm(c)}
+  </section>`
+}
+
+const VIEWS = [['copilot', 'Copilot'], ['replay', 'Challenge replay'], ['rules', 'My rules'], ['risk', 'Risk room'], ['practice', 'Practice odds'], ['journey', 'The journey']]
 
 export async function renderProp() {
   const p = new URLSearchParams({ source: st.source, sizing: st.sizing, risk: st.risk })
@@ -114,9 +193,10 @@ export async function renderProp() {
   const { data } = await getJson(`/api/school/prop?${p}`)
   const rp = data.replay
   const today = data.today
+  const replayish = st.open !== 'copilot' && st.open !== 'journey' && st.open !== 'policy'
   const head = `<div class="pf-policy"><b>Kestrel teaches and tracks prop challenges. It does not trade them.</b> You place every order on your firm's platform yourself. <button class="pf-link" data-pf-open="policy">Why</button></div>
-    ${today ? `<div class="pf-today pf-${today.tradesAtRisk !== null && today.tradesAtRisk <= 1 ? 'bad' : 'ok'}"><span>Today on ${esc(rp.rules.phases[rp.reached].name)}</span><b>${esc(today.message)}</b></div>` : ''}
-    <form id="pf-controls" class="pf-controls">
+    ${today && replayish ? `<div class="pf-today pf-${today.tradesAtRisk !== null && today.tradesAtRisk <= 1 ? 'bad' : 'ok'}"><span>Replay: today on ${esc(rp.rules.phases[rp.reached].name)}</span><b>${esc(today.message)}</b></div>` : ''}
+    <form id="pf-controls" class="pf-controls" ${replayish ? '' : 'hidden'}>
       <label>Rules <select name="template"><option value="" ${st.template ? '' : 'selected'}>${data.rulesSource === 'saved' ? 'My rules' : 'Default example'}</option>${data.templates.map((t) => `<option value="${esc(t.id)}" ${st.template === t.id ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></label>
       <label>Trades <select name="source"><option value="paper" ${st.source === 'paper' ? 'selected' : ''}>Kestrel paper record</option><option value="journal" ${st.source === 'journal' ? 'selected' : ''}>My journal</option></select></label>
       <label ${st.source === 'journal' ? 'hidden' : ''}>Sizing <select name="sizing"><option value="as-traded" ${st.sizing === 'as-traded' ? 'selected' : ''}>As Kestrel sized it</option><option value="risk" ${st.sizing === 'risk' ? 'selected' : ''}>Risk % per trade</option></select></label>
@@ -127,7 +207,9 @@ export async function renderProp() {
     <nav class="pf-views">${VIEWS.map(([id, l]) => `<button data-pf-open="${id}" class="${st.open === id ? 'on' : ''}">${l}</button>`).join('')}</nav>`
 
   let body = ''
-  if (st.open === 'replay') {
+  if (st.open === 'copilot') {
+    body = await renderCopilot()
+  } else if (st.open === 'replay') {
     body = `<section class="pf-sec"><div class="pf-sum"><span class="ev-src ${rp.provenance === 'PAPER' ? 'paper' : 'sim'}">${esc(rp.provenance)}</span>${sample(rp.sampleStatus)}<b>${esc(rp.summary)}</b></div>
       <p class="pf-dim">${esc(rp.dataNote)} ${rp.approximations.map(esc).join(' ')}</p>
       ${rp.trades ? '' : `<div class="ev-empty"><div class="ev-empty-big">NOT ENOUGH DATA</div><div class="muted">${rp.provenance === 'PAPER' ? 'Kestrel has no closed paper trades in this data folder yet. Run the paper soak, or switch to My journal.' : 'No journal trades with an R-multiple yet. Log your challenge trades in the Journal with entry, stop and exit.'}</div></div>`}
@@ -167,6 +249,10 @@ document.addEventListener('click', async (e) => {
     e.preventDefault()
     try { await postJson('/api/school/prop/rules', { reset: true }); st.template = ''; await rerender() } catch (err) { const o = document.getElementById('pf-rules-out'); if (o) o.textContent = err.message }
   }
+  if (e.target.closest('#pf-co-forget')) {
+    e.preventDefault()
+    try { await postJson('/api/school/prop/copilot/profile', { reset: true }); await rerender() } catch (err) { const o = document.getElementById('pf-co-profile-out'); if (o) o.textContent = err.message }
+  }
 })
 
 document.addEventListener('submit', async (e) => {
@@ -180,6 +266,19 @@ document.addEventListener('submit', async (e) => {
     e.preventDefault()
     const o = document.getElementById('pf-rules-out')
     try { await postJson('/api/school/prop/rules', { rules: readEditor(e.target) }); st.template = ''; st.open = 'replay'; await rerender() } catch (err) { if (o) o.textContent = err.message }
+  }
+  if (e.target.id === 'pf-co-profile') {
+    e.preventDefault()
+    const o = document.getElementById('pf-co-profile-out')
+    try { await postJson('/api/school/prop/copilot/profile', { profile: Object.fromEntries(new FormData(e.target)) }); await rerender() } catch (err) { if (o) o.textContent = err.message }
+  }
+  if (e.target.id === 'pf-co-check') {
+    e.preventDefault()
+    const out = document.getElementById('pf-co-out')
+    try {
+      const r = await postJson('/api/school/prop/copilot/check', Object.fromEntries(new FormData(e.target)))
+      out.innerHTML = verdictCard(r.sizing, r.check)
+    } catch (err) { out.innerHTML = `<div class="err">${esc(err.message)}</div>` }
   }
   if (e.target.id === 'pf-sim') {
     e.preventDefault()

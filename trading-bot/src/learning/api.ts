@@ -42,6 +42,8 @@ import { buildLesson, dataGrowth, gradeQuiz } from '../school/lessons.ts'
 import { kellyFraction, netEdge, netOdds, singleVenueEdge, workedExample } from '../school/predictionMarket.ts'
 import { BOT_POLICY, JOURNEY, TEMPLATES, evaluateChallenge, riskRoom, sanitiseRules, simulatePass, todayRoom } from '../school/propFirm.ts'
 import type { ChallengeRules, ChallengeTrade } from '../school/propFirm.ts'
+import { INSTRUMENTS, alertFor, checkTrade, floorFor, instrumentById, sanitiseProfile, sizeTrade } from '../school/propCopilot.ts'
+import type { CopilotProfile, SizedAlert } from '../school/propCopilot.ts'
 import { readJournal } from '../journal.ts'
 import { masteryFrom, progressSummary, readEngagements, recordEngagement } from '../school/progress.ts'
 import type { EngagementKind } from '../school/progress.ts'
@@ -311,6 +313,96 @@ export function schoolPropSaveRules(body: Record<string, unknown>) {
 export function schoolPropSimulate(q: { template?: string | null; win?: string | null; rr?: string | null; risk?: string | null; perDay?: string | null }) {
   const { rules } = propRules(q.template ?? null)
   return simulatePass(rules, { winRatePct: Number(q.win), rewardR: Number(q.rr), riskPct: Number(q.risk), tradesPerDay: Number(q.perDay) })
+}
+
+// ---------------------------------------------------------------
+// CHALLENGE COPILOT — sizes one planned trade, or one of Kestrel's ready
+// setups, for the owner's challenge account and checks it against the saved
+// rules. It stores the owner's account picture and a short list of sized
+// setups. Nothing here reaches the engine, risk, sizing or any broker.
+// ---------------------------------------------------------------
+
+const COPILOT_KEY = 'prop:copilot'
+const COPILOT_SETUPS_KEY = 'prop:setups'
+const COPILOT_SETUPS_MAX = 30
+const COPILOT_LABEL = 'PRE-TRADE CHECK: arithmetic on your own numbers and rules. Kestrel sends no order; you place it on your platform or skip it.'
+
+export type CopilotSetup = SizedAlert & { source: 'SESSION SIGNAL' | 'FUSED DECISION' }
+
+function copilotProfile(rules: ChallengeRules, now: number): { profile: CopilotProfile; saved: boolean } {
+  const saved = store().getJson<CopilotProfile | null>(COPILOT_KEY)
+  if (saved) return { profile: sanitiseProfile(saved, rules.accountSize, saved.updatedAt), saved: true }
+  return { profile: sanitiseProfile({}, rules.accountSize, now), saved: false }
+}
+
+export const readCopilotSetups = (): CopilotSetup[] => store().getJson<CopilotSetup[]>(COPILOT_SETUPS_KEY) ?? []
+
+const highImpactSoon = (snap: Snapshot | null, now: number) => (snap?.news?.calendar ?? []).filter((e) => e.impact === 'High' && e.time >= now - 30 * 60_000 && e.time <= now + 24 * 3_600_000).sort((a, b) => a.time - b.time).slice(0, 8)
+
+export function schoolPropCopilot(snap: Snapshot | null, now = Date.now()) {
+  const { rules, source } = propRules(null)
+  const { profile, saved } = copilotProfile(rules, now)
+  return {
+    label: COPILOT_LABEL,
+    instruments: INSTRUMENTS,
+    profile, profileSaved: saved,
+    rules: { label: rules.label, accountSize: rules.accountSize, phases: rules.phases.map((p) => p.name), source },
+    floor: Math.round(floorFor(rules, profile.phaseIndex, profile.highWater) * 100) / 100,
+    setups: readCopilotSetups().slice().reverse(),
+    news: highImpactSoon(snap, now),
+    newsRead: snap?.news ? snap.news.fetchedAt : null,
+  }
+}
+
+export function schoolPropCopilotSaveProfile(body: Record<string, unknown>, now = Date.now()) {
+  const { rules } = propRules(null)
+  if (body.reset === true) { store().setJson(COPILOT_KEY, null); return { saved: false, profile: sanitiseProfile({}, rules.accountSize, now) } }
+  const profile = sanitiseProfile(body.profile, rules.accountSize, now)
+  profile.phaseIndex = Math.min(profile.phaseIndex, rules.phases.length - 1)
+  store().setJson(COPILOT_KEY, profile)
+  return { saved: true, profile }
+}
+
+export function schoolPropCopilotCheck(body: Record<string, unknown>, snap: Snapshot | null, now = Date.now()) {
+  const { rules, source } = propRules(null)
+  const { profile, saved } = copilotProfile(rules, now)
+  const direction = body.direction === 'long' || body.direction === 'short' ? body.direction : null
+  if (!direction) throw new ApiError(400, 'direction must be long or short')
+  const entry = Number(body.entry), stop = Number(body.stop)
+  const target = body.target === undefined || body.target === null || body.target === '' ? null : Number(body.target)
+  if (target !== null && !(target > 0)) throw new ApiError(400, 'The target must be a price above zero, or empty.')
+  const inst = instrumentById(profile.instrumentId) ?? INSTRUMENTS[0]
+  let sizing
+  try { sizing = sizeTrade(inst, { entry, stop, target, riskUsd: rules.accountSize * profile.riskPct / 100, commission: profile.commission, pointValueOverride: profile.pointValueOverride, maxSize: profile.maxSize }) } catch (e) { throw new ApiError(400, (e as Error).message) }
+  const check = checkTrade(rules, profile, { direction, entry, stop, target }, sizing, { news: snap?.news?.calendar, now, profileSaved: saved })
+  return { label: COPILOT_LABEL, instrument: inst, sizing, check, rulesSource: source, profileSaved: saved, newsRead: snap?.news ? snap.news.fetchedAt : null }
+}
+
+/**
+ * Called on every engine cycle. When Kestrel has a ready setup (the session
+ * model's BUY or SELL, or a fused LONG or SHORT) and the owner has saved a
+ * profile on a Bitcoin instrument, sizes it once for the challenge account.
+ * The same setup is not sized twice: same direction and source within an
+ * hour, or the same levels, count as one. Returns the new setup or null.
+ */
+export function propCopilotOnCycle(snap: Snapshot, now = Date.now()): CopilotSetup | null {
+  const sig = snap.signal
+  const fromSignal = (sig.action === 'BUY' || sig.action === 'SELL') && sig.plan ? sig.plan : null
+  const fromFusion = !fromSignal && (snap.decision?.action === 'LONG' || snap.decision?.action === 'SHORT') ? snap.decision.plan ?? null : null
+  const plan = fromSignal ?? fromFusion
+  if (!plan) return null
+  const source = fromSignal ? 'SESSION SIGNAL' : 'FUSED DECISION'
+  const saved = store().getJson<CopilotProfile | null>(COPILOT_KEY)
+  if (!saved || !instrumentById(saved.instrumentId)?.tracksBtc) return null
+  const setups = readCopilotSetups()
+  const repeat = setups.slice(-5).some((s) => s.direction === plan.direction && ((s.source === source && now - s.at < 3_600_000) || (s.entry === plan.entry && s.stop === plan.stop)))
+  if (repeat) return null
+  const { rules } = propRules(null)
+  const profile = sanitiseProfile(saved, rules.accountSize, saved.updatedAt)
+  const setup: CopilotSetup = { ...alertFor(plan, sig.time, rules, profile, { news: snap.news?.calendar, now }), source }
+  if (!setup.sizing) return null
+  store().setJson(COPILOT_SETUPS_KEY, [...setups, setup].slice(-COPILOT_SETUPS_MAX))
+  return setup
 }
 
 // ---------------------------------------------------------------

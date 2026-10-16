@@ -211,3 +211,27 @@ test('PROP FIRMS — zero trades says so, rules save only with the token and are
   await bot.post('/api/school/prop/rules', { reset: true })
   assert.equal((await get('/api/school/prop')).data.rulesSource, 'template')
 })
+
+test('CHALLENGE COPILOT — the profile saves only with the token and is clamped; the check sizes and refuses; nothing is sent', async () => {
+  const c = await get('/api/school/prop/copilot')
+  assert.equal(c.ok, true)
+  assert.equal(c.data.profileSaved, false)
+  assert.equal(c.data.rules.source, 'template')
+  assert.ok(c.data.instruments.length >= 20)
+  assert.match(c.data.label, /sends no order/)
+  const forged = await fetch(`${bot.base}/api/school/prop/copilot/profile`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profile: { riskPct: 1 } }) })
+  assert.equal(forged.status, 403)
+  const saved = await (await bot.post('/api/school/prop/copilot/profile', { profile: { instrumentId: 'MBT', riskPct: 40, phaseIndex: 3 } })).json() as any
+  assert.equal(saved.data.profile.riskPct, 5)
+  assert.equal(saved.data.profile.phaseIndex, 2, 'clamped to the rules\' last phase')
+  const chk = await (await bot.post('/api/school/prop/copilot/check', { direction: 'long', entry: 60000, stop: 59000 })).json() as any
+  assert.equal(chk.ok, true)
+  assert.equal(chk.data.sizing.size, 50)
+  assert.equal(chk.data.check.verdict, 'NO', '5% risk breaks the 5% daily limit on one stop')
+  assert.equal((await bot.post('/api/school/prop/copilot/check', { direction: 'up', entry: 1, stop: 2 })).status, 400)
+  assert.equal((await bot.post('/api/school/prop/copilot/check', { direction: 'long', entry: 100, stop: 100 })).status, 400)
+  const forgedCheck = await fetch(`${bot.base}/api/school/prop/copilot/check`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ direction: 'long', entry: 2, stop: 1 }) })
+  assert.equal(forgedCheck.status, 403)
+  await bot.post('/api/school/prop/copilot/profile', { reset: true })
+  assert.equal((await get('/api/school/prop/copilot')).data.profileSaved, false)
+})
