@@ -61,6 +61,18 @@ Every SKILL.md and bundled script was searched at import for remote fetches,
 credential handling and shell hazards; none found. Their descriptions add
 roughly 6 KB to each session's skill list.
 
+### Motion video skills (added 2026-10-16)
+
+From the owner's "20 GitHub repos for motion design" reel. GSAP and Three.js
+were already here; Remotion's official skills were the gap. They make videos
+from code (a launch film of the app, the owl in motion) in a separate Remotion
+project. Kestrel's app never loads Remotion, React or any of their packages.
+
+| Folder | Upstream | Commit | Licence | Why it is here |
+|---|---|---|---|---|
+| `remotion-best-practices` | github.com/remotion-dev/skills (`skills/`) | 1441a11 (2026-10-16) | Remotion License (free for individuals and companies of up to three people; larger for-profit companies need a company licence) | The router for every Remotion task. The 333 KB map sample-data files were left out. |
+| `remotion-create`, `remotion-studio`, `remotion-render` | same | 1441a11 | Remotion License | `/remotion-create`, `/remotion-studio` and `/remotion-render`: start a video project, preview it, export it. |
+
 ### Most-installed design skills (added 2026-09-23)
 
 Chosen by popularity from public skill directories and GitHub in September
