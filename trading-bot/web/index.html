@@ -42,6 +42,10 @@
 <div class="events hidden" id="events"></div>
 <main>
   <div id="crumb" class="crumb" aria-label="Where you are"></div>
+  <section id="tab-floor" class="hidden">
+    <div id="floor-out"><div class="card"><span class="spin">◐</span> Opening the floor…</div></div>
+  </section>
+
   <section id="tab-today">
     <div class="row td-bar">
       <button class="btn" id="btn-scan">Check the market now</button>
@@ -372,8 +376,8 @@ const $ = (id) => document.getElementById(id)
  * exists. Nothing is hidden — the groups are named for what you want, not for
  * which subsystem built them.
  */
-const TABS = [['desk','Home','🛰'],['stocks','Stock desk','📈'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['conditions','Conditions','🚦'],['rdesk','Research desk','🗞'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['road','Road to live','🛣'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['predict','Prediction desk','🔮'],['builder','Strategy builder','🛠'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
-const PRIMARY = ['desk','stocks','today','chart','ask']
+const TABS = [['desk','Home','🛰'],['floor','Floor','🦉'],['stocks','Stock desk','📈'],['today','Today','🏠'],['chart','Chart','📈'],['journal','Journal','📓'],['ask','Ask','💬'],['markets','Markets','🌐'],['conditions','Conditions','🚦'],['rdesk','Research desk','🗞'],['portfolio','Portfolio','🔐'],['flow','Flow','📊'],['news','News','📰'],['evidence','Evidence','🧾'],['school','School','🎓'],['research','Research','🔬'],['knowledge','Knowledge','🗂'],['observer','Observer','👁'],['validation','Validation','✅'],['road','Road to live','🛣'],['ops','Operations','🩺'],['intel','Intel','🧭'],['tv','TradingView','🖥'],['planner','Planner','🎯'],['spreads','Spreads','🦋'],['tickers','Tickers','🏷'],['bigmoney','Big money','🏦'],['scanner','Scanner','🔎'],['forecast','The call','🎯'],['predict','Prediction desk','🔮'],['builder','Strategy builder','🛠'],['scalp','Scalp desk','⚡'],['test','Test','🧪'],['replay','Replay','▶'],['playbook','Playbook','📚'],['factory','Factory','🧬'],['vault','Strategy vault','🗄'],['memory','Memory','🧠']]
+const PRIMARY = ['desk','floor','stocks','today','chart','ask']
 const GROUPS = [
   ['Markets', 'prices, conditions and news for every market it watches', ['markets','conditions','rdesk','scanner','bigmoney','tickers','flow','news','intel','tv']],
   ['Calls and plans', 'forecasts, strategy tools and planning your own trades', ['forecast','predict','builder','scalp','planner','spreads']],
@@ -383,7 +387,7 @@ const GROUPS = [
 ]
 // One plain line per page: what you get there. Shown in the More panel and the Home launcher.
 const PAGE_DESC = {
-  desk:'The live desk: what every model sees and decides', stocks:'Long US tech leaders on its own clock, paper account', today:'Today\'s plan, the checklist and the paper account',
+  desk:'The live desk: what every model sees and decides', floor:'The trading floor: every agent at its desk, the owl as head trader', stocks:'Long US tech leaders on its own clock, paper account', today:'Today\'s plan, the checklist and the paper account',
   chart:'The price chart with sessions, levels and gaps', ask:'Ask in plain English, or paste a chart',
   journal:'Your trades and notes, and the habits they show', markets:'Every market it watches, and what changed',
   conditions:'Is the market fit to trade right now?', rdesk:'Six research roles, at most three idea cards a day',
@@ -414,6 +418,7 @@ const AREA_OF = Object.fromEntries([HOME_AREA, ...GROUPS].flatMap(([title, blurb
 const TICON_PATHS = {
   portfolio:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 7.5v2M12 14.5v2M7.5 12h2M14.5 12h2M6 20v1.5M18 20v1.5"/>',
   markets:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.4 3.8 9s-1.3 6.6-3.8 9c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3z"/>',
+  floor:'<path d="M5 9c0-3 3-5 7-5s7 2 7 5v6c0 3.5-3 6-7 6s-7-2.5-7-6z"/><circle cx="9.3" cy="10.5" r="2"/><circle cx="14.7" cy="10.5" r="2"/><path d="M11 14l1 1.5 1-1.5M7 4.5 6 2.5M17 4.5l1-2"/>',
   desk:'<path d="M12 5.5A3 3 0 0 0 6.2 4.8 3 3 0 0 0 4 8.9a3.2 3.2 0 0 0 .7 5.6A3.3 3.3 0 0 0 8.5 19a3 3 0 0 0 3.5 1V5.5z"/><path d="M12 5.5a3 3 0 0 1 5.8-.7A3 3 0 0 1 20 8.9a3.2 3.2 0 0 1-.7 5.6 3.3 3.3 0 0 1-3.8 4.5 3 3 0 0 1-3.5 1"/><path d="M8 10.5c1.2 0 2 .8 2 2M16 10.5c-1.2 0-2 .8-2 2M12 12v3"/>',
   today:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   stocks:'<path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/><path d="M3 21h18" opacity=".5"/>',
@@ -579,6 +584,7 @@ function showTab(id, push=true) {
   if (id === 'vault' && !document.querySelector('#vault-out table')) loadVault()
   if (id === 'validation' && !document.querySelector('#validation-out .card')) loadValidation()
   if (id === 'desk') whenReady(() => window.loadDesk && window.loadDesk())
+  if (id === 'floor') whenReady(() => window.loadFloor && window.loadFloor())
   if (id === 'markets') whenReady(() => window.loadMarkets && window.loadMarkets())
   if (id === 'portfolio') whenReady(() => window.loadVaultRoom && window.loadVaultRoom())
   if (id === 'evidence') whenReady(() => window.loadEvidence && window.loadEvidence())
@@ -1755,6 +1761,7 @@ loadConfig().then(() => { renderSkills(); loadToday(false); pollEvents(); const 
 <script type="module" src="/js/replay.js"></script>
 <script type="module" src="/js/core.js"></script>
 <script type="module" src="/js/desk.js"></script>
+<script type="module" src="/js/floor.js"></script>
 <script type="module" src="/js/stocks.js"></script>
 <script type="module" src="/js/overview.js"></script>
 <script type="module" src="/js/opinion.js"></script>
