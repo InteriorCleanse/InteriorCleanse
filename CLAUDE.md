@@ -22,14 +22,24 @@ stop rather than doing it here.
 | Kestrel (paper-trading bot) | Kestrel — trading bot | `trading-bot/` (its own `CLAUDE.md` governs it) | `claude/new-session-31dwy7` |
 | Freehold | Freehold — business with profit-generating agents | `freehold/`, `docs/business/freehold/` | `claude/business-profit-agents-uw913k` |
 | AVANT (car sharing) | AVANT — car-sharing app | `avant/` | `claude/app-recreation-improvement-gy1qnm` |
-| Auction Scanner | Auction Scanner — AI car auction scanner | `auction-scanner/` | `claude/ai-car-auction-scanner-hogvls` |
+| Gavel (AI car auction scanner) | Gavel — AI car auction scanner | `auction-scanner/` | `claude/ai-car-auction-scanner-hogvls` |
 | Picked (protein brand) | Picked — fruit protein powder brand | `docs/business/picked/` | `claude/picked-protein-brand` |
-| KeyRaptor (vehicle keys) | KeyRaptor — vehicle key reprogramming business | its own folder, not the storefront's | a branch of its own (see below) |
+| GCode Keys (vehicle keys; was KeyRaptor) | GCode Keys — vehicle key business | `gcodekeys/`, with the KeyRaptor-era brand in `docs/business/auto-keys/` | `claude/gcodekeys-site` |
 | Kept | Kept — automation and profit plan | moving to its own `kept` repository | `claude/automation-profit-plan-3fs3lb` |
 | Get-it (workout app) | Get-it — workout app premium features | its own folder | `claude/workout-app-premium-prompt-whe1gh` |
 | Cornerstone Sites | Cornerstone Sites — Webild website clone | its own folder | `claude/eloquent-hypatia-jbkqlc` |
-| AURELIS OS | AURELIS OS — Arch voice assistant | its own folder | `claude/jarvis-voice-assistant-h4hd42` |
-| Security Kit | Security Kit — cybersecurity agents and VPN setup | its own folder | a branch of its own |
+| AURELIS OS (business operating system; was a voice assistant) | AURELIS OS — business operating system | separate, unrelated history on its own branches | `claude/jarvis-voice-assistant-h4hd42` |
+| Security Kit | Security Kit — cybersecurity agents and VPN setup | none yet | none yet |
+
+Session titles may carry a folder or a former name in brackets, such as
+"(gcodekeys/)" or "(was KeyRaptor)"; the name before the dash is the project.
+The session first opened as "Security Kit" only ever changed the storefront's
+admin security, so it is now titled as a storefront session.
+
+**Every project is moving to its own repository.** Each one's history has been
+extracted and is ready to push once the owner creates the empty repositories
+(Claude's GitHub access cannot create repositories). When a project moves, it
+gets a fresh session on its new repository, and its row here points there.
 
 The rules, architecture, checks and working agreement below are the
 **storefront's**. They apply to storefront sessions; another project follows
