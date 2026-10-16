@@ -11,11 +11,21 @@ const KeyForge3D = dynamic(() => import('./KeyForge3D'), {
   ssr: false,
   loading: () => <div className="forge-loading">Rendering your key…</div>,
 })
-import { FAMILIES } from '@/lib/keyFamilies'
+import { FAMILIES, type FamilyId } from '@/lib/keyFamilies'
 import { SHELL_COLORS, FINISHES } from '@/lib/catalog'
 import { useCart } from './CartProvider'
 
 const TIER_LABEL: Record<string, string> = { mainstream: '', luxury: 'Luxury', supercar: 'Supercar' }
+
+// Friendly key-style choices for manual entry, so a car that isn't in the list
+// can still be configured. Feasibility is always confirmed by VIN before pay.
+const STYLE_CHOICES: { value: FamilyId; label: string }[] = [
+  { value: 'smart', label: 'Smart key (push-to-start)' },
+  { value: 'remotehead', label: 'Remote-head key' },
+  { value: 'flip', label: 'Flip / switchblade key' },
+  { value: 'luxury', label: 'Luxury smart key' },
+  { value: 'supercar', label: 'Supercar (OEM shell)' },
+]
 
 export function KeyStudio() {
   const { add } = useCart()
@@ -27,9 +37,16 @@ export function KeyStudio() {
   const [finish, setFinish] = useState<(typeof FINISHES)[number]>(FINISHES[0])
   const [engrave, setEngrave] = useState('')
 
+  // Manual entry (any car not in the list).
+  const [manual, setManual] = useState(false)
+  const [mMake, setMMake] = useState('')
+  const [mModel, setMModel] = useState('')
+  const [mYear, setMYear] = useState('')
+  const [mStyle, setMStyle] = useState<FamilyId>('smart')
+
   const make: Make | undefined = MAKES.find((m) => m.name === makeName)
   const model: Model | undefined = make?.models.find((m) => m.name === modelName)
-  const family = model?.family ?? make?.family ?? 'smart'
+  const family: FamilyId = manual ? mStyle : (model?.family ?? make?.family ?? 'smart')
   const fam = FAMILIES[family]
 
   const makeOptions: Option[] = useMemo(
@@ -37,23 +54,31 @@ export function KeyStudio() {
   const modelOptions: Option[] = make ? make.models.map((m) => ({ value: m.name, label: m.name })) : []
   const yearOptions: Option[] = model ? yearsFor(model).map((y) => ({ value: String(y), label: String(y) })) : []
   const typeOptions: Option[] = fam.types.map((t) => ({ value: t.id, label: t.label, hint: t.base ? `$${t.base}` : 'quoted' }))
+  const styleOptions: Option[] = STYLE_CHOICES.map((s) => ({ value: s.value, label: s.label }))
 
   const selType = fam.types.find((t) => t.id === typeId) ?? fam.types[0]
   const finishPremium = finish.id === 'carbon' || finish.id === 'chrome' ? 15 : 0
   const price = selType.base ? selType.base + finishPremium : 0
-  const ready = make && model && year
+
+  const yearOk = manual ? /^\d{4}$/.test(mYear.trim()) : !!year
+  const ready = manual ? !!(mMake.trim() && mModel.trim() && yearOk) : !!(make && model && year)
   const coordinated = selType.base === 0
+
+  const dispYear = manual ? mYear.trim() : year
+  const dispMake = manual ? mMake.trim() : makeName
+  const dispModel = manual ? mModel.trim() : modelName
 
   const onMake = (v: string) => { setMakeName(v); setModelName(''); setYear(''); setTypeId('') }
   const onModel = (v: string) => { setModelName(v); setYear(''); setTypeId('') }
+  const onStyle = (v: string) => { setMStyle(v as FamilyId); setTypeId('') }
 
   const addToBag = () => {
-    const label = `${year} ${makeName} ${modelName}`
+    const label = `${dispYear} ${dispMake} ${dispModel}`
     add({
       key: `veh-${label}-${selType.id}-${finish.id}-${color.hex}-${engrave}`,
       name: coordinated ? `${label} — OEM key, coordinated` : `${label} — ${selType.label.toLowerCase()}`,
       price,
-      meta: `${color.name} · ${finish.label}${engrave ? ` · "${engrave.toUpperCase()}"` : ''}`,
+      meta: `${color.name} · ${finish.label}${engrave ? ` · "${engrave.toUpperCase()}"` : ''}${manual ? ' · confirm by VIN' : ''}`,
     }, coordinated ? 'Added · price quoted per car' : 'Added to cart · example')
   }
 
@@ -61,19 +86,19 @@ export function KeyStudio() {
     <section id="build">
       <div className="shead">
         <div><div className="kicker">Design studio</div><h2>Build a key for any car</h2></div>
-        <span className="ex" style={{ color: 'var(--muted)' }}>Mainstream · Luxury · Supercar</span>
+        <span className="ex" style={{ color: 'var(--muted)' }}>Mainstream · Luxury · Supercar · and anything not listed</span>
       </div>
 
       <div className="studio reveal">
         <div className="studio-stage">
           <div className="forge" data-fob>
-            <KeyForge3D family={ready ? family : 'smart'} color={color.hex} finish={finish.id} engrave={engrave || makeName} accent="#c9a86a" />
+            <KeyForge3D family={family} color={color.hex} finish={finish.id} engrave={engrave || dispMake} accent="#c9a86a" />
             <div className="forge-hint">DRAG TO ROTATE · SCROLL TO ZOOM</div>
           </div>
           <div className="stage-caption">
             {ready ? (
               <>
-                <div className="sc-title">{year} {makeName} {modelName}</div>
+                <div className="sc-title">{dispYear} {dispMake} {dispModel}</div>
                 <div className="sc-sub">{fam.label}</div>
               </>
             ) : (
@@ -83,12 +108,36 @@ export function KeyStudio() {
         </div>
 
         <div className="studio-opts">
-          <div className="selgrid">
-            <Dropdown label="MAKE" value={makeName} options={makeOptions} onChange={onMake} placeholder="Choose make" searchable />
-            <Dropdown label="MODEL" value={modelName} options={modelOptions} onChange={onModel} placeholder={make ? 'Choose model' : 'Make first'} disabled={!make} searchable />
-            <Dropdown label="YEAR" value={year} options={yearOptions} onChange={setYear} placeholder={model ? 'Year' : '—'} disabled={!model} />
-            <Dropdown label="KEY TYPE" value={selType.id} options={typeOptions} onChange={setTypeId} placeholder="Key type" disabled={!ready} />
-          </div>
+          {manual ? (
+            <>
+              <div className="selgrid">
+                <div className="opt">
+                  <label htmlFor="mmake">MAKE</label>
+                  <input id="mmake" className="field" style={{ textTransform: 'none' }} value={mMake} onChange={(e) => setMMake(e.target.value)} placeholder="e.g. Peugeot" />
+                </div>
+                <div className="opt">
+                  <label htmlFor="mmodel">MODEL</label>
+                  <input id="mmodel" className="field" style={{ textTransform: 'none' }} value={mModel} onChange={(e) => setMModel(e.target.value)} placeholder="e.g. 308" />
+                </div>
+                <div className="opt">
+                  <label htmlFor="myear">YEAR</label>
+                  <input id="myear" className="field" inputMode="numeric" maxLength={4} value={mYear} onChange={(e) => setMYear(e.target.value.replace(/[^\d]/g, ''))} placeholder="e.g. 2019" />
+                </div>
+                <Dropdown label="KEY STYLE" value={mStyle} options={styleOptions} onChange={onStyle} placeholder="Key style" />
+              </div>
+              <button type="button" className="linklike" onClick={() => setManual(false)}>← Back to the list</button>
+            </>
+          ) : (
+            <>
+              <div className="selgrid">
+                <Dropdown label="MAKE" value={makeName} options={makeOptions} onChange={onMake} placeholder="Choose make" searchable />
+                <Dropdown label="MODEL" value={modelName} options={modelOptions} onChange={onModel} placeholder={make ? 'Choose model' : 'Make first'} disabled={!make} searchable />
+                <Dropdown label="YEAR" value={year} options={yearOptions} onChange={setYear} placeholder={model ? 'Year' : '—'} disabled={!model} />
+                <Dropdown label="KEY TYPE" value={selType.id} options={typeOptions} onChange={setTypeId} placeholder="Key type" disabled={!ready} />
+              </div>
+              <button type="button" className="linklike" onClick={() => setManual(true)}>Don&apos;t see your car? Enter it manually →</button>
+            </>
+          )}
 
           <div className="opt">
             <label>::SHELL COLOR</label>
@@ -113,7 +162,7 @@ export function KeyStudio() {
 
           {ready && (
             <div className={`fnote ${fam.fulfillment}`}>
-              <span className="dot" /> {fam.note}
+              <span className="dot" /> {manual ? 'We confirm feasibility and your flat price by VIN before you pay.' : fam.note}
             </div>
           )}
 

@@ -413,3 +413,7 @@ h2{letter-spacing:-0.01em}
 .capture-done{display:flex;align-items:center;gap:14px}
 .capture-check{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--holo);color:#04140c;font-weight:700;flex:0 0 auto}
 @media(max-width:720px){.capture{grid-template-columns:1fr}}
+
+/* ── studio manual-entry toggle ── */
+.linklike{background:none;border:none;padding:0;margin:2px 0 2px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--gold);cursor:pointer;text-align:left}
+.linklike:hover{color:var(--bright);text-decoration:underline}
