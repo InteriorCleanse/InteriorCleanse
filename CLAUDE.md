@@ -105,7 +105,7 @@ request, wait for the `build` check, merge, then restart the branch from
 
 ## Agent capabilities
 
-`.claude/` carries 125 skills, 44 agents, and 17 commands. Their
+`.claude/` carries 125 skills, 44 agents, and 18 commands. Their
 provenance and licences are in `.claude/README.md`; what was deliberately not
 installed, and why, is in `docs/AGENT_CAPABILITIES.md`.
 
@@ -119,6 +119,17 @@ phases that take an idea to a logo, a website, and a first-dollar launch.
 Fill `docs/BUSINESS_BRIEF_TEMPLATE.md`, then run `/business-build`. A new
 business gets its own repository and Vercel project; this storefront is not
 the host for a second brand.
+
+## Running the business week to week
+
+`docs/MARKETING_TEAM.md` is how the storefront is marketed: ten departments
+(research, content, publishing, clipping, ads, leads, replies, nurture,
+reviews, data), each mapped to an agent or a feature already built, with one
+rule over all of them: Claude drafts, the owner approves, and no money is
+spent past the budget the owner writes down. Run a department with
+`/marketing-team <department>`; drafts land in `content/marketing/queue/`.
+Paid creator clipping on Whop Content Rewards is in
+`docs/CLIPPING_CAMPAIGN.md`.
 
 ## graphify
 
