@@ -3320,7 +3320,24 @@ html[data-tone="dark"] .hm-hero, html[data-tone="dark"].has-film .hm-hero { back
 .pf-policy-list{display:grid;gap:var(--sp-3);font-size:var(--fs-sm);color:var(--dim);padding-left:var(--sp-5)}
 @media (max-width:640px){.pf-check{grid-column:auto}.pf-rules{font-size:var(--fs-xs)}.pf-rules th,.pf-rules td{padding:6px}}
 .pf-row label{flex:1 1 160px}
-.pf-controls label[hidden]{display:none}
+.pf-controls label[hidden],.pf-controls[hidden]{display:none}
+/* Challenge copilot: the verdict card, its reasons, and Kestrel's setups sized for the account. */
+.pf-verdict{border:1px solid var(--line);border-left:4px solid currentColor;border-radius:var(--rad-2);background:var(--panel);padding:var(--sp-3) var(--sp-4);display:grid;gap:var(--sp-2)}
+.pf-verdict-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp-3)}
+.pf-verdict-word{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.08em;border:1px solid currentColor;border-radius:var(--rad-1);padding:2px 8px}
+.pf-verdict-head b{color:var(--text);font-size:var(--fs-md);font-variant-numeric:tabular-nums;font-weight:600}
+.pf-verdict-head span:not(.pf-verdict-word){color:var(--dim);font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.pf-lines{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:var(--fs-sm);color:var(--dim)}
+.pf-lines li{position:relative;padding-left:18px;color:var(--dim)}
+.pf-lines li>i{position:absolute;left:1px;top:.45em;width:8px;height:8px;border-radius:50%}
+.pf-lines li.pf-ok>i{background:var(--state-ok)}
+.pf-lines li.pf-warn>i{background:var(--state-warn);border-radius:0;transform:rotate(45deg) scale(.9)}
+.pf-lines li.pf-bad>i{background:var(--state-bad);border-radius:1px}
+.pf-lines li b{color:var(--text);font-weight:600;margin-right:4px}
+.pf-setups{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-3)}
+.pf-setup{border:1px solid var(--line);border-radius:var(--rad-3);padding:var(--sp-3);display:grid;gap:var(--sp-2)}
+.pf-setup header{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp-3)}
+#pf-co-out:empty{display:none}
 @media (max-width:640px){.pf-figs{grid-template-columns:1fr 1fr}.pf-figs>div:last-child:nth-child(odd){grid-column:1/-1}}
 
 /* ---------- AI second opinion (Home, under the desks) ---------- */

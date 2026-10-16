@@ -22,6 +22,7 @@ adds none. You place every order on your firm's platform yourself.
 
 | View | What it shows |
 |---|---|
+| Copilot | The check to run before every trade, Kestrel's setups sized for your account, and high-impact news for the next 24 hours. See below. |
 | Challenge replay | Replays closed trades through the rules, phase by phase. For each phase it shows the balance, the loss floor, progress to the target, how much of the daily limit the worst day used, and the best day's share of the profit. It names the trade and the rule that ended the account. |
 | My rules | Holds your firm's exact numbers: account size, the day-reset hour and time zone, and up to three phases. Saved in the app's own store. |
 | Risk room | At your risk per trade: how many full losses the daily limit and the max loss allow, and how many 1R winners the target needs. Arithmetic, not a forecast. |
@@ -35,6 +36,59 @@ The Concepts view has a **Prop firms** track with three lessons and quizzes:
 - the rules that fail challenges;
 - static and trailing drawdown;
 - sizing for a challenge.
+
+## The copilot
+
+Most challenges are failed by size, not by the trade idea. The copilot does
+the arithmetic before you place an order. **It sends nothing.** You read the
+size and place the trade on your firm's platform, or skip it.
+
+**Your account today.** Copy these from your firm's dashboard at the start of
+each day and after each trade, because Kestrel cannot read your platform:
+- what you trade;
+- your risk per trade (never above 5%);
+- the phase you are in;
+- your balance now, your balance at today's reset, and your highest balance
+  this phase;
+- your commission and your firm's maximum position size, if it has one.
+
+**Before every trade.** Type the direction, entry, stop and an optional
+target. The copilot answers with:
+- **the size**, in contracts or lots, rounded **down** to what the platform
+  accepts, and the dollars it risks at the stop with commission included;
+- **daily limit**: whether a full stop-out would break today's loss limit, and
+  how much of today's remaining room it uses;
+- **maximum loss**: the same against the fixed or trailing floor;
+- **cautions**: high-impact news within 30 minutes on Kestrel's calendar, more
+  than 2% of the account on one trade, a target smaller than the stop, the
+  consistency rule, balances more than 12 hours old, or balances not saved;
+- **a verdict**: GO, CAUTION (any caution) or NO (any rule breach, a stop on the
+  wrong side, or a stop too wide for even the smallest size).
+
+A breach is checked against the rules under My rules, or against the default
+example until you save your own.
+
+**Instruments.** Contract values come in three kinds:
+- **EXCHANGE**: CME and COMEX/NYMEX futures (Micro and full Bitcoin, S&P 500,
+  Nasdaq-100, gold, crude). The exchange fixes the size.
+- **STANDARD**: forex, 100,000 units per lot. For USDJPY, USDCAD and USDCHF the
+  value of a move is converted at the entry price.
+- **TYPICAL**: CFDs (BTCUSD, XAUUSD, index CFDs). Contract sizes differ between
+  platforms. Check your platform's contract specification and type the real
+  dollars per point if it differs; index CFDs especially vary.
+
+**Kestrel setups sized for you.** When Kestrel has a ready setup (the session
+model's BUY or SELL, or a fused LONG or SHORT, never a WATCH), and you have
+saved your account on a Bitcoin instrument, the setup is:
+- sized at your risk %;
+- checked against your rules;
+- listed on the page;
+- rung on the bell.
+
+The same setup is not sized twice. Kestrel's levels come from Binance BTCUSDT,
+so your platform's price differs a little. Keep the stop distance, re-read the
+levels on your platform, and decide yourself. Nothing here is a record of a
+trade; the last 30 sized setups are kept.
 
 ## Trades it can replay
 
@@ -77,10 +131,14 @@ Copy your firm's current rulebook into My rules before relying on a result.
 | `GET /api/school/prop?template=&source=paper\|journal&sizing=as-traded\|risk&risk=&since=` | Templates, rules, replay, risk room, today, journey, policy. |
 | `POST /api/school/prop/rules` | Saves `{ rules }` (sanitised and clamped) or `{ reset: true }`. Needs the app token, like every POST. |
 | `GET /api/school/prop/simulate?template=&win=&rr=&risk=&perDay=` | Seeded Monte Carlo of phase 1. SIMULATED. |
+| `GET /api/school/prop/copilot` | Instruments, your saved account, the floor, sized setups, upcoming high-impact news. |
+| `POST /api/school/prop/copilot/profile` | Saves `{ profile }` (cleaned and clamped) or `{ reset: true }`. |
+| `POST /api/school/prop/copilot/check` | `{ direction, entry, stop, target? }` → the size and the rule check. Sends nothing. |
 
-Code: `src/school/propFirm.ts` (pure functions), handlers in
-`src/learning/api.ts`, view in `web/js/prop.js`. Tests:
-`test/school/propFirm.test.ts` and `test/learningRoutes.test.ts`.
+Code: `src/school/propFirm.ts` and `src/school/propCopilot.ts` (pure
+functions), handlers in `src/learning/api.ts`, view in `web/js/prop.js`.
+Tests: `test/school/propFirm.test.ts`, `test/school/propCopilot.test.ts` and
+`test/learningRoutes.test.ts`.
 
 Nothing here is read by the engine, fusion, risk, sizing, any strategy or the
 live gate.
