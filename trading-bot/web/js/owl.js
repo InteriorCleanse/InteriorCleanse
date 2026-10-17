@@ -88,6 +88,7 @@ float sdWing(vec3 q, float s){
 float wingRegion(vec3 q, float s){
   vec3 r = q - vec3(s*0.62, -0.42, -0.18); r.yz = r2(r.yz, -0.55);
   float a = sdE(r, vec3(0.40, 0.52, 0.26));
+  a += 0.024*abs(sin(r.y*20.0 + r.z*6.0))*smoothstep(0.1, -0.25, r.y);   // the primaries' tips along the lower edge
   float b = sdE(q - vec3(s*0.30, -0.90, -0.46), vec3(0.18, 0.10, 0.10));
   return smin(a, b, 0.20);
 }
@@ -121,9 +122,19 @@ vec2 map(vec3 p){
   vec3 tq = q - vec3(0.0, -0.94, -0.40); tq.yz = r2(tq.yz, mix(-0.85, 0.0, uFly));
   body = smin(body, sdE(tq, vec3(mix(0.20, 0.30, uFly), mix(0.22, 0.28, uFly), 0.065)), 0.07);
   // round feathered feet, tucked under the belly
+  // feathered legs, down to feathered toes, like a snowy owl's
   vec3 fo = vec3(0.0, 0.18*uFly, -0.10*uFly);
-  body = smin(body, sdE(q - vec3( 0.17, -1.02, 0.13) - fo, vec3(0.13, 0.085, 0.13)), 0.06);
-  body = smin(body, sdE(q - vec3(-0.17, -1.02, 0.13) - fo, vec3(0.13, 0.085, 0.13)), 0.06);
+  body = smin(body, sdE(q - vec3( 0.17, -0.99, 0.14) - fo, vec3(0.14, 0.12, 0.14)), 0.07);
+  body = smin(body, sdE(q - vec3(-0.17, -0.99, 0.14) - fo, vec3(0.14, 0.12, 0.14)), 0.07);
+  float tr = 0.034*(1.0 - 0.7*uFly), toes = 1e3;
+  for (int i = 0; i < 6; i++) {
+    float fi = float(i), sd = i < 3 ? 1.0 : -1.0, k = mod(fi, 3.0) - 1.0;
+    toes = min(toes, sdCap(q - fo, vec3(sd*0.17 + k*0.045, -1.07, 0.19), vec3(sd*0.17 + k*0.055, -1.10, 0.235), tr));
+  }
+  body = smin(body, toes, 0.03);
+  // soft down: an irregular, gentle relief that ruffles the outline, fuller around the feathered feet
+  float legs = smoothstep(-0.80, -1.02, q.y);
+  body -= (0.006 + 0.010*legs)*(1.0 + 0.6*uFluff)*vnoise(bq*mix(13.0, 22.0, legs));
   vec3 h = headSpace(q);
   float head = sdE(h, vec3(0.65, 0.58, 0.58)*br);
   head = smax(head, -(length(h - DISC) - 1.0), 0.045);
@@ -131,8 +142,8 @@ vec2 map(vec3 p){
   head = smin(head, sdE(h - vec3(0.0, 0.01, 0.445), vec3(0.042, 0.10, 0.03)), 0.08);
   for (int i = 0; i < 2; i++) {
     float s = i == 0 ? 1.0 : -1.0;
-    vec3 t = h - vec3(s*0.37, 0.47, 0.0); t.xy = r2(t.xy, s*0.38);
-    head = smin(head, sdE(t, vec3(0.075, 0.17, 0.07)), 0.07);
+    vec3 t = h - vec3(s*0.36, 0.46, 0.0); t.xy = r2(t.xy, s*0.40);
+    head = smin(head, sdE(t, vec3(0.06, 0.10, 0.06)), 0.07);
     // a socket for the eye, then lids sculpted into the face
     vec3 e = h - vec3(s*EYE.x, EYE.y, EYE.z);
     head = smax(head, -(length(e) - ER - 0.006), 0.045);
@@ -142,6 +153,7 @@ vec2 map(vec3 p){
     float lid = smax(shell, lidY - tilt, 0.018);
     head = smin(head, lid, 0.04);
   }
+  head -= 0.006*vnoise(h*15.0)*smoothstep(-0.02, 0.05, length(h - DISC) - 1.035);
   float owl = smin(body, head*HS, 0.34);
   if (owl < res.x) res = vec2(owl, 1.0);
   for (int i = 0; i < 2; i++) {
@@ -150,14 +162,14 @@ vec2 map(vec3 p){
     if (eye < res.x) res = vec2(eye, 3.0);
   }
   vec3 bk = h - vec3(0.0, -0.10, 0.51); bk.yz = r2(bk.yz, -0.38);
-  float beak = sdE(bk, vec3(0.046, 0.072, 0.05))*HS;
+  float beak = sdE(bk, vec3(0.040, 0.066, 0.046))*HS;
   if (beak < res.x) res = vec2(beak, 4.0);
-  float tr = 0.03*(1.0 - 0.7*uFly);
+  // dark, curved talons at the toe tips
+  float cr = 0.011*(1.0 - 0.6*uFly);
   for (int i = 0; i < 6; i++) {
-    float fi = float(i);
-    float s = i < 3 ? 1.0 : -1.0;
-    float k = mod(fi, 3.0) - 1.0;
-    float t = sdCap(q - fo, vec3(s*0.17 + k*0.045, -1.08, 0.20), vec3(s*0.17 + k*0.055, -1.11, 0.235), tr);
+    float fi = float(i), s = i < 3 ? 1.0 : -1.0, k = mod(fi, 3.0) - 1.0;
+    vec3 a = vec3(s*0.17 + k*0.055, -1.10, 0.25);
+    float t = min(sdCap(q - fo, a, a + vec3(k*0.006, -0.010, 0.030), cr), sdCap(q - fo, a + vec3(k*0.006, -0.010, 0.030), a + vec3(k*0.01, -0.034, 0.040), cr*0.8));
     if (t < res.x) res = vec2(t, 6.0);
   }
   if (res.y != 5.0) res.x *= min(1.0 + uSquash, inversesqrt(1.0 + uSquash));
@@ -188,6 +200,21 @@ vec2 feathers(vec2 g, float seed){
   float tip = 1.0 - smoothstep(edge, edge + 0.32, f.y);
   float lap = 1.0 - smoothstep(edge - 0.05, edge + 0.01, f.y);
   return vec2(tip, lap);
+}
+
+float seg2(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba)/dot(ba, ba), 0.0, 1.0); return length(pa - ba*h); }
+/** Snowy-owl markings: soft grey chevrons in staggered rows, each a little different. Coverage 0…1. */
+float chevrons(vec2 g, float seed, float density){
+  g.x += 0.5*mod(floor(g.y), 2.0);
+  vec2 c = floor(g), f = fract(g) - 0.5;
+  if (hash(vec3(c, seed)) > density) return 0.0;
+  f += (vec2(hash(vec3(c, seed + 1.0)), hash(vec3(c, seed + 2.0))) - 0.5)*0.3;
+  f = r2(f, (hash(vec3(c, seed + 7.0)) - 0.5)*0.8);   // each one tilted a little, as if drawn by hand
+  float w = 0.18 + 0.12*hash(vec3(c, seed + 3.0)), dip = 0.12 + 0.08*hash(vec3(c, seed + 4.0));
+  float d = hash(vec3(c, seed + 6.0)) < 0.35
+    ? seg2(f, vec2(-w*0.8, dip*0.5), vec2(w*0.6, -dip*0.5))                                               // a single feather stroke
+    : min(seg2(f, vec2(-w, dip*0.6), vec2(0.0, -dip*0.4)), seg2(f, vec2(0.0, -dip*0.4), vec2(w, dip*0.6)));  // a chevron
+  return (1.0 - smoothstep(0.035, 0.085, d))*(0.65 + 0.35*hash(vec3(c, seed + 5.0)));
 }
 
 void main(){
@@ -242,15 +269,36 @@ void main(){
     aoMin = max(0.6*face, 0.32);
     float wing = (1.0 - smoothstep(-0.03, 0.01, wingRegion(q, q.x > 0.0 ? 1.0 : -1.0)))*(1.0 - onHead);
     wing = max(wing, smoothstep(0.40, 0.54, abs(q.x))*(1.0 - onHead)*smoothstep(0.2, 0.6, uWing));
-    // pure white with pearl and ivory, nothing grey on its own
+    // snow white, with a snowy owl's soft grey chevrons on the body, wings and crown
     vec3 col = mix(vec3(0.955, 0.95, 0.935), vec3(0.94, 0.93, 0.91), wing);
     col = mix(col, vec3(0.972, 0.968, 0.96), face);
+    vec3 mark = vec3(0.30, 0.32, 0.35);
+    float bib = smoothstep(0.30, 0.05, abs(q.x))*smoothstep(-0.60, -0.10, q.y)*smoothstep(0.0, 0.25, q.z);
+    float legs2 = smoothstep(-0.86, -1.0, q.y);   // the feathered feet stay white
+    float marks = 0.0;
+    if (face < 0.5) {
+      if (wing > 0.5) {
+        marks = chevrons(vec2(q.z*4.6 - q.y*1.0, q.y*5.0 + q.z*1.6), 7.0, 0.85);
+        // dark tips along the primaries at the wing's lower edge
+        float sd = q.x > 0.0 ? 1.0 : -1.0;
+        vec3 r = q - vec3(sd*0.62, -0.42, -0.18); r.yz = r2(r.yz, -0.55);
+        float wr = wingRegion(q, sd);
+        marks = max(marks, smoothstep(-0.09, -0.02, wr)*smoothstep(0.1, -0.25, r.y)*(0.35 + 0.35*abs(sin(r.y*20.0 + r.z*6.0))));
+      }
+      else if (onHead > 0.5) marks = 0.5*chevrons(vec2(atan(hs.x, hs.z)*4.5, hs.y*6.5), 9.0, 0.35);
+      else marks = chevrons(vec2(atan(q.x, q.z)*3.6, q.y*4.4), 5.0, 0.75*smoothstep(-0.02, -0.30, q.y))*(1.0 - 0.85*bib)*(1.0 - legs2);
+    }
+    col = mix(col, mark, marks*0.75);
     vec2 fb;
     if (face > 0.5) {
+      // fine grey strokes radiating around each eye, and a few over the brow, as in a drawing of a snowy owl
       vec3 ec = hs - vec3(sign(hs.x)*EYE.x, EYE.y, EYE.z);
-      float a = atan(ec.y, ec.x);
-      float rings = sin(a*36.0)*(1.0 - smoothstep(0.16, 0.42, length(ec.xy)));
+      float a = atan(ec.y, ec.x), rad = length(ec.xy);
+      float rings = sin(a*36.0)*(1.0 - smoothstep(0.16, 0.42, rad));
       n = normalize(n + 0.035*vec3(cos(a), sin(a), 0.0)*rings);
+      float strokes = smoothstep(0.55, 0.95, sin(a*30.0 + 3.0*hash(vec3(floor(a*30.0/6.2832*4.0), 1.0, 1.0))))*smoothstep(0.165, 0.19, rad)*(1.0 - smoothstep(0.24, 0.31, rad));
+      float brow = smoothstep(0.7, 0.98, sin(ec.x*70.0 + ec.y*30.0))*smoothstep(0.17, 0.20, ec.y)*(1.0 - smoothstep(0.24, 0.28, ec.y))*step(abs(ec.x), 0.16);
+      col = mix(col, mark, (strokes*0.32 + brow*0.28));
       col *= 0.992 + 0.008*rings;
     } else if (onHead > 0.5) {
       fb = feathers(vec2(atan(hs.x, hs.z)*6.0, hs.y*12.0), 1.0);
@@ -282,19 +330,19 @@ void main(){
     vec3 tx = normalize(cross(vec3(0.0, 1.0, 0.0), ax)); vec3 ty = cross(ax, tx);
     float phi = atan(dot(e, ty), dot(e, tx));
     float rr = clamp((ang - pupR)/(irisR - pupR), 0.0, 1.0);
-    // honey amber: golden brown at the pupil, warm amber across, a deep ring at the edge
-    vec3 iris = mix(vec3(0.42, 0.21, 0.05), vec3(0.82, 0.50, 0.11), smoothstep(0.0, 0.35, rr));
-    iris = mix(iris, vec3(0.74, 0.43, 0.09), smoothstep(0.70, 1.0, rr));
-    iris *= 0.9 + 0.1*sin(phi*52.0 + rr*9.0)*(0.5 + 0.5*sin(phi*7.0));
-    alb = mix(iris, vec3(0.30, 0.16, 0.05), smoothstep(irisR - 0.06, irisR - 0.01, ang));
-    // past the iris, a soft matte rim instead of a dark crescent in the corners
-    rimK = smoothstep(irisR + 0.02, irisR + 0.10, ang);
-    alb = mix(alb, vec3(0.84, 0.80, 0.74), rimK);
+    // amber-orange: golden by the pupil, deep orange toward the edge, fine fibres, a dark limbal ring
+    vec3 iris = mix(vec3(0.55, 0.24, 0.03), vec3(0.95, 0.56, 0.09), smoothstep(0.0, 0.30, rr));
+    iris = mix(iris, vec3(0.86, 0.37, 0.04), smoothstep(0.50, 1.0, rr));
+    iris *= 0.86 + 0.14*sin(phi*60.0 + rr*10.0)*(0.5 + 0.5*sin(phi*9.0));
+    alb = mix(iris, vec3(0.20, 0.09, 0.03), smoothstep(irisR - 0.07, irisR - 0.015, ang));
+    // a crisp dark eye-ring where the lids meet the eye, as an owl's
+    rimK = smoothstep(irisR + 0.02, irisR + 0.08, ang);
+    alb = mix(alb, vec3(0.10, 0.09, 0.09), rimK);
     alb = mix(alb, vec3(0.022, 0.015, 0.012), 1.0 - smoothstep(pupR - 0.012, pupR + 0.008, ang));
-    spec = mix(1.0, 0.05, rimK); rough = mix(0.04, 0.8, rimK); aoMin = 0.55*rimK;
-  } else if (m < 4.5) { alb = vec3(0.80, 0.65, 0.42); spec = 0.35; rough = 0.34; aoMin = 0.5; }
+    spec = mix(1.0, 0.15, rimK); rough = mix(0.04, 0.6, rimK); aoMin = 0.3*rimK;
+  } else if (m < 4.5) { alb = vec3(0.07, 0.07, 0.08); spec = 0.7; rough = 0.22; aoMin = 0.3; }
   else if (m < 5.5) { alb = vec3(0.30, 0.23, 0.17)*(0.8 + 0.35*vnoise(vec3(p.x*3.0, p.y*40.0, p.z*40.0))); rough = 0.8; }
-  else { alb = vec3(0.72, 0.57, 0.36); spec = 0.3; rough = 0.4; }
+  else { alb = vec3(0.13, 0.12, 0.12); spec = 0.6; rough = 0.28; }
 
   vec3 v = -rd;
   vec3 keyC = vec3(1.0, 0.975, 0.94)*2.05;
