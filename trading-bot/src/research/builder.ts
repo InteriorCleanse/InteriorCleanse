@@ -48,6 +48,12 @@ export type Cond =
   | { kind: 'volume'; mult: number; bars: number }
   | { kind: 'streak'; color: 'green' | 'red'; count: number }
   | { kind: 'move'; dir: 'down' | 'up'; pct: number; bars: number }
+  /** Close against a rolling VWAP: the volume-weighted typical price ((high + low + close) / 3) of the last `bars` candles. */
+  | { kind: 'price-vwap'; bars: number; op: 'above' | 'below' }
+  /** How many volume-weighted standard deviations the close sits from that VWAP (negative below it). */
+  | { kind: 'vwap-z'; bars: number; op: '<' | '>'; value: number }
+  /** Kaufman's efficiency ratio × 100: net move over the path travelled in `period` candles. Near 0 is chop, near 100 a straight line. */
+  | { kind: 'efficiency'; period: number; op: '<' | '>'; value: number }
 
 export type Spec = {
   direction: 'long' | 'short'
@@ -66,7 +72,7 @@ export type Parsed = {
   error: string | null
 }
 
-export const DEFAULTS = { stopAtr: 1.5, targetR: 2, maxBars: 48, rsiPeriod: 14, volumeBars: 20 } as const
+export const DEFAULTS = { stopAtr: 1.5, targetR: 2, maxBars: 48, rsiPeriod: 14, volumeBars: 20, vwapBars: 20, efficiencyPeriod: 14 } as const
 const MAX_PERIOD = 400
 
 const WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12, twenty: 20, fifty: 50, hundred: 100 }
@@ -84,6 +90,9 @@ export function describe(c: Cond): string {
     case 'volume': return `volume at least ${c.mult}× its ${c.bars}-candle average`
     case 'streak': return `${c.count} ${c.color} candles in a row`
     case 'move': return `price ${c.dir === 'down' ? 'falls' : 'rises'} ${c.pct}% or more over ${c.bars} candles`
+    case 'price-vwap': return `price closes ${c.op} the ${c.bars}-candle VWAP`
+    case 'vwap-z': return c.op === '<' && c.value < 0 ? `price is more than ${-c.value} deviations below the ${c.bars}-candle VWAP` : c.op === '>' && c.value > 0 ? `price is more than ${c.value} deviations above the ${c.bars}-candle VWAP` : `VWAP(${c.bars}) deviation ${c.op === '<' ? 'below' : 'above'} ${c.value}`
+    case 'efficiency': return `trend efficiency(${c.period}) ${c.op === '<' ? 'below' : 'above'} ${c.value}`
   }
 }
 
@@ -125,6 +134,22 @@ function conditions(t: string): Cond[] {
   // price drops 3% in 12 candles
   const move = t.match(/\b(?:price\s+)?(drops?|falls?|dumps?|declines?|rises?|jumps?|pumps?|rallies|gains?)\s+(?:by\s+)?(\d+(?:\.\d+)?)\s*%\s+(?:in|within|over)\s+(?:the\s+last\s+)?(\d+)\s*(?:candles?|bars?)/)
   if (move) { const pct = n(move[2]), bars = n(move[3]); if (pct > 0 && pct < 90 && bars >= 1 && bars <= MAX_PERIOD) out.push({ kind: 'move', dir: /drop|fall|dump|decline/.test(move[1]) ? 'down' : 'up', pct, bars }) }
+  // VWAP: "1.5 deviations below the 20 candle vwap", "vwap(20) z-score below -1.5", "price closes above the vwap"
+  const dev = t.match(/\b(\d+(?:\.\d+)?)\s*(?:standard\s+)?(?:deviations?|sd|sigma|std)\s+(below|under|above|over)\s+(?:the\s+)?(?:(\d+)\s*[- ]?(?:candle|bar|period)s?\s+)?vwap\b/)
+  const vz = t.match(/\bvwap\s*\(?\s*(\d+)?\s*\)?\s*z(?:[- ]?score)?\s*(?:is\s+|drops\s+|falls\s+|rises\s+|goes\s+)?(below|under|less than|<|above|over|greater than|more than|>)\s*(-?\d+(?:\.\d+)?)/)
+  if (dev) {
+    const x = n(dev[1]), bars = dev[3] ? n(dev[3]) : DEFAULTS.vwapBars, below = /below|under/.test(dev[2])
+    if (x > 0 && x <= 10 && okPeriod(bars)) out.push({ kind: 'vwap-z', bars, op: below ? '<' : '>', value: below ? -x : x })
+  } else if (vz) {
+    const bars = vz[1] ? n(vz[1]) : DEFAULTS.vwapBars, value = n(vz[3])
+    if (okPeriod(bars) && Math.abs(value) <= 10) out.push({ kind: 'vwap-z', bars, op: /below|under|less|</.test(vz[2]) ? '<' : '>', value })
+  } else {
+    const pv = t.match(/\b(above|over|below|under)\s+(?:the\s+)?(?:(\d+)\s*[- ]?(?:candle|bar|period)s?\s+)?vwap\b/)
+    if (pv) { const bars = pv[2] ? n(pv[2]) : DEFAULTS.vwapBars; if (okPeriod(bars)) out.push({ kind: 'price-vwap', bars, op: /above|over/.test(pv[1]) ? 'above' : 'below' }) }
+  }
+  // "trend efficiency(14) below 25", "efficiency ratio above 60"
+  const eff = t.match(/\b(?:trend\s+)?efficiency(?:\s+ratio)?\s*\(?\s*(\d+)?\s*\)?\s*(?:is\s+)?(below|under|less than|<|above|over|greater than|more than|>)\s*(\d+(?:\.\d+)?)/)
+  if (eff) { const period = eff[1] ? n(eff[1]) : DEFAULTS.efficiencyPeriod, value = n(eff[3]); if (okPeriod(period) && value > 0 && value < 100) out.push({ kind: 'efficiency', period, op: /below|under|less|</.test(eff[2]) ? '<' : '>', value }) }
   return out
 }
 
@@ -195,6 +220,9 @@ const expr = (c: Cond): string => {
     case 'volume': return `volume[i] >= ${c.mult} * average(volume, ${c.bars})[i-1]`
     case 'streak': return `last(${c.count}).every(k => k.close ${c.color === 'green' ? '>' : '<'} k.open)`
     case 'move': return `(close[i] / close[i-${c.bars}] - 1) * 100 ${c.dir === 'down' ? `<= -${c.pct}` : `>= ${c.pct}`}`
+    case 'price-vwap': return `close[i] ${c.op === 'above' ? '>' : '<'} vwap(${c.bars})[i]`
+    case 'vwap-z': return `vwapDeviations(${c.bars})[i] ${c.op} ${c.value}`
+    case 'efficiency': return `efficiency(${c.period})[i] ${c.op} ${c.value}`
   }
 }
 
@@ -246,6 +274,34 @@ function emaSeries(v: number[], period: number): number[] {
   return e.map((x, i) => (i < period - 1 ? NaN : x))
 }
 
+/** Rolling VWAP of the typical price over `bars` candles, and how many volume-weighted standard deviations the close sits from it. */
+function vwapSeries(s: { high: number[]; low: number[]; close: number[]; volume: number[] }, bars: number): { vwap: number[]; z: number[] } {
+  const len = s.close.length, vwap = new Array(len).fill(NaN), z = new Array(len).fill(NaN)
+  let pv = 0, p2v = 0, vv = 0
+  for (let i = 0; i < len; i++) {
+    const tp = (s.high[i] + s.low[i] + s.close[i]) / 3, v = s.volume[i]
+    pv += tp * v; p2v += tp * tp * v; vv += v
+    if (i >= bars) { const k = i - bars, tk = (s.high[k] + s.low[k] + s.close[k]) / 3, vk = s.volume[k]; pv -= tk * vk; p2v -= tk * tk * vk; vv -= vk }
+    if (i >= bars - 1 && vv > 0) {
+      const m = pv / vv, sd = Math.sqrt(Math.max(0, p2v / vv - m * m))
+      vwap[i] = m
+      if (sd > 0) z[i] = (s.close[i] - m) / sd
+    }
+  }
+  return { vwap, z }
+}
+/** Kaufman's efficiency ratio × 100 over `period` candles. */
+function efficiencySeries(close: number[], period: number): number[] {
+  const out = new Array(close.length).fill(NaN)
+  let path = 0
+  for (let i = 1; i < close.length; i++) {
+    path += Math.abs(close[i] - close[i - 1])
+    if (i > period) path -= Math.abs(close[i - period] - close[i - period - 1])
+    if (i >= period && path > 0) out[i] = (100 * Math.abs(close[i] - close[i - period])) / path
+  }
+  return out
+}
+
 type Series = { close: number[]; high: number[]; low: number[]; open: number[]; volume: number[]; cache: Map<string, number[]> }
 const series = (c: Candle[]): Series => ({ close: c.map((k) => k.close), high: c.map((k) => k.high), low: c.map((k) => k.low), open: c.map((k) => k.open), volume: c.map((k) => k.volume), cache: new Map() })
 function ind(s: Series, key: string, make: () => number[]): number[] { let v = s.cache.get(key); if (!v) { v = make(); s.cache.set(key, v) } return v }
@@ -290,6 +346,18 @@ export function holds(c: Cond, s: Series, i: number): boolean {
       if (i < c.bars) return false
       const ch = (s.close[i] / s.close[i - c.bars] - 1) * 100
       return c.dir === 'down' ? ch <= -c.pct : ch >= c.pct
+    }
+    case 'price-vwap': {
+      const v = ind(s, `vwap${c.bars}`, () => vwapSeries(s, c.bars).vwap)[i]
+      return Number.isFinite(v) && (c.op === 'above' ? s.close[i] > v : s.close[i] < v)
+    }
+    case 'vwap-z': {
+      const z = ind(s, `vwapz${c.bars}`, () => vwapSeries(s, c.bars).z)[i]
+      return Number.isFinite(z) && (c.op === '<' ? z < c.value : z > c.value)
+    }
+    case 'efficiency': {
+      const e = ind(s, `eff${c.period}`, () => efficiencySeries(s.close, c.period))[i]
+      return Number.isFinite(e) && (c.op === '<' ? e < c.value : e > c.value)
     }
   }
 }
@@ -341,7 +409,8 @@ export const OOS_SHARE = 0.3
 export const MIN_OOS_TRADES = 30
 
 /** Run the rule set over candles, one position at a time, through the paper engine's fill model. Pure. */
-export function backtestSpec(spec: Spec, candles: Candle[], opts: { a?: ExecutionAssumptions; trials?: number } = {}): BuilderReport {
+export function backtestSpec(spec: Spec, candles: Candle[], opts: { a?: ExecutionAssumptions; trials?: number; interval?: string } = {}): BuilderReport {
+  const interval = opts.interval ?? config.interval
   const a = opts.a ?? defaultAssumptions()
   const s = series(candles)
   const splitIdx = Math.floor(candles.length * (1 - OOS_SHARE))
@@ -404,9 +473,9 @@ export function backtestSpec(spec: Spec, candles: Candle[], opts: { a?: Executio
     : verdict === 'NO EDGE SHOWN' ? `Out-of-sample expectancy ${r(exp)} over ${oos.length} trades, but after ${trials} tr${trials === 1 ? 'y' : 'ies'} of this builder the deflated Sharpe cannot tell it from luck.`
     : `Out-of-sample expectancy ${r(exp)} over ${oos.length} trades, and it clears the deflated-Sharpe bar after ${trials} tries. A backtest pass, not a promise: the next step is a paper test.`
   return {
-    label: 'BACKTEST', market: config.symbol, interval: config.interval, candles: candles.length, from: candles[0]?.openTime ?? null, to: candles[candles.length - 1]?.closeTime ?? null, splitAt,
+    label: 'BACKTEST', market: config.symbol, interval, candles: candles.length, from: candles[0]?.openTime ?? null, to: candles[candles.length - 1]?.closeTime ?? null, splitAt,
     trades, all, inSample, outOfSample, holdOosPct, deflated, trials, verdict, line, missedEntries: missed, curve, thirds, stable,
-    note: `BACKTEST on stored ${config.interval} candles. Signals read closed candles and fill on a later one with the paper engine's spread, slippage, latency and fees; a candle that touches both the stop and the target counts as the stop. The first ${Math.round((1 - OOS_SHARE) * 100)}% is in-sample, the last ${Math.round(OOS_SHARE * 100)}% out-of-sample. Research only: nothing here reaches the engine.`,
+    note: `BACKTEST on ${interval} candles. Signals read closed candles and fill on a later one with the paper engine's spread, slippage, latency and fees; a candle that touches both the stop and the target counts as the stop. The first ${Math.round((1 - OOS_SHARE) * 100)}% is in-sample, the last ${Math.round(OOS_SHARE * 100)}% out-of-sample. Research only: nothing here reaches the engine.`,
   }
 }
 
@@ -431,6 +500,8 @@ export const GRAMMAR: string[] = [
   'Breakouts: "breaks above the 20 candle high", "new 50 bar low"',
   'Volume: "volume 2x the average", "volume 1.5 times the 30 bar average"',
   'Candles: "3 red candles in a row", "price drops 2% in 12 candles"',
+  'VWAP: "price closes above the 20 candle VWAP", "price is 1.5 deviations below the 20 candle VWAP", "VWAP(20) z-score below -1.5"',
+  'Chop: "trend efficiency(14) below 25" (0 is pure chop, 100 a straight line)',
   'Exits: "sell when …" (or "cover when …" for a short), "stop 1.5%", "stop 2 ATR", "take profit 3%", "target 2R", "2:1", "no take profit", "exit after 48 candles"',
   'Direction: long by default; start with "Short when …" for a short',
 ]
