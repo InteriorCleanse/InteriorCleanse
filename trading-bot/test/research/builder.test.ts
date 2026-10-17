@@ -136,3 +136,49 @@ test('a vague phrase joined with "and" to a real rule is reported, not silently 
   assert.deepEqual(p.spec!.entry, [{ kind: 'rsi', period: 14, op: '<', value: 35 }])
   assert.ok(p.ignored.some((i) => /feels oversold/.test(i)), p.ignored.join(' | '))
 })
+
+test('VWAP and chop phrases: deviations from a rolling VWAP, a VWAP exit and trend efficiency', () => {
+  const p = parseStrategy('Buy when price is 1.5 deviations below the 20 candle VWAP and trend efficiency(14) below 25. Sell when price closes above the 20 candle VWAP. Stop 0.3%, take profit 0.5%. Exit after 48 candles.')
+  assert.equal(p.error, null)
+  const s = p.spec!
+  assert.deepEqual(s.entry, [{ kind: 'vwap-z', bars: 20, op: '<', value: -1.5 }, { kind: 'efficiency', period: 14, op: '<', value: 25 }])
+  assert.deepEqual(s.exit, [{ kind: 'price-vwap', bars: 20, op: 'above' }])
+  assert.deepEqual(s.stop, { kind: 'pct', value: 0.3 })
+  assert.deepEqual(s.target, { kind: 'pct', value: 0.5 })
+  assert.ok(p.understood.some((u) => u.includes('more than 1.5 deviations below the 20-candle VWAP')))
+  assert.deepEqual(parseStrategy('Buy when VWAP(30) z-score below -2. Stop 1%.').spec!.entry, [{ kind: 'vwap-z', bars: 30, op: '<', value: -2 }])
+  assert.deepEqual(parseStrategy('Buy when price is above the vwap. Stop 1%.').spec!.entry, [{ kind: 'price-vwap', bars: 20, op: 'above' }])
+  const code = renderCode(s)
+  assert.match(code, /vwapDeviations\(20\)\[i\] < -1\.5/)
+  assert.match(code, /efficiency\(14\)\[i\] < 25/)
+  assert.match(code, /close\[i\] > vwap\(20\)\[i\]/)
+})
+
+test('VWAP, VWAP deviations and efficiency read only closed candles and match the arithmetic', () => {
+  // SYNTHETIC TEST FIXTURE: flat candles (high = low = close) so the typical price is the close.
+  const mk = (closes: number[], vols: number[]): Candle[] => closes.map((c, i) => ({ openTime: i * FIVE, closeTime: i * FIVE + FIVE - 1, open: c, high: c, low: c, close: c, volume: vols[i] }))
+  const closes = [100, 102, 101, 103, 99, 98, 104], vols = [1, 3, 1, 1, 2, 1, 1]
+  const c = mk(closes, vols)
+  const sv = { close: closes, high: closes, low: closes, open: closes, volume: vols, cache: new Map<string, number[]>() }
+  // the last 3 candles at i = 6: prices 99, 98, 104 with volumes 2, 1, 1
+  const m = (99 * 2 + 98 + 104) / 4, sd = Math.sqrt((99 * 99 * 2 + 98 * 98 + 104 * 104) / 4 - m * m), z = (104 - m) / sd
+  assert.equal(holds({ kind: 'price-vwap', bars: 3, op: 'above' }, sv, 6), 104 > m)
+  assert.equal(holds({ kind: 'vwap-z', bars: 3, op: '>', value: z - 0.01 }, sv, 6), true)
+  assert.equal(holds({ kind: 'vwap-z', bars: 3, op: '>', value: z + 0.01 }, sv, 6), false)
+  assert.equal(holds({ kind: 'price-vwap', bars: 3, op: 'above' }, sv, 1), false, 'not enough candles yet')
+  // a straight line is 100% efficient; a zigzag that ends where it started is 0%
+  const line = Array.from({ length: 20 }, (_, i) => 100 + i)
+  const zig = Array.from({ length: 21 }, (_, i) => (i % 2 ? 101 : 100))
+  const sl = { close: line, high: line, low: line, open: line, volume: line.map(() => 1), cache: new Map<string, number[]>() }
+  const sz = { close: zig, high: zig, low: zig, open: zig, volume: zig.map(() => 1), cache: new Map<string, number[]>() }
+  assert.equal(holds({ kind: 'efficiency', period: 14, op: '>', value: 99.9 }, sl, 19), true)
+  assert.equal(holds({ kind: 'efficiency', period: 14, op: '<', value: 1 }, sz, 20), true)
+  assert.ok(c.length === 7)
+})
+
+test('a backtest can be labelled with the interval its candles really are', () => {
+  const spec: Spec = { direction: 'long', entry: [{ kind: 'rsi', period: 14, op: '<', value: 40 }], exit: [], stop: { kind: 'pct', value: 1 }, target: { kind: 'pct', value: 1 }, maxBars: 24 }
+  const r = backtestSpec(spec, series(600), { interval: '15m' })
+  assert.equal(r.interval, '15m')
+  assert.match(r.note, /BACKTEST on 15m candles/)
+})

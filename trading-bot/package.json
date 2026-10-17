@@ -14,6 +14,7 @@
     "talk": "node src/talk.ts",
     "brief": "node src/index.ts brief",
     "research:export": "node scripts/research-export.ts",
+    "research:external": "node scripts/external-strategies.ts",
     "news": "node src/index.ts news",
     "state": "node src/index.ts state",
     "flow": "node src/index.ts flow",

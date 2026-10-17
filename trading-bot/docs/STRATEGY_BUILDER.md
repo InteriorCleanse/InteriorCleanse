@@ -67,6 +67,8 @@ backtest it"), done without a language model and without ever trading.
 | Breakouts | "breaks above the 20 candle high", "new 50 bar low" |
 | Volume | "volume 2x the average", "volume 1.5 times the 30 bar average" |
 | Candles | "3 red candles in a row", "price drops 2% in 12 candles" |
+| VWAP | "price closes above the 20 candle VWAP", "price is 1.5 deviations below the 20 candle VWAP", "VWAP(20) z-score below -1.5". The VWAP is the volume-weighted typical price ((high + low + close) / 3) of the last N candles; a deviation is one volume-weighted standard deviation from it. |
+| Chop | "trend efficiency(14) below 25": Kaufman's efficiency ratio × 100, the net move over the path travelled. Near 0 is chop, near 100 a straight line. |
 | Exits | "sell when …" (or "cover when …" for a short), "stop 1.5%", "stop 2 ATR", "take profit 3%", "target 2R", "2:1", "no take profit", "exit after 48 candles" |
 | Direction | Long by default. Start with "Short when …" for a short. |
 
@@ -90,6 +92,10 @@ on, and it will not guess one.
 - Every POST goes through the same CSRF check as the rest of the app.
 - Code: `src/research/builder.ts`, `web/js/builder.js`.
 - Tests: `test/research/builder.test.ts`.
+- Strategies published elsewhere, run through the same backtest on a folder
+  of kline CSVs, with and without costs:
+  `npm run research:external -- --dir <folder>` (`scripts/external-strategies.ts`).
+  The first set reviewed is in `docs/ASTRAL_REVIEW.md`.
 
 ## What will not happen
 

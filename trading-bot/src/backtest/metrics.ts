@@ -74,8 +74,10 @@ export function computeMetrics(all: TradeLike[]): Metrics {
     sharpeR = sd > 0 ? mean / sd : null
   }
 
-  const times = trades.map((t) => t.time).filter((t) => t > 0)
-  const spanDays = times.length >= 2 ? Math.max(1 / 24, (Math.max(...times) - Math.min(...times)) / 86_400_000) : null
+  // a loop, not Math.max(...times): a long 1-minute backtest has more trades than a call can take as arguments
+  let first = Infinity, last = -Infinity, timed = 0
+  for (const t of trades) if (t.time > 0) { timed++; if (t.time < first) first = t.time; if (t.time > last) last = t.time }
+  const spanDays = timed >= 2 ? Math.max(1 / 24, (last - first) / 86_400_000) : null
 
   return {
     trades: n, wins, losses, flat,
