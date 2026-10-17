@@ -2,8 +2,9 @@
 
 **Floor** is in the main navigation, next to Home. It shows Kestrel's agents as
 a trading floor: every desk has one job, a live reading, a status, and the
-websites its data comes from. A 3D owl, the head trader, flies the floor while
-Kestrel works and lands with the call.
+websites its data comes from. Above the desks the floor is a live galaxy, and
+a 3D snowy owl, the head trader, flies from world to world while Kestrel works
+and lands with the call.
 
 ## The desks
 
@@ -25,19 +26,68 @@ A desk that cannot see says so: "can't see" or "not connected", with what it
 needs (for example `MRCASH_QUIVER_KEY` or `ANTHROPIC_API_KEY` in `.env`). It
 never shows a zero in place of "we don't know".
 
+## The galaxy
+
+A window onto space at the top of the floor, dark in either theme. It has
+drifting nebula, a slowly turning spiral galaxy, three layers of twinkling
+stars that shift with parallax as the owl moves, and the odd shooting star.
+
+Every desk is a world, each a different kind:
+
+| World | Desk |
+|---|---|
+| Banded gas giant (bids and asks) | BOOK |
+| Ringed world | TAPE |
+| Ocean world | WHALES |
+| Storm world, with lightning while it reads | NEWS |
+| Red rock | QUIVER |
+| Swirling weather | REGIME |
+| Dark crystal with veins of light | SIGNAL |
+| Violet world with glinting sparks | JEV |
+| Red world inside a shield | RISK |
+| Gold moon | PROOF |
+
+A world shines while its desk is reading, dims while it waits, and goes grey and
+dark when it cannot see. Its name tag below it says the same in words.
+
+The head trader's world is the planet curving across the bottom. Its night side
+shows city lights and its atmosphere glows along the horizon in the colour of
+the call:
+
+| Atmosphere | Call |
+|---|---|
+| Blue | No setup |
+| Amber | A WATCH |
+| Ember | LONG or SHORT ready |
+| Teal | A paper position is open |
+| Grey | Blind |
+
+Interactive:
+
+- Tap a world (or press Enter on its tag) and the owl flies over to it, lights
+  it up and flies home.
+- Tap the owl and it reacts: a hoot, a hop, a head swivel, a wing-spread or a
+  feather shake.
+- Tap anywhere else in the sky and it looks there. It also follows your pointer.
+
 ## The owl
 
-Each time a new reading arrives, the owl takes off and visits the desks in the
+A snowy owl: white down with soft grey chevrons on the body and wings, a clean
+white face with fine strokes around the eyes, amber-orange eyes, a small black
+beak, feathered feet and dark talons.
+
+Each time a new reading arrives, it takes off and flies world to world in the
 order the cycle uses them (collect, read, vote, check), then lands on the head
-trader's desk. The step bar follows it. It flies to the desks on screen and
-checks the rest in step, so the flight stays in view. The real cycle runs in
-milliseconds on the server; the flight is a picture of it.
+trader's world. The step bar, the world tags (✓ once visited) and the desk cards
+below follow it. The worlds are far away and home is close, so it shrinks as it
+flies out and grows as it comes back. The real cycle runs in milliseconds on
+the server; the flight is a picture of it.
 
 How it moves:
 
 - **Takeoff:** a crouch, then a jump that stretches and springs back.
-- **Flight:** swooping curves that weave side to side and bank into each turn,
-  growing slightly as it comes toward you. The longest leg of each patrol gets a
+- **Flight:** swooping curves that weave side to side and bank into each turn.
+  The stars streak behind it when it flies fast. The longest leg of each patrol gets a
   barrel roll: the body and wings roll around the neck while the head stays
   still and level, eyes on you, as an owl's does.
 - **Landing:** a flare with wings beating, then a squash on touchdown and one
@@ -55,18 +105,19 @@ and idle moves:
 | Blind | Four or more desks cannot see | Eyes shut, head tucked | — | Keeps still |
 
 When a setup is ready (stooping), the patrol ends differently: the owl climbs
-off to one side, loops the loop, then dives onto the head desk with its wings
+off to one side, loops the loop, then dives onto the home world with its wings
 tucked and flares at the last moment before the call. The motion only ever
 reflects the floor's state; it says nothing about how a trade will turn out.
 
-It looks toward your pointer when you move over the floor. The owl is about
-400 px wide on a desktop and 230 px on a phone.
+The owl is about 380 px wide on a desktop and 210 px on a phone, at home on the
+horizon.
 
-The owl is drawn on the graphics card by one shader in `web/js/owl.js`: no
-library, no images, no network. Under "reduce motion" it never flies and draws
-still frames only. It stops drawing when the page is hidden or scrolled away,
-and it lowers its own resolution on a slow computer. Without WebGL the floor
-shows the flat Kestrel mark instead.
+The owl and the galaxy are each drawn on the graphics card by one shader
+(`web/js/owl.js`, `web/js/galaxy.js`), with no library, no images and no
+network. Under "reduce motion" the owl never flies and both draw still frames
+only. They stop drawing when the page is hidden or scrolled away and lower
+their own resolution on a slow computer. Without WebGL the floor keeps a flat
+night sky with the world tags, and the flat Kestrel mark instead of the owl.
 
 ## What it is not
 
@@ -76,5 +127,10 @@ Paper only. The floor reads endpoints the app already has (`/api/desk`,
 place, block or size a trade. JEV is a recorded second opinion and never
 trades.
 
-Code: `web/js/floor.js` (the desks and the patrol), `web/js/owl.js` (the owl),
-styles under "The floor" in `web/css/app.css`.
+Code:
+
+- `web/js/floor.js`: the desks, the layout of the worlds, the patrol and the
+  taps.
+- `web/js/galaxy.js`: the sky and the worlds.
+- `web/js/owl.js`: the owl.
+- Styles: under "The floor" in `web/css/app.css`.
