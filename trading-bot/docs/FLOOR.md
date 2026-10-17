@@ -29,21 +29,38 @@ never shows a zero in place of "we don't know".
 
 Each time a new reading arrives, the owl takes off and visits the desks in the
 order the cycle uses them (collect, read, vote, check), then lands on the head
-trader's desk. The step bar follows it. The real cycle runs in milliseconds on
-the server; the flight is a picture of it.
+trader's desk. The step bar follows it. It flies to the desks on screen and
+checks the rest in step, so the flight stays in view. The real cycle runs in
+milliseconds on the server; the flight is a picture of it.
 
-Perched, its form is the floor's call:
+How it moves:
 
-| Form | When | Look |
-|---|---|---|
-| Perched | No setup | Idle, looks around, blinks |
-| Watching | A WATCH is forming | Pupils wide, curious head tilts, gold rim light |
-| Stooping | LONG or SHORT ready | Leans in, wings mantled, ember rim light |
-| Holding | A paper position is open | Settled, sleepy eyes, teal rim light |
-| Blind | Four or more desks cannot see | Eyes shut, head tucked, moonlight rim light |
+- **Takeoff:** a crouch, then a jump that stretches and springs back.
+- **Flight:** swooping curves that weave side to side and bank into each turn,
+  growing slightly as it comes toward you. The longest leg of each patrol gets a
+  barrel roll: the body and wings roll around the neck while the head stays
+  still and level, eyes on you, as an owl's does.
+- **Landing:** a flare with wings beating, then a squash on touchdown and one
+  soft bounce.
 
-Now and then it shakes its feathers or stretches a wing. It looks toward your
-pointer when you move over the floor.
+Perched, its form is the floor's call, and each form has its own landing beat
+and idle moves:
+
+| Form | When | Look | After landing | Idle moves |
+|---|---|---|---|---|
+| Perched | No setup | Looks around, blinks | A hoot | Shake, stretch, head swivel, hop, hoot |
+| Watching | A WATCH is forming | Pupils wide, curious head tilts | A slow radar scan | Scan, head swivel |
+| Stooping | LONG or SHORT ready | Leans in, wings mantled, pupils narrow | Wings spread in a V: the call | Keeps still and focused |
+| Holding | A paper position is open | Settled, sleepy eyes | A feather shake | Shake, stretch |
+| Blind | Four or more desks cannot see | Eyes shut, head tucked | — | Keeps still |
+
+When a setup is ready (stooping), the patrol ends differently: the owl climbs
+off to one side, loops the loop, then dives onto the head desk with its wings
+tucked and flares at the last moment before the call. The motion only ever
+reflects the floor's state; it says nothing about how a trade will turn out.
+
+It looks toward your pointer when you move over the floor. The owl is about
+400 px wide on a desktop and 230 px on a phone.
 
 The owl is drawn on the graphics card by one shader in `web/js/owl.js`: no
 library, no images, no network. Under "reduce motion" it never flies and draws
