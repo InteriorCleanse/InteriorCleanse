@@ -163,7 +163,7 @@ function render(d) {
 // ---------------------------------------------------------------- the owl's patrol
 
 let owl = null, data = null, timer = null, patrolling = false, abort = false, lastSeen = 0, lastPatrol = 0
-const OWL_W = () => (innerWidth < 640 ? 170 : 270)
+const OWL_W = () => (innerWidth < 640 ? 230 : 400)
 
 function stage() { return document.querySelector('#floor-out .fl-stage') }
 function visible() { const s = document.getElementById('tab-floor'); return !!s && !s.classList.contains('hidden') && document.visibilityState === 'visible' }
@@ -177,26 +177,62 @@ function spotFor(el, perch) {
   return { x: r.left - sr.left + r.width / 2 - w / 2, y: r.top - sr.top - h * 0.55 }
 }
 
-function place(c, x, y) { c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`; c.dataset.x = x; c.dataset.y = y }
+function place(c, x, y, s = 1) { c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(3)})`; c.dataset.x = x; c.dataset.y = y }
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const clampN = (x, a, b) => Math.max(a, Math.min(b, x))
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+const owlEl = () => stage()?.querySelector('.fl-owl')
+const posOf = (c) => ({ x: Number(c.dataset.x || 0), y: Number(c.dataset.y || 0) })
 
-function flyTo(target) {
-  const c = stage()?.querySelector('.fl-owl')
+/**
+ * Flies the owl's canvas to a point along a swooping curve: two control points
+ * pushed off the straight line (alternating sides, so a patrol weaves), a lift
+ * over the middle, and a little depth as it comes toward you and goes back.
+ * It banks into the curve because the steering follows the real velocity.
+ */
+let swoop = 1
+function flyTo(target, opts = {}) {
+  const c = owlEl()
   if (!c) return Promise.resolve()
-  const x0 = Number(c.dataset.x || 0), y0 = Number(c.dataset.y || 0)
+  const { x: x0, y: y0 } = posOf(c)
   const dx = target.x - x0, dy = target.y - y0, dist = Math.hypot(dx, dy)
-  const ms = Math.max(420, Math.min(1150, dist * 1.4))
+  const ms = opts.ms ?? Math.max(560, Math.min(1500, dist * 1.6))
+  swoop = -swoop
+  const nx = dist ? -dy / dist : 0, ny = dist ? dx / dist : 0
+  const bend = (opts.bend ?? Math.min(120, dist * 0.3)) * swoop
+  const lift = opts.lift ?? Math.min(80, dist * 0.22)
+  const p1 = { x: x0 + dx * 0.3 + nx * bend, y: y0 + dy * 0.3 + ny * bend - lift }
+  const p2 = { x: x0 + dx * 0.7 - nx * bend * 0.6, y: y0 + dy * 0.7 - ny * bend * 0.6 - lift }
+  const bez = (t, a, b, q, d) => { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * q + t * t * t * d }
+  const curve = opts.ease ?? ease, depth = opts.depth ?? 0.14
+  return new Promise((resolve) => {
+    const t0 = performance.now()
+    let px = x0, py = y0
+    const tick = (now) => {
+      if (abort) return resolve()
+      const t = Math.min(1, (now - t0) / ms), e = curve(t)
+      const x = bez(e, x0, p1.x, p2.x, target.x), y = bez(e, y0, p1.y, p2.y, target.y)
+      place(c, x, y, 1 + depth * Math.sin(t * Math.PI))
+      const vx = x - px, vy = y - py, sp = Math.hypot(vx, vy); px = x; py = y
+      if (owl && sp > 0.05) owl.steer(clampN(vx / Math.max(sp, 3), -1, 1) * (t < 0.92 ? 1 : 0.3), clampN(vy / Math.max(sp, 3), -1, 1))
+      if (t < 1) requestAnimationFrame(tick); else resolve()
+    }
+    requestAnimationFrame(tick)
+  })
+}
+
+/** A loop-the-loop on screen: forward, up and over, back to where it started, in time with the owl's own turn. */
+function loopAround(ms, r) {
+  const c = owlEl()
+  if (!c) return Promise.resolve()
+  const { x: x0, y: y0 } = posOf(c)
   return new Promise((resolve) => {
     const t0 = performance.now()
     const tick = (now) => {
       if (abort) return resolve()
-      const t = Math.min(1, (now - t0) / ms), e = ease(t)
-      // a gentle arc so it flies, not slides
-      const lift = Math.sin(t * Math.PI) * Math.min(60, dist * 0.18)
-      place(c, x0 + dx * e, y0 + dy * e - lift)
-      if (owl) owl.steer(dist ? (dx / dist) * (t < 0.92 ? 1 : 0.3) : 0, dist ? dy / dist : 0)
-      if (t < 1) requestAnimationFrame(tick); else resolve()
+      const t = Math.min(1, (now - t0) / ms), a = ease(t) * Math.PI * 2
+      place(c, x0 + Math.sin(a) * r, y0 - (1 - Math.cos(a)) * r, 1 + 0.08 * Math.sin(a / 2))
+      if (t < 1) requestAnimationFrame(tick); else { place(c, x0, y0); resolve() }
     }
     requestAnimationFrame(tick)
   })
@@ -214,26 +250,46 @@ async function patrol() {
     return
   }
   patrolling = true; abort = false; lastPatrol = Date.now()
+  const form = formOf(data)
   owl.takeOff()
-  await wait(380)
-  for (const k of DESKS) {
+  await wait(260)   // the crouch, then the jump
+  // the desks in cycle order; it flies to the ones on screen (the rest are checked in step),
+  // and the longest leg gets a barrel roll
+  const inView = (el) => { const r = el.getBoundingClientRect(); return r.top > 40 && r.top < innerHeight - 120 }
+  const legs = DESKS.map((k) => ({ k, el: st.querySelector(`[data-desk="${k.id}"]`) })).filter((l) => l.el).map((l) => ({ ...l, fly: inView(l.el) }))
+  let prev = posOf(owlEl()), rollAt = -1, longest = 0
+  legs.forEach((l, i) => { if (!l.fly) return; const p = spotFor(l.el, false); const d = Math.hypot(p.x - prev.x, p.y - prev.y); if (i > 0 && d > longest) { longest = d; rollAt = i } prev = p })
+  for (const [i, { k, el, fly }] of legs.entries()) {
     if (abort) break
-    const el = st.querySelector(`[data-desk="${k.id}"]`)
-    if (!el) continue
     step(k.step)
-    await flyTo(spotFor(el, false))
+    if (!fly) { el.classList.add('fl-seen'); await wait(140); continue }
+    const flight = flyTo(spotFor(el, false))
+    if (i === rollAt) { await wait(140); owl.trick('roll') }
+    await flight
     el.classList.add('fl-visit')
     owl.glance(0, 0.35, 420)
-    await wait(460)
+    await wait(420)
     el.classList.remove('fl-visit'); el.classList.add('fl-seen')
   }
   step('DECIDE')
-  if (abort) { const c = st.querySelector('.fl-owl'), p = spotFor(head, true); place(c, p.x, p.y); owl.steer(0, 0); owl.land(); patrolling = false; return }
-  await flyTo(spotFor(head, true))
+  const perch = spotFor(head, true)
+  if (abort) { place(owlEl(), perch.x, perch.y); owl.steer(0, 0); owl.land(); patrolling = false; return }
+  if (form === 'stooping') {
+    // a setup is ready: climb off to one side, loop, then dive onto the head desk
+    await flyTo({ x: perch.x - Math.min(260, perch.x * 0.6), y: perch.y - 70 })
+    const ms = owl.trick('loop')
+    if (ms) await loopAround(ms, 70)
+    owl.trick('stoop')
+    await flyTo(perch, { ms: 560, bend: 0, lift: 0, depth: 0.22, ease: (t) => t * t })
+  } else await flyTo(perch)
+  if (abort) { place(owlEl(), perch.x, perch.y) }
   owl.steer(0, 0)
   owl.land()
   head.classList.add('fl-visit'); setTimeout(() => head.classList.remove('fl-visit'), 1200)
-  await wait(1100)
+  await wait(1150)
+  // the landing beat, by form: the call for a setup, a scan for a watch, a shake for a held position
+  const beat = { stooping: 'spread', watching: 'scan', holding: 'shake', perched: 'hoot', blind: '' }[form]
+  if (beat && !abort) { const ms = owl.trick(beat); if (ms) await wait(ms) }
   patrolling = false
 }
 

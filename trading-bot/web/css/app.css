@@ -3415,7 +3415,7 @@ html[data-tone="dark"] .hm-hero, html[data-tone="dark"].has-film .hm-hero { back
 .fl-steps li { counter-increment:fls; font-size:var(--fs-2xs); letter-spacing:.06em; text-transform:uppercase; color:var(--faint); border:1px solid var(--line); border-radius:var(--rad-pill); padding:4px 10px; transition:color var(--dur-std) var(--ease-std), border-color var(--dur-std) var(--ease-std), background-color var(--dur-std) var(--ease-std); }
 .fl-steps li::before { content:counter(fls) " "; opacity:.6; }
 .fl-steps li.on { color:var(--text); border-color:color-mix(in srgb, var(--brand) 55%, var(--line)); background:color-mix(in srgb, var(--brand) 12%, transparent); }
-.fl-stage { position:relative; display:grid; gap:var(--sp-3); padding-top:clamp(96px, 12vw, 150px); }
+.fl-stage { position:relative; display:grid; gap:var(--sp-3); padding-top:clamp(130px, 17vw, 230px); }
 .fl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:var(--sp-3); }
 .fl-desk { position:relative; display:grid; gap:6px; align-content:start; background:var(--panel); border:1px solid var(--line); border-radius:var(--rad-3); padding:var(--sp-3) var(--sp-4); transition:border-color var(--dur-std) var(--ease-std), box-shadow var(--dur-std) var(--ease-std), transform var(--dur-std) var(--ease-std); }
 .fl-desk header { display:flex; align-items:center; gap:10px; }
@@ -3452,7 +3452,7 @@ html[data-tone="dark"] .hm-hero, html[data-tone="dark"].has-film .hm-hero { back
 .fl-headdesk[data-form="stooping"] .fl-form i { background:var(--state-bad); }
 .fl-headdesk[data-form="holding"] .fl-form i { background:var(--state-ok); }
 .fl-headdesk[data-form="blind"] .fl-form i { background:var(--state-info); }
-.fl-owl { position:absolute; left:0; top:0; z-index:var(--z-raised, 5); pointer-events:none; will-change:transform; filter:drop-shadow(0 14px 18px rgba(0,0,0,.28)); }
+.fl-owl { position:absolute; left:0; top:0; z-index:var(--z-raised, 5); pointer-events:none; will-change:transform; transform-origin:50% 70%; filter:drop-shadow(0 14px 18px rgba(0,0,0,.28)); }
 .fl-owl-flat { position:absolute; right:40px; top:20px; width:56px; height:56px; }
 .fl-note { margin:0; font-size:var(--fs-2xs); color:var(--faint); max-width:90ch; }
 @media (max-width:640px) { .fl-headdesk { padding-top:calc(var(--sp-4) + 10px); } .fl-paper { margin-left:0; } .fl-grid { grid-template-columns:1fr 1fr; } .fl-desk { padding:var(--sp-3); } .fl-who small { white-space:normal; } }
